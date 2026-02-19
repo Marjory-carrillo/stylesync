@@ -1,22 +1,30 @@
 import { useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut } from 'lucide-react';
 
 export default function AdminLayout() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const auth = localStorage.getItem('stylesync_admin_auth');
-        if (!auth) {
-            navigate('/login');
-        }
-    }, [navigate]);
+    // Legacy auth check removed - handled by AdminRoute and Supabase
+    // useEffect(() => {
+    //     const auth = localStorage.getItem('stylesync_admin_auth');
+    //     if (!auth) {
+    //         navigate('/login');
+    //     }
+    // }, [navigate]);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         if (confirm('¿Cerrar sesión?')) {
-            localStorage.removeItem('stylesync_admin_auth');
-            navigate('/login');
+            try {
+                // localStorage.removeItem('stylesync_admin_auth'); // Legacy
+                await supabase.auth.signOut();
+                navigate('/login');
+            } catch (error) {
+                console.error("Error signing out:", error);
+                navigate('/login'); // Force navigation anyway
+            }
         }
     };
 
