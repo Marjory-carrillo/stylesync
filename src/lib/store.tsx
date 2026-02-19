@@ -328,7 +328,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
             if (data) {
                 setTenantId(data.id);
-                fetchData(data.id);
+                // Wait for all data to be loaded before finishing
+                await fetchData(data.id);
                 // Persist last visited slug for PWA smart routing
                 localStorage.setItem('citalink_last_slug', slug);
                 return true;
@@ -347,7 +348,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         // 1. Check if slug exists
         const { data: existing } = await supabase.from('tenants').select('id').eq('slug', slug).single();
-        if (existing) return { success: false, error: 'Este link ya está ocupado.' };
+        if (existing) return { success: false, error: 'Este link ya ha sido ocupado.' };
 
         // 2. Create Tenant
         // Note: Ensure 'category' column exists in your Supabase 'tenants' table.
@@ -439,13 +440,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-            const { data: sData } = await supabase.from('services').select('*').eq('tenant_id', currentTenantId).order('id');
+            const [
+                { data: sData },
+                { data: stData },
+                { data: aData },
+                { data: bsData },
+                { data: tData },
+                { data: scData, error: scError },
+                { data: anData },
+                { data: wlData },
+                { data: bpData },
+                { data: clData }
+            ] = await Promise.all([
+                supabase.from('services').select('*').eq('tenant_id', currentTenantId).order('id'),
+                supabase.from('stylists').select('*').eq('tenant_id', currentTenantId).order('id'),
+                supabase.from('appointments').select('*').eq('tenant_id', currentTenantId),
+                supabase.from('blocked_slots').select('*').eq('tenant_id', currentTenantId),
+                supabase.from('tenants').select('*').eq('id', currentTenantId).single(),
+                supabase.from('schedule_config').select('*').eq('tenant_id', currentTenantId).limit(1).single(),
+                supabase.from('announcements').select('*').eq('tenant_id', currentTenantId).order('created_at', { ascending: false }),
+                supabase.from('waiting_list').select('*').eq('tenant_id', currentTenantId),
+                supabase.from('blocked_phones').select('phone').eq('tenant_id', currentTenantId),
+                supabase.from('cancellation_log').select('*').eq('tenant_id', currentTenantId)
+            ]);
+
             if (sData) setServices(sData);
-
-            const { data: stData } = await supabase.from('stylists').select('*').eq('tenant_id', currentTenantId).order('id');
             if (stData) setStylists(stData);
-
-            const { data: aData } = await supabase.from('appointments').select('*').eq('tenant_id', currentTenantId);
             if (aData) setAppointments(aData.map((a: any) => ({
                 ...a,
                 clientName: a.client_name,
@@ -454,14 +474,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 stylistId: a.stylist_id,
                 bookedAt: a.booked_at,
             })));
-
-            const { data: bsData } = await supabase.from('blocked_slots').select('*').eq('tenant_id', currentTenantId);
             if (bsData) setBlockedSlots(bsData.map((b: any) => ({ ...b, startTime: b.start_time, endTime: b.end_time })));
 
-            // Business Config is now part of Tenants table, but for MVP we might have kept separate or merged.
-            // In schema V1, we put address/phone in tenants table.
-            // Let's fetch from tenants table for now.
-            const { data: tData } = await supabase.from('tenants').select('*').eq('id', currentTenantId).single();
             if (tData) {
                 setBusinessConfig({
                     name: tData.name,
@@ -477,11 +491,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 });
             }
 
-            const { data: scData, error: scError } = await supabase.from('schedule_config').select('*').eq('tenant_id', currentTenantId).limit(1).single();
             if (scError && scError.code !== 'PGRST116') console.error('Error fetching schedule:', scError);
             if (scData?.schedule) setSchedule(scData.schedule);
             else {
-                // Insert default if missing
                 const { error: insertError } = await supabase.from('schedule_config').insert({
                     tenant_id: currentTenantId,
                     schedule: DEFAULT_SCHEDULE
@@ -489,16 +501,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 if (!insertError) setSchedule(DEFAULT_SCHEDULE);
             }
 
-            const { data: anData } = await supabase.from('announcements').select('*').eq('tenant_id', currentTenantId).order('created_at', { ascending: false });
             if (anData) setAnnouncements(anData.map((a: any) => ({ ...a, createdAt: a.created_at })));
-
-            const { data: wlData } = await supabase.from('waiting_list').select('*').eq('tenant_id', currentTenantId);
             if (wlData) setWaitingList(wlData.map((w: any) => ({ ...w, serviceId: w.service_id, createdAt: w.created_at })));
-
-            const { data: bpData } = await supabase.from('blocked_phones').select('phone').eq('tenant_id', currentTenantId);
             if (bpData) setBlockedPhones(bpData.map((p: any) => p.phone));
-
-            const { data: clData } = await supabase.from('cancellation_log').select('*').eq('tenant_id', currentTenantId);
             if (clData) setCancellationLog(clData.map((c: any) => ({
                 ...c,
                 appointmentId: c.appointment_id,

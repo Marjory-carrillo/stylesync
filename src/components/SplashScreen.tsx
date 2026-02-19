@@ -18,7 +18,7 @@ const SplashScreen: React.FC = () => {
                 {/* Branding */}
                 <div className="text-center space-y-2">
                     <h1 className="text-4xl font-bold tracking-tighter text-white">
-                        Style<span className="text-amber-500">Sync</span>
+                        Cita<span className="text-amber-500">Link</span>
                     </h1>
                     <div className="flex items-center gap-2 justify-center">
                         <div className="h-1 w-1 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '0s' }} />
