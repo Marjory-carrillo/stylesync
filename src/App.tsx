@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { StoreProvider, useStore } from './lib/store';
 import AdminLayout from './layouts/AdminLayout';
 import ClientLayout from './layouts/ClientLayout';
@@ -63,9 +63,43 @@ function App() {
             </Route>
           </Route>
         </Routes>
+        <DebugOverlay />
       </Router>
     </StoreProvider>
   );
 }
+
+const DebugOverlay = () => {
+  const { user, tenantId, loadingAuth } = useStore();
+  const location = useLocation();
+
+  // Show in all environments for debugging
+  // if (process.env.NODE_ENV === 'production') return null;
+
+  return (
+    <div className="fixed bottom-4 left-4 z-50 bg-black/80 text-white p-4 rounded-lg text-xs font-mono border border-white/20 shadow-xl pointer-events-none">
+      <h3 className="font-bold text-accent mb-2 border-b border-white/20 pb-1">Debug State</h3>
+      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+        <span className="text-slate-400">Path:</span>
+        <span className="text-yellow-400">{location.pathname}</span>
+
+        <span className="text-slate-400">Loading:</span>
+        <span className={loadingAuth ? "text-red-400 font-bold" : "text-green-400"}>
+          {String(loadingAuth)}
+        </span>
+
+        <span className="text-slate-400">User:</span>
+        <span className={user ? "text-green-400" : "text-red-400"}>
+          {user ? user.email : 'NULL'}
+        </span>
+
+        <span className="text-slate-400">Tenant:</span>
+        <span className={tenantId ? "text-green-400" : "text-yellow-400"}>
+          {tenantId || 'NULL'}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 export default App;
