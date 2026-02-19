@@ -1,10 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import { Scissors } from 'lucide-react';
-import { useStore } from '../lib/store';
 
 export default function ClientLayout() {
-    const { businessConfig } = useStore();
-
     return (
         <div className="flex flex-col h-[100dvh] bg-slate-950 text-slate-200 overflow-hidden">
             return (
