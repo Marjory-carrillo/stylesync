@@ -145,6 +145,7 @@ interface StoreContextType {
     updateAppointmentTime: (id: string, newTime: string) => Promise<void>;
 
     updateDaySchedule: (day: string, data: Partial<DaySchedule>) => Promise<void>;
+    saveSchedule: (schedule: WeekSchedule) => Promise<void>;
     updateBusinessConfig: (data: Partial<BusinessConfig>) => Promise<void>;
 
     addAnnouncement: (message: string, type: 'info' | 'warning' | 'closed') => Promise<void>;
@@ -805,6 +806,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
     }, [schedule, tenantId, fetchData]);
 
+    const saveSchedule = useCallback(async (newSchedule: WeekSchedule) => {
+        if (!tenantId) return;
+        console.log('[saveSchedule] Saving full schedule:', newSchedule);
+
+        // Optimistic update
+        setSchedule(newSchedule);
+
+        try {
+            const { error } = await supabase.from('schedule_config').upsert({
+                tenant_id: tenantId,
+                schedule: newSchedule
+            }, { onConflict: 'tenant_id' });
+
+            if (error) {
+                console.error('Error saving schedule:', error);
+                alert(`Error al guardar horarios: ${error.message}`);
+                fetchData(); // Revert
+            } else {
+                console.log('[saveSchedule] Success!');
+            }
+        } catch (err: any) {
+            console.error('Unexpected error:', err);
+            alert(`Error inesperado: ${err.message}`);
+            fetchData();
+        }
+    }, [tenantId, fetchData]);
+
     const getTodaySchedule = useCallback((): DaySchedule => {
         const dayKey = getTodayDayKey();
         return schedule[dayKey] ?? DEFAULT_SCHEDULE[dayKey] ?? { open: false, start: '09:00', end: '18:00' };
@@ -990,6 +1018,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updateAppointmentTime,
 
         updateDaySchedule,
+        saveSchedule,
         updateBusinessConfig,
 
         addAnnouncement,

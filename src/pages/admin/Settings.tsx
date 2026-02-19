@@ -56,7 +56,7 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
 export default function Settings() {
     const {
         businessConfig, schedule, announcements, blockedSlots,
-        updateBusinessConfig, updateDaySchedule, addAnnouncement, removeAnnouncement, addBlockedSlot, removeBlockedSlot,
+        updateBusinessConfig, saveSchedule, addAnnouncement, removeAnnouncement, addBlockedSlot, removeBlockedSlot,
         uploadLogo
     } = useStore();
 
@@ -87,11 +87,8 @@ export default function Settings() {
 
     const handleScheduleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Iterate and update each day
-        for (const [day, data] of Object.entries(scheduleForm)) {
-            await updateDaySchedule(day, data);
-        }
-        alert('Horarios actualizados');
+        await saveSchedule(scheduleForm);
+        alert('Horarios actualizados correctamente');
     };
 
     const handleAddAnnouncement = (e: React.FormEvent) => {
