@@ -31,14 +31,27 @@ export const CATEGORY_DEFAULTS: Record<string, {
     },
     beauty_salon: {
         services: [
-            { name: 'Corte Dama', price: 25, duration: 45, image: '' },
-            { name: 'Manicure Gel', price: 30, duration: 60, image: '' },
+            { name: 'Corte Dama', price: 30, duration: 45, image: '' },
             { name: 'Tinte Completo', price: 60, duration: 120, image: '' },
-            { name: 'Brushing', price: 20, duration: 30, image: '' },
+            { name: 'Balayage', price: 90, duration: 180, image: '' },
+            { name: 'Peinado Evento', price: 40, duration: 60, image: '' },
         ],
         stylists: [
             { name: 'Estilista Senior', role: 'Senior Stylist', phone: '', image: '' },
-            { name: 'Manicurista', role: 'Nail Artist', phone: '', image: '' },
+            { name: 'Colorista', role: 'Color Expert', phone: '', image: '' },
+        ],
+        schedule: STANDARD_SCHEDULE
+    },
+    nail_bar: {
+        services: [
+            { name: 'Manicure Gel', price: 25, duration: 60, image: '' },
+            { name: 'Uñas Acrílicas', price: 45, duration: 90, image: '' },
+            { name: 'Pedicure Spa', price: 35, duration: 60, image: '' },
+            { name: 'Retiro de Gel', price: 10, duration: 30, image: '' },
+        ],
+        stylists: [
+            { name: 'Manicurista Pro', role: 'Nail Artist', phone: '', image: '' },
+            { name: 'Pedicurista', role: 'Staff', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     },
@@ -80,14 +93,5 @@ export const CATEGORY_DEFAULTS: Record<string, {
             saturday: { open: false, start: '10:00', end: '14:00' }, // Usually closed weekends
         }
     },
-    other: {
-        services: [
-            { name: 'Servicio Básico', price: 20, duration: 30, image: '' },
-            { name: 'Servicio Premium', price: 50, duration: 60, image: '' },
-        ],
-        stylists: [
-            { name: 'Profesional 1', role: 'Staff', phone: '', image: '' },
-        ],
-        schedule: STANDARD_SCHEDULE
-    }
+
 };

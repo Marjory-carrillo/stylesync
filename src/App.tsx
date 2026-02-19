@@ -12,6 +12,7 @@ import Settings from './pages/admin/Settings';
 import Booking from './pages/client/Booking';
 import Login from './pages/Login';
 import CreateBusiness from './pages/admin/CreateBusiness';
+import ThemeManager from './components/ThemeManager';
 
 const AdminRoute = () => {
   const { user, loadingAuth, tenantId } = useStore();
@@ -36,6 +37,7 @@ const OnboardingRoute = () => {
 function App() {
   return (
     <StoreProvider>
+      <ThemeManager />
       <Router>
         <Routes>
           {/* Client Routes (Public for now) */}
