@@ -739,7 +739,7 @@ export default function Booking() {
                             <h3 className="text-2xl font-bold text-white mb-2">Selecciona Hora</h3>
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
                                 <Calendar size={14} className="text-accent" />
-                                {format(new Date(selectedDate), 'EEEE d MMMM', { locale: es })}
+                                {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMMM', { locale: es })}
                             </div>
                         </div>
 
@@ -838,7 +838,7 @@ export default function Booking() {
                             <div className="space-y-3 py-4 border-t border-white/10 border-b border-white/10 mb-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted">Fecha</span>
-                                    <span className="font-medium text-white">{format(new Date(selectedDate), 'EEEE d MMMM', { locale: es })}</span>
+                                    <span className="font-medium text-white">{format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMMM', { locale: es })}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted">Hora</span>
