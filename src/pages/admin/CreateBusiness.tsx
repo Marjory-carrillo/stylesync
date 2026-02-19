@@ -69,11 +69,11 @@ export default function CreateBusiness() {
     }
 
     return (
-        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-white flex items-center justify-center p-4 md:p-8 relative overflow-hidden">
+        <div className="min-h-screen bg-[var(--color-bg)] text-white flex items-center justify-center p-4 md:p-8 relative overflow-hidden">
 
             {/* Ambient Background Effects */}
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[128px] pointer-events-none" />
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-[var(--color-accent)]/20 rounded-full blur-[128px] pointer-events-none" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[var(--color-primary)]/10 rounded-full blur-[128px] pointer-events-none" />
 
             <div className="w-full max-w-4xl grid md:grid-cols-2 gap-8 items-center relative z-10 animate-fade-in">
 
@@ -108,7 +108,7 @@ export default function CreateBusiness() {
                 </div>
 
                 {/* Right Side: Form Card */}
-                <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
+                <div className="bg-[var(--color-bg-secondary)]/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
                     <div className="text-center md:text-left mb-8 md:hidden">
                         <h2 className="text-2xl font-bold text-white">Crear mi Negocio</h2>
                         <p className="text-slate-400 text-sm">Configura tu espacio en CitaLink</p>
@@ -138,7 +138,7 @@ export default function CreateBusiness() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-300 ml-1">Tu Enlace Personalizado</label>
                             <div className="relative group">
-                                <div className="flex items-center bg-slate-950/50 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500/50 transition-all">
+                                <div className="flex items-center bg-[var(--color-bg-tertiary)]/50 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500/50 transition-all">
                                     <div className="bg-white/5 border-r border-white/10 px-3 py-3 text-slate-400 text-sm font-medium select-none">
                                         citalink.app/
                                     </div>
