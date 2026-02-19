@@ -814,10 +814,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setSchedule(newSchedule);
 
         try {
-            const { error } = await supabase.from('schedule_config').upsert({
-                tenant_id: tenantId,
-                schedule: newSchedule
-            }, { onConflict: 'tenant_id' });
+            // Manual Upsert: 1. Check if exists
+            const { data: existing } = await supabase
+                .from('schedule_config')
+                .select('id')
+                .eq('tenant_id', tenantId)
+                .single();
+
+            let error;
+
+            if (existing) {
+                // 2. Update
+                const { error: updateError } = await supabase
+                    .from('schedule_config')
+                    .update({ schedule: newSchedule })
+                    .eq('tenant_id', tenantId);
+                error = updateError;
+            } else {
+                // 3. Insert
+                const { error: insertError } = await supabase
+                    .from('schedule_config')
+                    .insert({ tenant_id: tenantId, schedule: newSchedule });
+                error = insertError;
+            }
 
             if (error) {
                 console.error('Error saving schedule:', error);
