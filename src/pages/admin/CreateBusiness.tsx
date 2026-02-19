@@ -111,7 +111,7 @@ export default function CreateBusiness() {
                 <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
                     <div className="text-center md:text-left mb-8 md:hidden">
                         <h2 className="text-2xl font-bold text-white">Crear mi Negocio</h2>
-                        <p className="text-slate-400 text-sm">Configura tu espacio en StyleSync</p>
+                        <p className="text-slate-400 text-sm">Configura tu espacio en CitaLink</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -140,7 +140,7 @@ export default function CreateBusiness() {
                             <div className="relative group">
                                 <div className="flex items-center bg-slate-950/50 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500/50 transition-all">
                                     <div className="bg-white/5 border-r border-white/10 px-3 py-3 text-slate-400 text-sm font-medium select-none">
-                                        stylesync.app/
+                                        citalink.app/
                                     </div>
                                     <input
                                         type="text"

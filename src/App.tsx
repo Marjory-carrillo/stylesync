@@ -12,7 +12,7 @@ import Settings from './pages/admin/Settings';
 import Booking from './pages/client/Booking';
 import Login from './pages/Login';
 import CreateBusiness from './pages/admin/CreateBusiness';
-import ThemeManager from './components/ThemeManager';
+import BrandingManager from './components/BrandingManager';
 import SplashScreen from './components/SplashScreen';
 
 const AdminRoute = () => {
@@ -44,7 +44,7 @@ const HomeRedirect = () => {
   if (user) return <Navigate to="/admin" replace />;
 
   // Check for last visited tenant slug for clients
-  const lastSlug = localStorage.getItem('stylesync_last_slug');
+  const lastSlug = localStorage.getItem('citalink_last_slug') || localStorage.getItem('stylesync_last_slug');
   if (lastSlug) {
     return <Navigate to={`/reserva/${lastSlug}`} replace />;
   }
@@ -56,7 +56,7 @@ const HomeRedirect = () => {
 function App() {
   return (
     <StoreProvider>
-      <ThemeManager />
+      <BrandingManager />
       <Router>
         <Routes>
           {/* Main Landing / Smart Redirect */}

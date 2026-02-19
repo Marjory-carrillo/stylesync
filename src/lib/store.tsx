@@ -67,9 +67,10 @@ export interface BusinessConfig {
     address: string;
     googleMapsUrl: string;
     phone: string;
-    category?: string;
-    slug?: string;
+    category: string;
+    slug: string;
     logoUrl?: string;
+    description?: string;
     primaryColor?: string;
     accentColor?: string;
 }
@@ -200,7 +201,7 @@ export type Store = StoreContextType;
 // ─── Constants & Utils ────────────────────────────────────────────────────────
 import { CATEGORY_DEFAULTS } from './categoryDefaults';
 
-const DEVICE_BOOKING_KEY = 'stylesync_pending_booking';
+const DEVICE_BOOKING_KEY = 'citalink_pending_booking';
 
 // function persistDevicePending(id: string) { localStorage.setItem(DEVICE_BOOKING_KEY, id); } // Removed unused helper
 function getDevicePendingId(): string | null { return localStorage.getItem(DEVICE_BOOKING_KEY); }
@@ -235,11 +236,12 @@ const DEFAULT_SCHEDULE: WeekSchedule = {
 };
 
 const INITIAL_BUSINESS: BusinessConfig = {
-    name: 'StyleSync Barbería',
+    name: 'CitaLink Barbería',
     address: 'Av. Principal #123, Centro',
     googleMapsUrl: 'https://maps.google.com/?q=Av+Principal+123+Centro',
     phone: '555-0100',
     category: 'barbershop',
+    slug: 'demo'
 };
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -316,7 +318,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 setTenantId(data.id);
                 fetchData(data.id);
                 // Persist last visited slug for PWA smart routing
-                localStorage.setItem('stylesync_last_slug', slug);
+                localStorage.setItem('citalink_last_slug', slug);
                 return true;
             }
             return false;
@@ -457,6 +459,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     category: tData.category || '',
                     slug: tData.slug || '',
                     logoUrl: tData.logo_url || '',
+                    description: tData.description || '',
                     primaryColor: tData.primary_color || '',
                     accentColor: tData.accent_color || ''
                 });

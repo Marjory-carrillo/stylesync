@@ -80,7 +80,7 @@ export default function Dashboard() {
                     <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                         <div className="flex items-center bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex-1 md:min-w-[280px]">
                             <code className="text-blue-400 font-mono text-xs select-all truncate">
-                                stylesync.app/reserva/{businessConfig.slug || '...'}
+                                citalink.app/reserva/{businessConfig.slug || '...'}
                             </code>
                         </div>
                         <div className="flex gap-2">

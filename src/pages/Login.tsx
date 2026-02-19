@@ -60,7 +60,7 @@ export default function Login() {
                     <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-2">
                         Admin Login
                     </h1>
-                    <p className="text-slate-400">StyleSync Gestión</p>
+                    <p className="text-slate-400">CitaLink Gestión</p>
                 </div>
 
                 {/* Login Card */}

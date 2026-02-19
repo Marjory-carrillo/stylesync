@@ -39,7 +39,7 @@ export default function AdminLayout() {
                     <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-orange-600 shadow-glow">
                         <Scissors className="text-slate-950" size={18} />
                     </div>
-                    <span className="font-bold text-white tracking-tight">StyleSync Admin</span>
+                    <span className="font-bold text-white tracking-tight">CitaLink Admin</span>
                 </div>
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
@@ -71,7 +71,7 @@ export default function AdminLayout() {
                             <Scissors className="text-slate-950" size={20} />
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold tracking-tight text-white leading-none">StyleSync</h1>
+                            <h1 className="text-lg font-bold tracking-tight text-white leading-none">CitaLink</h1>
                             <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
                         </div>
                     </div>
