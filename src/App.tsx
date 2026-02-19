@@ -35,16 +35,36 @@ const OnboardingRoute = () => {
   return <Outlet />;
 };
 
+const HomeRedirect = () => {
+  const { user, loadingAuth } = useStore();
+
+  if (loadingAuth) return <SplashScreen />;
+
+  // If user is logged in as admin, go to admin
+  if (user) return <Navigate to="/admin" replace />;
+
+  // Check for last visited tenant slug for clients
+  const lastSlug = localStorage.getItem('stylesync_last_slug');
+  if (lastSlug) {
+    return <Navigate to={`/reserva/${lastSlug}`} replace />;
+  }
+
+  // fallback to login
+  return <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
     <StoreProvider>
       <ThemeManager />
       <Router>
         <Routes>
-          {/* Client Routes (Public for now) */}
-          <Route path="/" element={<ClientLayout />}>
-            <Route index element={<Navigate to="/login" />} />
-            <Route path="reserva/:slug" element={<Booking />} />
+          {/* Main Landing / Smart Redirect */}
+          <Route path="/" element={<HomeRedirect />} />
+
+          {/* Client Routes */}
+          <Route path="/reserva/:slug" element={<ClientLayout />}>
+            <Route index element={<Booking />} />
           </Route>
 
           <Route path="/login" element={<Login />} />

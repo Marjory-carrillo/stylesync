@@ -315,6 +315,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             if (data) {
                 setTenantId(data.id);
                 fetchData(data.id);
+                // Persist last visited slug for PWA smart routing
+                localStorage.setItem('stylesync_last_slug', slug);
                 return true;
             }
             return false;

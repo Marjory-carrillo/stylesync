@@ -82,22 +82,35 @@ export default function ResourceCalendar({
         <div className="flex flex-col h-full animate-fade-in select-none">
 
             {/* ── Calendar Header (Navigation) ── */}
-            <div className="flex items-center justify-between mb-4 px-2">
-                <button onClick={handlePrevDay} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                    <ChevronLeft className="text-white" />
-                </button>
-                <div className="text-center">
-                    <h3 className="text-xl font-bold text-white capitalize">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 px-2">
+                <div className="flex items-center gap-2 order-2 sm:order-1 w-full sm:w-auto justify-between sm:justify-start">
+                    <button
+                        onClick={() => onDateChange(new Date())}
+                        className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-white transition-all active:scale-95"
+                    >
+                        Hoy
+                    </button>
+                    <div className="flex items-center gap-1">
+                        <button onClick={handlePrevDay} className="p-2.5 hover:bg-white/10 rounded-xl transition-colors text-slate-400 hover:text-white">
+                            <ChevronLeft size={20} />
+                        </button>
+                        <button onClick={handleNextDay} className="p-2.5 hover:bg-white/10 rounded-xl transition-colors text-slate-400 hover:text-white">
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="text-center order-1 sm:order-2">
+                    <h3 className="text-lg md:text-xl font-bold text-white capitalize tracking-tight">
                         {format(currentDate, 'EEEE d MMMM yyyy', { locale: es })}
                     </h3>
                 </div>
-                <button onClick={handleNextDay} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                    <ChevronRight className="text-white" />
-                </button>
+
+                <div className="hidden sm:block order-3 w-[100px]" /> {/* Spacer to center title on desktop */}
             </div>
 
             {/* ── Main Grid Container ── */}
-            <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar glass-panel rounded-xl border border-white/10 relative" style={{ maxHeight: '70vh' }}>
+            <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar glass-panel rounded-2xl border border-white/5 relative bg-slate-900/50 shadow-inner" style={{ maxHeight: 'calc(100vh - 250px)' }}>
 
                 <div className="min-w-[800px] flex"> {/* Min width for scrolling */}
 

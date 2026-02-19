@@ -49,38 +49,38 @@ export default function Dashboard() {
     }, [appointments, services]);
 
     return (
-        <div className="animate-fade-in space-y-8">
-            <header className="flex justify-between items-center mb-6">
+        <div className="animate-fade-in space-y-6 md:space-y-8">
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-white mb-1">Dashboard</h2>
-                    <p className="text-muted text-sm">Resumen de actividad y métricas clave.</p>
+                    <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white mb-1">Dashboard</h2>
+                    <p className="text-slate-400 text-xs md:text-sm">Resumen de actividad y métricas clave.</p>
                 </div>
-                <div className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-accent">
-                    <Clock size={16} />
-                    <span>{new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                <div className="glass-panel px-3 py-1.5 md:px-4 md:py-2 rounded-xl flex items-center gap-2 text-xs md:text-sm text-accent whitespace-nowrap">
+                    <Clock size={14} className="md:size-4" />
+                    <span className="capitalize">{new Date().toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 </div>
             </header>
 
             {/* ── Client App Link Banner ── */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 p-6 shadow-xl mb-8">
-                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-purple-600/20 border border-blue-500/20 p-5 md:p-6 shadow-xl mb-8 group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-500">
                     <Users size={120} />
                 </div>
-                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <div>
-                        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                            <span className="bg-white/20 p-1.5 rounded-lg"><Users size={20} /></span>
-                            Tu App de Reservas para Clientes
+                <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                    <div className="flex-1">
+                        <h3 className="text-lg md:text-xl font-bold text-white mb-2 flex items-center gap-2">
+                            <span className="bg-blue-500/20 p-1.5 rounded-lg text-blue-400"><Users size={20} /></span>
+                            Tu App de Reservas
                         </h3>
-                        <p className="text-blue-100 text-sm max-w-xl">
-                            Comparte este enlace con tus clientes. Ellos verán una versión simplificada diseñada para reservar citas sin registrarse.
+                        <p className="text-slate-300 text-xs md:text-sm max-w-xl leading-relaxed">
+                            Tus clientes pueden instalar esta web como una app para reservar sin barra de navegación.
                         </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                        <div className="flex items-center bg-black/20 rounded-lg px-4 py-3 border border-white/10 flex-1 md:flex-none">
-                            <span className="text-blue-200 text-xs mr-2 select-none">Link:</span>
-                            <code className="text-white font-mono text-sm select-all">
-                                stylesync.app/reserva/{businessConfig.slug || 'tu-negocio'}
+
+                    <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                        <div className="flex items-center bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex-1 md:min-w-[280px]">
+                            <code className="text-blue-400 font-mono text-xs select-all truncate">
+                                stylesync.app/reserva/{businessConfig.slug || '...'}
                             </code>
                         </div>
                         <div className="flex gap-2">
@@ -88,27 +88,19 @@ export default function Dashboard() {
                                 onClick={() => {
                                     const url = `${window.location.origin}/reserva/${businessConfig.slug}`;
                                     navigator.clipboard.writeText(url);
-                                    // You might want to add a toast here in a real app
                                     alert('¡Enlace copiado!');
                                 }}
-                                className="px-4 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition-colors shadow-sm text-sm"
+                                className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-900/20 text-xs md:text-sm"
                             >
-                                Copiar
+                                Copiar Link
                             </button>
                             <a
                                 href={`/reserva/${businessConfig.slug}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-4 py-2 bg-blue-700/50 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors border border-white/20 text-sm flex items-center gap-2"
+                                className="px-4 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition-colors border border-white/10 text-xs md:text-sm flex items-center gap-2"
                             >
-                                Abrir <DollarSign size={14} className="rotate-45" />
-                                {/* Using DollarSign rotated as arrow-up-right substitute since I don't want to import new icons yet if not needed, 
-                                    actually let's check imports. ArrowRight is imported? No. 
-                                    Dashboard imports: Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Phone, Clock. 
-                                    I'll just use "Abrir" text or maybe no icon to avoid breaking imports. 
-                                    Wait, line 3 has imports. I can add ExternalLink if I want. 
-                                    But I am replacing a block, I cannot easily add imports without another call. 
-                                    I'll stick to safe imports. */}
+                                Abrir
                             </a>
                         </div>
                     </div>
