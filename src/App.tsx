@@ -12,16 +12,22 @@ import Settings from './pages/admin/Settings';
 import Booking from './pages/client/Booking';
 import Login from './pages/Login';
 import CreateBusiness from './pages/admin/CreateBusiness';
+import SuperAdminLayout from './layouts/SuperAdminLayout';
+import SuperAdminPanel from './pages/admin/SuperAdminPanel';
 import BrandingManager from './components/BrandingManager';
 import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
 
 const AdminRoute = () => {
-  const { user, loadingAuth, tenantId } = useStore();
+  return <Outlet />;
+};
+
+const SuperAdminRoute = () => {
+  const { user, loadingAuth, isSuperAdmin } = useStore();
 
   if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (!tenantId) return <Navigate to="/create-business" replace />;
+  if (!isSuperAdmin) return <Navigate to="/admin" replace />;
 
   return <Outlet />;
 };
@@ -85,6 +91,13 @@ function App() {
               <Route path="services" element={<Services />} />
               <Route path="staff" element={<Staff />} />
               <Route path="settings" element={<Settings />} />
+            </Route>
+          </Route>
+
+          {/* Super Admin Routes */}
+          <Route path="/super-admin" element={<SuperAdminRoute />}>
+            <Route element={<SuperAdminLayout />}>
+              <Route index element={<SuperAdminPanel />} />
             </Route>
           </Route>
         </Routes>

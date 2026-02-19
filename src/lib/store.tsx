@@ -81,6 +81,11 @@ export interface BusinessConfig {
     accentColor?: string;
 }
 
+export interface Tenant extends BusinessConfig {
+    id: string;
+    created_at: string;
+}
+
 export interface DaySchedule {
     open: boolean;
     start: string; // "09:00"
@@ -138,6 +143,13 @@ interface StoreContextType {
     blockedSlots: BlockedSlot[];
     blockedPhones: string[];
     toasts: Toast[];
+
+    // Super Admin
+    allTenants: Tenant[];
+    isSuperAdmin: boolean;
+    fetchAllTenants: () => Promise<void>;
+    switchTenant: (tenantId: string) => Promise<void>;
+    deleteTenant: (tenantId: string) => Promise<void>;
 
     sendSMS: (phone: string, message: string) => Promise<{ success: boolean; error?: string }>;
 
@@ -408,7 +420,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const [allTenants, setAllTenants] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const isSuperAdmin = user?.email === 'infinitummisael@gmail.com';
 
     // ── Safety Timeout (Reduced for better UX) ──
     useEffect(() => {
@@ -753,6 +768,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [tenantId, fetchData]);
 
     const isPhoneBlocked = useCallback((phone: string) => blockedPhones.includes(phone), [blockedPhones]);
+
+    // ── Super Admin Actions ────────────────────────────────────────────────
+
+    const fetchAllTenants = useCallback(async () => {
+        if (!isSuperAdmin) return;
+        const { data, error } = await supabase.from('tenants').select('*').order('created_at', { ascending: false });
+        if (error) {
+            console.error('Error fetching all tenants:', error);
+            return;
+        }
+        setAllTenants(data || []);
+    }, [isSuperAdmin]);
+
+    const switchTenant = useCallback(async (id: string) => {
+        if (!isSuperAdmin) return;
+        localStorage.setItem('stylesync_tenant_id', id);
+        setTenantId(id);
+        // Refresh data for the new tenant
+        window.location.reload();
+    }, [isSuperAdmin]);
+
+    const deleteTenant = useCallback(async (id: string) => {
+        if (!isSuperAdmin) return;
+        const { error } = await supabase.from('tenants').delete().eq('id', id);
+        if (error) {
+            console.error('Error deleting tenant:', error);
+            showToast('Error al eliminar negocio', 'error');
+            return;
+        }
+        showToast('Negocio eliminado', 'success');
+        fetchAllTenants();
+    }, [isSuperAdmin, fetchAllTenants, showToast]);
 
     const canDeviceBook = useCallback(() => {
         const pendingId = getDevicePendingId();
@@ -1141,6 +1188,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         showToast,
         removeToast,
         sendSMS,
+
+        // Super Admin
+        allTenants,
+        isSuperAdmin,
+        fetchAllTenants,
+        switchTenant,
+        deleteTenant
     };
 
     if (loading) {
