@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { parse, format, addDays } from 'date-fns';
+import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useStore, DAY_NAMES, type Announcement, type Service, type Stylist } from '../../lib/store';
 import SplashScreen from '../../components/SplashScreen';
@@ -496,9 +496,55 @@ export default function Booking() {
                                 <RefreshCw size={20} /> Reprogramar Cita
                             </button>
 
-                            <button className="btn btn-ghost w-full py-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20" onClick={() => { if (confirm('¿Estás seguro de cancelar tu cita?')) handleClientCancel(activeAppt.id); }}>
-                                <XCircle size={20} /> Cancelar Cita
-                            </button>
+                            {(() => {
+                                const apptDateTime = parse(`${activeAppt.date} ${activeAppt.time}`, 'yyyy-MM-dd HH:mm', new Date());
+                                const now = new Date();
+                                const diffMins = differenceInMinutes(apptDateTime, now);
+                                const diffHours = diffMins / 60;
+
+                                if (diffMins < 0) return null; // Already passed
+
+                                if (diffHours < 1) {
+                                    return (
+                                        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
+                                            <p className="font-bold mb-1">Cita muy próxima</p>
+                                            <p>Falta menos de 1 hora. Debes llamar directamente para cancelar.</p>
+                                            <a
+                                                href={`tel:${businessConfig.phone.replace(/\D/g, '')}`}
+                                                className="btn btn-primary w-full mt-3 flex items-center justify-center gap-2"
+                                            >
+                                                <Phone size={18} /> Llamar ahora
+                                            </a>
+                                        </div>
+                                    );
+                                }
+
+                                if (diffHours <= 5) {
+                                    const message = encodeURIComponent(`Hola, me gustaría cancelar mi cita de las ${activeAppt.time} (${activeService.name}). Mi nombre es ${clientName}.`);
+                                    return (
+                                        <div className="flex flex-col gap-3">
+                                            <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-500 text-sm text-center">
+                                                <p className="font-bold mb-1">Política de Cancelación</p>
+                                                <p>Faltan menos de 5 horas. Por favor, avísale al dueño por WhatsApp.</p>
+                                            </div>
+                                            <a
+                                                href={`https://wa.me/${businessConfig.phone.replace(/\D/g, '')}?text=${message}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-secondary w-full py-4 text-accent border-accent/20 flex items-center justify-center gap-2"
+                                            >
+                                                <XCircle size={20} /> Hablar por WhatsApp
+                                            </a>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <button className="btn btn-ghost w-full py-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20" onClick={() => { if (confirm('¿Estás seguro de cancelar tu cita?')) handleClientCancel(activeAppt.id); }}>
+                                        <XCircle size={20} /> Cancelar Cita
+                                    </button>
+                                );
+                            })()}
                         </div>
                         <button className="btn btn-ghost w-full mt-4 text-sm" onClick={resetBooking}>← Volver al inicio</button>
                     </div>
