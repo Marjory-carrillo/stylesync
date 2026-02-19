@@ -117,8 +117,9 @@ export default function Booking() {
         const relevantBlockedSlots: BlockedInterval[] = blockedSlots
             .filter(b => b.date === selectedDate)
             .map(b => ({
-                start: parse(b.startTime, 'HH:mm', baseDate),
-                end: parse(b.endTime, 'HH:mm', baseDate)
+                // Robust parsing: slice(0,5) in case DB returns HH:mm:ss
+                start: parse(b.startTime.slice(0, 5), 'HH:mm', baseDate),
+                end: parse(b.endTime.slice(0, 5), 'HH:mm', baseDate)
             }));
 
         // Add Lunch Break if configured

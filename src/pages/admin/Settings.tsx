@@ -75,6 +75,7 @@ export default function Settings() {
     const [blockStart, setBlockStart] = useState('');
     const [blockEnd, setBlockEnd] = useState('');
     const [blockReason, setBlockReason] = useState('');
+    const [isAllDay, setIsAllDay] = useState(false);
 
     useEffect(() => {
         setInfoForm(businessConfig);
@@ -105,13 +106,17 @@ export default function Settings() {
 
     const handleAddBlockedSlot = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!blockDate || !blockStart || !blockEnd) return;
-        addBlockedSlot({ date: blockDate, startTime: blockStart, endTime: blockEnd, reason: blockReason });
+        const start = isAllDay ? '00:00' : blockStart;
+        const end = isAllDay ? '23:59' : blockEnd;
+
+        if (!blockDate || !start || !end) return;
+        addBlockedSlot({ date: blockDate, startTime: start, endTime: end, reason: blockReason });
+
         setBlockDate('');
         setBlockStart('');
         setBlockEnd('');
         setBlockReason('');
-        setBlockReason('');
+        setIsAllDay(false);
     };
 
     const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,26 +444,38 @@ export default function Settings() {
                     </div>
 
                     <form onSubmit={handleAddBlockedSlot} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm text-muted mb-1">Fecha</label>
-                                <input
-                                    type="date"
-                                    className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all dark:[color-scheme:dark]"
-                                    value={blockDate}
-                                    onChange={e => setBlockDate(e.target.value)}
-                                    required
-                                />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-4">
+                                <div>
+                                    <label className="block text-sm text-muted mb-1">Fecha</label>
+                                    <input
+                                        type="date"
+                                        className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all dark:[color-scheme:dark]"
+                                        value={blockDate}
+                                        onChange={e => setBlockDate(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-white/10 bg-white/5 text-accent focus:ring-accent"
+                                        checked={isAllDay}
+                                        onChange={e => setIsAllDay(e.target.checked)}
+                                    />
+                                    <span className="text-sm text-white group-hover:text-accent transition-colors">Todo el día</span>
+                                </label>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+
+                            <div className={`grid grid-cols-2 gap-2 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                                 <div>
                                     <label className="block text-sm text-muted mb-1">De</label>
                                     <input
                                         type="time"
                                         className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all dark:[color-scheme:dark]"
-                                        value={blockStart}
+                                        value={isAllDay ? '00:00' : blockStart}
                                         onChange={e => setBlockStart(e.target.value)}
-                                        required
+                                        required={!isAllDay}
                                     />
                                 </div>
                                 <div>
@@ -466,9 +483,9 @@ export default function Settings() {
                                     <input
                                         type="time"
                                         className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all dark:[color-scheme:dark]"
-                                        value={blockEnd}
+                                        value={isAllDay ? '23:59' : blockEnd}
                                         onChange={e => setBlockEnd(e.target.value)}
-                                        required
+                                        required={!isAllDay}
                                     />
                                 </div>
                             </div>
