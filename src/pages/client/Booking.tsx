@@ -15,7 +15,7 @@ export default function Booking() {
         isPhoneBlocked, hasActiveAppointment, getActiveAppointmentByPhone,
         getServiceById,
         businessConfig, getTodaySchedule, getActiveAnnouncements, getScheduleForDate,
-        addToWaitingList, blockedSlots, loadTenantBySlug, tenantId, loading, showToast,
+        addToWaitingList, blockedSlots, loadTenantBySlug, tenantId, loading,
         sendSMS
     } = useStore();
 
