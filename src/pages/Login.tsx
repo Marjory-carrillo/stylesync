@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, ArrowRight, Mail, Loader2, Calendar, Sparkles } from 'lucide-react';
+import { Lock, ArrowRight, Mail, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Login() {
@@ -113,8 +113,8 @@ export default function Login() {
                             type="submit"
                             disabled={loading}
                             className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all group/btn ${loading
-                                    ? 'bg-slate-700 cursor-not-allowed opacity-70'
-                                    : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 hover:scale-[1.02] shadow-orange-500/20'
+                                ? 'bg-slate-700 cursor-not-allowed opacity-70'
+                                : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 hover:scale-[1.02] shadow-orange-500/20'
                                 }`}
                         >
                             {loading ? (

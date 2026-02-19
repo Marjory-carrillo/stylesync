@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2 } from 'lucide-react';
 import { useStore } from '../../lib/store';
@@ -168,8 +168,8 @@ export default function CreateBusiness() {
                                         type="button"
                                         onClick={() => setCategory(cat.id)}
                                         className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 relative overflow-hidden group ${category === cat.id
-                                                ? 'bg-blue-600/20 border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
-                                                : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                                            ? 'bg-blue-600/20 border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
+                                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                                             }`}
                                     >
                                         <cat.icon size={20} className={category === cat.id ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-200'} />
@@ -211,8 +211,8 @@ export default function CreateBusiness() {
                             type="submit"
                             disabled={loading}
                             className={`w-full py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all mt-4 ${loading
-                                    ? 'bg-slate-700 cursor-not-allowed opacity-70'
-                                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 hover:scale-[1.02] shadow-blue-600/20'
+                                ? 'bg-slate-700 cursor-not-allowed opacity-70'
+                                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 hover:scale-[1.02] shadow-blue-600/20'
                                 }`}
                         >
                             {loading ? (
