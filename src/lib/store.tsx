@@ -236,7 +236,7 @@ const DEFAULT_SCHEDULE: WeekSchedule = {
 };
 
 const INITIAL_BUSINESS: BusinessConfig = {
-    name: 'CitaLink Barbería',
+    name: 'CitaLink',
     address: 'Av. Principal #123, Centro',
     googleMapsUrl: 'https://maps.google.com/?q=Av+Principal+123+Centro',
     phone: '555-0100',
@@ -938,15 +938,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (data.phone !== undefined) updatePayload.phone = data.phone;
         if (data.googleMapsUrl !== undefined) updatePayload.google_maps_url = data.googleMapsUrl;
         if (data.logoUrl !== undefined) updatePayload.logo_url = data.logoUrl;
+        if (data.description !== undefined) updatePayload.description = data.description;
+        if (data.category !== undefined) updatePayload.category = data.category;
+        if (data.slug !== undefined) updatePayload.slug = data.slug;
         if (data.primaryColor !== undefined) updatePayload.primary_color = data.primaryColor;
         if (data.accentColor !== undefined) updatePayload.accent_color = data.accentColor;
 
         const { error } = await supabase.from('tenants').update(updatePayload).eq('id', tenantId);
 
-        if (error) console.error('Error updating config:', error);
+        if (error) {
+            console.error('Error updating config:', error);
+            alert(`Error al guardar configuración: ${error.message}`);
+        }
 
         // Optimistic
         setBusinessConfig(prev => ({ ...prev, ...data }));
+        // Do not call fetchData() immediately if we just want optimistic update to stick
+        // But fetchData is good to ensure sync. Let's keep it.
         fetchData();
     }, [tenantId, fetchData]);
 

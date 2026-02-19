@@ -27,7 +27,7 @@ export default function BrandingManager() {
 
         // 2. Dynamic Document Title
         const platformName = "CitaLink";
-        const newTitle = businessConfig.name && businessConfig.name !== "StyleSync Barbería"
+        const newTitle = businessConfig.name && businessConfig.name !== platformName
             ? `${businessConfig.name} - ${platformName}`
             : `${platformName} - Gestión de Citas`;
 

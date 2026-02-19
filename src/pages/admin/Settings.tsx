@@ -33,22 +33,27 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
                 const colorThief = new ColorThief();
                 const palette = colorThief.getPalette(img, 3);
                 if (palette && palette.length >= 2) {
-                    resolve({
-                        primary: rgbToHue(palette[0][0], palette[0][1], palette[0][2]),
-                        accent: rgbToHue(palette[1][0], palette[1][1], palette[1][2])
-                    });
+                    const primary = rgbToHue(palette[0][0], palette[0][1], palette[0][2]);
+                    const accent = rgbToHue(palette[1][0], palette[1][1], palette[1][2]);
+                    console.log(`[getBrandColors] Extracted: Primary=${primary}, Accent=${accent}`);
+                    resolve({ primary, accent });
                 } else if (palette && palette.length === 1) {
                     const h = rgbToHue(palette[0][0], palette[0][1], palette[0][2]);
-                    resolve({ primary: h, accent: h }); // Fallback same color
+                    console.log(`[getBrandColors] Extracted single: ${h}`);
+                    resolve({ primary: h, accent: h });
                 } else {
+                    console.warn('[getBrandColors] No palette found');
                     resolve({ primary: '', accent: '' });
                 }
             } catch (e) {
-                console.error('ColorThief error:', e);
+                console.error('[getBrandColors] Error:', e);
                 resolve({ primary: '', accent: '' });
             }
         };
-        img.onerror = () => resolve({ primary: '', accent: '' });
+        img.onerror = (err) => {
+            console.error('[getBrandColors] Image load error (CORS?):', err);
+            resolve({ primary: '', accent: '' });
+        };
     });
 };
 
@@ -215,6 +220,16 @@ export default function Settings() {
                                 className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                                 value={infoForm.name}
                                 onChange={e => setInfoForm({ ...infoForm, name: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-muted mb-1">Descripción corta (PWA)</label>
+                            <textarea
+                                className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none"
+                                rows={2}
+                                value={infoForm.description || ''}
+                                onChange={e => setInfoForm({ ...infoForm, description: e.target.value })}
+                                placeholder="Breve descripción para cuando los clientes instalen la app"
                             />
                         </div>
                         <div>
