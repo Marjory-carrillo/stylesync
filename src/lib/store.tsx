@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { parse, addMinutes, isBefore, isAfter } from 'date-fns';
+import { parse, addMinutes, isBefore, isAfter, format } from 'date-fns';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -730,7 +730,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [tenantId, fetchData]);
 
     const getActiveAppointmentByPhone = useCallback((phone: string): Appointment | undefined => {
-        const t = new Date().toISOString().split('T')[0];
+        const t = format(new Date(), 'yyyy-MM-dd');
         return appointments.find(a => a.clientPhone === phone && a.date >= t && a.status === 'confirmada');
     }, [appointments]);
 
@@ -761,7 +761,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [appointments]);
 
     const hasActiveAppointment = useCallback((phone: string) => {
-        const t = new Date().toISOString().split('T')[0];
+        const t = format(new Date(), 'yyyy-MM-dd');
         return appointments.some(a => a.clientPhone === phone && a.date >= t && a.status === 'confirmada');
     }, [appointments]);
 
@@ -973,7 +973,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const getReminders = useCallback((): Appointment[] => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
 
         return appointments.filter(a => {
             if (a.date !== tomorrowStr || a.status !== 'confirmada') return false;
@@ -1004,7 +1004,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const getStylistById = useCallback((id: number | null) => (id ? stylists.find(s => s.id === id) : undefined), [stylists]);
 
     const getAppointmentsForToday = useCallback(() => {
-        const t = new Date().toISOString().split('T')[0];
+        const t = format(new Date(), 'yyyy-MM-dd');
         return appointments.filter(a => a.date === t && a.status !== 'cancelada');
     }, [appointments]);
 

@@ -56,7 +56,7 @@ export default function Booking() {
     const [clientError, setClientError] = useState<string | null>(null);
     const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
     const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null>(null);
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [bookingResult, setBookingResult] = useState<{ success: boolean; error?: string } | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -68,7 +68,7 @@ export default function Booking() {
         const dates: { dateStr: string; label: string; dayName: string; isToday: boolean }[] = [];
         for (let i = 0; i < 5; i++) {
             const d = addDays(new Date(), i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = format(d, 'yyyy-MM-dd');
             const dayIdx = d.getDay();
             const dayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayIdx];
             dates.push({
