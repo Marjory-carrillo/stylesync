@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut } from 'lucide-react';
