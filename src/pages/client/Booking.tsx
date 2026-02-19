@@ -161,6 +161,14 @@ export default function Booking() {
         return metadata;
     }, [selectedService, selectedDate, selectedDateSchedule, blockedSlots, selectedStylist, stylists, appointments, services, dateAppointments]);
 
+    // Detect if the day is manually blocked (e.g., "All Day" block such as 00:00 - 23:59)
+    const isDayBlockedManually = useMemo(() => {
+        return blockedSlots.some(b =>
+            b.date === selectedDate &&
+            (b.startTime.slice(0, 5) === '00:00' && b.endTime.slice(0, 5) === '23:59')
+        );
+    }, [blockedSlots, selectedDate]);
+
     const availableSlots = useMemo(() => {
         return Object.keys(slotsMetadata).sort();
     }, [slotsMetadata]);
@@ -764,23 +772,27 @@ export default function Booking() {
                                 </div>
                                 <h4 className="text-lg font-bold text-white mb-2">Sin horarios disponibles</h4>
                                 <p className="text-sm text-muted mb-6">
-                                    Parece que el día está completo para este servicio.
+                                    {isDayBlockedManually
+                                        ? 'Este día no hay servicio por causa de fuerza mayor o descanso.'
+                                        : 'Parece que el día está completo para este servicio.'}
                                 </p>
 
-                                <button
-                                    className="btn btn-primary w-full py-3 mb-3"
-                                    onClick={async () => {
-                                        await addToWaitingList({
-                                            name: clientName,
-                                            phone: clientPhone,
-                                            serviceId: selectedService.id,
-                                            date: selectedDate,
-                                        });
-                                        setStep(26);
-                                    }}
-                                >
-                                    ⏳ Avísame si se libera un lugar
-                                </button>
+                                {!isDayBlockedManually && (
+                                    <button
+                                        className="btn btn-primary w-full py-3 mb-3 text-accent border-accent/20"
+                                        onClick={async () => {
+                                            await addToWaitingList({
+                                                name: clientName,
+                                                phone: clientPhone,
+                                                serviceId: selectedService.id,
+                                                date: selectedDate,
+                                            });
+                                            setStep(26);
+                                        }}
+                                    >
+                                        ⏳ Avísame si se libera un lugar
+                                    </button>
+                                )}
                                 <button className="btn btn-ghost text-sm w-full" onClick={() => setStep(25)}>
                                     Ver otra fecha
                                 </button>
