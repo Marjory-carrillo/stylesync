@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useStore } from '../../lib/store';
-import { Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Phone, Clock } from 'lucide-react';
+import { Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors } from 'lucide-react';
 
 export default function Dashboard() {
     const {
@@ -157,6 +157,52 @@ export default function Dashboard() {
                     </div>
                 )
             }
+
+            {/* ── General Waiting List Header (Always visible if there's someone waiting) ── */}
+            {waitingList.length > 0 && (
+                <div className="glass-panel p-6 rounded-2xl border border-white/5 mb-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <Users size={20} className="text-accent" /> Lista de Espera General ({waitingList.length})
+                        </h3>
+                        <span className="text-xs text-muted italic">Clientes esperando un espacio libre</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {waitingList.map(item => {
+                            const svc = getServiceById(item.serviceId);
+                            return (
+                                <div key={item.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-between group hover:bg-white/10 transition-all">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <span className="text-white font-bold block">{item.name}</span>
+                                            <span className="text-xs text-muted">{item.phone}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[10px] font-black uppercase text-accent tracking-tighter">Interés</span>
+                                            <span className="text-xs text-white block font-medium">{item.date}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-xs text-muted mb-4">
+                                        <Scissors size={12} className="opacity-40" />
+                                        <span>{svc?.name || 'Cualquier servicio'}</span>
+                                    </div>
+
+                                    <a
+                                        href={`https://wa.me/${item.phone.replace(/\D/g, '')}?text=Hola ${item.name}, te contactamos de ${businessConfig.name}. Vimos que estabas en nuestra lista de espera para el ${item.date}. ¿Aún estás interesado en agendar una cita?`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn btn-sm bg-accent/20 text-accent hover:bg-accent hover:text-white w-full py-2 rounded-lg border border-accent/20 transition-all font-bold text-xs flex items-center justify-center gap-2"
+                                    >
+                                        <MessageCircle size={14} /> Contactar por WhatsApp
+                                    </a>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -322,8 +368,8 @@ export default function Dashboard() {
 
                                 return (
                                     <div key={appt.id} className={`flex justify-between items-center p-4 rounded-lg border transition-all group ${isCurrentlyHappening
-                                            ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-[0_0_20px_rgba(var(--accent-rgb),0.05)]'
-                                            : 'bg-white/5 border-white/5 hover:bg-white/10'
+                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-[0_0_20px_rgba(var(--accent-rgb),0.05)]'
+                                        : 'bg-white/5 border-white/5 hover:bg-white/10'
                                         }`}>
                                         <div className="flex items-center gap-4">
                                             <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold transition-colors ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-gradient-to-br from-slate-700 to-slate-800 text-muted group-hover:text-white'
