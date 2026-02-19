@@ -115,6 +115,7 @@ interface StoreContextType {
     createTenant: (name: string, slug: string, address: string, category: string) => Promise<{ success: boolean; error?: string }>;
     loadTenantBySlug: (slug: string) => Promise<boolean>;
     uploadLogo: (file: File) => Promise<string | null>;
+    uploadStylistPhoto: (file: File) => Promise<string | null>;
 
     services: Service[];
     stylists: Stylist[];
@@ -515,6 +516,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } catch (error: any) {
             console.error('Error uploading logo:', error);
             alert(`Error al subir logo: ${error.message || error}`);
+            return null;
+        }
+    };
+
+    const uploadStylistPhoto = async (file: File) => {
+        if (!tenantId) return null;
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `staff-${tenantId}-${Date.now()}.${fileExt}`;
+
+            // Reusing 'logos' bucket as requested/planned
+            const { error: uploadError } = await supabase.storage
+                .from('logos')
+                .upload(fileName, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('logos').getPublicUrl(fileName);
+            return data.publicUrl;
+        } catch (error: any) {
+            console.error('Error uploading staff photo:', error);
+            alert(`Error al subir foto: ${error.message || error}`);
             return null;
         }
     };
@@ -938,6 +961,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createTenant,
         loadTenantBySlug,
         uploadLogo,
+        uploadStylistPhoto,
 
         services,
         stylists,

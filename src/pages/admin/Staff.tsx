@@ -1,10 +1,10 @@
 
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
-import { User, Phone, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon } from 'lucide-react';
 
 export default function Staff() {
-    const { stylists, addStylist, removeStylist, updateStylist } = useStore();
+    const { stylists, addStylist, removeStylist, updateStylist, uploadStylistPhoto } = useStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -12,6 +12,7 @@ export default function Staff() {
     const [formRole, setFormRole] = useState('');
     const [formPhone, setFormPhone] = useState('');
     const [formImage, setFormImage] = useState('');
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const openAdd = () => {
         setEditingId(null);
@@ -153,6 +154,37 @@ export default function Staff() {
                                     placeholder="https://..."
                                     className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
                                 />
+                                <div className="mt-2 text-xs text-muted">O sube una imagen:</div>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                        {formImage ? (
+                                            <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <ImageIcon size={20} className="text-muted" />
+                                        )}
+                                    </div>
+                                    <label className="btn btn-sm bg-white/5 hover:bg-white/10 text-white cursor-pointer flex items-center gap-2 border border-white/10">
+                                        <Upload size={14} />
+                                        {uploadingImage ? 'Subiendo...' : 'Subir Foto'}
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            disabled={uploadingImage}
+                                            onChange={async (e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setUploadingImage(true);
+                                                    try {
+                                                        const url = await uploadStylistPhoto(e.target.files[0]);
+                                                        if (url) setFormImage(url);
+                                                    } finally {
+                                                        setUploadingImage(false);
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
