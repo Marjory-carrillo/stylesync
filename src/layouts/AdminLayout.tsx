@@ -129,8 +129,8 @@ export default function AdminLayout() {
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 bg-transparent">
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
-                    <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-accent/10 blur-[120px]"></div>
-                    <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-600/10 blur-[120px]"></div>
+                    <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-[var(--color-accent)]/10 blur-[120px]"></div>
+                    <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--color-primary)]/10 blur-[120px]"></div>
                 </div>
 
                 <div className="relative z-10 p-4 md:p-8 container mx-auto max-w-7xl">

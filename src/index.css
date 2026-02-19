@@ -9,10 +9,10 @@
   --hue-accent: 38;
   /* Luxurious Gold */
 
-  /* Backgrounds */
-  --color-bg: hsl(var(--hue-primary), 40%, 8%);
-  --color-bg-secondary: hsl(var(--hue-primary), 35%, 12%);
-  --color-bg-tertiary: hsl(var(--hue-primary), 30%, 18%);
+  /* Backgrounds - Dynamic based on brand hue */
+  --color-bg: hsl(var(--hue-primary), 35%, 7%);
+  --color-bg-secondary: hsl(var(--hue-primary), 30%, 10%);
+  --color-bg-tertiary: hsl(var(--hue-primary), 25%, 15%);
 
   /* Text */
   --color-text: hsl(210, 40%, 98%);
@@ -20,8 +20,7 @@
   --color-text-muted: hsl(215, 20%, 55%);
 
   /* Brand Colors */
-  --color-primary: hsl(var(--hue-accent), 100%, 50%);
-  /* Vibrant Gold */
+  --color-primary: hsl(var(--hue-primary), 80%, 50%);
   --color-accent: hsl(var(--hue-accent), 100%, 50%);
   --color-accent-hover: hsl(var(--hue-accent), 100%, 60%);
   --color-accent-glow: hsla(var(--hue-accent), 100%, 50%, 0.4);

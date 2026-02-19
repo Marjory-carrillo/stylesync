@@ -25,6 +25,12 @@ export default function BrandingManager() {
         document.documentElement.style.setProperty('--hue-primary', theme.primary);
         document.documentElement.style.setProperty('--hue-accent', theme.accent);
 
+        // Ensure dependent colors are re-evaluated by setting them explicitly if needed
+        document.documentElement.style.setProperty('--color-bg', `hsl(${theme.primary}, 35%, 7%)`);
+        document.documentElement.style.setProperty('--color-bg-secondary', `hsl(${theme.primary}, 30%, 10%)`);
+        document.documentElement.style.setProperty('--color-primary', `hsl(${theme.primary}, 80%, 50%)`);
+        document.documentElement.style.setProperty('--color-accent', `hsl(${theme.accent}, 100%, 50%)`);
+
         // 2. Dynamic Document Title
         const platformName = "CitaLink";
         const newTitle = businessConfig.name && businessConfig.name !== platformName
