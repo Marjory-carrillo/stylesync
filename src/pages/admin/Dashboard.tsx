@@ -6,7 +6,7 @@ export default function Dashboard() {
     const {
         getAppointmentsForToday, getTodayRevenue, appointments, services,
         getReminders, generateReminderWhatsAppUrl, getServiceById,
-        cancellationLog, waitingList, businessConfig
+        cancellationLog, waitingList, businessConfig, showToast
     } = useStore();
     const todayAppts = getAppointmentsForToday();
     const revenue = getTodayRevenue();
@@ -88,7 +88,7 @@ export default function Dashboard() {
                                 onClick={() => {
                                     const url = `${window.location.origin}/reserva/${businessConfig.slug}`;
                                     navigator.clipboard.writeText(url);
-                                    alert('¡Enlace copiado!');
+                                    showToast('¡Enlace copiado!', 'success');
                                 }}
                                 className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-900/20 text-xs md:text-sm"
                             >
@@ -108,53 +108,55 @@ export default function Dashboard() {
             </div>
 
             {/* ── Alerts & Recovery Opportunities ── */}
-            {(cancellationLog.length > 0 && waitingList.length > 0) && (
-                <div className="glass-panel p-6 rounded-xl border-l-4 border-yellow-500 relative overflow-hidden mb-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 animate-pulse">
-                            <Bell size={24} />
+            {
+                (cancellationLog.length > 0 && waitingList.length > 0) && (
+                    <div className="glass-panel p-6 rounded-xl border-l-4 border-yellow-500 relative overflow-hidden mb-8">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 animate-pulse">
+                                <Bell size={24} />
+                            </div>
+                            <h3 className="text-lg font-bold text-white">Oportunidades de Recuperación</h3>
                         </div>
-                        <h3 className="text-lg font-bold text-white">Oportunidades de Recuperación</h3>
-                    </div>
 
-                    <div className="space-y-4">
-                        {cancellationLog.slice(0, 3).map(cancel => {
-                            // Find matches in waiting list for same date
-                            const matches = waitingList.filter(w => w.date === cancel.date && w.serviceId === getServiceById(services.find(s => s.name === cancel.serviceName)?.id ?? 0)?.id);
-                            if (matches.length === 0) return null;
+                        <div className="space-y-4">
+                            {cancellationLog.slice(0, 3).map(cancel => {
+                                // Find matches in waiting list for same date
+                                const matches = waitingList.filter(w => w.date === cancel.date && w.serviceId === getServiceById(services.find(s => s.name === cancel.serviceName)?.id ?? 0)?.id);
+                                if (matches.length === 0) return null;
 
-                            return (
-                                <div key={cancel.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-sm text-red-400 mb-2">
-                                        <Clock size={14} />
-                                        <span>Cita Cancelada: <strong>{cancel.date} - {cancel.time}</strong> ({cancel.serviceName})</span>
-                                    </div>
-                                    <p className="text-xs text-muted mb-3">Hay {matches.length} clientes esperando para esta fecha:</p>
+                                return (
+                                    <div key={cancel.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                                        <div className="flex items-center gap-2 text-sm text-red-400 mb-2">
+                                            <Clock size={14} />
+                                            <span>Cita Cancelada: <strong>{cancel.date} - {cancel.time}</strong> ({cancel.serviceName})</span>
+                                        </div>
+                                        <p className="text-xs text-muted mb-3">Hay {matches.length} clientes esperando para esta fecha:</p>
 
-                                    <div className="space-y-2">
-                                        {matches.map(match => (
-                                            <div key={match.id} className="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5">
-                                                <div>
-                                                    <span className="text-white font-bold text-sm block">{match.name}</span>
-                                                    <span className="text-xs text-muted">{match.phone}</span>
+                                        <div className="space-y-2">
+                                            {matches.map(match => (
+                                                <div key={match.id} className="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5">
+                                                    <div>
+                                                        <span className="text-white font-bold text-sm block">{match.name}</span>
+                                                        <span className="text-xs text-muted">{match.phone}</span>
+                                                    </div>
+                                                    <a
+                                                        href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, vimos que estabas interesado en una cita para el ${match.date}. ¡Se acaba de liberar un espacio a las ${cancel.time}! ¿Te interesa?`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="btn btn-sm bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1 rounded"
+                                                    >
+                                                        <MessageCircle size={12} className="mr-1" /> Avisar
+                                                    </a>
                                                 </div>
-                                                <a
-                                                    href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, vimos que estabas interesado en una cita para el ${match.date}. ¡Se acaba de liberar un espacio a las ${cancel.time}! ¿Te interesa?`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="btn btn-sm bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1 rounded"
-                                                >
-                                                    <MessageCircle size={12} className="mr-1" /> Avisar
-                                                </a>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -326,7 +328,7 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 

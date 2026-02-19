@@ -62,6 +62,12 @@ export interface BlockedSlot {
     reason?: string;
 }
 
+export interface Toast {
+    id: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+}
+
 export interface BusinessConfig {
     name: string;
     address: string;
@@ -131,6 +137,7 @@ interface StoreContextType {
     cancellationLog: CancellationLog[];
     blockedSlots: BlockedSlot[];
     blockedPhones: string[];
+    toasts: Toast[];
 
     loading: boolean;
 
@@ -188,11 +195,15 @@ interface StoreContextType {
 
     // Helpers
     getAppointmentsForToday: () => Appointment[];
-    getAppointmentsForDate: (dateStr: string) => Appointment[];
+    getAppointmentsForDate: (date: string) => Appointment[];
     getTodayRevenue: () => number;
     generateWhatsAppUrl: (appointment: Appointment) => string;
     getWeeklyCancellations: (phone: string) => number;
     canDeviceBook: () => boolean;
+
+    // Toast
+    showToast: (message: string, type?: Toast['type']) => void;
+    removeToast: (id: string) => void;
 }
 
 // ─── Store Type ──────────────────────────────────────────────────────────────
@@ -264,6 +275,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [blockedPhones, setBlockedPhones] = useState<string[]>([]);
     const [cancellationLog, setCancellationLog] = useState<CancellationLog[]>([]);
     const [businessConfig, setBusinessConfig] = useState<BusinessConfig>(INITIAL_BUSINESS);
+    const [toasts, setToasts] = useState<Toast[]>([]);
     // ─── Actions & State ───
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
@@ -522,8 +534,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const { data } = supabase.storage.from('logos').getPublicUrl(fileName);
             return data.publicUrl;
         } catch (error: any) {
-            console.error('Error uploading logo:', error);
-            alert(`Error al subir logo: ${error.message || error}`);
+            console.error('Logo upload error:', error);
+            showToast(`Error al subir logo: ${error.message || error}`, 'error');
             return null;
         }
     };
@@ -740,6 +752,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return appointments.find(a => a.clientPhone === phone && a.date >= t && a.status === 'confirmada');
     }, [appointments]);
 
+    // ── Toast Actions ────────────────────────────────────────────────────
+
+    const showToast = useCallback((message: string, type: Toast['type'] = 'info') => {
+        const id = Math.random().toString(36).substring(2, 9);
+        setToasts(prevToasts => [...prevToasts, { id, message, type }]);
+
+        // Auto-remove
+        setTimeout(() => {
+            setToasts(prevToasts => prevToasts.filter(t => t.id !== id));
+        }, 5000);
+    }, []);
+
+    const removeToast = useCallback((id: string) => {
+        setToasts(prevToasts => prevToasts.filter(t => t.id !== id));
+    }, []);
+
     // ── Anti-Spam Actions ──────────────────────────────────────────────────
 
     const blockPhone = useCallback(async (phone: string) => {
@@ -822,14 +850,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             if (error) {
                 console.error('Error updating schedule:', error);
-                alert(`Error al guardar: ${error.message}`);
+                showToast(`Error al guardar: ${error.message}`, 'error');
                 fetchData(); // Revert
             } else {
                 console.log('[updateDaySchedule] Success!');
             }
         } catch (err: any) {
             console.error('Unexpected error:', err);
-            alert(`Error inesperado: ${err.message}`);
+            showToast(`Error inesperado: ${err.message}`, 'error');
             fetchData(); // Revert
         }
     }, [schedule, tenantId, fetchData]);
@@ -876,7 +904,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             if (error) {
                 console.error('Error saving schedule:', error);
-                alert(`Error al guardar horarios: ${error.message}`);
+                showToast(`Error al guardar horarios: ${error.message}`, 'error');
                 fetchData(); // Revert
             } else {
                 console.log('[saveSchedule] Success!');
@@ -885,7 +913,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
         } catch (err: any) {
             console.error('Unexpected error:', err);
-            alert(`Error inesperado: ${err.message}`);
+            showToast(`Error inesperado: ${err.message}`, 'error');
             fetchData();
         }
     }, [tenantId, fetchData]);
@@ -948,7 +976,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         if (error) {
             console.error('Error updating config:', error);
-            alert(`Error al guardar configuración: ${error.message}`);
+            showToast(`Error al guardar configuración: ${error.message}`, 'error');
         }
 
         // Optimistic
@@ -1067,6 +1095,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         cancellationLog,
         blockedSlots,
         blockedPhones,
+        toasts,
 
         loading,
 
@@ -1126,6 +1155,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         getAppointmentsForDate,
         getTodayRevenue,
         generateWhatsAppUrl,
+
+        // Toast
+        showToast,
+        removeToast,
     };
 
     if (loading) {

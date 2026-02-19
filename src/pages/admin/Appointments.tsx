@@ -18,7 +18,8 @@ export default function Appointments() {
         getStylistById,
         isPhoneBlocked,
         generateWhatsAppUrl,
-        generateReminderWhatsAppUrl
+        generateReminderWhatsAppUrl,
+        showToast
     } = useStore();
 
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
@@ -56,7 +57,7 @@ export default function Appointments() {
         // Check waiting list for this date
         const waitingForDate = waitingList.filter(w => w.date === apt.date);
         if (waitingForDate.length > 0) {
-            alert(`⚠️ ATENCIÓN: Hay ${waitingForDate.length} cliente(s) en la Lista de Espera para esta fecha.\n\nRevisa la sección 'Lista de Espera' para contactarlos.`);
+            showToast(`Hay ${waitingForDate.length} cliente(s) en espera para esta fecha`, 'info');
             setShowWaiting(true);
         }
     };

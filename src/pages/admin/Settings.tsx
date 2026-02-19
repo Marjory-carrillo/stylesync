@@ -62,7 +62,7 @@ export default function Settings() {
     const {
         businessConfig, schedule, announcements, blockedSlots,
         updateBusinessConfig, saveSchedule, addAnnouncement, removeAnnouncement, addBlockedSlot, removeBlockedSlot,
-        uploadLogo
+        uploadLogo, showToast
     } = useStore();
 
     const [infoForm, setInfoForm] = useState(businessConfig);
@@ -87,13 +87,13 @@ export default function Settings() {
     const handleInfoSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         updateBusinessConfig(infoForm);
-        alert('Información del negocio actualizada');
+        showToast('Información del negocio actualizada', 'success');
     };
 
     const handleScheduleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         await saveSchedule(scheduleForm);
-        alert('Horarios actualizados correctamente');
+        showToast('Horarios actualizados correctamente', 'success');
     };
 
     const handleAddAnnouncement = (e: React.FormEvent) => {
@@ -149,7 +149,7 @@ export default function Settings() {
                     primaryColor: extractedColors.primary || infoForm.primaryColor,
                     accentColor: extractedColors.accent || infoForm.accentColor
                 });
-                alert('Logo y colores actualizados.');
+                showToast('Logo y colores actualizados', 'success');
             }
         } catch (error) {
             console.error('Error uploading logo:', error);
@@ -203,7 +203,7 @@ export default function Settings() {
                                                 const newConfig = { ...infoForm, logoUrl: '', primaryColor: '', accentColor: '' };
                                                 setInfoForm(newConfig);
                                                 await updateBusinessConfig({ logoUrl: '', primaryColor: '', accentColor: '' });
-                                                alert('Logo eliminado. Se han restaurado los colores por defecto.');
+                                                showToast('Logo eliminado. Se han restaurado los colores por defecto', 'info');
                                             }}
                                         >
                                             <Trash2 size={18} />

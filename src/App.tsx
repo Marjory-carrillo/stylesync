@@ -13,6 +13,7 @@ import Booking from './pages/client/Booking';
 import Login from './pages/Login';
 import CreateBusiness from './pages/admin/CreateBusiness';
 import BrandingManager from './components/BrandingManager';
+import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
 
 const AdminRoute = () => {
@@ -57,6 +58,7 @@ function App() {
   return (
     <StoreProvider>
       <BrandingManager />
+      <ToastContainer />
       <Router>
         <Routes>
           {/* Main Landing / Smart Redirect */}
