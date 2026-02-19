@@ -940,53 +940,51 @@ export default function Booking() {
                                 }
                             </div >
                         </div >
-
-                    </div >
                     </div>
                 )}
 
-            {/* ══ STEP 11: Cancel Success ══ */}
-            {
-                step === 11 && (
-                    <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
-                        <XCircle size={64} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
-                        <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Cita Cancelada</h3>
-                        <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>Tu cita ha sido cancelada exitosamente.</p>
-                        <button className="btn btn-primary" style={{ width: '100%' }} onClick={resetBooking}>Reservar Nueva Cita</button>
-                    </div>
-                )
-            }
+                {/* ══ STEP 11: Cancel Success ══ */}
+                {
+                    step === 11 && (
+                        <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
+                            <XCircle size={64} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
+                            <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Cita Cancelada</h3>
+                            <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>Tu cita ha sido cancelada exitosamente.</p>
+                            <button className="btn btn-primary" style={{ width: '100%' }} onClick={resetBooking}>Reservar Nueva Cita</button>
+                        </div>
+                    )
+                }
 
-            {/* ══ STEP 12: Update Success ══ */}
-            {
-                step === 12 && (
-                    <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
-                        <RefreshCw size={64} style={{ color: 'var(--color-accent)', margin: '0 auto var(--space-md)' }} />
-                        <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>¡Hora Actualizada!</h3>
-                        <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
-                            Tu cita se cambió a las <strong>{selectedTime}</strong>.
-                        </p>
-                        <button className="btn btn-secondary" style={{ width: '100%' }} onClick={resetBooking}>Volver al Inicio</button>
-                    </div>
-                )
-            }
-            {/* ══ STEP 15: Closed Today Info ══ */}
-            {
-                step === 15 && (
-                    <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
-                        <AlertOctagon size={56} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
-                        <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Hoy no abrimos</h3>
-                        <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
-                            Hola, <strong>{clientName}</strong> 👋 — Hoy no estamos recibiendo citas, pero puedes agendar para los próximos días.
-                        </p>
-                        <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={() => setStep(2)}>
-                            Agendar para otro día
-                        </button>
-                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-sm)' }} onClick={() => setStep(1)}>← Volver</button>
-                    </div>
-                )
-            }
-        </div >
+                {/* ══ STEP 12: Update Success ══ */}
+                {
+                    step === 12 && (
+                        <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
+                            <RefreshCw size={64} style={{ color: 'var(--color-accent)', margin: '0 auto var(--space-md)' }} />
+                            <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>¡Hora Actualizada!</h3>
+                            <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
+                                Tu cita se cambió a las <strong>{selectedTime}</strong>.
+                            </p>
+                            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={resetBooking}>Volver al Inicio</button>
+                        </div>
+                    )
+                }
+                {/* ══ STEP 15: Closed Today Info ══ */}
+                {
+                    step === 15 && (
+                        <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
+                            <AlertOctagon size={56} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
+                            <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Hoy no abrimos</h3>
+                            <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
+                                Hola, <strong>{clientName}</strong> 👋 — Hoy no estamos recibiendo citas, pero puedes agendar para los próximos días.
+                            </p>
+                            <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={() => setStep(2)}>
+                                Agendar para otro día
+                            </button>
+                            <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-sm)' }} onClick={() => setStep(1)}>← Volver</button>
+                        </div>
+                    )
+                }
+            </div >
         </div >
     );
 }
