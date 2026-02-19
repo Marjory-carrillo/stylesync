@@ -285,48 +285,85 @@ export default function Dashboard() {
                     <button className="text-xs text-accent hover:underline">Ver todas</button>
                 </div>
 
-                {todayAppts.length > 0 ? (
-                    <div className="space-y-3">
-                        {todayAppts.map(appt => {
-                            const svc = services.find(s => s.id === appt.serviceId);
-                            return (
-                                <div key={appt.id} className="flex justify-between items-center p-4 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-muted font-bold group-hover:text-white transition-colors">
-                                            {appt.clientName.charAt(0)}
+                {(() => {
+                    const now = new Date();
+                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+                    const upcomingAppts = todayAppts.filter(appt => {
+                        const svc = services.find(s => s.id === appt.serviceId);
+                        const duration = svc?.duration || 30;
+
+                        // Calculate end time
+                        const [hours, minutes] = appt.time.split(':').map(Number);
+                        const endMinutes = hours * 60 + minutes + duration;
+                        const endHours = Math.floor(endMinutes / 60);
+                        const endMins = endMinutes % 60;
+                        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+
+                        // Show if it hasn't finished yet and isn't completed/cancelled
+                        return currentTimeStr < endTimeStr && appt.status === 'confirmada';
+                    }).sort((a, b) => a.time.localeCompare(b.time));
+
+                    if (upcomingAppts.length === 0) {
+                        return (
+                            <div className="text-center py-12 text-muted bg-white/5 rounded-lg border border-dashed border-white/10">
+                                <Calendar size={48} className="mx-auto mb-4 opacity-20" />
+                                <p>No hay más citas para lo que queda del día.</p>
+                                <p className="text-xs mt-2">Buen trabajo, has terminado por hoy.</p>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div className="space-y-3">
+                            {upcomingAppts.map(appt => {
+                                const svc = services.find(s => s.id === appt.serviceId);
+                                const isCurrentlyHappening = currentTimeStr >= appt.time;
+
+                                return (
+                                    <div key={appt.id} className={`flex justify-between items-center p-4 rounded-lg border transition-all group ${isCurrentlyHappening
+                                            ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-[0_0_20px_rgba(var(--accent-rgb),0.05)]'
+                                            : 'bg-white/5 border-white/5 hover:bg-white/10'
+                                        }`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold transition-colors ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-gradient-to-br from-slate-700 to-slate-800 text-muted group-hover:text-white'
+                                                }`}>
+                                                {appt.clientName.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-white">{appt.clientName}</span>
+                                                    {isCurrentlyHappening && (
+                                                        <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse" />
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-muted flex items-center gap-2">
+                                                    <span>{svc?.name}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-600"></span>
+                                                    <span>{appt.clientPhone}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-white">{appt.clientName}</div>
-                                            <div className="text-xs text-muted flex items-center gap-2">
-                                                <span>{svc?.name}</span>
-                                                <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                                                <span>{appt.clientPhone}</span>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <div className={`font-bold text-lg ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>{appt.time}</div>
+                                                <div className="text-xs text-muted">{isCurrentlyHappening ? 'Ahora' : 'Hoy'}</div>
+                                            </div>
+                                            <div className={`
+                                                px-3 py-1 rounded-full text-xs font-bold border
+                                                ${isCurrentlyHappening
+                                                    ? 'bg-accent/20 text-accent border-accent/30'
+                                                    : appt.status === 'confirmada' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}
+                                            `}>
+                                                {isCurrentlyHappening ? 'En proceso' : appt.status}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <div className="font-bold text-white text-lg">{appt.time}</div>
-                                            <div className="text-xs text-muted">Hoy</div>
-                                        </div>
-                                        <div className={`
-                                            px-3 py-1 rounded-full text-xs font-bold border
-                                            ${appt.status === 'confirmada' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}
-                                        `}>
-                                            {appt.status}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-center py-12 text-muted bg-white/5 rounded-lg border border-dashed border-white/10">
-                        <Calendar size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>No hay citas programadas para hoy.</p>
-                        <p className="text-xs mt-2">Disfruta tu día libre o gestiona otras tareas.</p>
-                    </div>
-                )}
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
             </div>
         </div >
     );
