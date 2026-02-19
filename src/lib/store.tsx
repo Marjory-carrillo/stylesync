@@ -68,6 +68,8 @@ export interface BusinessConfig {
     category?: string;
     slug?: string;
     logoUrl?: string;
+    primaryColor?: string;
+    accentColor?: string;
 }
 
 export interface DaySchedule {
@@ -263,19 +265,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [loadingAuth, setLoadingAuth] = useState(true);
 
     // ─── Auth Init ───
+    // ─── Auth Init ───
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) loadTenant(session.user.id);
-            else setLoadingAuth(false);
-        });
-
+        // Single source of truth: onAuthStateChange
+        // It fires INITIAL_SESSION on mount, reducing race conditions
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) loadTenant(session.user.id);
-            else {
+
+            if (session?.user) {
+                // User is logged in, ensure loading is TRUE while we fetch tenant data
+                setLoadingAuth(true);
+                loadTenant(session.user.id);
+            } else {
+                // User is not logged in, stop loading immediately
                 setTenantId(null);
                 setLoadingAuth(false);
             }
@@ -296,7 +299,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } catch (e) {
             console.error('Error loading tenant:', e);
         } finally {
-            setLoadingAuth(false);
+            // Small delay to ensure router state stabilizes and prevent flickering
+            setTimeout(() => setLoadingAuth(false), 300);
         }
     };
 
@@ -446,7 +450,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     googleMapsUrl: tData.google_maps_url || '',
                     category: tData.category || '',
                     slug: tData.slug || '',
-                    logoUrl: tData.logo_url || ''
+                    logoUrl: tData.logo_url || '',
+                    primaryColor: tData.primary_color || '',
+                    accentColor: tData.accent_color || ''
                 });
             }
 
@@ -819,11 +825,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!tenantId) return;
         // Map BusinessConfig to Tenants table columns
         const updatePayload: any = {};
-        if (data.name) updatePayload.name = data.name;
-        if (data.address) updatePayload.address = data.address;
-        if (data.phone) updatePayload.phone = data.phone;
-        if (data.googleMapsUrl) updatePayload.google_maps_url = data.googleMapsUrl;
-        if (data.logoUrl) updatePayload.logo_url = data.logoUrl;
+        if (data.name !== undefined) updatePayload.name = data.name;
+        if (data.address !== undefined) updatePayload.address = data.address;
+        if (data.phone !== undefined) updatePayload.phone = data.phone;
+        if (data.googleMapsUrl !== undefined) updatePayload.google_maps_url = data.googleMapsUrl;
+        if (data.logoUrl !== undefined) updatePayload.logo_url = data.logoUrl;
+        if (data.primaryColor !== undefined) updatePayload.primary_color = data.primaryColor;
+        if (data.accentColor !== undefined) updatePayload.accent_color = data.accentColor;
 
         const { error } = await supabase.from('tenants').update(updatePayload).eq('id', tenantId);
 

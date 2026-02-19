@@ -1,15 +1,24 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, ArrowRight, Mail, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
+import { useStore } from '../lib/store';
+
 export default function Login() {
+    const { user } = useStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user) {
+            navigate('/admin');
+        }
+    }, [user, navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,16 +26,15 @@ export default function Login() {
         setError('');
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (error) throw error;
 
-            if (data.session) {
-                navigate('/admin');
-            }
+            if (error) throw error;
+            // Navigation will be handled by useEffect observing 'user' state
         } catch (err: any) {
             console.error('Login error:', err);
             setError('Credenciales incorrectas o error de conexión.');
@@ -127,10 +135,19 @@ export default function Login() {
                     </form>
                 </div>
 
-                <div className="mt-8 text-center">
-                    <a href="/" className="text-slate-500 hover:text-white text-sm transition-colors duration-200">
+                <div className="mt-8 text-center space-y-2">
+                    <a href="/" className="text-slate-500 hover:text-white text-sm transition-colors duration-200 block">
                         ← Volver al sitio
                     </a>
+                    <button
+                        onClick={() => {
+                            localStorage.clear();
+                            window.location.reload();
+                        }}
+                        className="text-xs text-red-500/50 hover:text-red-400 transition-colors"
+                    >
+                        ¿Problemas de acceso? Limpiar datos
+                    </button>
                 </div>
             </div>
         </div>

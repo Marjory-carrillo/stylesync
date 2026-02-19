@@ -1,7 +1,56 @@
 
 import { useState, useEffect } from 'react';
 import { useStore, DAY_NAMES, DAY_KEYS } from '../../lib/store';
+import ColorThief from 'colorthief';
 import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon } from 'lucide-react';
+
+// Helper: RGB to Hue (0-360) algorithm
+function rgbToHue(r: number, g: number, b: number) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+
+    if (max !== min) {
+        const d = max - min;
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return Math.round(h * 360).toString();
+}
+
+const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: string }> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.src = imgUrl;
+        img.onload = () => {
+            try {
+                const colorThief = new ColorThief();
+                const palette = colorThief.getPalette(img, 3);
+                if (palette && palette.length >= 2) {
+                    resolve({
+                        primary: rgbToHue(palette[0][0], palette[0][1], palette[0][2]),
+                        accent: rgbToHue(palette[1][0], palette[1][1], palette[1][2])
+                    });
+                } else if (palette && palette.length === 1) {
+                    const h = rgbToHue(palette[0][0], palette[0][1], palette[0][2]);
+                    resolve({ primary: h, accent: h }); // Fallback same color
+                } else {
+                    resolve({ primary: '', accent: '' });
+                }
+            } catch (e) {
+                console.error('ColorThief error:', e);
+                resolve({ primary: '', accent: '' });
+            }
+        };
+        img.onerror = () => resolve({ primary: '', accent: '' });
+    });
+};
 
 
 export default function Settings() {
@@ -65,11 +114,40 @@ export default function Settings() {
 
     const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
         setUploadingLogo(true);
         try {
-            const url = await uploadLogo(e.target.files[0]);
+            // 1. Extract Colors locally for speed & avoid CORS issues
+            let extractedColors = { primary: '', accent: '' };
+            try {
+                const objectUrl = URL.createObjectURL(file);
+                extractedColors = await getBrandColors(objectUrl);
+                URL.revokeObjectURL(objectUrl);
+            } catch (err) {
+                console.warn('Could not extract colors:', err);
+            }
+
+            // 2. Upload Logo
+            const url = await uploadLogo(file);
+
             if (url) {
-                setInfoForm(prev => ({ ...prev, logoUrl: url }));
+                const newConfig = {
+                    ...infoForm,
+                    logoUrl: url,
+                    // Only update colors if we successfully extracted them
+                    ...(extractedColors.primary ? { primaryColor: extractedColors.primary } : {}),
+                    ...(extractedColors.accent ? { accentColor: extractedColors.accent } : {})
+                };
+
+                setInfoForm(newConfig);
+
+                // Auto-save the new configuration (Logo + Colors)
+                await updateBusinessConfig({
+                    logoUrl: url,
+                    primaryColor: extractedColors.primary || infoForm.primaryColor,
+                    accentColor: extractedColors.accent || infoForm.accentColor
+                });
+                alert('Logo y colores actualizados.');
             }
         } catch (error) {
             console.error('Error uploading logo:', error);
@@ -119,7 +197,12 @@ export default function Settings() {
                                         <button
                                             type="button"
                                             className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 p-2"
-                                            onClick={() => setInfoForm({ ...infoForm, logoUrl: '' })}
+                                            onClick={async () => {
+                                                const newConfig = { ...infoForm, logoUrl: '', primaryColor: '', accentColor: '' };
+                                                setInfoForm(newConfig);
+                                                await updateBusinessConfig({ logoUrl: '', primaryColor: '', accentColor: '' });
+                                                alert('Logo eliminado. Se han restaurado los colores por defecto.');
+                                            }}
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -200,6 +283,8 @@ export default function Settings() {
                         </button>
                     </form>
                 </section>
+
+
 
                 {/* ── Schedule ── */}
                 <section className="glass-panel p-6 rounded-xl space-y-6">

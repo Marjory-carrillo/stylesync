@@ -41,7 +41,15 @@ export default function ThemeManager() {
     useEffect(() => {
         if (!businessConfig?.category) return;
 
-        const theme = THEMES[businessConfig.category] || THEMES.default;
+        let theme = THEMES[businessConfig.category] || THEMES.default;
+
+        // Override with custom branding if available
+        if (businessConfig.primaryColor) {
+            theme = { ...theme, primary: businessConfig.primaryColor };
+        }
+        if (businessConfig.accentColor) {
+            theme = { ...theme, accent: businessConfig.accentColor };
+        }
 
         // Update CSS variables on the root element
         document.documentElement.style.setProperty('--hue-primary', theme.primary);
@@ -50,7 +58,7 @@ export default function ThemeManager() {
         // Optional: Update meta theme-color for mobile browsers
         // (This would require more complex logic to convert HSLA to Hex, skipping for now)
 
-    }, [businessConfig.category]);
+    }, [businessConfig.category, businessConfig.primaryColor, businessConfig.accentColor]);
 
     return null; // This component renders nothing visually
 }
