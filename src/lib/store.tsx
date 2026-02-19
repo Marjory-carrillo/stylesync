@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { parse, addMinutes, isBefore, isAfter, format } from 'date-fns';
+import { format } from 'date-fns';
 import { supabase } from './supabaseClient';
 import SplashScreen from '../components/SplashScreen';
 
@@ -631,68 +631,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             return { success: false, error: 'Este número ha sido bloqueado. Contacta al establecimiento.' };
         }
 
-        // 1. Conflict Check (Back-end validation simulation)
-        if (appt.stylistId) {
-            const { data: conflicts, error: conflictError } = await supabase
-                .from('appointments')
-                .select('time, service_id')
-                .eq('date', appt.date)
-                .eq('stylist_id', appt.stylistId)
-                .eq('status', 'confirmada')
-                .eq('tenant_id', tenantId); // Added tenant_id filter
+        // Use RPC for atomic booking (prevents race conditions)
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_appointment_v3', {
+            p_tenant_id: tenantId,
+            p_client_name: appt.clientName,
+            p_client_phone: appt.clientPhone,
+            p_service_id: appt.serviceId,
+            p_stylist_id: appt.stylistId,
+            p_date: appt.date,
+            p_time: appt.time
+        });
 
-            if (!conflictError && conflicts && conflicts.length > 0) {
-                const newService = services.find(s => s.id === appt.serviceId);
-                const newDuration = newService?.duration ?? 30;
-                // Buffer Logic: New appointment effectively ends after service + 10 mins buffer
-                const bufferMinutes = 10;
-
-                const newStart = parse(appt.time, 'HH:mm', new Date());
-                const newEffectiveEnd = addMinutes(newStart, newDuration + bufferMinutes);
-
-                const hasOverlap = conflicts.some((existing: any) => {
-                    const existingService = services.find(s => s.id === existing.service_id);
-                    const existingDuration = existingService?.duration ?? 30;
-
-                    const existingStart = parse(existing.time, 'HH:mm', new Date());
-                    // Buffer Logic: Existing appointment effectively ends after service + 10 mins buffer
-                    const existingEffectiveEnd = addMinutes(existingStart, existingDuration + bufferMinutes);
-
-                    return isBefore(newStart, existingEffectiveEnd) && isAfter(newEffectiveEnd, existingStart);
-                });
-
-                if (hasOverlap) {
-                    return { success: false, error: 'Lo sentimos, este horario ya ha sido reservado por otra persona.' };
-                }
-            }
+        if (rpcError) {
+            console.error('RPC Booking Error:', rpcError);
+            return { success: false, error: 'Error al procesar la reserva. Inténtalo de nuevo.' };
         }
 
-        // const pendingId = getDevicePendingId();
-        /* MVP Limitation: Sync check for pending appointments is harder without backend logic or more complex queries. 
-           We will trust local storage for "my pending appointment" for now. */
-
-        const { data: newAppt, error } = await supabase.from('appointments').insert([{
-            tenant_id: tenantId,
-            client_name: appt.clientName,
-            client_phone: appt.clientPhone,
-            service_id: appt.serviceId,
-            stylist_id: appt.stylistId,
-            date: appt.date,
-            time: appt.time,
-            status: 'confirmada'
-        }]).select().single();
-
-        if (error) {
-            return { success: false, error: 'Error al guardar la cita. Inténtalo de nuevo.' };
-        }
-
-        if (newAppt) {
-            setDeviceHasPending(newAppt.id);
+        if (rpcResult && rpcResult.success) {
+            const newId = rpcResult.id;
+            setDeviceHasPending(newId);
             fetchData();
             return { success: true };
         }
-        return { success: false, error: 'Error desconocido.' };
-    }, [blockedPhones, services]);
+
+        return { success: false, error: rpcResult?.error || 'Error desconocido al reservar.' };
+    }, [blockedPhones, tenantId, fetchData]);
 
     const cancelAppointment = useCallback(async (id: string, byClient = false): Promise<{ success: boolean; error?: string }> => {
         console.log('Intento de cancelar cita:', id);
