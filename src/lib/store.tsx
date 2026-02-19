@@ -116,6 +116,7 @@ interface StoreContextType {
     loadTenantBySlug: (slug: string) => Promise<boolean>;
     uploadLogo: (file: File) => Promise<string | null>;
     uploadStylistPhoto: (file: File) => Promise<string | null>;
+    uploadServiceImage: (file: File) => Promise<string | null>;
 
     services: Service[];
     stylists: Stylist[];
@@ -458,7 +459,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 });
             }
 
-            const { data: scData, error: scError } = await supabase.from('schedule_config').select('*').eq('tenant_id', currentTenantId).single();
+            const { data: scData, error: scError } = await supabase.from('schedule_config').select('*').eq('tenant_id', currentTenantId).limit(1).single();
             if (scError && scError.code !== 'PGRST116') console.error('Error fetching schedule:', scError);
             if (scData?.schedule) setSchedule(scData.schedule);
             else {
@@ -539,6 +540,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } catch (error: any) {
             console.error('Error uploading staff photo:', error);
             alert(`Error al subir foto: ${error.message || error}`);
+            return null;
+        }
+    };
+
+    const uploadServiceImage = async (file: File) => {
+        if (!tenantId) return null;
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `service-${tenantId}-${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('logos') // Reusing same bucket
+                .upload(fileName, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('logos').getPublicUrl(fileName);
+            return data.publicUrl;
+        } catch (error: any) {
+            console.error('Error uploading service image:', error);
+            alert(`Error al subir imagen: ${error.message || error}`);
             return null;
         }
     };
@@ -825,13 +847,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             if (existing) {
                 // 2. Update
-                const { error: updateError, count } = await supabase
+                const { error: updateError } = await supabase
                     .from('schedule_config')
                     .update({ schedule: newSchedule })
-                    .eq('tenant_id', tenantId)
-                    .select('*', { count: 'exact' });
+                    .eq('tenant_id', tenantId);
 
-                console.log('[saveSchedule] Update result:', { error: updateError, count });
+                // No need to select if we only check for error.
+                // Or if we need data: .select();
+
+                console.log('[saveSchedule] Update result:', { error: updateError });
                 error = updateError;
             } else {
                 // 3. Insert
@@ -1017,6 +1041,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         loadTenantBySlug,
         uploadLogo,
         uploadStylistPhoto,
+        uploadServiceImage,
 
         services,
         stylists,

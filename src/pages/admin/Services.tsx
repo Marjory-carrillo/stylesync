@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
-import { Plus, Trash2, Edit2, X, Clock, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon } from 'lucide-react';
 
 export default function Services() {
-    const { services, addService, removeService, updateService } = useStore();
+    const { services, addService, removeService, updateService, uploadServiceImage } = useStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formName, setFormName] = useState('');
     const [formDuration, setFormDuration] = useState('');
     const [formPrice, setFormPrice] = useState('');
     const [formImage, setFormImage] = useState('');
+    const [uploading, setUploading] = useState(false);
 
     const openAdd = () => {
         setEditingId(null);
@@ -163,14 +164,47 @@ export default function Services() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">URL de Imagen</label>
-                                <input
-                                    type="text"
-                                    value={formImage}
-                                    onChange={e => setFormImage(e.target.value)}
-                                    placeholder="https://..."
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
-                                />
+                                <label className="text-sm font-medium text-muted mb-1 block">Imagen del Servicio</label>
+                                <div className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                                    <div className="w-16 h-16 rounded-lg bg-black/20 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                        {formImage ? (
+                                            <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <ImageIcon className="text-muted" size={24} />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex gap-2">
+                                            <label className="btn btn-secondary py-2 text-sm cursor-pointer flex items-center gap-2">
+                                                <Upload size={16} />
+                                                {uploading ? 'Subiendo...' : 'Subir Imagen'}
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        setUploading(true);
+                                                        const url = await uploadServiceImage(file);
+                                                        if (url) setFormImage(url);
+                                                        setUploading(false);
+                                                    }}
+                                                    disabled={uploading}
+                                                />
+                                            </label>
+                                            {formImage && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 p-2"
+                                                    onClick={() => setFormImage('')}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
