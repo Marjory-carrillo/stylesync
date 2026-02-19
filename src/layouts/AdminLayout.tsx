@@ -34,16 +34,17 @@ export default function AdminLayout() {
     return (
         <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-200">
             {/* Mobile Header */}
-            <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900/80 backdrop-blur-xl border-b border-white/5 z-50 px-4 flex items-center justify-between">
+            <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-white/10 z-[100] px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-orange-600">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-orange-600 shadow-glow">
                         <Scissors className="text-slate-950" size={18} />
                     </div>
-                    <span className="font-bold text-white tracking-tight">StyleSync</span>
+                    <span className="font-bold text-white tracking-tight">StyleSync Admin</span>
                 </div>
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors"
+                    className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-accent transition-all active:scale-90"
+                    aria-label="Menu"
                 >
                     <Menu size={24} />
                 </button>
