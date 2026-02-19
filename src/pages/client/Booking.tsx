@@ -65,14 +65,22 @@ export default function Booking() {
     // Generate next 5 days
     const availableDates = useMemo(() => {
         const dates: { dateStr: string; label: string; dayName: string; isToday: boolean }[] = [];
-        for (let i = 0; i < 5; i++) {
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+        for (let i = 0; i < 7; i++) { // Increased range to ensure we find 5 valid days
             const d = addDays(new Date(), i);
             const dateStr = format(d, 'yyyy-MM-dd');
+
+            // Skip past dates (safety guard)
+            if (dateStr < todayStr) continue;
+
+            if (dates.length >= 5) break;
+
             const dayIdx = d.getDay();
             const dayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayIdx];
             dates.push({
                 dateStr,
-                label: format(d, 'd MMM', { locale: es }),
+                label: i === 0 ? 'Hoy' : format(d, 'd MMM', { locale: es }),
                 dayName: DAY_NAMES[dayKey],
                 isToday: i === 0,
             });
