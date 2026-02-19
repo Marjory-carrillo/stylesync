@@ -32,9 +32,9 @@ export default function AdminLayout() {
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-200">
+        <div className="flex h-screen overflow-hidden bg-[var(--color-bg)] text-slate-200">
             {/* Mobile Header */}
-            <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-white/10 z-[100] px-4 flex items-center justify-between">
+            <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--color-bg-secondary)] border-b border-white/10 z-[100] px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-orange-600 shadow-glow">
                         <Scissors className="text-slate-950" size={18} />
@@ -60,7 +60,7 @@ export default function AdminLayout() {
 
             {/* Sidebar */}
             <aside className={`
-                fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-white/5 z-[70] 
+                fixed inset-y-0 left-0 w-72 bg-[var(--color-bg-secondary)] border-r border-white/5 z-[70] 
                 lg:relative lg:translate-x-0 transition-transform duration-300 ease-out
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
                 flex flex-col shadow-2xl lg:shadow-none
@@ -115,7 +115,7 @@ export default function AdminLayout() {
                     </Link>
                 </nav>
 
-                <div className="p-4 mt-auto border-t border-white/5 bg-slate-900/50">
+                <div className="p-4 mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50">
                     <button
                         onClick={() => { closeMobileMenu(); handleLogout(); }}
                         className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200 group"
@@ -127,7 +127,7 @@ export default function AdminLayout() {
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0">
+            <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 bg-transparent">
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
                     <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-accent/10 blur-[120px]"></div>
                     <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-600/10 blur-[120px]"></div>
