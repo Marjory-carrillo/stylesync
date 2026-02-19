@@ -1,13 +1,14 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { parse, format, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useStore, DAY_NAMES, type Announcement, type Service, type Stylist } from '../../lib/store';
+import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield } from 'lucide-react';
 
 export default function Booking() {
+    const { slug } = useParams();
     const {
         services, stylists, appointments,
         addAppointment, cancelAppointment, updateAppointmentTime,
@@ -17,16 +18,14 @@ export default function Booking() {
         addToWaitingList, blockedSlots, loadTenantBySlug, tenantId, loading
     } = useStore();
 
-    const { slug } = useParams();
-
     useEffect(() => {
         if (slug && !tenantId) {
             loadTenantBySlug(slug);
         }
-    }, [slug, tenantId]);
+    }, [slug, tenantId, loadTenantBySlug]);
 
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center text-white">Cargando...</div>;
+        return <SplashScreen />;
     }
 
     const todaySchedule = getTodaySchedule();
@@ -192,8 +191,8 @@ export default function Booking() {
         setOtpCode('');
 
         // Simulate SMS (MVP)
-        console.log(`[SMS MOCK] Código para ${clientPhone}: ${code}`);
-        alert(`[SIMULACIÓN SMS] Tu código de verificación es: ${code}`);
+        console.log(`[SMS MOCK] Código para ${clientPhone}: ${code} `);
+        alert(`[SIMULACIÓN SMS] Tu código de verificación es: ${code} `);
 
         setStep(16); // Go to OTP verification
     };
@@ -213,7 +212,7 @@ export default function Booking() {
                 setClientError('Has excedido el número de intentos. Intenta más tarde.');
                 setStep(1);
             } else {
-                setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts}`);
+                setClientError(`Código incorrecto.Intentos restantes: ${3 - newAttempts} `);
             }
         }
     };
@@ -222,8 +221,8 @@ export default function Booking() {
         const code = Math.floor(1000 + Math.random() * 9000).toString();
         setGeneratedOtp(code);
         setOtpAttempts(0);
-        console.log(`[SMS MOCK] Reenvío para ${clientPhone}: ${code}`);
-        alert(`[SIMULACIÓN SMS] Tu nuevo código es: ${code}`);
+        console.log(`[SMS MOCK] Reenvío para ${clientPhone}: ${code} `);
+        alert(`[SIMULACIÓN SMS] Tu nuevo código es: ${code} `);
     };
 
     // ── Manage existing ───
@@ -333,7 +332,7 @@ export default function Booking() {
                         </div>
                     )}
                     <h2 className="text-2xl font-bold text-center">
-                        {step === 10 ? 'Tu Cita' : (businessConfig.logoUrl ? businessConfig.name : `Reserva tu Cita en ${businessConfig.name}`)}
+                        {step === 10 ? 'Tu Cita' : (businessConfig.logoUrl ? businessConfig.name : `Reserva tu Cita en ${businessConfig.name} `)}
                     </h2>
                 </div>
             )}
@@ -353,7 +352,7 @@ export default function Booking() {
                         return (
                             <div key={ann.id} className="flex items-center gap-sm" style={{
                                 padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
-                                background: ac.bg, border: `1px solid ${ac.color}33`,
+                                background: ac.bg, border: `1px solid ${ac.color} 33`,
                             }}>
                                 <AnnIcon size={18} style={{ color: ac.color, flexShrink: 0 }} />
                                 <span style={{ color: ac.color, fontWeight: 600, fontSize: '0.9rem' }}>{ann.message}</span>
@@ -657,7 +656,7 @@ export default function Booking() {
                                 return (
                                     <button
                                         key={d.dateStr}
-                                        className={`btn ${closed ? 'btn-ghost' : 'btn-secondary'}`}
+                                        className={`btn ${closed ? 'btn-ghost' : 'btn-secondary'} `}
                                         onClick={() => !closed && handleSelectDate(d.dateStr)}
                                         disabled={closed}
                                         style={{
@@ -696,7 +695,7 @@ export default function Booking() {
                                     <button
                                         key={time}
                                         className="btn btn-secondary py-3 text-sm hover:border-accent hover:text-accent transition-all animate-scale-in"
-                                        style={{ animationDelay: `${idx * 0.05}s` }}
+                                        style={{ animationDelay: `${idx * 0.05} s` }}
                                         onClick={() => handleSelectTime(time)}
                                     >
                                         {time}
@@ -874,60 +873,68 @@ export default function Booking() {
                                 >
                                     <MapPin size={18} className="group-hover:text-accent transition-colors" />
                                     <span>Abrir en Google Maps</span>
-                                </a>
-                                {businessConfig.phone && (
-                                    <a
-                                        href={`tel:${businessConfig.phone.replace(/\D/g, '')}`}
-                                        className="btn btn-ghost w-full justify-center border border-white/10 hover:border-white/20"
-                                    >
-                                        <Phone size={18} /> Llamar al Negocio
-                                    </a>
-                                )}
-                            </div>
-                        </div>
+                                </a >
+                                {
+                                    businessConfig.phone && (
+                                        <a
+                                            href={`tel:${businessConfig.phone.replace(/\D/g, '')}`}
+                                            className="btn btn-ghost w-full justify-center border border-white/10 hover:border-white/20"
+                                        >
+                                            <Phone size={18} /> Llamar al Negocio
+                                        </a>
+                                    )
+                                }
+                            </div >
+                        </div >
 
                         <button className="btn btn-primary w-full py-4 shadow-lg" onClick={resetBooking}>
                             Hacer otra reserva
                         </button>
-                    </div>
+                    </div >
                 )}
 
                 {/* ══ STEP 11: Cancel Success ══ */}
-                {step === 11 && (
-                    <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
-                        <XCircle size={64} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
-                        <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Cita Cancelada</h3>
-                        <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>Tu cita ha sido cancelada exitosamente.</p>
-                        <button className="btn btn-primary" style={{ width: '100%' }} onClick={resetBooking}>Reservar Nueva Cita</button>
-                    </div>
-                )}
+                {
+                    step === 11 && (
+                        <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
+                            <XCircle size={64} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
+                            <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Cita Cancelada</h3>
+                            <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>Tu cita ha sido cancelada exitosamente.</p>
+                            <button className="btn btn-primary" style={{ width: '100%' }} onClick={resetBooking}>Reservar Nueva Cita</button>
+                        </div>
+                    )
+                }
 
                 {/* ══ STEP 12: Update Success ══ */}
-                {step === 12 && (
-                    <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
-                        <RefreshCw size={64} style={{ color: 'var(--color-accent)', margin: '0 auto var(--space-md)' }} />
-                        <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>¡Hora Actualizada!</h3>
-                        <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
-                            Tu cita se cambió a las <strong>{selectedTime}</strong>.
-                        </p>
-                        <button className="btn btn-secondary" style={{ width: '100%' }} onClick={resetBooking}>Volver al Inicio</button>
-                    </div>
-                )}
+                {
+                    step === 12 && (
+                        <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
+                            <RefreshCw size={64} style={{ color: 'var(--color-accent)', margin: '0 auto var(--space-md)' }} />
+                            <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>¡Hora Actualizada!</h3>
+                            <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
+                                Tu cita se cambió a las <strong>{selectedTime}</strong>.
+                            </p>
+                            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={resetBooking}>Volver al Inicio</button>
+                        </div>
+                    )
+                }
                 {/* ══ STEP 15: Closed Today Info ══ */}
-                {step === 15 && (
-                    <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
-                        <AlertOctagon size={56} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
-                        <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Hoy no abrimos</h3>
-                        <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
-                            Hola, <strong>{clientName}</strong> 👋 — Hoy no estamos recibiendo citas, pero puedes agendar para los próximos días.
-                        </p>
-                        <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={() => setStep(2)}>
-                            Agendar para otro día
-                        </button>
-                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-sm)' }} onClick={() => setStep(1)}>← Volver</button>
-                    </div>
-                )}
-            </div>
-        </div>
+                {
+                    step === 15 && (
+                        <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
+                            <AlertOctagon size={56} style={{ color: 'var(--color-danger)', margin: '0 auto var(--space-md)' }} />
+                            <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>Hoy no abrimos</h3>
+                            <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
+                                Hola, <strong>{clientName}</strong> 👋 — Hoy no estamos recibiendo citas, pero puedes agendar para los próximos días.
+                            </p>
+                            <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} onClick={() => setStep(2)}>
+                                Agendar para otro día
+                            </button>
+                            <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-sm)' }} onClick={() => setStep(1)}>← Volver</button>
+                        </div>
+                    )
+                }
+            </div >
+        </div >
     );
 }

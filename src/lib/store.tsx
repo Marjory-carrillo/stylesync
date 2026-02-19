@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { parse, addMinutes, isBefore, isAfter, format } from 'date-fns';
+import { supabase } from './supabaseClient';
+import SplashScreen from '../components/SplashScreen';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -195,8 +197,7 @@ interface StoreContextType {
 // ─── Store Type ──────────────────────────────────────────────────────────────
 export type Store = StoreContextType;
 
-// ─── Supabase Import ─────────────────────────────────────────────────────────
-import { supabase } from './supabaseClient';
+// ─── Constants & Utils ────────────────────────────────────────────────────────
 import { CATEGORY_DEFAULTS } from './categoryDefaults';
 
 const DEVICE_BOOKING_KEY = 'stylesync_pending_booking';
@@ -390,9 +391,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const [loading, setLoading] = useState(true);
 
-    // ── Safety Timeout ──
+    // ── Safety Timeout (Reduced for better UX) ──
     useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 4000);
+        const timer = setTimeout(() => setLoading(false), 1000);
         return () => clearTimeout(timer);
     }, []);
 
@@ -1115,7 +1116,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
 
     if (loading) {
-        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Cargando datos...</div>;
+        return <SplashScreen />;
     }
 
     return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;

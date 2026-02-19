@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2 } from 'lucide-react';
 import { useStore } from '../../lib/store';
+import SplashScreen from '../../components/SplashScreen';
 
 export default function CreateBusiness() {
     const { createTenant, user } = useStore();
@@ -64,11 +65,7 @@ export default function CreateBusiness() {
     };
 
     if (!user) {
-        return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
-                <Loader2 className="animate-spin mr-2" /> Cargando usuario...
-            </div>
-        );
+        return <SplashScreen />;
     }
 
     return (

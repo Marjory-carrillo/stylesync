@@ -13,11 +13,12 @@ import Booking from './pages/client/Booking';
 import Login from './pages/Login';
 import CreateBusiness from './pages/admin/CreateBusiness';
 import ThemeManager from './components/ThemeManager';
+import SplashScreen from './components/SplashScreen';
 
 const AdminRoute = () => {
   const { user, loadingAuth, tenantId } = useStore();
 
-  if (loadingAuth) return <div className="flex items-center justify-center h-screen">Cargando...</div>;
+  if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (!tenantId) return <Navigate to="/create-business" replace />;
 
@@ -27,7 +28,7 @@ const AdminRoute = () => {
 const OnboardingRoute = () => {
   const { user, loadingAuth, tenantId } = useStore();
 
-  if (loadingAuth) return <div className="flex items-center justify-center h-screen">Cargando...</div>;
+  if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (tenantId) return <Navigate to="/admin" replace />;
 
