@@ -1,0 +1,268 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Colors - Premium Dark Theme v2 */
+  --hue-primary: 225;
+  /* Deep Royal Blue/Slate */
+  --hue-accent: 38;
+  /* Luxurious Gold */
+
+  /* Backgrounds */
+  --color-bg: hsl(var(--hue-primary), 40%, 8%);
+  --color-bg-secondary: hsl(var(--hue-primary), 35%, 12%);
+  --color-bg-tertiary: hsl(var(--hue-primary), 30%, 18%);
+
+  /* Text */
+  --color-text: hsl(210, 40%, 98%);
+  --color-text-secondary: hsl(215, 20%, 75%);
+  --color-text-muted: hsl(215, 20%, 55%);
+
+  /* Brand Colors */
+  --color-primary: hsl(var(--hue-accent), 100%, 50%);
+  /* Vibrant Gold */
+  --color-accent: hsl(var(--hue-accent), 100%, 50%);
+  --color-accent-hover: hsl(var(--hue-accent), 100%, 60%);
+  --color-accent-glow: hsla(var(--hue-accent), 100%, 50%, 0.4);
+
+  --color-border: hsla(215, 20%, 80%, 0.1);
+  --color-border-hover: hsla(215, 20%, 80%, 0.25);
+
+  --color-success: hsl(150, 70%, 40%);
+  --color-danger: hsl(350, 80%, 60%);
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  /* More modern font stack */
+
+  /* Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Premium Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-glow: 0 0 15px var(--color-accent-glow);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior-y: none;
+  /* Prevent bounce on mobile */
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* Premium radial gradient background */
+  background-image:
+    radial-gradient(circle at 15% 50%, hsla(250, 40%, 15%, 0.5) 0, transparent 40%),
+    radial-gradient(circle at 85% 30%, hsla(var(--hue-accent), 30%, 15%, 0.3) 0, transparent 40%),
+    linear-gradient(to bottom, var(--color-bg), var(--color-bg-secondary));
+  background-attachment: fixed;
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+/* Utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+/* Glassmorphism V2 - Clearer & More Premium */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-color: var(--color-border-hover);
+  box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  /* More modern rounded buttons */
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: var(--space-sm);
+  letter-spacing: 0.02em;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-accent) 0%, hsl(35, 100%, 45%) 100%);
+  color: #0f172a;
+  box-shadow: 0 4px 15px rgba(255, 180, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-accent-hover) 0%, hsl(35, 100%, 50%) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 180, 0, 0.5);
+}
+
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(4px);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-text-secondary);
+  color: #fff;
+}
+
+.btn-ghost {
+  color: var(--color-text-secondary);
+  background: transparent;
+}
+
+.btn-ghost:hover {
+  color: var(--color-text);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseSoft {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--hue-accent), 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--hue-accent), 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--hue-accent), 0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 2s infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
