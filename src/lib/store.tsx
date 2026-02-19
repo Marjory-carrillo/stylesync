@@ -825,16 +825,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             if (existing) {
                 // 2. Update
-                const { error: updateError } = await supabase
+                const { error: updateError, count } = await supabase
                     .from('schedule_config')
                     .update({ schedule: newSchedule })
-                    .eq('tenant_id', tenantId);
+                    .eq('tenant_id', tenantId)
+                    .select('*', { count: 'exact' });
+
+                console.log('[saveSchedule] Update result:', { error: updateError, count });
                 error = updateError;
             } else {
                 // 3. Insert
-                const { error: insertError } = await supabase
+                const { error: insertError, data: inserted } = await supabase
                     .from('schedule_config')
-                    .insert({ tenant_id: tenantId, schedule: newSchedule });
+                    .insert({ tenant_id: tenantId, schedule: newSchedule })
+                    .select();
+
+                console.log('[saveSchedule] Insert result:', { error: insertError, data: inserted });
                 error = insertError;
             }
 
@@ -844,6 +850,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 fetchData(); // Revert
             } else {
                 console.log('[saveSchedule] Success!');
+                // Force fetch to ensure we have the DB state
+                await fetchData();
             }
         } catch (err: any) {
             console.error('Unexpected error:', err);
