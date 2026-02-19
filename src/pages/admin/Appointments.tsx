@@ -1,14 +1,24 @@
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
-import { Trash2, CheckCircle, User, Phone, Scissors, AlertOctagon, Send, Ban, ChevronDown, MessageCircle, Users, AlertTriangle, CalendarDays } from 'lucide-react';
+import { Trash2, CheckCircle, User, Phone, Scissors, Send, Ban, ChevronDown, MessageCircle, Users, CalendarDays } from 'lucide-react';
 
 import ResourceCalendar from '../../components/admin/ResourceCalendar';
 
 export default function Appointments() {
     const {
-        appointments, cancellationLog, waitingList, stylists, services,
-        getServiceById, getStylistById, cancelAppointment, completeAppointment,
-        blockPhone, isPhoneBlocked, generateWhatsAppUrl, generateReminderWhatsAppUrl, removeFromWaitingList
+        appointments,
+        services,
+        stylists,
+        waitingList,
+        cancellationLog,
+        completeAppointment,
+        cancelAppointment,
+        removeFromWaitingList,
+        getServiceById,
+        getStylistById,
+        isPhoneBlocked,
+        generateWhatsAppUrl,
+        generateReminderWhatsAppUrl
     } = useStore();
 
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
@@ -94,8 +104,8 @@ export default function Appointments() {
                                     key={tab.id}
                                     onClick={() => setFilter(tab.id as any)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filter === tab.id
-                                            ? `bg-white/5 border-white/10 text-white`
-                                            : 'border-transparent text-muted hover:bg-white/5'
+                                        ? `bg-white/5 border-white/10 text-white`
+                                        : 'border-transparent text-muted hover:bg-white/5'
                                         }`}
                                 >
                                     <span className={`mr-1.5 ${filter === tab.id ? tab.color : 'opacity-50'}`}>●</span>
@@ -166,8 +176,8 @@ export default function Appointments() {
                                 <div
                                     key={apt.id}
                                     className={`group flex items-center gap-4 p-3 rounded-xl border transition-all ${isCompleted ? 'bg-white/5 border-transparent opacity-50 grayscale' :
-                                            isCancelled ? 'bg-red-500/5 border-red-500/10 opacity-70' :
-                                                'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 hover:shadow-lg'
+                                        isCancelled ? 'bg-red-500/5 border-red-500/10 opacity-70' :
+                                            'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 hover:shadow-lg'
                                         }`}
                                 >
                                     {/* Time Column */}
