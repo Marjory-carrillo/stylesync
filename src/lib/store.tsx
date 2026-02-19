@@ -139,6 +139,8 @@ interface StoreContextType {
     blockedPhones: string[];
     toasts: Toast[];
 
+    sendSMS: (phone: string, message: string) => Promise<{ success: boolean; error?: string }>;
+
     loading: boolean;
 
     // Actions
@@ -1018,6 +1020,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return appointments.filter(a => a.date === t && a.status !== 'cancelada');
     }, [appointments]);
 
+    const sendSMS = useCallback(async (phone: string, message: string) => {
+        // Estructura lista para Twilio
+        // En producción, llamaríamos a una Supabase Edge Function:
+        // const { data, error } = await supabase.functions.invoke('send-sms', { body: { phone, message } });
+
+        console.log(`[SMS Link - Twilio] Enviando a ${phone}: ${message}`);
+
+        // Simulación:
+        return { success: true };
+    }, []);
+
     const getAppointmentsForDate = useCallback((dateStr: string) => {
         return appointments.filter(a => a.date === dateStr && a.status !== 'cancelada');
     }, [appointments]);
@@ -1127,6 +1140,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Toast
         showToast,
         removeToast,
+        sendSMS,
     };
 
     if (loading) {

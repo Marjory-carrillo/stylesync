@@ -15,7 +15,8 @@ export default function Booking() {
         isPhoneBlocked, hasActiveAppointment, getActiveAppointmentByPhone,
         getServiceById,
         businessConfig, getTodaySchedule, getActiveAnnouncements, getScheduleForDate,
-        addToWaitingList, blockedSlots, loadTenantBySlug, tenantId, loading, showToast
+        addToWaitingList, blockedSlots, loadTenantBySlug, tenantId, loading, showToast,
+        sendSMS
     } = useStore();
 
     useEffect(() => {
@@ -207,9 +208,9 @@ export default function Booking() {
         setOtpAttempts(0);
         setOtpCode('');
 
-        // Simulate SMS (MVP)
-        console.log(`[SMS MOCK] Código para ${clientPhone}: ${code} `);
-        showToast(`[SIMULACIÓN SMS] Código: ${code}`, 'info');
+        // Send "Professional" SMS using the central function
+        const message = `Tu código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
+        sendSMS(clientPhone, message);
 
         setStep(16); // Go to OTP verification
     };
@@ -233,13 +234,13 @@ export default function Booking() {
             }
         }
     };
-
     const resendOtp = () => {
         const code = Math.floor(1000 + Math.random() * 9000).toString();
         setGeneratedOtp(code);
         setOtpAttempts(0);
-        console.log(`[SMS MOCK] Reenvío para ${clientPhone}: ${code} `);
-        showToast(`[SIMULACIÓN SMS] Nuevo código: ${code}`, 'info');
+
+        const message = `Tu nuevo código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
+        sendSMS(clientPhone, message);
     };
 
     // ── Manage existing ───
