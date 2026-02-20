@@ -667,7 +667,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (rpcResult && rpcResult.success) {
             const newId = rpcResult.id;
             setDeviceHasPending(newId);
-            fetchData();
+            await fetchData();
             return { success: true };
         }
 

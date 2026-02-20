@@ -92,17 +92,23 @@ export default function Booking() {
     // Get schedule for selected date
     const selectedDateSchedule = useMemo(() => getScheduleForDate(selectedDate), [selectedDate, getScheduleForDate]);
 
+    const baseDate = useMemo(() => {
+        return selectedDate === format(new Date(), 'yyyy-MM-dd')
+            ? new Date()
+            : new Date(selectedDate + 'T00:00:00');
+    }, [selectedDate]);
+
     // Appointments for selected date
     const dateAppointments: SlotAppointment[] = useMemo(() => {
         return appointments
             .filter(a => a.date === selectedDate && a.status === 'confirmada' && (!selectedStylist || a.stylistId === selectedStylist.id))
             .map(a => {
                 const svc = services.find(s => s.id === a.serviceId);
-                const start = parse(a.time, 'HH:mm', new Date());
+                const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
                 const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
                 return { id: a.id, stylistId: String(a.stylistId ?? '0'), start, end };
             });
-    }, [appointments, selectedDate, selectedStylist, services]);
+    }, [appointments, selectedDate, selectedStylist, services, baseDate]);
 
     // ── Multi-Stylist Logic: Availability Map ──
     // Maps each time slot to a list of available stylist IDs. 
@@ -146,7 +152,7 @@ export default function Booking() {
                 .filter(a => a.date === selectedDate && a.status === 'confirmada' && String(a.stylistId) === String(stylist.id))
                 .map(a => {
                     const svc = services.find(s => s.id === a.serviceId);
-                    const start = parse(a.time, 'HH:mm', new Date());
+                    const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
                     const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
                     return { id: a.id, stylistId: String(a.stylistId), start, end };
                 });

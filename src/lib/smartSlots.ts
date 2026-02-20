@@ -65,9 +65,10 @@ export function getSmartSlots(
         .sort((a, b) => a - b)
         .map(ts => new Date(ts));
 
-    // Filter out past slots if today
+    // Filter out past slots if today (Add 15 min lead time)
     if (date.toDateString() === now.toDateString()) {
-        uniqueStarts = uniqueStarts.filter(start => isAfter(start, now));
+        const leadTime = addMinutes(now, 15);
+        uniqueStarts = uniqueStarts.filter(start => isAfter(start, leadTime));
     }
 
     // 4. Validate each potential start time
