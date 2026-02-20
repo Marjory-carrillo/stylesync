@@ -1068,15 +1068,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [appointments]);
 
     const sendSMS = useCallback(async (phone: string, message: string) => {
-        // Estructura lista para Twilio
         // En producción, llamaríamos a una Supabase Edge Function:
         // const { data, error } = await supabase.functions.invoke('send-sms', { body: { phone, message } });
 
         console.log(`[SMS Link - Twilio] Enviando a ${phone}: ${message}`);
 
-        // Simulación:
+        // Simulación: Mostrar en pantalla para pruebas (especialmente en móvil)
+        showToast(message, 'info');
+
         return { success: true };
-    }, []);
+    }, [showToast]);
 
     const getAppointmentsForDate = useCallback((dateStr: string) => {
         return appointments.filter(a => a.date === dateStr && a.status !== 'cancelada');
