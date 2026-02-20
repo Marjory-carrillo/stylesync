@@ -77,6 +77,17 @@ export default function Settings() {
     const [blockReason, setBlockReason] = useState('');
     const [isAllDay, setIsAllDay] = useState(false);
 
+    // Formatter for 12h time
+    const format12h = (timeStr: string) => {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':');
+        let hh = parseInt(h);
+        const ampm = hh >= 12 ? 'pm' : 'am';
+        hh = hh % 12;
+        hh = hh ? hh : 12;
+        return `${hh}:${m}${ampm}`;
+    };
+
     useEffect(() => {
         setInfoForm(businessConfig);
     }, [businessConfig]);
@@ -512,7 +523,7 @@ export default function Settings() {
                                     <div>
                                         <div className="flex items-center gap-2 text-white font-medium">
                                             <Calendar size={14} className="text-accent" /> {slot.date}
-                                            <Clock size={14} className="text-accent ml-2" /> {slot.startTime} - {slot.endTime}
+                                            <Clock size={14} className="text-accent ml-2" /> {format12h(slot.startTime)} - {format12h(slot.endTime)}
                                         </div>
                                         {slot.reason && <p className="text-sm text-muted mt-1">{slot.reason}</p>}
                                     </div>

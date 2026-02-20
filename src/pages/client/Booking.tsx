@@ -63,6 +63,17 @@ export default function Booking() {
     const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
     // const [cancelError, setCancelError] = useState<string | null>(null);
 
+    // Formatter for 12h time
+    const format12h = (timeStr: string | null) => {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':');
+        let hh = parseInt(h);
+        const ampm = hh >= 12 ? 'pm' : 'am';
+        hh = hh % 12;
+        hh = hh ? hh : 12;
+        return `${hh}:${m}${ampm}`;
+    };
+
     // Generate next 5 days
     const availableDates = useMemo(() => {
         const dates: { dateStr: string; label: string; dayName: string; isToday: boolean }[] = [];
@@ -871,7 +882,7 @@ export default function Booking() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted">Hora</span>
-                                    <span className="font-bold text-accent text-lg">{selectedTime}</span>
+                                    <span className="font-bold text-accent text-lg">{format12h(selectedTime)}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted">{professionalLabel}</span>
@@ -911,7 +922,7 @@ export default function Booking() {
 
                         <h3 className="text-3xl font-bold text-white mb-2">¡Reserva Exitosa!</h3>
                         <p className="text-muted mb-8 text-lg">
-                            Te esperamos el <span className="text-white font-medium">{selectedDate}</span> a las <span className="text-accent font-bold">{selectedTime}</span>
+                            Te esperamos el <span className="text-white font-medium">{selectedDate}</span> a las <span className="text-accent font-bold">{format12h(selectedTime)}</span>
                         </p>
 
                         {/* Stirst info if selected */}
@@ -991,7 +1002,7 @@ export default function Booking() {
                             <RefreshCw size={64} style={{ color: 'var(--color-accent)', margin: '0 auto var(--space-md)' }} />
                             <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>¡Hora Actualizada!</h3>
                             <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
-                                Tu cita se cambió a las <strong>{selectedTime}</strong>.
+                                Tu cita se cambió a las <strong>{format12h(selectedTime)}</strong>.
                             </p>
                             <button className="btn btn-secondary" style={{ width: '100%' }} onClick={resetBooking}>Volver al Inicio</button>
                         </div>

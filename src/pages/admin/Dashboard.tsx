@@ -128,27 +128,45 @@ export default function Dashboard() {
                                     <div key={cancel.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
                                         <div className="flex items-center gap-2 text-sm text-red-400 mb-2">
                                             <Clock size={14} />
-                                            <span>Cita Cancelada: <strong>{cancel.date} - {cancel.time}</strong> ({cancel.serviceName})</span>
+                                            {/* Formatter for 12h time */}
+                                            {(() => {
+                                                const [h, m] = cancel.time.split(':');
+                                                let hh = parseInt(h);
+                                                const ampm = hh >= 12 ? 'pm' : 'am';
+                                                hh = hh % 12;
+                                                hh = hh ? hh : 12;
+                                                const time12 = `${hh}:${m}${ampm}`;
+                                                return <span>Cita Cancelada: <strong>{cancel.date} - {time12}</strong> ({cancel.serviceName})</span>;
+                                            })()}
                                         </div>
                                         <p className="text-xs text-muted mb-3">Hay {matches.length} clientes esperando para esta fecha:</p>
 
                                         <div className="space-y-2">
-                                            {matches.map(match => (
-                                                <div key={match.id} className="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5">
-                                                    <div>
-                                                        <span className="text-white font-bold text-sm block">{match.name}</span>
-                                                        <span className="text-xs text-muted">{match.phone}</span>
+                                            {matches.map(match => {
+                                                const [h, m] = cancel.time.split(':');
+                                                let hh = parseInt(h);
+                                                const ampm = hh >= 12 ? 'pm' : 'am';
+                                                hh = hh % 12;
+                                                hh = hh ? hh : 12;
+                                                const time12Str = `${hh}:${m}${ampm}`;
+
+                                                return (
+                                                    <div key={match.id} className="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5">
+                                                        <div>
+                                                            <span className="text-white font-bold text-sm block">{match.name}</span>
+                                                            <span className="text-xs text-muted">{match.phone}</span>
+                                                        </div>
+                                                        <a
+                                                            href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, vimos que estabas interesado en una cita para el ${match.date}. ¡Se acaba de liberar un espacio a las ${time12Str}! ¿Te interesa?`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="btn btn-sm bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1 rounded"
+                                                        >
+                                                            <MessageCircle size={12} className="mr-1" /> Avisar
+                                                        </a>
                                                     </div>
-                                                    <a
-                                                        href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, vimos que estabas interesado en una cita para el ${match.date}. ¡Se acaba de liberar un espacio a las ${cancel.time}! ¿Te interesa?`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="btn btn-sm bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1 rounded"
-                                                    >
-                                                        <MessageCircle size={12} className="mr-1" /> Avisar
-                                                    </a>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
@@ -300,7 +318,14 @@ export default function Dashboard() {
                                                 <div className="font-bold text-white">{appt.clientName}</div>
                                                 <div className="text-xs text-muted">{svc?.name}</div>
                                             </div>
-                                            <span className="text-accent font-mono font-bold bg-accent/10 px-2 py-1 rounded text-xs">{appt.time}</span>
+                                            {(() => {
+                                                const [h, m] = appt.time.split(':');
+                                                let hh = parseInt(h);
+                                                const ampm = hh >= 12 ? 'pm' : 'am';
+                                                hh = hh % 12;
+                                                hh = hh ? hh : 12;
+                                                return <span className="text-accent font-mono font-bold bg-accent/10 px-2 py-1 rounded text-xs">{hh}:{m}{ampm}</span>;
+                                            })()}
                                         </div>
 
                                         <div className="flex items-center gap-2 text-xs text-muted mb-4">
@@ -366,42 +391,71 @@ export default function Dashboard() {
                                 const svc = services.find(s => s.id === appt.serviceId);
                                 const isCurrentlyHappening = currentTimeStr >= appt.time;
 
+                                const displayTime = (() => {
+                                    const [h, m] = appt.time.split(':');
+                                    let hh = parseInt(h);
+                                    const ampm = hh >= 12 ? 'pm' : 'am';
+                                    hh = hh % 12;
+                                    hh = hh ? hh : 12;
+                                    return `${hh}:${m}${ampm}`;
+                                })();
+
                                 return (
-                                    <div key={appt.id} className={`flex justify-between items-center p-4 rounded-lg border transition-all group ${isCurrentlyHappening
-                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-[0_0_20px_rgba(var(--accent-rgb),0.05)]'
-                                        : 'bg-white/5 border-white/5 hover:bg-white/10'
+                                    <div key={appt.id} className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCurrentlyHappening
+                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-lg'
+                                        : 'glass-card border-white/5 hover:border-accent/30 hover:shadow-xl'
                                         }`}>
-                                        <div className="flex items-center gap-4">
-                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold transition-colors ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-gradient-to-br from-slate-700 to-slate-800 text-muted group-hover:text-white'
-                                                }`}>
-                                                {appt.clientName.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-white">{appt.clientName}</span>
-                                                    {isCurrentlyHappening && (
-                                                        <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse" />
-                                                    )}
-                                                </div>
-                                                <div className="text-xs text-muted flex items-center gap-2">
-                                                    <span>{svc?.name}</span>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                                                    <span>{appt.clientPhone}</span>
-                                                </div>
-                                            </div>
+
+                                        {/* Status Indicator Bar */}
+                                        <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
+
+                                        {/* Time Column */}
+                                        <div className={`flex flex-col items-center justify-center w-20 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
+                                            <span className={`text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
+                                                {displayTime.replace(/(am|pm)/, '')}
+                                            </span>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
+                                                {displayTime.match(/(am|pm)/)?.[0]}
+                                            </span>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                <div className={`font-bold text-lg ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>{appt.time}</div>
-                                                <div className="text-xs text-muted">{isCurrentlyHappening ? 'Ahora' : 'Hoy'}</div>
+
+                                        {/* Main Info */}
+                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-lg shadow-inner ${isCurrentlyHappening ? 'bg-accent text-white shadow-accent/50' : 'bg-white/5 text-muted group-hover:text-white'}`}>
+                                                    {appt.clientName.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                        <span className="font-bold text-white text-base">{appt.clientName}</span>
+                                                        {isCurrentlyHappening && (
+                                                            <span className="px-1.5 py-0.5 rounded-full bg-accent/20 text-[8px] font-black uppercase tracking-widest text-accent border border-accent/20">EN VIVO</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs font-medium text-muted flex items-center gap-2">
+                                                        <div className="flex items-center gap-1"><Scissors size={10} className="text-accent/40" /> {svc?.name}</div>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                                        <div className="flex items-center gap-1"><Phone size={10} className="opacity-40" /> {appt.clientPhone}</div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className={`
-                                                px-3 py-1 rounded-full text-xs font-bold border
-                                                ${isCurrentlyHappening
-                                                    ? 'bg-accent/20 text-accent border-accent/30'
-                                                    : appt.status === 'confirmada' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}
-                                            `}>
-                                                {isCurrentlyHappening ? 'En proceso' : appt.status}
+
+                                            <div className="flex items-center gap-3">
+                                                {isCurrentlyHappening ? (
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
+                                                        <Clock size={10} className="animate-spin-slow" /> Ahora
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-muted uppercase tracking-widest">Hoy</span>
+                                                )}
+                                                <div className={`
+                                                    px-3 py-1 rounded-lg text-xs font-bold border uppercase tracking-tighter
+                                                    ${isCurrentlyHappening
+                                                        ? 'bg-accent/20 text-accent border-accent/30'
+                                                        : 'bg-green-500/10 text-green-500 border-green-500/20'}
+                                                `}>
+                                                    {isCurrentlyHappening ? 'En proceso' : 'Confirmada'}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
