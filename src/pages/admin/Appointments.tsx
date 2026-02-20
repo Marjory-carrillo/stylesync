@@ -38,9 +38,19 @@ export default function Appointments() {
         return d.toDateString() === tomorrow.toDateString();
     };
 
+    const todayStr = new Date().toISOString().split('T')[0];
+
     const filteredAppointments = appointments.filter(apt => {
         if (filter === 'recordatorios') {
             return apt.status === 'confirmada' && isTomorrow(apt.date);
+        }
+        if (filter === 'confirmada') {
+            // Only confirmed appointments FROM TODAY onwards
+            return apt.status === 'confirmada' && apt.date >= todayStr;
+        }
+        if (filter === 'completada') {
+            // Manual completed OR confirmed but in the past
+            return apt.status === 'completada' || (apt.status === 'confirmada' && apt.date < todayStr);
         }
         return apt.status === filter;
     }).sort((a, b) => {
