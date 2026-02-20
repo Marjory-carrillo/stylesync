@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
-import { Trash2, CheckCircle, User, Phone, Scissors, Send, Ban, ChevronDown, MessageCircle, Users, CalendarDays } from 'lucide-react';
+import { Trash2, CheckCircle, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays } from 'lucide-react';
 
 import ResourceCalendar from '../../components/admin/ResourceCalendar';
 
@@ -208,68 +208,83 @@ export default function Appointments() {
                                         const isCancelled = apt.status === 'cancelada';
                                         const blocked = isPhoneBlocked(apt.clientPhone);
 
+                                        // Formatter for 12h time
+                                        const displayTime = (() => {
+                                            const [h, m] = apt.time.split(':');
+                                            let hh = parseInt(h);
+                                            const ampm = hh >= 12 ? 'pm' : 'am';
+                                            hh = hh % 12;
+                                            hh = hh ? hh : 12;
+                                            return `${hh}:${m}${ampm}`;
+                                        })();
+
                                         return (
                                             <div
                                                 key={apt.id}
-                                                className={`group flex items-center gap-4 p-3 rounded-xl border transition-all ${isCompleted ? 'bg-white/5 border-transparent opacity-50 grayscale' :
-                                                    isCancelled ? 'bg-red-500/5 border-red-500/10 opacity-70' :
-                                                        'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 hover:shadow-lg'
+                                                className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCompleted ? 'bg-white/[0.02] border-white/5 opacity-60 grayscale' :
+                                                    isCancelled ? 'bg-red-500/[0.02] border-red-500/10 opacity-70' :
+                                                        'glass-card border-white/5 hover:border-accent/30 hover:shadow-2xl hover:shadow-accent/5'
                                                     }`}
                                             >
-                                                {/* Time Column (Compact) */}
-                                                <div className="flex flex-col items-center justify-center w-14 shrink-0 px-1">
-                                                    <span className={`text-base font-bold tracking-tight ${isCancelled ? 'text-red-400 line-through' : 'text-white'}`}>
-                                                        {apt.time}
+                                                {/* Status Indicator Bar */}
+                                                <div className={`w-1.5 shrink-0 ${isCompleted ? 'bg-emerald-500/30' : isCancelled ? 'bg-red-500/30' : 'bg-gradient-to-b from-accent/80 to-accent/20'}`} />
+
+                                                {/* Time Column */}
+                                                <div className="flex flex-col items-center justify-center w-20 shrink-0 bg-white/[0.03] border-r border-white/5 py-4">
+                                                    <span className={`text-base font-black tracking-tighter ${isCancelled ? 'text-red-400 line-through' : 'text-white'}`}>
+                                                        {displayTime.replace(/(am|pm)/, '')}
+                                                    </span>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-accent/80 -mt-1">
+                                                        {displayTime.match(/(am|pm)/)?.[0]}
                                                     </span>
                                                 </div>
 
-                                                {/* Divider */}
-                                                <div className="w-px h-8 bg-white/10" />
-
                                                 {/* Main Info */}
-                                                <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
-                                                    {/* Client */}
-                                                    <div className="flex flex-col">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`font-bold truncate ${isCancelled ? 'text-muted line-through' : 'text-white'}`}>
+                                                <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-4 p-4">
+                                                    {/* Client info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className={`text-lg font-bold truncate ${isCancelled ? 'text-muted line-through' : 'text-white'}`}>
                                                                 {apt.clientName}
                                                             </span>
-                                                            {blocked && <Ban size={12} className="text-red-500" />}
+                                                            {blocked && <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[10px] font-bold text-red-500 border border-red-500/20">BLOQUEADO</span>}
                                                         </div>
-                                                        <a href={`tel:${apt.clientPhone}`} className="text-xs text-muted hover:text-white transition-colors flex items-center gap-1 w-fit">
-                                                            <Phone size={10} /> {apt.clientPhone}
+                                                        <a href={`tel:${apt.clientPhone}`} className="text-xs font-medium text-muted hover:text-accent transition-colors flex items-center gap-2 w-fit">
+                                                            <div className="p-1 rounded-md bg-white/5"><Phone size={10} /></div> {apt.clientPhone}
                                                         </a>
                                                     </div>
 
-                                                    {/* Details */}
-                                                    <div className="flex flex-col md:px-4">
-                                                        <span className="text-sm text-white/90 truncate flex items-center gap-1.5">
-                                                            <Scissors size={12} className="text-accent/60" /> {service?.name}
-                                                        </span>
-                                                        <span className="text-xs text-muted truncate flex items-center gap-1.5">
-                                                            <User size={12} className="opacity-50" /> {stylist?.name || 'Cualquiera'}
-                                                        </span>
+                                                    {/* Service & Stylist */}
+                                                    <div className="flex flex-col gap-1.5 md:min-w-[180px]">
+                                                        <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
+                                                            <div className="p-1 rounded-md bg-accent/10 text-accent"><Scissors size={12} /></div>
+                                                            <span className="truncate">{service?.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-xs font-medium text-muted">
+                                                            <div className="p-1 rounded-md bg-white/5"><User size={12} /></div>
+                                                            <span className="truncate">{stylist?.name || 'Cualquier profesional'}</span>
+                                                        </div>
                                                     </div>
 
-                                                    {/* Actions (Right Aligned) */}
-                                                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {/* Actions */}
+                                                    <div className="flex items-center justify-end gap-2 pr-2">
                                                         {filter === 'recordatorios' ? (
-                                                            <a href={generateReminderWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="btn-icon bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg p-2 transition-colors" title="Enviar Recordatorio">
-                                                                <Send size={16} />
+                                                            <a href={generateReminderWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-500/20" title="Enviar Recordatorio">
+                                                                <Send size={14} /> <span>Recordatorio</span>
                                                             </a>
                                                         ) : (
                                                             apt.status === 'confirmada' && (
-                                                                <>
-                                                                    <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2 rounded-lg text-muted hover:bg-white/10 hover:text-green-400 transition-colors" title="WhatsApp">
-                                                                        <MessageCircle size={18} />
+                                                                <div className="flex items-center gap-1">
+                                                                    <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
+                                                                        <MessageCircle size={20} />
                                                                     </a>
-                                                                    <button onClick={() => completeAppointment(apt.id)} className="p-2 rounded-lg text-muted hover:bg-white/10 hover:text-emerald-400 transition-colors" title="Completar">
-                                                                        <CheckCircle size={18} />
+                                                                    <button onClick={() => completeAppointment(apt.id)} className="p-2.5 rounded-xl text-muted hover:bg-white/10 hover:text-accent transition-all border border-transparent hover:border-accent/20" title="Completar">
+                                                                        <CheckCircle size={20} />
                                                                     </button>
-                                                                    <button onClick={() => handleAdminCancel(apt)} className="p-2 rounded-lg text-muted hover:bg-white/10 hover:text-red-400 transition-colors" title="Cancelar">
-                                                                        <Trash2 size={18} />
+                                                                    <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20" title="Cancelar">
+                                                                        <Trash2 size={20} />
                                                                     </button>
-                                                                </>
+                                                                </div>
                                                             )
                                                         )}
                                                     </div>

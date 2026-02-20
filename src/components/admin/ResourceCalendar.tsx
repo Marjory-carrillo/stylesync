@@ -37,6 +37,16 @@ export default function ResourceCalendar({
         return slots;
     }, [currentDate]);
 
+    // Formatter for 12h time
+    const format12h = (timeStr: string) => {
+        const [h, m] = timeStr.split(':');
+        let hh = parseInt(h);
+        const ampm = hh >= 12 ? 'pm' : 'am';
+        hh = hh % 12;
+        hh = hh ? hh : 12;
+        return `${hh}:${m}${ampm}`;
+    };
+
     // ── Align Appointments ──
     const getAppointmentStyle = (appt: any) => {
         try {
@@ -118,7 +128,9 @@ export default function ResourceCalendar({
                     <div className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur border-r border-white/10 w-16 shrink-0 flex flex-col pt-12">
                         {timeSlots.map((time, idx) => (
                             <div key={time} className="h-[60px] flex items-start justify-center pt-1 relative">
-                                <span className="text-xs text-muted font-medium -mt-2.5 bg-slate-900/80 px-1 rounded">{time}</span>
+                                <span className="text-[10px] text-muted font-bold -mt-2.5 bg-slate-900/80 px-1 rounded uppercase tracking-tighter">
+                                    {format12h(time)}
+                                </span>
                                 {/* Horizontal Guideline */}
                                 {idx >= 0 && <div className="absolute top-0 right-0 w-2 h-[1px] bg-white/10" />}
                             </div>
@@ -175,7 +187,7 @@ export default function ResourceCalendar({
                                                 >
                                                     <div className="flex justify-between items-start">
                                                         <span className="font-bold truncate">{appt.clientName}</span>
-                                                        <span className="text-[10px] opacity-80">{appt.time}</span>
+                                                        <span className="text-[9px] font-black uppercase opacity-90">{format12h(appt.time)}</span>
                                                     </div>
                                                     <div className="flex items-center gap-1 mt-0.5 opacity-90 truncate">
                                                         <Scissors size={10} />

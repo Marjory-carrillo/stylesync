@@ -761,16 +761,25 @@ export default function Booking() {
 
                         {availableSlots.length > 0 ? (
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {availableSlots.map((time, idx) => (
-                                    <button
-                                        key={time}
-                                        className="btn btn-secondary py-3 text-sm hover:border-accent hover:text-accent transition-all animate-scale-in"
-                                        style={{ animationDelay: `${idx * 0.05} s` }}
-                                        onClick={() => handleSelectTime(time)}
-                                    >
-                                        {time}
-                                    </button>
-                                ))}
+                                {availableSlots.map((time, idx) => {
+                                    const [h, m] = time.split(':');
+                                    let hh = parseInt(h);
+                                    const ampm = hh >= 12 ? 'pm' : 'am';
+                                    hh = hh % 12;
+                                    hh = hh ? hh : 12;
+                                    const displayTime = `${hh}:${m}${ampm}`;
+
+                                    return (
+                                        <button
+                                            key={time}
+                                            className="btn btn-secondary py-3 text-sm font-bold hover:border-accent hover:text-accent transition-all animate-scale-in"
+                                            style={{ animationDelay: `${idx * 0.05} s` }}
+                                            onClick={() => handleSelectTime(time)}
+                                        >
+                                            {displayTime}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="glass-panel p-8 text-center rounded-2xl border-dashed border-2 border-white/10">
