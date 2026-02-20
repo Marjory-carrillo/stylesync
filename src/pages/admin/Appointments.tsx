@@ -38,7 +38,8 @@ export default function Appointments() {
         return d.toDateString() === tomorrow.toDateString();
     };
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Use local system date in YYYY-MM-DD format (timezone-safe)
+    const todayStr = new Date().toLocaleDateString('en-CA');
 
     const filteredAppointments = appointments.filter(apt => {
         if (filter === 'recordatorios') {
