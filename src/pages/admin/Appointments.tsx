@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
-import { Trash2, CheckCircle, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays } from 'lucide-react';
+import { Trash2, CheckCircle, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Calendar } from 'lucide-react';
 
 import ResourceCalendar from '../../components/admin/ResourceCalendar';
 
@@ -151,22 +151,24 @@ export default function Appointments() {
             {/* Main Content */}
             <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-black/20 rounded-3xl border border-white/5 backdrop-blur-sm">
                 {viewMode === 'calendar' ? (
-                    <ResourceCalendar
-                        appointments={appointments}
-                        stylists={stylists}
-                        services={services}
-                        currentDate={calendarDate}
-                        onDateChange={setCalendarDate}
-                        onAppointmentClick={(apt) => {
-                            if (confirm(`¿Acciones para ${apt.clientName}?\n\nOK: Marcar como Completada\nCancel: Cancelar Cita`)) {
-                                completeAppointment(apt.id);
-                            } else {
-                                handleAdminCancel(apt);
-                            }
-                        }}
-                    />
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                        <ResourceCalendar
+                            appointments={appointments}
+                            stylists={stylists}
+                            services={services}
+                            currentDate={calendarDate}
+                            onDateChange={setCalendarDate}
+                            onAppointmentClick={(apt) => {
+                                if (confirm(`¿Acciones para ${apt.clientName}?\n\nOK: Marcar como Completada\nCancel: Cancelar Cita`)) {
+                                    completeAppointment(apt.id);
+                                } else {
+                                    handleAdminCancel(apt);
+                                }
+                            }}
+                        />
+                    </div>
                 ) : (
-                    <div className="overflow-y-auto custom-scrollbar p-2 space-y-2">
+                    <div className="overflow-y-auto custom-scrollbar p-2 space-y-2 flex-1">
                         {/* Empty State */}
                         {filteredAppointments.length === 0 && (
                             <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-60">
@@ -195,7 +197,7 @@ export default function Appointments() {
                                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">
                                                 {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                                             </span>
-                                            {date === new Date().toISOString().split('T')[0] && (
+                                            {date === todayStr && (
                                                 <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">Hoy</span>
                                             )}
                                         </div>
@@ -295,51 +297,70 @@ export default function Appointments() {
                                 </div>
                             ));
                         })()}
+                    </div>
+                )}
 
-                        {/* Collapsibles (Waiting/Log) - Inline Style */}
-                        {(waitingList.length > 0 || cancellationLog.length > 0) && (
-                            <div className="pt-4 border-t border-white/5 space-y-2">
-                                {waitingList.length > 0 && (
-                                    <div className="rounded-xl bg-black/20 border border-white/5 overflow-hidden">
-                                        <button
-                                            onClick={() => setShowWaiting(!showWaiting)}
-                                            className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
-                                        >
-                                            <span className="text-xs font-bold uppercase tracking-wider text-muted px-1">Lista de Espera ({waitingList.length})</span>
-                                            <ChevronDown size={14} className={`text-muted transition-transform ${showWaiting ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        {showWaiting && (
-                                            <div className="p-2 space-y-1">
-                                                {waitingList.map(client => (
-                                                    <div key={client.id} className="flex justify-between items-center p-2 rounded-lg bg-white/5 text-sm">
-                                                        <span>{client.name} <span className="text-muted text-xs">({client.phone})</span></span>
-                                                        <button onClick={() => removeFromWaitingList(client.id)} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={14} /></button>
-                                                    </div>
-                                                ))}
+                {/* Waiting List & Logs (Persistent across views) */}
+                {(waitingList.length > 0 || cancellationLog.length > 0) && (
+                    <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row gap-3 bg-black/40 flex-none">
+                        {waitingList.length > 0 && (
+                            <div className="flex-1 rounded-xl bg-black/20 border border-white/5 overflow-hidden">
+                                <button
+                                    onClick={() => setShowWaiting(!showWaiting)}
+                                    className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Users size={14} className="text-accent" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-muted">Lista de Espera ({waitingList.length})</span>
+                                    </div>
+                                    <ChevronDown size={14} className={`text-muted transition-transform ${showWaiting ? 'rotate-180' : ''}`} />
+                                </button>
+                                {showWaiting && (
+                                    <div className="p-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+                                        {waitingList.map(client => (
+                                            <div key={client.id} className="flex justify-between items-center p-2 rounded-lg bg-white/5 text-sm hover:bg-white/10 transition-colors">
+                                                <div className="flex flex-col">
+                                                    <span className="text-white font-bold text-xs">{client.name}</span>
+                                                    <span className="text-muted text-[10px]">{client.phone} • {client.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <a href={`https://wa.me/${client.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-md">
+                                                        <MessageCircle size={14} />
+                                                    </a>
+                                                    <button onClick={() => removeFromWaitingList(client.id)} className="text-red-400 hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-md">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
                                 )}
+                            </div>
+                        )}
 
-                                {cancellationLog.length > 0 && (
-                                    <div className="rounded-xl bg-black/20 border border-white/5 overflow-hidden">
-                                        <button
-                                            onClick={() => setShowLog(!showLog)}
-                                            className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
-                                        >
-                                            <span className="text-xs font-bold uppercase tracking-wider text-muted px-1">Cancelaciones Recientes</span>
-                                            <ChevronDown size={14} className={`text-muted transition-transform ${showLog ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        {showLog && (
-                                            <div className="p-2">
-                                                {cancellationLog.slice(0, 5).map(log => (
-                                                    <div key={log.id} className="flex justify-between items-center p-2 text-xs border-b border-white/5 last:border-0">
-                                                        <span className="text-muted">{log.clientName}</span>
-                                                        <span className="opacity-50">{new Date(log.cancelledAt).toLocaleDateString()}</span>
-                                                    </div>
-                                                ))}
+                        {cancellationLog.length > 0 && (
+                            <div className="flex-1 rounded-xl bg-black/20 border border-white/5 overflow-hidden">
+                                <button
+                                    onClick={() => setShowLog(!showLog)}
+                                    className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Clock size={14} className="text-red-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-muted">Historial de Cancelaciones</span>
+                                    </div>
+                                    <ChevronDown size={14} className={`text-muted transition-transform ${showLog ? 'rotate-180' : ''}`} />
+                                </button>
+                                {showLog && (
+                                    <div className="p-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+                                        {cancellationLog.slice(0, 10).map(log => (
+                                            <div key={log.id} className="flex justify-between items-center p-2 text-[10px] border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors">
+                                                <div className="flex flex-col">
+                                                    <span className="text-white font-medium">{log.clientName}</span>
+                                                    <span className="text-muted">{log.serviceName} • {log.date}</span>
+                                                </div>
+                                                <span className="opacity-40 text-[9px]">{new Date(log.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
                                 )}
                             </div>

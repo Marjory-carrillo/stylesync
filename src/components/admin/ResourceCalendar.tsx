@@ -167,39 +167,82 @@ export default function ResourceCalendar({
                                             <div key={time} className="h-[60px] border-b border-white/5 box-border" />
                                         ))}
                                         {/* ── Appointments (Events) ── */}
-                                        {stylistAppts.map(appt => {
-                                            const style = getAppointmentStyle(appt);
-                                            const service = services.find(s => s.id === appt.serviceId);
+                                        {(() => {
+                                            // Process overlaps for this stylist
+                                            const sorted = [...stylistAppts].sort((a, b) => a.time.localeCompare(b.time));
+                                            const columns: any[][] = [];
 
-                                            // Conditional styling for Completed vs Confirmed
-                                            const isCompleted = appt.status === 'completada';
-                                            const isPast = new Date(appt.date + 'T' + appt.time) < new Date();
-                                            const bgColor = isCompleted ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100'
-                                                : (isPast ? 'bg-slate-700/40 border-slate-600/40 text-slate-300'
-                                                    : 'bg-accent/20 border-accent/40 text-accent-100 hover:bg-accent/30');
+                                            sorted.forEach(appt => {
+                                                let placed = false;
+                                                const apptStart = parse(appt.time, 'HH:mm', currentDate);
+                                                const apptDuration = services.find(s => s.id === appt.serviceId)?.duration || 30;
+                                                const apptEnd = addMinutes(apptStart, apptDuration);
 
-                                            return (
-                                                <div
-                                                    key={appt.id}
-                                                    className={`absolute left-1 right-1 rounded-md border p-2 text-xs overflow-hidden cursor-pointer transition-all shadow-sm group hover:z-30 hover:shadow-lg ${bgColor}`}
-                                                    style={style}
-                                                    onClick={() => onAppointmentClick(appt)}
-                                                >
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="font-bold truncate">{appt.clientName}</span>
-                                                        <span className="text-[9px] font-black uppercase opacity-90">{format12h(appt.time)}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 mt-0.5 opacity-90 truncate">
-                                                        <Scissors size={10} />
-                                                        <span>{service?.name || 'Servicio'}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 mt-0.5 opacity-75 truncate text-[10px]">
-                                                        <Phone size={10} />
-                                                        <span>{appt.clientPhone}</span>
-                                                    </div>
-                                                </div>
+                                                for (let i = 0; i < columns.length; i++) {
+                                                    const lastColAppt = columns[i][columns[i].length - 1];
+                                                    const lastStart = parse(lastColAppt.time, 'HH:mm', currentDate);
+                                                    const lastDuration = services.find(s => s.id === lastColAppt.serviceId)?.duration || 30;
+                                                    const lastEnd = addMinutes(lastStart, lastDuration);
+
+                                                    if (apptStart >= lastEnd) {
+                                                        columns[i].push(appt);
+                                                        placed = true;
+                                                        break;
+                                                    }
+                                                }
+
+                                                if (!placed) {
+                                                    columns.push([appt]);
+                                                }
+                                            });
+
+                                            return columns.flatMap((col, colIdx) =>
+                                                col.map(appt => {
+                                                    const style = getAppointmentStyle(appt);
+                                                    const service = services.find(s => s.id === appt.serviceId);
+                                                    const isCompleted = appt.status === 'completada';
+                                                    const isPast = new Date(appt.date + 'T' + appt.time) < new Date();
+                                                    const bgColor = isCompleted ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-100'
+                                                        : (isPast ? 'bg-slate-700/40 border-slate-600/40 text-slate-300'
+                                                            : 'bg-accent/20 border-accent/40 text-accent-100 hover:bg-accent/30');
+
+                                                    // Calculate width and left based on columns count
+                                                    const width = 100 / columns.length;
+                                                    const left = colIdx * width;
+
+                                                    return (
+                                                        <div
+                                                            key={appt.id}
+                                                            className={`absolute rounded-md border p-2 text-[10px] overflow-hidden cursor-pointer transition-all shadow-sm group hover:z-30 hover:scale-[1.02] hover:shadow-lg ${bgColor}`}
+                                                            style={{
+                                                                ...style,
+                                                                left: `${left}%`,
+                                                                width: `${width === 100 ? 'calc(100% - 8px)' : `${width}%`}`,
+                                                                margin: '0 4px'
+                                                            }}
+                                                            onClick={() => onAppointmentClick(appt)}
+                                                        >
+                                                            <div className="flex flex-col h-full justify-between">
+                                                                <div className="flex justify-between items-start gap-1">
+                                                                    <span className="font-bold truncate leading-tight">{appt.clientName}</span>
+                                                                    <span className="text-[8px] font-black uppercase opacity-70 shrink-0">{format12h(appt.time)}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 mt-0.5 opacity-80 truncate">
+                                                                    <Scissors size={10} className="shrink-0" />
+                                                                    <span className="truncate">{service?.name || 'Servicio'}</span>
+                                                                </div>
+                                                                {width > 40 && (
+                                                                    <div className="flex items-center gap-1 mt-0.5 opacity-60 truncate text-[9px]">
+                                                                        <Phone size={9} className="shrink-0" />
+                                                                        <span className="truncate">{appt.clientPhone}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
                                             );
-                                        })}
+                                        })()}
                                         {/* Current Time Line (Red) */}
                                         {isSameDay(currentDate, new Date()) && (
                                             <div

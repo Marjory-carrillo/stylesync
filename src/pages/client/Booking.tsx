@@ -807,14 +807,18 @@ export default function Booking() {
                                 {!isDayBlockedManually && (
                                     <button
                                         className="btn btn-primary w-full py-3 mb-3 text-accent border-accent/20"
-                                        onClick={async () => {
-                                            await addToWaitingList({
-                                                name: clientName,
-                                                phone: clientPhone,
-                                                serviceId: selectedService.id,
-                                                date: selectedDate,
-                                            });
-                                            setStep(26);
+                                        onClick={() => {
+                                            if (!clientName || !clientPhone) {
+                                                setStep(27);
+                                            } else {
+                                                addToWaitingList({
+                                                    name: clientName,
+                                                    phone: clientPhone,
+                                                    serviceId: selectedService.id,
+                                                    date: selectedDate,
+                                                });
+                                                setStep(26);
+                                            }
                                         }}
                                     >
                                         ⏳ Avísame si se libera un lugar
@@ -834,17 +838,74 @@ export default function Booking() {
 
                 {/* ══ STEP 26: Waiting List Success ══ */}
                 {step === 26 && (
-                    <div className="animate-fade-in" style={{ textAlign: 'center' }}>
-                        <div style={{ margin: '0 auto var(--space-lg)', width: '80px', height: '80px', borderRadius: '50%', background: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 10px 25px -5px var(--color-success)' }}>
+                    <div className="animate-fade-in text-center py-8">
+                        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20 text-white">
                             <CheckCircle size={40} />
                         </div>
-                        <h3 className="text-2xl font-bold" style={{ marginBottom: 'var(--space-md)' }}>¡Estás en la lista!</h3>
-                        <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-xl)', lineHeight: 1.6 }}>
-                            Te avisaremos por <strong>WhatsApp</strong> si se libera un espacio para tu fecha deseada.
+                        <h3 className="text-2xl font-bold text-white mb-4">¡Estás en la lista!</h3>
+                        <p className="text-muted mb-8 leading-relaxed max-w-xs mx-auto">
+                            Te avisaremos por <strong>WhatsApp</strong> si se libera un espacio para el día <strong>{selectedDate}</strong>.
                         </p>
-                        <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => { setStep(1); setClientName(''); setClientPhone(''); }}>
+                        <button className="btn btn-primary w-full py-4 font-bold" onClick={() => { setStep(1); setClientName(''); setClientPhone(''); }}>
                             Volver al Inicio
                         </button>
+                    </div>
+                )}
+
+                {/* ══ STEP 27: Waiting List Info Collection ══ */}
+                {step === 27 && selectedService && (
+                    <div className="animate-slide-up">
+                        <div className="text-center mb-6">
+                            <h3 className="text-2xl font-bold text-white mb-2">Lista de Espera</h3>
+                            <p className="text-sm text-muted">Ingresa tus datos para avisarte si se libera un cupo.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="glass-panel p-4 rounded-xl border border-white/5">
+                                <label className="block text-[10px] font-black uppercase tracking-widest text-accent mb-2">Nombre Completo</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-transparent border-none text-white focus:ring-0 p-0 text-lg placeholder:text-white/10"
+                                    placeholder="Ej: Juan Pérez"
+                                    value={clientName}
+                                    onChange={(e) => setClientName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="glass-panel p-4 rounded-xl border border-white/5">
+                                <label className="block text-[10px] font-black uppercase tracking-widest text-accent mb-2">WhatsApp</label>
+                                <div className="flex items-center gap-2">
+                                    <Phone size={18} className="text-muted" />
+                                    <input
+                                        type="tel"
+                                        className="w-full bg-transparent border-none text-white focus:ring-0 p-0 text-lg placeholder:text-white/10"
+                                        placeholder="Ej: 5512345678"
+                                        value={clientPhone}
+                                        onChange={(e) => setClientPhone(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                className="btn btn-primary w-full py-4 mt-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={!clientName || clientPhone.length < 8}
+                                onClick={async () => {
+                                    await addToWaitingList({
+                                        name: clientName,
+                                        phone: clientPhone,
+                                        serviceId: selectedService.id,
+                                        date: selectedDate,
+                                    });
+                                    setStep(26);
+                                }}
+                            >
+                                Unirme a la Lista
+                            </button>
+
+                            <button className="btn btn-ghost w-full py-2 text-sm" onClick={() => setStep(3)}>
+                                ← Volver
+                            </button>
+                        </div>
                     </div>
                 )}
 

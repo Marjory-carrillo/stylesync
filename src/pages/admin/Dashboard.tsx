@@ -6,7 +6,8 @@ export default function Dashboard() {
     const {
         getAppointmentsForToday, getTodayRevenue, appointments, services,
         getReminders, generateReminderWhatsAppUrl, getServiceById,
-        cancellationLog, waitingList, businessConfig, showToast
+        cancellationLog, waitingList, businessConfig, showToast,
+        addToWaitingList
     } = useStore();
     const todayAppts = getAppointmentsForToday();
     const revenue = getTodayRevenue();
@@ -119,9 +120,10 @@ export default function Dashboard() {
                         </div>
 
                         <div className="space-y-4">
-                            {cancellationLog.slice(0, 3).map(cancel => {
+                            {cancellationLog.slice(0, 5).map(cancel => {
                                 // Find matches in waiting list for same date
-                                const matches = waitingList.filter(w => w.date === cancel.date && w.serviceId === getServiceById(services.find(s => s.name === cancel.serviceName)?.id ?? 0)?.id);
+                                // We match primarily by date now, and show the service name in the UI for context
+                                const matches = waitingList.filter(w => w.date === cancel.date);
                                 if (matches.length === 0) return null;
 
                                 return (
@@ -136,7 +138,7 @@ export default function Dashboard() {
                                                 hh = hh % 12;
                                                 hh = hh ? hh : 12;
                                                 const time12 = `${hh}:${m}${ampm}`;
-                                                return <span>Cita Cancelada: <strong>{cancel.date} - {time12}</strong> ({cancel.serviceName})</span>;
+                                                return <span>Espacio liberado el <strong>{cancel.date}</strong> a las <strong>{time12}</strong> ({cancel.serviceName})</span>;
                                             })()}
                                         </div>
                                         <p className="text-xs text-muted mb-3">Hay {matches.length} clientes esperando para esta fecha:</p>
@@ -157,12 +159,12 @@ export default function Dashboard() {
                                                             <span className="text-xs text-muted">{match.phone}</span>
                                                         </div>
                                                         <a
-                                                            href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, vimos que estabas interesado en una cita para el ${match.date}. ¡Se acaba de liberar un espacio a las ${time12Str}! ¿Te interesa?`}
+                                                            href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, te contactamos de ${businessConfig.name}. ¡Se acaba de liberar un espacio el ${match.date} a las ${time12Str}! ¿Te interesa tomarlo?`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="btn btn-sm bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1 rounded"
+                                                            className="btn btn-sm bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 font-bold shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
                                                         >
-                                                            <MessageCircle size={12} className="mr-1" /> Avisar
+                                                            <MessageCircle size={14} /> Avisar Cliente
                                                         </a>
                                                     </div>
                                                 );
@@ -179,11 +181,37 @@ export default function Dashboard() {
             {/* ── General Waiting List Header (Always visible if there's someone waiting) ── */}
             {waitingList.length > 0 && (
                 <div className="glass-panel p-6 rounded-2xl border border-white/5 mb-8">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Users size={20} className="text-accent" /> Lista de Espera General ({waitingList.length})
-                        </h3>
-                        <span className="text-xs text-muted italic">Clientes esperando un espacio libre</span>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Users size={20} className="text-accent" /> Lista de Espera ({waitingList.length})
+                            </h3>
+                            <p className="text-xs text-muted">Clientes esperando un espacio libre</p>
+                        </div>
+                        <button
+                            onClick={async () => {
+                                const name = prompt('Nombre del cliente:');
+                                if (!name) return;
+                                const phone = prompt('WhatsApp (10 dígitos):');
+                                if (!phone) return;
+                                const date = prompt('Fecha (YYYY-MM-DD):', new Date().toLocaleDateString('en-CA'));
+                                if (!date) return;
+
+                                // Find first service as default
+                                const serviceId = services[0]?.id || 0;
+
+                                await addToWaitingList({
+                                    name,
+                                    phone,
+                                    date,
+                                    serviceId
+                                });
+                                showToast('Cliente añadido a la lista', 'success');
+                            }}
+                            className="px-4 py-2 bg-accent/20 text-accent hover:bg-accent hover:text-white rounded-xl border border-accent/20 transition-all font-bold text-xs"
+                        >
+                            + Añadir a Lista
+                        </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
