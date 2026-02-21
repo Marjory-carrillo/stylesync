@@ -35,7 +35,7 @@ export default function AdminLayout() {
         <div className="flex h-screen overflow-hidden bg-[var(--color-bg)] text-slate-200">
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--color-bg-secondary)] border-b border-white/10 z-[100] px-4 flex items-center justify-between">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(34,211,238,0.4)] animate-pulse-soft">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(34,211,238,0.4)] animate-pulse-soft">
                     <Calendar className="text-white" size={18} />
                 </div>
                 <span className="font-bold text-white tracking-tight">CitaLink Admin</span>
@@ -56,12 +56,11 @@ export default function AdminLayout() {
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Sidebar Navigation */}
             <aside className={`
-                fixed inset-y-0 left-0 w-72 bg-[var(--color-bg-secondary)] border-r border-white/5 z-[70] 
-                lg:relative lg:translate-x-0 transition-transform duration-300 ease-out
-                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-                flex flex-col shadow-2xl lg:shadow-none
+                fixed inset-y-0 left-0 w-72 glass-panel m-4 border-none shadow-[0_0_50px_rgba(0,0,0,0.5)] z-50 transform transition-all duration-500 ease-in-out
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)]'}
+                lg:relative lg:translate-x-0 lg:m-6 lg:rounded-[2.5rem]
             `}>
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                     <div className="flex items-center gap-3">
@@ -138,5 +137,3 @@ export default function AdminLayout() {
         </div>
     );
 }
-
-

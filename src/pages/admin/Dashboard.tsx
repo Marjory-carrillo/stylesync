@@ -56,14 +56,14 @@ export default function Dashboard() {
                     <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white mb-1">Dashboard</h2>
                     <p className="text-slate-400 text-xs md:text-sm">Resumen de actividad y métricas clave.</p>
                 </div>
-                <div className="glass-panel px-3 py-1.5 md:px-4 md:py-2 rounded-xl flex items-center gap-2 text-xs md:text-sm text-accent whitespace-nowrap">
+                <div className="glass-panel px-4 py-2 rounded-2xl flex items-center gap-2 text-xs md:text-sm text-cyan-400 whitespace-nowrap shadow-inner">
                     <Clock size={14} className="md:size-4" />
                     <span className="capitalize">{new Date().toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 </div>
             </header>
 
             {/* ── Client App Link Banner ── */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-purple-600/20 border border-blue-500/20 p-5 md:p-6 shadow-xl mb-8 group">
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-cyan-600/20 via-blue-600/10 to-purple-600/20 border border-cyan-500/20 p-6 md:p-10 shadow-2xl mb-10 group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-500">
                     <Users size={120} />
                 </div>
@@ -91,7 +91,7 @@ export default function Dashboard() {
                                     navigator.clipboard.writeText(url);
                                     showToast('¡Enlace copiado!', 'success');
                                 }}
-                                className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-900/20 text-xs md:text-sm"
+                                className="flex-1 sm:flex-none px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl hover:from-cyan-400 hover:to-blue-500 transition-all active:scale-95 shadow-lg shadow-cyan-900/20 text-xs md:text-sm"
                             >
                                 Copiar Link
                             </button>

@@ -361,9 +361,9 @@ export default function Booking() {
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
                     {businessConfig.logoUrl && (
-                        <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-white/5 p-1 border border-white/10 shadow-2xl relative group">
-                            <div className="absolute inset-0 rounded-full bg-accent/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                            <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full relative z-10 bg-slate-900" />
+                        <div className="w-28 h-28 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-white/5 to-white/10 p-1.5 border border-white/10 shadow-[0_0_50px_rgba(34,211,238,0.2)] relative group rotate-2 hover:rotate-0 transition-all duration-500">
+                            <div className="absolute inset-0 rounded-3xl bg-cyan-400/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                            <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-[1.25rem] relative z-10 bg-slate-950" />
                         </div>
                     )}
                     <h2 className="text-2xl font-bold text-center">
@@ -402,12 +402,12 @@ export default function Booking() {
             {/* Progress Bar (Segmented & Clean) */}
             {step >= 1 && step <= 25 && step !== 5 && (
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <div className="flex gap-1 h-1 mb-2">
+                    <div className="flex gap-1.5 h-1.5 mb-2">
                         {[1, 2, 3, 4, 5].map(s => (
                             <div key={s} className="flex-1 rounded-full transition-all duration-500"
                                 style={{
-                                    background: currentProgress >= s ? 'var(--color-accent)' : 'var(--color-border)',
-                                    opacity: currentProgress >= s ? 1 : 0.3
+                                    background: currentProgress >= s ? 'var(--color-accent)' : 'rgba(255,255,255,0.1)',
+                                    opacity: currentProgress >= s ? 1 : 1
                                 }}
                             />
                         ))}
@@ -441,7 +441,7 @@ export default function Booking() {
                                     value={clientName}
                                     onChange={e => { setClientName(e.target.value); setClientError(null); }}
                                     placeholder="Ej: Ana García"
-                                    className="w-full glass-card bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-accent focus:ring-1 focus:ring-accent transition-all outline-none"
+                                    className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl p-5 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 transition-all outline-none text-lg"
                                     onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
                             </div>
@@ -636,38 +636,33 @@ export default function Booking() {
 
                         <div className="grid grid-cols-2 gap-4">
                             {services.map((service: Service) => (
-                                <button
+                                <div
                                     key={service.id}
-                                    className="glass-card group text-left relative overflow-hidden rounded-xl border border-white/5 hover:border-accent/40 transition-all duration-300"
-                                    onClick={() => handleSelectService(service)}
+                                    className={`glass-card p-5 group cursor-pointer transition-all duration-500 relative overflow-hidden !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
+                                    onClick={() => {
+                                        setSelectedService(service);
+                                        setStep(22);
+                                    }}
                                 >
-                                    {/* Image aspect ratio container */}
-                                    <div className="relative w-full pb-[75%] bg-slate-800">
-                                        {service.image ? (
-                                            <img
-                                                src={service.image}
-                                                alt={service.name}
-                                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            />
-                                        ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center text-muted/20">
-                                                <RefreshCw size={32} />
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
+                                            {service.image ? (
+                                                <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                    <Calendar size={32} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">{service.name}</h4>
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                <span className="text-muted flex items-center gap-1"><Clock size={14} /> {service.duration} min</span>
                                             </div>
-                                        )}
-                                        {/* Price Tag */}
-                                        <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-lg border border-white/10">
-                                            ${service.price}
                                         </div>
                                     </div>
-
-                                    <div className="p-3">
-                                        <h4 className="font-bold text-sm text-white group-hover:text-accent transition-colors mb-1">{service.name}</h4>
-                                        <div className="flex items-center gap-1 text-xs text-muted">
-                                            <Clock size={12} />
-                                            <span>{service.duration} min</span>
-                                        </div>
-                                    </div>
-                                </button>
+                                </div>
                             ))}
                         </div>
                         <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar mis datos</button>
@@ -684,37 +679,55 @@ export default function Booking() {
                             </h3>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                             {/* "Any" Option */}
-                            <button
-                                className="glass-card group flex flex-col items-center justify-center p-6 rounded-xl border border-white/5 hover:border-accent/40 transition-all duration-300"
-                                onClick={() => handleSelectStylist(null)}
+                            <div
+                                key="any-stylist"
+                                className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist === null ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
+                                onClick={() => {
+                                    setSelectedStylist(null);
+                                    setStep(25);
+                                }}
                             >
-                                <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                    <RefreshCw size={24} className="text-accent" />
+                                <div className="flex items-center gap-5">
+                                    <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
+                                        <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                            <RefreshCw size={32} />
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">Cualquier {professionalLabel}</h4>
+                                        <p className="text-sm text-muted uppercase tracking-widest">El primer disponible</p>
+                                    </div>
                                 </div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-lg">Cualquier {professionalLabel}</h3>
-                                    <p className="text-muted-foreground text-sm">El primer disponible</p>
-                                </div>
-                            </button>
+                            </div>
 
                             {/* Stylists List */}
                             {stylists.map((stylist: Stylist) => (
-                                <button
+                                <div
                                     key={stylist.id}
-                                    className="glass-card group flex flex-col items-center justify-center p-6 rounded-xl border border-white/5 hover:border-accent/40 transition-all duration-300"
-                                    onClick={() => handleSelectStylist(stylist)}
+                                    className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist?.id === stylist.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
+                                    onClick={() => {
+                                        setSelectedStylist(stylist);
+                                        setStep(25);
+                                    }}
                                 >
-                                    <div className="w-16 h-16 rounded-full bg-slate-700 mb-3 overflow-hidden group-hover:scale-110 transition-transform border border-white/10">
-                                        {stylist.image ? (
-                                            <img src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-muted">User</div>
-                                        )}
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
+                                            {stylist.image ? (
+                                                <img src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                    <Calendar size={32} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">{stylist.name}</h4>
+                                            <p className="text-sm text-muted uppercase tracking-widest">{stylist.role}</p>
+                                        </div>
                                     </div>
-                                    <h4 className="font-bold text-white text-center">{stylist.name}</h4>
-                                </button>
+                                </div>
                             ))}
                         </div>
                         <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro servicio</button>
@@ -737,19 +750,14 @@ export default function Booking() {
                                 return (
                                     <button
                                         key={d.dateStr}
-                                        className={`btn ${closed ? 'btn-ghost' : 'btn-secondary'} `}
-                                        onClick={() => !closed && handleSelectDate(d.dateStr)}
+                                        onClick={() => { setSelectedDate(d.dateStr); setSelectedTime(null); }}
+                                        className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 ${selectedDate === d.dateStr ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${closed ? 'opacity-40 cursor-not-allowed' : ''}`}
                                         disabled={closed}
-                                        style={{
-                                            flexDirection: 'column', padding: '12px 8px', textAlign: 'center',
-                                            opacity: closed ? 0.4 : 1, cursor: closed ? 'not-allowed' : 'pointer',
-                                        }}
                                     >
-                                        <span className="font-bold" style={{ fontSize: '0.95rem' }}>{d.label}</span>
-                                        <span className="text-sm" style={{ fontSize: '0.75rem', color: closed ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
-                                            {closed ? 'Cerrado' : d.dayName}
-                                        </span>
-                                        {d.isToday && <span style={{ fontSize: '0.65rem', color: 'var(--color-accent)', fontWeight: 700 }}>HOY</span>}
+                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{d.dayName}</span>
+                                        <span className="text-sm font-bold">{d.label}</span>
+                                        {d.isToday && <span className="text-[8px] uppercase font-black tracking-tighter text-cyan-200">HOY</span>}
+                                        {closed && <span className="text-[8px] uppercase font-black tracking-tighter text-red-400">Cerrado</span>}
                                     </button>
                                 );
                             })}
@@ -772,25 +780,17 @@ export default function Booking() {
 
                         {availableSlots.length > 0 ? (
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {availableSlots.map((time, idx) => {
-                                    const [h, m] = time.split(':');
-                                    let hh = parseInt(h);
-                                    const ampm = hh >= 12 ? 'pm' : 'am';
-                                    hh = hh % 12;
-                                    hh = hh ? hh : 12;
-                                    const displayTime = `${hh}:${m}${ampm}`;
-
-                                    return (
-                                        <button
-                                            key={time}
-                                            className="btn btn-secondary py-3 text-sm font-bold hover:border-accent hover:text-accent transition-all animate-scale-in"
-                                            style={{ animationDelay: `${idx * 0.05} s` }}
-                                            onClick={() => handleSelectTime(time)}
-                                        >
-                                            {displayTime}
-                                        </button>
-                                    );
-                                })}
+                                {availableSlots.map((time, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleSelectTime(time)}
+                                        className={`p-4 rounded-2xl border transition-all duration-300 group relative overflow-hidden ${selectedTime === time ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'}`}
+                                    >
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className="text-sm font-bold tracking-tight">{format12h(time)}</span>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
                         ) : (
                             <div className="glass-panel p-8 text-center rounded-2xl border-dashed border-2 border-white/10">

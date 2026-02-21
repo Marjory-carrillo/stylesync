@@ -150,7 +150,7 @@ export default function ResourceCalendar({
                             return (
                                 <div key={stylist.id} className="flex-1 min-w-[180px] border-r border-white/5 relative">
                                     {/* ── Stylist Header (Sticky Top) ── */}
-                                    <div className="sticky top-0 z-10 bg-slate-800/90 backdrop-blur border-b border-white/10 h-12 flex items-center justify-center gap-2 shadow-sm">
+                                    <div className="sticky top-0 z-10 bg-slate-800/90 backdrop-blur border-b border-white/10 h-12 flex items-center justify-center gap-2 shadow-sm !rounded-t-[2.5rem] !rounded-b-none">
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-inner">
                                             {stylist.image ? (
                                                 <img src={stylist.image} className="w-full h-full object-cover rounded-full" />
@@ -211,7 +211,7 @@ export default function ResourceCalendar({
                                                     return (
                                                         <div
                                                             key={appt.id}
-                                                            className={`absolute rounded-md border p-2 text-[10px] overflow-hidden cursor-pointer transition-all shadow-sm group hover:z-30 hover:scale-[1.02] hover:shadow-lg ${bgColor}`}
+                                                            className={`absolute rounded-2xl border p-2 text-[10px] overflow-hidden cursor-pointer transition-all shadow-sm group hover:z-30 hover:scale-[1.02] hover:shadow-lg ${bgColor}`}
                                                             style={{
                                                                 ...style,
                                                                 left: `${left}%`,
