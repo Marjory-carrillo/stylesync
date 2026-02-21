@@ -3,11 +3,13 @@
 @tailwind utilities;
 
 :root {
-  /* Colors - Premium Dark Theme v2 */
-  --hue-primary: 225;
-  /* Deep Royal Blue/Slate */
-  --hue-accent: 38;
-  /* Luxurious Gold */
+  /* Colors - CitaLink Futuristic Theme */
+  --hue-primary: 200;
+  /* Deep Cyan/Blue */
+  --hue-accent: 190;
+  /* Bright Cyan */
+  --hue-secondary: 260;
+  /* Purple accent for gradients */
 
   /* Backgrounds - Dynamic based on brand hue */
   --color-bg: hsl(var(--hue-primary), 35%, 7%);
@@ -74,10 +76,11 @@ body {
 }
 
 body {
-  /* Premium radial gradient background */
+  /* Premium radial gradient background with CitaLink colors */
   background-image:
-    radial-gradient(circle at 15% 50%, hsla(var(--hue-primary), 40%, 15%, 0.5) 0, transparent 40%),
-    radial-gradient(circle at 85% 30%, hsla(var(--hue-accent), 30%, 15%, 0.3) 0, transparent 40%),
+    radial-gradient(circle at 15% 50%, hsla(var(--hue-primary), 80%, 15%, 0.4) 0, transparent 40%),
+    radial-gradient(circle at 85% 30%, hsla(var(--hue-accent), 80%, 15%, 0.3) 0, transparent 40%),
+    radial-gradient(circle at 50% 80%, hsla(var(--hue-secondary), 70%, 10%, 0.3) 0, transparent 50%),
     linear-gradient(to bottom, var(--color-bg), var(--color-bg-secondary));
   background-attachment: fixed;
   color: var(--color-text);

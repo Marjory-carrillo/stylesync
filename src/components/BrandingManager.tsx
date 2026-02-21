@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 import { useStore } from '../lib/store';
 
 const THEMES: Record<string, { primary: string; accent: string }> = {
-    barbershop: { primary: '225', accent: '38' },
+    barbershop: { primary: '200', accent: '190' }, // Cyan colors
     beauty_salon: { primary: '330', accent: '310' },
     nail_bar: { primary: '270', accent: '290' },
     spa: { primary: '150', accent: '140' },
     pet_grooming: { primary: '200', accent: '25' },
-    consulting: { primary: '210', accent: '190' },
-    default: { primary: '225', accent: '38' }
+    consulting: { primary: '215', accent: '185' },
+    default: { primary: '200', accent: '190' } // CitaLink Cyan/Blue theme
 };
 
 export default function BrandingManager() {
@@ -18,12 +18,13 @@ export default function BrandingManager() {
         if (!businessConfig) return;
 
         // 1. Dynamic CSS Theme Colors
-        let theme = THEMES[businessConfig.category as keyof typeof THEMES] || THEMES.default;
-        if (businessConfig.primaryColor) theme = { ...theme, primary: businessConfig.primaryColor };
-        if (businessConfig.accentColor) theme = { ...theme, accent: businessConfig.accentColor };
+        let theme = { ...THEMES.default, secondary: '260' };
+        if (businessConfig.primaryColor) theme.primary = businessConfig.primaryColor;
+        if (businessConfig.accentColor) theme.accent = businessConfig.accentColor;
 
         document.documentElement.style.setProperty('--hue-primary', theme.primary);
         document.documentElement.style.setProperty('--hue-accent', theme.accent);
+        document.documentElement.style.setProperty('--hue-secondary', theme.secondary);
 
         // Ensure dependent colors are re-evaluated by setting them explicitly if needed
         document.documentElement.style.setProperty('--color-bg', `hsl(${theme.primary}, 35%, 7%)`);
@@ -52,13 +53,13 @@ export default function BrandingManager() {
             theme_color: "#0f172a",
             icons: [
                 {
-                    src: businessConfig.logoUrl || "https://raw.githubusercontent.com/lucide-react/lucide-react/master/icons/scissors.svg",
+                    src: businessConfig.logoUrl || "https://raw.githubusercontent.com/lucide-react/lucide-react/master/icons/calendar.svg",
                     sizes: "192x192",
                     type: businessConfig.logoUrl ? "image/png" : "image/svg+xml",
                     purpose: "any maskable"
                 },
                 {
-                    src: businessConfig.logoUrl || "https://raw.githubusercontent.com/lucide-react/lucide-react/master/icons/scissors.svg",
+                    src: businessConfig.logoUrl || "https://raw.githubusercontent.com/lucide-react/lucide-react/master/icons/calendar.svg",
                     sizes: "512x512",
                     type: businessConfig.logoUrl ? "image/png" : "image/svg+xml",
                     purpose: "any maskable"

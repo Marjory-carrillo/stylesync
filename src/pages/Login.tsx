@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, ArrowRight, Mail, Loader2 } from 'lucide-react';
+import { Calendar, ArrowRight, Mail, Loader2, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 import { useStore } from '../lib/store';
@@ -54,13 +54,13 @@ export default function Login() {
 
                 {/* Logo / Brand Area */}
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20 mx-auto mb-6 transform rotate-3 hover:rotate-6 transition-transform duration-300">
-                        <Lock size={32} className="text-white" />
+                    <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.3)] mx-auto mb-6 transform -rotate-3 hover:rotate-0 transition-all duration-500 group-hover:scale-105">
+                        <Calendar size={40} className="text-white drop-shadow-lg" />
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-2">
-                        Admin Login
+                    <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-white via-cyan-100 to-blue-200 bg-clip-text text-transparent mb-2">
+                        CitaLink
                     </h1>
-                    <p className="text-slate-400">CitaLink Gestión</p>
+                    <p className="text-cyan-500/80 font-medium tracking-widest uppercase text-xs">Gestión Inteligente</p>
                 </div>
 
                 {/* Login Card */}

@@ -35,12 +35,10 @@ export default function AdminLayout() {
         <div className="flex h-screen overflow-hidden bg-[var(--color-bg)] text-slate-200">
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--color-bg-secondary)] border-b border-white/10 z-[100] px-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-orange-600 shadow-glow">
-                        <Scissors className="text-slate-950" size={18} />
-                    </div>
-                    <span className="font-bold text-white tracking-tight">CitaLink Admin</span>
+                <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(34,211,238,0.4)] animate-pulse-soft">
+                    <Calendar className="text-white" size={18} />
                 </div>
+                <span className="font-bold text-white tracking-tight">CitaLink Admin</span>
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
                     className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-accent transition-all active:scale-90"
@@ -67,8 +65,8 @@ export default function AdminLayout() {
             `}>
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-gradient-to-br from-accent to-orange-600 shadow-glow">
-                            <Scissors className="text-slate-950" size={20} />
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(34,211,238,0.3)] group-hover:scale-110 transition-transform duration-500">
+                            <Calendar className="text-white" size={20} />
                         </div>
                         <div>
                             <h1 className="text-lg font-bold tracking-tight text-white leading-none">CitaLink</h1>
