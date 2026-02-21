@@ -175,8 +175,6 @@ export default function ResourceCalendar({
                                             sorted.forEach(appt => {
                                                 let placed = false;
                                                 const apptStart = parse(appt.time, 'HH:mm', currentDate);
-                                                const apptDuration = services.find(s => s.id === appt.serviceId)?.duration || 30;
-                                                const apptEnd = addMinutes(apptStart, apptDuration);
 
                                                 for (let i = 0; i < columns.length; i++) {
                                                     const lastColAppt = columns[i][columns[i].length - 1];

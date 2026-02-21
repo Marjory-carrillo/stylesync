@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
-import { Trash2, CheckCircle, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Calendar } from 'lucide-react';
+import { Trash2, CheckCircle, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock } from 'lucide-react';
 
 import ResourceCalendar from '../../components/admin/ResourceCalendar';
 
