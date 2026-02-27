@@ -19,6 +19,17 @@ import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
 
 const AdminRoute = () => {
+  const { user, loadingAuth, isSuperAdmin, tenantId } = useStore();
+
+  if (loadingAuth) return <SplashScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+
+  // If Super Admin tries to enter normal admin area, bounce them to HQ
+  if (isSuperAdmin) return <Navigate to="/super-admin" replace />;
+
+  // If normal user has no tenant, bounce to onboarding
+  if (!tenantId) return <Navigate to="/create-business" replace />;
+
   return <Outlet />;
 };
 
