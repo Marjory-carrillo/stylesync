@@ -12,6 +12,7 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isSignUp, setIsSignUp] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -30,18 +31,23 @@ export default function Login() {
         setError('');
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-
-            if (error) throw error;
-
-            if (error) throw error;
+            if (isSignUp) {
+                const { error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                });
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+                if (error) throw error;
+            }
             // Navigation will be handled by useEffect observing 'user' state
         } catch (err: any) {
-            console.error('Login error:', err);
-            setError('Credenciales incorrectas o error de conexión.');
+            console.error('Auth error:', err);
+            setError(isSignUp ? 'Error al crear cuenta. Puede que el usuario ya exista.' : 'Credenciales incorrectas o error de conexión.');
         } finally {
             setLoading(false);
         }
@@ -130,12 +136,21 @@ export default function Login() {
                                 }`}
                         >
                             {loading ? (
-                                <><Loader2 className="animate-spin" size={18} /> Entrando...</>
+                                <><Loader2 className="animate-spin" size={18} /> {isSignUp ? 'Creando...' : 'Entrando...'}</>
                             ) : (
-                                <>Entrar <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" /></>
+                                <>{isSignUp ? 'Crear Cuenta' : 'Entrar'} <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" /></>
                             )}
                         </button>
 
+                        <div className="text-center mt-4">
+                            <button
+                                type="button"
+                                onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+                                className="text-sm text-slate-400 hover:text-white transition-colors"
+                            >
+                                {isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿Eres nuevo empleado? Crea tu cuenta'}
+                            </button>
+                        </div>
                     </form>
                 </div>
 

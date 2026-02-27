@@ -63,7 +63,7 @@ export default function Team() {
             if (error.code === '23505') {
                 showToast('Este correo ya está en tu equipo', 'error');
             } else {
-                showToast('Error al invitar usuario', 'error');
+                showToast(`Error: ${error.message || 'al invitar usuario'}`, 'error');
             }
         }
     };
@@ -160,7 +160,7 @@ export default function Team() {
                             <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
                                 <Users size={24} />
                             </div>
-                            <h3 className="text-lg font-bold text-white">Integrantes Acutales</h3>
+                            <h3 className="text-lg font-bold text-white">Integrantes Actuales</h3>
                         </div>
                         <span className="bg-white/10 text-white text-xs px-2 py-1 rounded-full">{members.length} Invitados</span>
                     </div>

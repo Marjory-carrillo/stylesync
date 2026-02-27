@@ -1,0 +1,3 @@
+﻿src/pages/client/Booking.tsx(288,11): error TS6133: 'handleSelectService' is declared but its value is never read.
+src/pages/client/Booking.tsx(293,11): error TS6133: 'handleSelectStylist' is declared but its value is never read.
+src/pages/client/Booking.tsx(298,11): error TS6133: 'handleSelectDate' is declared but its value is never read.
