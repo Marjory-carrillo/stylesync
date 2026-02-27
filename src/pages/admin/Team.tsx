@@ -34,7 +34,7 @@ export default function Team() {
             setMembers(data || []);
         } catch (error: any) {
             console.error('Error fetching members:', error);
-            showToast('Error al cargar equipo', 'error');
+            showToast(`Error al cargar: ${error.message || 'desconocido'}`, 'error');
         } finally {
             setLoading(false);
         }
