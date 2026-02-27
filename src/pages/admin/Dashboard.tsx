@@ -54,8 +54,8 @@ export default function Dashboard() {
         });
 
         // Growth metrics
-        const revenueGrowth = lastRevenue === 0 ? 100 : ((currentRevenue - lastRevenue) / lastRevenue) * 100;
-        const appsGrowth = lastCompleted === 0 ? 100 : ((currentCompleted - lastCompleted) / lastCompleted) * 100;
+        const revenueGrowth = lastRevenue === 0 ? (currentRevenue > 0 ? 100 : 0) : ((currentRevenue - lastRevenue) / lastRevenue) * 100;
+        const appsGrowth = lastCompleted === 0 ? (currentCompleted > 0 ? 100 : 0) : ((currentCompleted - lastCompleted) / lastCompleted) * 100;
 
         return {
             revenue: currentRevenue,
