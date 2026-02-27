@@ -138,6 +138,11 @@ export default function AdminLayout() {
                     {isSuperAdmin && (
                         <Link
                             to="/super-admin"
+                            onClick={() => {
+                                localStorage.removeItem('stylesync_tenant_id');
+                                // Force a full reload to clear state and hit the /super-admin cleanly
+                                window.location.href = '/super-admin';
+                            }}
                             className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-amber-400 hover:bg-amber-400/10 transition-all duration-200 group"
                         >
                             <ShieldCheck size={18} className="group-hover:-translate-y-1 transition-transform" />

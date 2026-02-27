@@ -329,8 +329,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             const isUserSuperAdmin = userResponse.data.user?.email === 'infinitummisael@gmail.com';
 
             if (isUserSuperAdmin) {
-                // Super admin doesn't get forced into a single tenant on login
-                setTenantId(null);
+                // Super admin doesn't get forced into a single tenant on login,
+                // BUT we should respect their previously selected tenant if they are managing one.
+                const savedTenantId = localStorage.getItem('stylesync_tenant_id');
+                setTenantId(savedTenantId || null);
                 setUserRole('admin');
             } else {
                 // 1. Try to find if user is owner
