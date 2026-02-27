@@ -814,8 +814,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!isSuperAdmin) return;
         localStorage.setItem('stylesync_tenant_id', id);
         setTenantId(id);
-        // Refresh data for the new tenant
-        window.location.reload();
+        // Navigate to the admin dashboard and force a full reload to clear any stale state
+        window.location.href = '/admin';
     }, [isSuperAdmin]);
 
     const deleteTenant = useCallback(async (id: string) => {

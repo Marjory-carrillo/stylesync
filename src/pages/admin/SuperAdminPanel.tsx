@@ -1,11 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../lib/store';
 import { Building2, Trash2, Search, Users, Activity, ChevronRight, LayoutDashboard } from 'lucide-react';
 
 export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant } = useStore();
-    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
@@ -128,7 +126,7 @@ export default function SuperAdminPanel() {
                                     {/* Actions */}
                                     <div className="flex items-center gap-2 ml-4">
                                         <button
-                                            onClick={async () => { await switchTenant(tenant.id); navigate('/admin'); }}
+                                            onClick={async () => { await switchTenant(tenant.id); }}
                                             className="p-2.5 rounded-xl bg-accent/10 text-accent hover:bg-accent hover:text-slate-900 font-bold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(var(--hue-accent),100%,50%,0.1)] hover:shadow-[0_0_20px_rgba(var(--hue-accent),100%,50%,0.4)]"
                                             title="Ingresar al Panel"
                                         >
