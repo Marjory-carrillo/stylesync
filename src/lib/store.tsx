@@ -994,14 +994,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (data.logoUrl !== undefined) updatePayload.logo_url = data.logoUrl;
         if (data.category !== undefined) updatePayload.category = data.category;
         if (data.slug !== undefined) updatePayload.slug = data.slug;
-
-        // --- PENDING SUPABASE SCHEMA UPDATE ---
-        // The following lines are commented out because these columns do not exist in the basic 'tenants' table.
-        // Run SQL in Supabase to add them: 
-        // ALTER TABLE tenants ADD COLUMN description TEXT, ADD COLUMN primary_color TEXT, ADD COLUMN accent_color TEXT;
-        // if (data.description !== undefined) updatePayload.description = data.description;
-        // if (data.primaryColor !== undefined) updatePayload.primary_color = data.primaryColor;
-        // if (data.accentColor !== undefined) updatePayload.accent_color = data.accentColor;
+        if (data.description !== undefined) updatePayload.description = data.description;
+        if (data.primaryColor !== undefined) updatePayload.primary_color = data.primaryColor;
+        if (data.accentColor !== undefined) updatePayload.accent_color = data.accentColor;
 
         const { error } = await supabase.from('tenants').update(updatePayload).eq('id', tenantId);
 
