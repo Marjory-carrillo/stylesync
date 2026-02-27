@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store';
 import { Link } from 'react-router-dom';
-import { CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight, CheckCircle2, Facebook, Instagram, Twitter, X, Sparkles } from 'lucide-react';
+import { CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight, CheckCircle2, Facebook, Instagram, Twitter, X, Sparkles, Scissors, Flower2, Stethoscope } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Landing() {
@@ -168,46 +168,112 @@ export default function Landing() {
                         )}
                     </div>
 
-                    {/* Dashboard Preview Mockup */}
-                    <div className="mt-20 mx-auto max-w-5xl rounded-2xl md:rounded-[2.5rem] bg-[#0f172a] border border-white/10 shadow-2xl p-2 md:p-4 rotate-1 hover:rotate-0 transition-transform duration-500">
-                        <div className="w-full aspect-video rounded-xl md:rounded-2xl bg-[#020817] border border-white/5 overflow-hidden flex flex-col">
-                            {/* Fake Browser Header */}
-                            <div className="h-10 bg-white/5 border-b border-white/5 flex items-center px-4 gap-2">
-                                <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
-                                <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
-                                <div className="w-3 h-3 rounded-full bg-emerald-400/80"></div>
-                                <div className="mx-auto px-4 py-1 text-xs text-slate-500 bg-white/5 rounded-md hidden md:block">
-                                    citalink.app/admin
+                    {/* Real Dashboard Mockup Image */}
+                    <div className="mt-20 mx-auto max-w-5xl rounded-2xl md:rounded-[2.5rem] bg-[#0f172a] border border-white/10 shadow-2xl p-2 md:p-4 rotate-1 hover:rotate-0 transition-transform duration-500 overflow-hidden relative">
+                        <img
+                            src="/assets/mockup-dashboard.png"
+                            alt="CitaLink Dashboard Preview"
+                            className="w-full h-auto rounded-xl md:rounded-2xl border border-white/5 object-cover object-top"
+                            loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#020817] via-transparent to-transparent pointer-events-none rounded-[2.5rem]"></div>
+                    </div>
+                </div>
+            </main>
+
+            {/* ─── HOW IT WORKS / DUAL SECTION ─── */}
+            <section className="py-24 relative z-20 border-t border-white/5 bg-[#020817]">
+                <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h2 className="text-3xl md:text-5xl font-bold mb-6">¿Cómo funciona CitaLink?</h2>
+                        <p className="text-slate-400 text-lg">
+                            Un sistema integral compuesto por dos herramientas interconectadas para potenciar al máximo tus ganancias.
+                        </p>
+                    </div>
+
+                    <div className="space-y-24">
+                        {/* Block 1: Client App */}
+                        <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+                            <div className="flex-1 md:order-2">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-6">
+                                    Paso 1: Tus clientes
                                 </div>
+                                <h3 className="text-3xl md:text-4xl font-bold mb-4">Experiencia de reserva perfecta</h3>
+                                <p className="text-slate-400 text-lg leading-relaxed mb-6">
+                                    Tus clientes visitan tu página única (Ej: <em>citalink.app/reserva/tunegocio</em>). Ven tus servicios, las fechas disponibles de tus empleados, y pueden agendar solitos, 24 horas al día, desde su celular.
+                                </p>
+                                <ul className="space-y-3">
+                                    <li className="flex items-center gap-3 text-slate-300"><CheckCircle2 className="w-5 h-5 text-emerald-400" /> Citas auto-gestionables todo el día.</li>
+                                    <li className="flex items-center gap-3 text-slate-300"><CheckCircle2 className="w-5 h-5 text-emerald-400" /> Selección de empleado favorito.</li>
+                                    <li className="flex items-center gap-3 text-slate-300"><CheckCircle2 className="w-5 h-5 text-emerald-400" /> Diseño atractivo con tu propio Branding.</li>
+                                </ul>
                             </div>
-                            {/* Fake Dashboard Content */}
-                            <div className="flex-1 p-4 md:p-8 flex gap-6 opacity-80 pointer-events-none">
-                                <div className="w-48 hidden md:flex flex-col gap-4">
-                                    <div className="h-8 bg-white/10 rounded-md w-full"></div>
-                                    <div className="h-4 bg-white/5 rounded-md w-3/4 mt-4"></div>
-                                    <div className="h-4 bg-white/5 rounded-md w-5/6"></div>
-                                    <div className="h-4 bg-white/5 rounded-md w-4/5"></div>
+                            <div className="flex-1 md:order-1 relative">
+                                <div className="absolute inset-0 bg-violet-600/20 blur-[100px] rounded-full"></div>
+                                <img
+                                    src="/assets/mockup-booking.png"
+                                    alt="Client Booking App"
+                                    className="relative z-10 w-full max-w-[320px] mx-auto rounded-[2.5rem] border-4 border-slate-800 shadow-2xl skew-y-3 hover:skew-y-0 transition-transform duration-500"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Block 2: Admin Dashboard */}
+                        <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+                            <div className="flex-1">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-medium mb-6">
+                                    Paso 2: Tu control
                                 </div>
-                                <div className="flex-1 flex flex-col gap-6">
-                                    <div className="flex justify-between">
-                                        <div className="h-8 bg-white/10 rounded-md w-48"></div>
-                                        <div className="h-8 bg-violet-500/20 rounded-md w-32 border border-violet-500/30"></div>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {[1, 2, 3, 4].map(i => (
-                                            <div key={i} className="h-24 bg-white/5 rounded-xl border border-white/10 p-4 flex flex-col justify-between">
-                                                <div className="w-8 h-8 rounded-full bg-white/10"></div>
-                                                <div className="h-4 bg-white/20 rounded w-1/2"></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex-1 bg-white/5 border border-white/10 rounded-xl"></div>
-                                </div>
+                                <h3 className="text-3xl md:text-4xl font-bold mb-4">Control total de tu negocio</h3>
+                                <p className="text-slate-400 text-lg leading-relaxed mb-6">
+                                    Toda la magia se cristaliza en tu Dashboard Privado. Aquí entras tú y tu equipo para ver los calendarios llenarse, enviar recordatorios y registrar cuánto has ganado.
+                                </p>
+                                <ul className="space-y-3">
+                                    <li className="flex items-center gap-3 text-slate-300"><CheckCircle2 className="w-5 h-5 text-emerald-400" /> Analíticas de ingresos automáticas.</li>
+                                    <li className="flex items-center gap-3 text-slate-300"><CheckCircle2 className="w-5 h-5 text-emerald-400" /> Agenda centralizada en modo calendario.</li>
+                                    <li className="flex items-center gap-3 text-slate-300"><CheckCircle2 className="w-5 h-5 text-emerald-400" /> Asignación de roles al cajero, gerente y staff.</li>
+                                </ul>
+                            </div>
+                            <div className="flex-1 relative perspective-1000">
+                                <div className="absolute inset-0 bg-blue-600/20 blur-[100px] rounded-full"></div>
+                                <img
+                                    src="/assets/mockup-dashboard.png"
+                                    alt="Admin Dashboard"
+                                    className="relative z-10 w-full rounded-2xl border border-white/10 shadow-2xl -rotate-2 hover:rotate-0 transition-transform duration-500"
+                                />
                             </div>
                         </div>
                     </div>
                 </div>
-            </main>
+            </section>
+
+            {/* ─── INDUSTRY SECTION ─── */}
+            <section className="py-24 bg-[#0a0f1c] relative z-20 border-t border-white/5">
+                <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h2 className="text-3xl md:text-5xl font-bold mb-6">Diseñado para tu rubro</h2>
+                        <p className="text-slate-400 text-lg">
+                            Adaptamos las funciones del sistema para atender las necesidades precisas de los principales sectores del bienestar y el cuidado personal.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {[
+                            { icon: <Scissors className="w-8 h-8 text-amber-400" />, title: 'Barberías', bg: 'bg-amber-400/10' },
+                            { icon: <Sparkles className="w-8 h-8 text-pink-400" />, title: 'Salón de Uñas', bg: 'bg-pink-400/10' },
+                            { icon: <Flower2 className="w-8 h-8 text-emerald-400" />, title: 'Spas', bg: 'bg-emerald-400/10' },
+                            { icon: <Stethoscope className="w-8 h-8 text-blue-400" />, title: 'Clínicas', bg: 'bg-blue-400/10' }
+                        ].map((item, i) => (
+                            <div key={i} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-center hover:bg-white/[0.05] transition-colors group cursor-pointer">
+                                <div className={`w-16 h-16 mx-auto rounded-full ${item.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                    {item.icon}
+                                </div>
+                                <h3 className="font-bold text-lg text-white">{item.title}</h3>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
             {/* ─── FEATURES SECTION ─── */}
             <section className="py-24 bg-[#0a0f1c] relative z-20 border-t border-white/5">
