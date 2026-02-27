@@ -285,20 +285,6 @@ export default function Booking() {
     };
 
     // ── Normal flow ───
-    const handleSelectService = (service: typeof services[0]) => {
-        setSelectedService(service);
-        setStep(22); // Go to stylist selection
-    };
-
-    const handleSelectStylist = (stylist: typeof stylists[0] | null) => {
-        setSelectedStylist(stylist);
-        setStep(25); // Go to date picker
-    };
-
-    const handleSelectDate = (dateStr: string) => {
-        setSelectedDate(dateStr);
-        setStep(3); // Go to time selection
-    };
 
     const handleSelectTime = (time: string) => {
         if (isUpdating) { handleUpdateTime(time); return; }

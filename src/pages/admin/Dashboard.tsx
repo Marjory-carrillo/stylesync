@@ -12,7 +12,6 @@ export default function Dashboard() {
     } = useStore();
     const todayAppts = getAppointmentsForToday();
     const revenue = getTodayRevenue();
-    const totalClients = new Set(appointments.map(a => a.clientPhone)).size;
     const reminders = getReminders();
 
     // ── Reports Logic ──
@@ -408,7 +407,7 @@ export default function Dashboard() {
                                         contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
                                         itemStyle={{ color: 'hsl(var(--hue-accent), 100%, 60%)', fontWeight: 'bold' }}
                                         labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                                        formatter={(value: number) => [`$${value}`, 'Ingresos']}
+                                        formatter={(value: any) => [`$${value}`, 'Ingresos']}
                                     />
                                     <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                                 </AreaChart>
