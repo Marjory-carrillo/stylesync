@@ -1,8 +1,7 @@
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Building2, Paintbrush, Settings as SettingsIcon, ShieldCheck, LogOut, Inbox } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { LayoutGrid, Settings, LogOut, ShieldCheck } from 'lucide-react';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-
 export default function SuperAdminLayout() {
     const { user, isSuperAdmin } = useStore();
     const navigate = useNavigate();
@@ -27,9 +26,12 @@ export default function SuperAdminLayout() {
         navigate('/login');
     };
 
+    // The navItems array is no longer used directly for rendering, but kept for reference if needed elsewhere
     const navItems = [
-        { path: '/super-admin', icon: LayoutGrid, label: 'Negocios' },
-        { path: '/super-admin/global-settings', icon: Settings, label: 'Ajustes Globales' }
+        { path: '/super-admin', icon: Building2, label: 'Negocios' },
+        { path: '/super-admin/prospectos', icon: Inbox, label: 'Prospectos' },
+        { path: '/super-admin/branding', icon: Paintbrush, label: 'Branding' },
+        { path: '/super-admin/settings', icon: SettingsIcon, label: 'Ajustes Globales' }
     ];
 
     return (
@@ -79,7 +81,6 @@ export default function SuperAdminLayout() {
                         ))}
                     </ul>
                 </nav>
-
                 <div className="sidebar-footer" style={{ marginTop: 'auto', paddingTop: 'var(--space-lg)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                     <div style={{ padding: '0 16px', marginBottom: '16px' }}>
                         <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>Sesión como</p>
@@ -106,11 +107,11 @@ export default function SuperAdminLayout() {
                         Cerrar Sesión
                     </button>
                 </div>
-            </aside>
+            </aside >
 
             <main style={{ flex: 1, padding: 'var(--space-xl)', background: '#0f172a', color: 'white', overflowY: 'auto' }}>
                 <Outlet />
             </main>
-        </div>
+        </div >
     );
 }

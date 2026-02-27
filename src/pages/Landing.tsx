@@ -1,9 +1,50 @@
+import { useState } from 'react';
 import { useStore } from '../lib/store';
 import { Link } from 'react-router-dom';
-import { CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight, CheckCircle2, Facebook, Instagram, Twitter, X, Sparkles } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 export default function Landing() {
     const { user, isSuperAdmin } = useStore();
+    const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [leadSuccess, setLeadSuccess] = useState(false);
+    const [formData, setFormData] = useState({
+        businessName: '',
+        businessType: '',
+        employeeCount: '',
+        contactName: '',
+        email: '',
+        phone: ''
+    });
+
+    const handleLeadSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const { error } = await supabase.from('leads').insert([{
+                business_name: formData.businessName,
+                business_type: formData.businessType,
+                employee_count: formData.employeeCount,
+                contact_name: formData.contactName,
+                email: formData.email,
+                phone: formData.phone
+            }]);
+
+            if (error) throw error;
+            setLeadSuccess(true);
+            setTimeout(() => {
+                setIsLeadModalOpen(false);
+                setLeadSuccess(false);
+                setFormData({ businessName: '', businessType: '', employeeCount: '', contactName: '', email: '', phone: '' });
+            }, 3000);
+        } catch (error) {
+            console.error("Error submitting lead:", error);
+            alert("Hubo un error al enviar tu solicitud. Intenta de nuevo.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     // Determine where the user should go if they are already logged in
     const dashboardPath = isSuperAdmin ? '/super-admin' : '/admin';
@@ -72,12 +113,12 @@ export default function Landing() {
                                     >
                                         Iniciar Sesión
                                     </Link>
-                                    <Link
-                                        to="/login"
+                                    <button
+                                        onClick={() => setIsLeadModalOpen(true)}
                                         className="px-5 py-2.5 text-sm rounded-full bg-violet-600 hover:bg-violet-500 text-white font-medium shadow-lg shadow-violet-500/25 transition-all"
                                     >
-                                        Comienza Gratis
-                                    </Link>
+                                        Prueba Gratis (14 Días)
+                                    </button>
                                 </>
                             )}
                         </div>
@@ -108,13 +149,23 @@ export default function Landing() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Link
-                            to={user ? dashboardPath : "/login"}
-                            className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-slate-900 font-bold text-lg hover:bg-slate-200 transition-all shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] flex items-center justify-center gap-2"
-                        >
-                            {user ? 'Entrar a mi panel' : 'Crear cuenta gratis'}
-                            <ArrowRight className="w-5 h-5" />
-                        </Link>
+                        {user ? (
+                            <Link
+                                to={dashboardPath}
+                                className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-slate-900 font-bold text-lg hover:bg-slate-200 transition-all shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] flex items-center justify-center gap-2"
+                            >
+                                Entrar a mi panel
+                                <ArrowRight className="w-5 h-5" />
+                            </Link>
+                        ) : (
+                            <button
+                                onClick={() => setIsLeadModalOpen(true)}
+                                className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-slate-900 font-bold text-lg hover:bg-slate-200 transition-all shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] flex items-center justify-center gap-2"
+                            >
+                                Solicitar Prueba Gratis
+                                <ArrowRight className="w-5 h-5" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Dashboard Preview Mockup */}
@@ -202,13 +253,23 @@ export default function Landing() {
                                     </li>
                                 ))}
                             </ul>
-                            <Link
-                                to={user ? dashboardPath : "/login"}
-                                className="px-8 py-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-[0_0_30px_-5px_rgba(124,58,237,0.4)] inline-flex items-center gap-2"
-                            >
-                                {user ? 'Volver al Sistema' : 'Comenzar a usar CitaLink'}
-                                <ArrowRight className="w-5 h-5" />
-                            </Link>
+                            {user ? (
+                                <Link
+                                    to={dashboardPath}
+                                    className="px-8 py-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-[0_0_30px_-5px_rgba(124,58,237,0.4)] inline-flex items-center gap-2"
+                                >
+                                    Volver al Sistema
+                                    <ArrowRight className="w-5 h-5" />
+                                </Link>
+                            ) : (
+                                <button
+                                    onClick={() => setIsLeadModalOpen(true)}
+                                    className="px-8 py-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-[0_0_30px_-5px_rgba(124,58,237,0.4)] inline-flex items-center gap-2"
+                                >
+                                    Obtener 14 Días Gratis
+                                    <ArrowRight className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
                         <div className="hidden md:block w-72 shrink-0">
                             {/* Conceptual Illustration */}
@@ -228,22 +289,127 @@ export default function Landing() {
                 </div>
             </section>
 
-            {/* ─── FOOTER ─── */}
-            <footer className="border-t border-white/10 bg-[#020817] py-12">
-                <div className="container mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-2 opacity-80 text-white">
-                        <CalendarDays className="h-5 w-5" />
-                        <span className="font-bold tracking-tight">CitaLink.</span>
+            <footer className="border-t border-white/10 bg-[#020817] py-16">
+                <div className="container mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="flex flex-col items-center md:items-start gap-4">
+                        <div className="flex items-center gap-2 opacity-80 text-white">
+                            <CalendarDays className="h-6 w-6" />
+                            <span className="font-bold text-xl tracking-tight">CitaLink.</span>
+                        </div>
+                        <p className="text-slate-500 text-sm max-w-xs text-center md:text-left">
+                            La plataforma que simplifica la administración de salones y clínicas, automatizando lo aburrido.
+                        </p>
                     </div>
-                    <p className="text-slate-500 text-sm">
-                        © {new Date().getFullYear()} CitaLink App. Todos los derechos reservados.
-                    </p>
-                    <div className="flex gap-4 text-sm text-slate-500">
-                        <a href="#" className="hover:text-white transition-colors">Términos</a>
-                        <a href="#" className="hover:text-white transition-colors">Privacidad</a>
+
+                    <div className="flex gap-6">
+                        <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-all">
+                            <Facebook className="w-5 h-5" />
+                        </a>
+                        <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-all">
+                            <Instagram className="w-5 h-5" />
+                        </a>
+                        <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-all">
+                            <Twitter className="w-5 h-5" />
+                        </a>
+                    </div>
+
+                    <div className="flex flex-col items-center md:items-end gap-2 text-sm text-slate-500">
+                        <div className="flex gap-4 mb-2">
+                            <a href="#" className="hover:text-white transition-colors">Términos del Servicio</a>
+                            <span>&bull;</span>
+                            <a href="#" className="hover:text-white transition-colors">Aviso de Privacidad</a>
+                        </div>
+                        <p>© {new Date().getFullYear()} CitaLink App. Todos los derechos reservados.</p>
                     </div>
                 </div>
             </footer>
+
+            {/* ─── LEAD CAPTURE MODAL ─── */}
+            {isLeadModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !submitting && setIsLeadModalOpen(false)}></div>
+                    <div className="bg-[#0f172a] border border-white/10 rounded-2xl p-6 w-full max-w-lg relative z-10 animate-fade-in shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <button
+                            onClick={() => setIsLeadModalOpen(false)}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-white bg-white/5 p-2 rounded-full"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-violet-500/10 rounded-lg">
+                                <Sparkles className="w-6 h-6 text-violet-400" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-white">Inicia tu Prueba Gratis</h2>
+                        </div>
+                        <p className="text-slate-400 mb-6">Disfruta la plataforma sin costo por 2 semanas. Te contactaremos pronto con tus accesos VIP.</p>
+
+                        {leadSuccess ? (
+                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 text-center animate-fade-in">
+                                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-white mb-2">¡Solicitud Enviada!</h3>
+                                <p className="text-emerald-200">Nuestro equipo está preparando tu entorno. Recibirás un correo muy pronto.</p>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleLeadSubmit} className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-1">Tu Nombre</label>
+                                        <input required type="text" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="Juan Pérez" value={formData.contactName} onChange={e => setFormData({ ...formData, contactName: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-1">Nombre del Negocio</label>
+                                        <input required type="text" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="Ej. Barbería Central" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-1">Tipo de Negocio</label>
+                                        <select required className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-slate-300 focus:outline-none focus:border-violet-500 transition-all" value={formData.businessType} onChange={e => setFormData({ ...formData, businessType: e.target.value })}>
+                                            <option value="" disabled>Selecciona...</option>
+                                            <option value="barbershop">Barbería</option>
+                                            <option value="salon">Salón de Belleza</option>
+                                            <option value="spa">Spa / Multiestética</option>
+                                            <option value="clinic">Clínica / Consultorio</option>
+                                            <option value="other">Otro</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-1">Tamaño del Equipo</label>
+                                        <select required className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-slate-300 focus:outline-none focus:border-violet-500 transition-all" value={formData.employeeCount} onChange={e => setFormData({ ...formData, employeeCount: e.target.value })}>
+                                            <option value="" disabled>Selecciona...</option>
+                                            <option value="1">Solo yo (1)</option>
+                                            <option value="2-4">2 a 4 empleados</option>
+                                            <option value="5-10">5 a 10 empleados</option>
+                                            <option value="10+">Más de 10 empleados</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-1">Correo Electrónico</label>
+                                    <input required type="email" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="correo@ejemplo.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-1">WhatsApp de Contacto</label>
+                                    <input required type="tel" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="+52 81 0000 0000" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                </div>
+
+                                <button
+                                    disabled={submitting}
+                                    type="submit"
+                                    className="w-full mt-4 bg-violet-600 hover:bg-violet-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50"
+                                >
+                                    {submitting ? 'Enviando...' : 'Solicitar Acceso Ahora'}
+                                </button>
+                                <p className="text-center text-xs text-slate-500">Al enviar aceptas nuestros Términos de Servicio y Aviso de Privacidad.</p>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
