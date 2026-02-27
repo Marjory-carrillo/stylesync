@@ -397,45 +397,45 @@ export default function Landing() {
             {isLeadModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !submitting && setIsLeadModalOpen(false)}></div>
-                    <div className="bg-[#0f172a] border border-white/10 rounded-2xl p-6 w-full max-w-lg relative z-10 animate-fade-in shadow-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 w-full max-w-lg relative z-10 animate-fade-in shadow-2xl max-h-[90vh] overflow-y-auto">
                         <button
                             onClick={() => setIsLeadModalOpen(false)}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-white bg-white/5 p-2 rounded-full"
+                            className="absolute top-5 right-5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
 
                         <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-violet-500/10 rounded-lg">
+                            <div className="p-2.5 bg-violet-500/10 rounded-xl border border-violet-500/20">
                                 <Sparkles className="w-6 h-6 text-violet-400" />
                             </div>
-                            <h2 className="text-2xl font-bold text-white">Inicia tu Prueba Gratis</h2>
+                            <h2 className="text-2xl font-bold text-white tracking-tight">Inicia tu Prueba Gratis</h2>
                         </div>
-                        <p className="text-slate-400 mb-6">Disfruta la plataforma sin costo por 2 semanas. Te contactaremos pronto con tus accesos VIP.</p>
+                        <p className="text-slate-400 text-sm mb-8">Disfruta la plataforma sin costo por 2 semanas. Te contactaremos pronto con tus accesos VIP.</p>
 
                         {leadSuccess ? (
-                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 text-center animate-fade-in">
-                                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center animate-fade-in">
+                                <CheckCircle2 className="w-14 h-14 text-emerald-400 mx-auto mb-4" />
                                 <h3 className="text-xl font-bold text-white mb-2">¡Solicitud Enviada!</h3>
-                                <p className="text-emerald-200">Nuestro equipo está preparando tu entorno. Recibirás un correo muy pronto.</p>
+                                <p className="text-emerald-200 text-sm">Nuestro equipo está preparando tu entorno. Recibirás un correo muy pronto.</p>
                             </div>
                         ) : (
-                            <form onSubmit={handleLeadSubmit} className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-1">Tu Nombre</label>
-                                        <input required type="text" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="Juan Pérez" value={formData.contactName} onChange={e => setFormData({ ...formData, contactName: e.target.value })} />
+                            <form onSubmit={handleLeadSubmit} className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-semibold text-slate-300 ml-1">Tu Nombre</label>
+                                        <input required type="text" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="Juan Pérez" value={formData.contactName} onChange={e => setFormData({ ...formData, contactName: e.target.value })} />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-1">Nombre del Negocio</label>
-                                        <input required type="text" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="Ej. Barbería Central" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} />
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-semibold text-slate-300 ml-1">Nombre del Negocio</label>
+                                        <input required type="text" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="Ej. Barbería Central" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-1">Tipo de Negocio</label>
-                                        <select required className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-slate-300 focus:outline-none focus:border-violet-500 transition-all" value={formData.businessType} onChange={e => setFormData({ ...formData, businessType: e.target.value })}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-semibold text-slate-300 ml-1">Tipo de Negocio</label>
+                                        <select required className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-violet-500 transition-all font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394A3B8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.7rem_auto] bg-[position:right_1rem_center] bg-no-repeat pr-10" value={formData.businessType} onChange={e => setFormData({ ...formData, businessType: e.target.value })}>
                                             <option value="" disabled>Selecciona...</option>
                                             <option value="barbershop">Barbería</option>
                                             <option value="salon">Salón de Belleza</option>
@@ -444,9 +444,9 @@ export default function Landing() {
                                             <option value="other">Otro</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-1">Tamaño del Equipo</label>
-                                        <select required className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-slate-300 focus:outline-none focus:border-violet-500 transition-all" value={formData.employeeCount} onChange={e => setFormData({ ...formData, employeeCount: e.target.value })}>
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-semibold text-slate-300 ml-1">Tamaño del Equipo</label>
+                                        <select required className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-violet-500 transition-all font-medium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394A3B8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.7rem_auto] bg-[position:right_1rem_center] bg-no-repeat pr-10" value={formData.employeeCount} onChange={e => setFormData({ ...formData, employeeCount: e.target.value })}>
                                             <option value="" disabled>Selecciona...</option>
                                             <option value="1">Solo yo (1)</option>
                                             <option value="2-4">2 a 4 empleados</option>
@@ -456,24 +456,24 @@ export default function Landing() {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1">Correo Electrónico</label>
-                                    <input required type="email" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="correo@ejemplo.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-semibold text-slate-300 ml-1">Correo Electrónico</label>
+                                    <input required type="email" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="correo@ejemplo.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1">WhatsApp de Contacto</label>
-                                    <input required type="tel" className="w-full bg-[#020817] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" placeholder="+52 81 0000 0000" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-semibold text-slate-300 ml-1">WhatsApp de Contacto</label>
+                                    <input required type="tel" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="+52 81 0000 0000" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                                 </div>
 
                                 <button
                                     disabled={submitting}
                                     type="submit"
-                                    className="w-full mt-4 bg-violet-600 hover:bg-violet-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50"
+                                    className="w-full mt-6 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold tracking-wide py-4 rounded-2xl transition-all shadow-lg shadow-violet-500/25 disabled:opacity-50"
                                 >
                                     {submitting ? 'Enviando...' : 'Solicitar Acceso Ahora'}
                                 </button>
-                                <p className="text-center text-xs text-slate-500">Al enviar aceptas nuestros Términos de Servicio y Aviso de Privacidad.</p>
+                                <p className="text-center text-xs text-slate-500 mt-4">Al enviar aceptas nuestros Términos de Servicio y Aviso de Privacidad.</p>
                             </form>
                         )}
                     </div>
