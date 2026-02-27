@@ -18,9 +18,17 @@ export default function BrandingManager() {
         if (!businessConfig) return;
 
         // 1. Dynamic CSS Theme Colors
-        let theme = { ...THEMES.default, secondary: '260' };
-        if (businessConfig.primaryColor) theme.primary = businessConfig.primaryColor;
-        if (businessConfig.accentColor) theme.accent = businessConfig.accentColor;
+        // Attempt to find category theme or default
+        let baseTheme = THEMES[businessConfig.category] || THEMES.default;
+        let theme = { ...baseTheme, secondary: '260' };
+
+        // Only override if the user explicitly set a valid number in config
+        if (businessConfig.primaryColor && businessConfig.primaryColor.trim() !== '') {
+            theme.primary = businessConfig.primaryColor;
+        }
+        if (businessConfig.accentColor && businessConfig.accentColor.trim() !== '') {
+            theme.accent = businessConfig.accentColor;
+        }
 
         document.documentElement.style.setProperty('--hue-primary', theme.primary);
         document.documentElement.style.setProperty('--hue-accent', theme.accent);
