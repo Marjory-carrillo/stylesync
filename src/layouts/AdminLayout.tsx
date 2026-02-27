@@ -10,16 +10,19 @@ export default function AdminLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     const handleLogout = async () => {
-        if (confirm('¿Cerrar sesión?')) {
-            try {
-                await supabase.auth.signOut();
-                navigate('/login');
-            } catch (error) {
-                console.error("Error signing out:", error);
-                navigate('/login');
-            }
+        setIsLogoutModalOpen(true);
+    };
+
+    const confirmLogout = async () => {
+        try {
+            await supabase.auth.signOut();
+            navigate('/login');
+        } catch (error) {
+            console.error("Error signing out:", error);
+            navigate('/login');
         }
     };
 
@@ -160,6 +163,35 @@ export default function AdminLayout() {
                     <Outlet />
                 </div>
             </main>
+
+            {/* Logout Modal */}
+            {isLogoutModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsLogoutModalOpen(false)} />
+                    <div className="relative bg-[#0f172a] border border-white/10 rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-fade-in text-center">
+                        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <LogOut className="text-red-500" size={28} />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">¿Cerrar sesión?</h3>
+                        <p className="text-sm text-slate-400 mb-6">¿Estás seguro que deseas salir de tu cuenta?</p>
+
+                        <div className="flex gap-3 w-full">
+                            <button
+                                onClick={() => setIsLogoutModalOpen(false)}
+                                className="flex-1 py-3 rounded-xl font-medium border border-white/10 hover:bg-white/5 transition-colors text-white"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmLogout}
+                                className="flex-1 py-3 rounded-xl font-bold bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all text-white"
+                            >
+                                Sí, salir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
