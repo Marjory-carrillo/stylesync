@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X } from 'lucide-react';
+import { useStore } from '../lib/store';
+import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
 
 export default function AdminLayout() {
+    const { isSuperAdmin } = useStore();
     const location = useLocation();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -112,7 +114,16 @@ export default function AdminLayout() {
                     </Link>
                 </nav>
 
-                <div className="p-4 mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50">
+                <div className="p-4 mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2">
+                    {isSuperAdmin && (
+                        <Link
+                            to="/super-admin"
+                            className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-amber-400 hover:bg-amber-400/10 transition-all duration-200 group"
+                        >
+                            <ShieldCheck size={18} className="group-hover:-translate-y-1 transition-transform" />
+                            <span className="font-medium flex-1 text-left">Volver a HQ</span>
+                        </Link>
+                    )}
                     <button
                         onClick={() => { closeMobileMenu(); handleLogout(); }}
                         className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200 group"
