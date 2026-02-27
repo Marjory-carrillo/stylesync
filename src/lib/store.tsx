@@ -992,11 +992,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (data.phone !== undefined) updatePayload.phone = data.phone;
         if (data.googleMapsUrl !== undefined) updatePayload.google_maps_url = data.googleMapsUrl;
         if (data.logoUrl !== undefined) updatePayload.logo_url = data.logoUrl;
-        if (data.description !== undefined) updatePayload.description = data.description;
         if (data.category !== undefined) updatePayload.category = data.category;
         if (data.slug !== undefined) updatePayload.slug = data.slug;
-        if (data.primaryColor !== undefined) updatePayload.primary_color = data.primaryColor;
-        if (data.accentColor !== undefined) updatePayload.accent_color = data.accentColor;
+
+        // --- PENDING SUPABASE SCHEMA UPDATE ---
+        // The following lines are commented out because these columns do not exist in the basic 'tenants' table.
+        // Run SQL in Supabase to add them: 
+        // ALTER TABLE tenants ADD COLUMN description TEXT, ADD COLUMN primary_color TEXT, ADD COLUMN accent_color TEXT;
+        // if (data.description !== undefined) updatePayload.description = data.description;
+        // if (data.primaryColor !== undefined) updatePayload.primary_color = data.primaryColor;
+        // if (data.accentColor !== undefined) updatePayload.accent_color = data.accentColor;
 
         const { error } = await supabase.from('tenants').update(updatePayload).eq('id', tenantId);
 
