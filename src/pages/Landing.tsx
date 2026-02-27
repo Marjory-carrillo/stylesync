@@ -24,6 +24,7 @@ export default function Landing() {
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [leadSuccess, setLeadSuccess] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         businessName: '',
         businessType: '',
@@ -36,6 +37,7 @@ export default function Landing() {
     const handleLeadSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
+        setErrorMessage(null);
         try {
             const { error } = await supabase.from('leads').insert([{
                 business_name: formData.businessName,
@@ -46,16 +48,21 @@ export default function Landing() {
                 phone: formData.phone
             }]);
 
-            if (error) throw error;
+            if (error) {
+                // Specific error handling for missing table or permissions
+                if (error.code === '42P01') throw new Error("Database configuration error. Please run the migration script.");
+                throw error;
+            }
+
             setLeadSuccess(true);
             setTimeout(() => {
                 setIsLeadModalOpen(false);
                 setLeadSuccess(false);
                 setFormData({ businessName: '', businessType: '', employeeCount: '', contactName: '', email: '', phone: '' });
-            }, 3000);
-        } catch (error) {
-            console.error("Error submitting lead:", error);
-            alert("Hubo un error al enviar tu solicitud. Intenta de nuevo.");
+            }, 5000);
+        } catch (err: any) {
+            console.error("Error submitting lead:", err);
+            setErrorMessage(err.message || "Lo sentimos, hubo un problema al procesar tu solicitud. Por favor intenta de nuevo.");
         } finally {
             setSubmitting(false);
         }
@@ -429,13 +436,22 @@ export default function Landing() {
                         <p className="text-slate-400 text-sm mb-8">Disfruta la plataforma sin costo por 2 semanas. Te contactaremos pronto con tus accesos VIP.</p>
 
                         {leadSuccess ? (
-                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center animate-fade-in">
-                                <CheckCircle2 className="w-14 h-14 text-emerald-400 mx-auto mb-4" />
-                                <h3 className="text-xl font-bold text-white mb-2">¡Solicitud Enviada!</h3>
-                                <p className="text-emerald-200 text-sm">Nuestro equipo está preparando tu entorno. Recibirás un correo muy pronto.</p>
+                            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem] p-10 text-center animate-fade-in py-16">
+                                <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
+                                    <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">¡Bienvenido a la Experiencia CitaLink!</h3>
+                                <p className="text-emerald-200/70 text-base leading-relaxed max-w-sm mx-auto">
+                                    Hemos recibido tu solicitud. Nuestro equipo de soporte está preparando tu entorno personalizado. Recibirás un correo y un mensaje de WhatsApp en las próximas horas.
+                                </p>
                             </div>
                         ) : (
                             <form onSubmit={handleLeadSubmit} className="space-y-5">
+                                {errorMessage && (
+                                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm animate-shake mb-2">
+                                        {errorMessage}
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div className="space-y-1.5">
                                         <label className="block text-xs font-semibold text-slate-300 ml-1">Tu Nombre</label>
