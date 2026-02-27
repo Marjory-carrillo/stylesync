@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../lib/store';
 
 export default function Login() {
-    const { user } = useStore();
+    const { user, isSuperAdmin } = useStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -16,9 +16,13 @@ export default function Login() {
 
     useEffect(() => {
         if (user) {
-            navigate('/admin');
+            if (isSuperAdmin) {
+                navigate('/super-admin');
+            } else {
+                navigate('/admin');
+            }
         }
-    }, [user, navigate]);
+    }, [user, isSuperAdmin, navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
