@@ -4,15 +4,16 @@ import { useStore, DAY_NAMES, DAY_KEYS } from '../../lib/store';
 import ColorThief from 'colorthief';
 import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon } from 'lucide-react';
 
-// Helper: RGB to Hue (0-360) algorithm
-function rgbToHue(r: number, g: number, b: number) {
+// Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
     r /= 255; g /= 255; b /= 255;
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    let h = 0;
+    let h = 0, s = 0, l = (max + min) / 2;
 
     if (max !== min) {
         const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
         switch (max) {
             case r: h = (g - b) / d + (g < b ? 6 : 0); break;
             case g: h = (b - r) / d + 2; break;
@@ -20,7 +21,16 @@ function rgbToHue(r: number, g: number, b: number) {
         }
         h /= 6;
     }
-    return Math.round(h * 360).toString();
+    return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+
+// Helper to decide if a color is "vibrant" enough to be a brand color
+// Rejects blacks, whites, and very low saturation grays
+function isValidBrandColor(hsl: [number, number, number]) {
+    const [, s, l] = hsl;
+    // Reject if too dark (black), too light (white), or too gray (low saturation)
+    if (l < 15 || l > 85 || s < 15) return false;
+    return true;
 }
 
 const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: string }> => {
@@ -32,19 +42,38 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
             try {
                 const colorThief = new ColorThief();
                 const palette = colorThief.getPalette(img, 3);
-                if (palette && palette.length >= 2) {
-                    const primary = rgbToHue(palette[0][0], palette[0][1], palette[0][2]);
-                    const accent = rgbToHue(palette[1][0], palette[1][1], palette[1][2]);
-                    console.log(`[getBrandColors] Extracted: Primary=${primary}, Accent=${accent}`);
-                    resolve({ primary, accent });
-                } else if (palette && palette.length === 1) {
-                    const h = rgbToHue(palette[0][0], palette[0][1], palette[0][2]);
-                    console.log(`[getBrandColors] Extracted single: ${h}`);
-                    resolve({ primary: h, accent: h });
-                } else {
-                    console.warn('[getBrandColors] No palette found');
-                    resolve({ primary: '', accent: '' });
+
+                let finalPrimary = '';
+                let finalAccent = '';
+
+                if (palette && palette.length > 0) {
+                    // Find first valid vibrant color for primary
+                    for (const color of palette) {
+                        const hsl = rgbToHsl(color[0], color[1], color[2]);
+                        if (isValidBrandColor(hsl)) {
+                            finalPrimary = hsl[0].toString();
+                            break;
+                        }
+                    }
+
+                    // Find second valid vibrant color for accent
+                    let foundAccent = false;
+                    for (const color of palette) {
+                        const hsl = rgbToHsl(color[0], color[1], color[2]);
+                        if (isValidBrandColor(hsl) && hsl[0].toString() !== finalPrimary) {
+                            finalAccent = hsl[0].toString();
+                            foundAccent = true;
+                            break;
+                        }
+                    }
+
+                    // Fallbacks
+                    if (finalPrimary && !foundAccent) finalAccent = finalPrimary;
                 }
+
+                console.log(`[getBrandColors] Extracted: Primary=${finalPrimary}, Accent=${finalAccent}`);
+                resolve({ primary: finalPrimary, accent: finalAccent });
+
             } catch (e) {
                 console.error('[getBrandColors] Error:', e);
                 resolve({ primary: '', accent: '' });
