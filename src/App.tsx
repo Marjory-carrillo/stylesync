@@ -19,6 +19,7 @@ import GlobalSettings from './pages/admin/GlobalSettings';
 import BrandingManager from './components/BrandingManager';
 import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
+import Landing from './pages/Landing';
 
 const AdminRoute = () => {
   const { user, loadingAuth, isSuperAdmin, tenantId } = useStore();
@@ -55,29 +56,7 @@ const OnboardingRoute = () => {
   return <Outlet />;
 };
 
-const HomeRedirect = () => {
-  const { user, loadingAuth, isSuperAdmin } = useStore();
 
-  if (loadingAuth) return <SplashScreen />;
-
-  // If user is logged in as admin, go to admin
-  if (user) {
-    if (isSuperAdmin) {
-      return <Navigate to="/super-admin" replace />;
-    } else {
-      return <Navigate to="/admin" replace />;
-    }
-  }
-
-  // Check for last visited tenant slug for clients
-  const lastSlug = localStorage.getItem('citalink_last_slug') || localStorage.getItem('stylesync_last_slug');
-  if (lastSlug) {
-    return <Navigate to={`/reserva/${lastSlug}`} replace />;
-  }
-
-  // fallback to login
-  return <Navigate to="/login" replace />;
-};
 
 function App() {
   return (
@@ -86,8 +65,8 @@ function App() {
       <ToastContainer />
       <Router>
         <Routes>
-          {/* Main Landing / Smart Redirect */}
-          <Route path="/" element={<HomeRedirect />} />
+          {/* Main Landing */}
+          <Route path="/" element={<Landing />} />
 
           {/* Client Routes */}
           <Route path="/reserva/:slug" element={<ClientLayout />}>
