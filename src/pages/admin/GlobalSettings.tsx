@@ -38,8 +38,8 @@ export default function GlobalSettings() {
                     console.warn("Global config not found. Creating default...");
                     const defaultConf = {
                         id: 'main',
-                        basic_plan_price: 29.00,
-                        premium_plan_price: 59.00,
+                        basic_plan_price: 499.00,
+                        premium_plan_price: 999.00,
                         trial_days: 14,
                         maintenance_mode: false,
                         system_email: 'soporte@citalink.app'
@@ -140,7 +140,7 @@ export default function GlobalSettings() {
 
                         <div className="space-y-5 relative z-10">
                             <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Precio Plan Básico (USD)</label>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">Precio Plan Básico (MXN)</label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
                                     <input
@@ -155,7 +155,7 @@ export default function GlobalSettings() {
                             </div>
 
                             <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Precio Plan Premium (USD)</label>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">Precio Plan Premium (MXN)</label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
                                     <input
