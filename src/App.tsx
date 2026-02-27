@@ -17,6 +17,7 @@ import SuperAdminLayout from './layouts/SuperAdminLayout';
 import SuperAdminPanel from './pages/admin/SuperAdminPanel';
 import Leads from './pages/admin/Leads';
 import GlobalSettings from './pages/admin/GlobalSettings';
+import Branding from './pages/admin/Branding';
 import BrandingManager from './components/BrandingManager';
 import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
@@ -99,7 +100,8 @@ function App() {
             <Route element={<SuperAdminLayout />}>
               <Route index element={<SuperAdminPanel />} />
               <Route path="prospectos" element={<Leads />} />
-              <Route path="global-settings" element={<GlobalSettings />} />
+              <Route path="branding" element={<Branding />} />
+              <Route path="settings" element={<GlobalSettings />} />
             </Route>
           </Route>
         </Routes>
