@@ -321,12 +321,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const loadTenant = async (userId: string) => {
         try {
-            // Find tenant owned by user
-            const { data } = await supabase.from('tenants').select('id').eq('owner_id', userId).single();
-            if (data) {
-                setTenantId(data.id);
+            // First check if user is super admin
+            const userResponse = await supabase.auth.getUser();
+            const isUserSuperAdmin = userResponse.data.user?.email === 'infinitummisael@gmail.com';
+
+            if (isUserSuperAdmin) {
+                // Super admin doesn't get forced into a single tenant on login
+                setTenantId(null);
             } else {
-                setTenantId(null); // Triggers "Create Business" flow
+                // Find tenant owned by user
+                const { data } = await supabase.from('tenants').select('id').eq('owner_id', userId).single();
+                if (data) {
+                    setTenantId(data.id);
+                } else {
+                    setTenantId(null); // Triggers "Create Business" flow
+                }
             }
         } catch (e) {
             console.error('Error loading tenant:', e);
