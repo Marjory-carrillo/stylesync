@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useStore } from '../../lib/store';
-import { Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors } from 'lucide-react';
+import { Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
     const {
@@ -20,17 +21,77 @@ export default function Dashboard() {
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
-        const monthAppts = appointments.filter(a => {
+        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+        let currentRevenue = 0;
+        let lastRevenue = 0;
+        let currentCompleted = 0;
+        let lastCompleted = 0;
+        let currentCanceled = 0;
+
+        appointments.forEach(a => {
             const d = new Date(a.date + 'T' + a.time);
-            return d.getMonth() === currentMonth && d.getFullYear() === currentYear && a.status !== 'cancelada';
+            const isCurrentMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            const isLastMonth = d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+            const isCanceled = a.status === 'cancelada';
+
+            const svc = services.find(s => s.id === a.serviceId);
+            const price = svc?.price || 0;
+
+            if (isCurrentMonth) {
+                if (isCanceled) {
+                    currentCanceled++;
+                } else {
+                    currentCompleted++;
+                    currentRevenue += price;
+                }
+            } else if (isLastMonth) {
+                if (!isCanceled) {
+                    lastCompleted++;
+                    lastRevenue += price;
+                }
+            }
         });
 
-        const revenue = monthAppts.reduce((sum, appt) => {
-            const svc = services.find(s => s.id === appt.serviceId);
-            return sum + (svc?.price || 0);
-        }, 0);
+        // Growth metrics
+        const revenueGrowth = lastRevenue === 0 ? 100 : ((currentRevenue - lastRevenue) / lastRevenue) * 100;
+        const appsGrowth = lastCompleted === 0 ? 100 : ((currentCompleted - lastCompleted) / lastCompleted) * 100;
 
-        return { count: monthAppts.length, revenue };
+        return {
+            revenue: currentRevenue,
+            lastRevenue,
+            revenueGrowth,
+            count: currentCompleted,
+            appsGrowth,
+            canceled: currentCanceled
+        };
+    }, [appointments, services]);
+
+    // Graph Data: Last 7 Days Revenue
+    const revenueChartData = useMemo(() => {
+        const data = [];
+        const today = new Date();
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const dateStr = d.toLocaleDateString('en-CA');
+
+            const dayRevenue = appointments
+                .filter(a => a.date === dateStr && a.status !== 'cancelada')
+                .reduce((sum, appt) => {
+                    const svc = services.find(s => s.id === appt.serviceId);
+                    return sum + (svc?.price || 0);
+                }, 0);
+
+            data.push({
+                name: d.toLocaleDateString('es-MX', { weekday: 'short' }).substring(0, 3).toUpperCase(),
+                date: dateStr,
+                Ingresos: dayRevenue
+            });
+        }
+        return data;
     }, [appointments, services]);
 
     const topServices = useMemo(() => {
@@ -250,76 +311,144 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group">
-                    <div className="p-3 rounded-lg bg-accent/10 text-accent group-hover:scale-110 transition-transform duration-200">
+                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group hover:border-blue-500/30">
+                    <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform duration-200 shadow-inner">
                         <Calendar size={24} />
                     </div>
                     <div>
-                        <p className="text-sm text-muted mb-1">Citas Hoy</p>
-                        <p className="text-2xl font-bold text-white">{todayAppts.length}</p>
+                        <p className="text-sm text-slate-400 mb-1 font-medium">Citas Hoy</p>
+                        <p className="text-2xl font-black text-white tracking-tight">{todayAppts.length}</p>
                     </div>
                 </div>
 
-                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group">
-                    <div className="p-3 rounded-lg bg-green-500/10 text-green-500 group-hover:scale-110 transition-transform duration-200">
+                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group hover:border-emerald-500/30 relative overflow-hidden">
+                    <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/20 blur-xl rounded-full"></div>
+                    <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-200 shadow-inner">
                         <DollarSign size={24} />
                     </div>
                     <div>
-                        <p className="text-sm text-muted mb-1">Ingresos Hoy</p>
-                        <p className="text-2xl font-bold text-green-500">${revenue}</p>
+                        <p className="text-sm text-slate-400 mb-1 font-medium">Ingresos Hoy</p>
+                        <p className="text-2xl font-black text-emerald-400 tracking-tight">${revenue}</p>
                     </div>
                 </div>
 
-                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group">
-                    <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform duration-200">
-                        <Users size={24} />
+                <div className="glass-card p-6 rounded-xl relative overflow-hidden group hover:border-amber-400/30">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-lg bg-amber-400/10 text-amber-400 group-hover:scale-110 transition-transform duration-200 shadow-inner">
+                                <Activity size={24} />
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-400 mb-1 font-medium">Citas del Mes</p>
+                                <p className="text-2xl font-black text-white tracking-tight">{currentMonthStats.count}</p>
+                            </div>
+                        </div>
+                        <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${currentMonthStats.appsGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                            {currentMonthStats.appsGrowth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                            {Math.abs(Math.round(currentMonthStats.appsGrowth))}%
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-sm text-muted mb-1">Clientes Totales</p>
-                        <p className="text-2xl font-bold text-white">{totalClients}</p>
+                    <div className="mt-3 text-xs text-slate-500 font-medium">
+                        {currentMonthStats.canceled} citas canceladas
                     </div>
                 </div>
 
-                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group">
-                    <div className="p-3 rounded-lg bg-pink-500/10 text-pink-500 group-hover:scale-110 transition-transform duration-200">
-                        <TrendingUp size={24} />
+                <div className="glass-card p-6 rounded-xl relative overflow-hidden group hover:border-pink-500/30">
+                    <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-pink-500/20 blur-xl rounded-full"></div>
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-lg bg-pink-500/10 text-pink-500 group-hover:scale-110 transition-transform duration-200 shadow-inner">
+                                <CreditCard size={24} />
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-400 mb-1 font-medium">Ingresos del Mes</p>
+                                <p className="text-2xl font-black text-pink-400 tracking-tight">${currentMonthStats.revenue}</p>
+                            </div>
+                        </div>
+                        <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                            {currentMonthStats.revenueGrowth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                            {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-sm text-muted mb-1">Ingresos Mes</p>
-                        <p className="text-2xl font-bold text-pink-500">${currentMonthStats.revenue}</p>
+                    <div className="mt-3 text-xs text-slate-500 font-medium">
+                        vs ${currentMonthStats.lastRevenue} mes pasado
+                    </div>
+                </div>
+            </div>
+
+            {/* Financial Charts & Trends */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* ── Revenue Chart ── */}
+                <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <TrendingUp size={20} className="text-accent" /> Ingresos (Últimos 7 Días)
+                        </h3>
+                    </div>
+                    <div className="flex-1 w-full relative">
+                        {revenueChartData.every(d => d.Ingresos === 0) ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
+                                <Activity size={48} className="mb-4 text-slate-500" />
+                                <p className="text-sm text-slate-400 font-medium">No hay suficientes datos de ingresos para esta semana.</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                    <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                                        itemStyle={{ color: 'hsl(var(--hue-accent), 100%, 60%)', fontWeight: 'bold' }}
+                                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                                        formatter={(value: number) => [`$${value}`, 'Ingresos']}
+                                    />
+                                    <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Top Services ── */}
+                <div className="glass-panel p-6 rounded-2xl border border-white/5">
+                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <Scissors size={20} className="text-pink-400" /> Top Servicios
+                    </h3>
+                    <div className="space-y-5">
+                        {topServices.length > 0 ? topServices.map((svc, i) => (
+                            <div key={i} className="group">
+                                <div className="flex justify-between items-end mb-2">
+                                    <div>
+                                        <div className="text-sm font-bold text-white mb-0.5">{svc.name}</div>
+                                        <div className="text-xs text-slate-400">{svc.count} citas completadas</div>
+                                    </div>
+                                    <div className="text-sm font-black text-pink-400">${svc.price * svc.count}</div>
+                                </div>
+                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-1000"
+                                        style={{ width: `${(svc.count / (topServices[0]?.count || 1)) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-sm text-slate-500 text-center py-10">No hay datos suficientes para mostrar.</p>
+                        )}
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* ── Top Services ── */}
-                <div className="glass-panel p-6 rounded-2xl border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <TrendingUp size={18} className="text-accent" /> Servicios Top
-                    </h3>
-                    <div className="space-y-4">
-                        {topServices.map((svc, i) => (
-                            <div key={i} className="group">
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-gray-300">{svc.name}</span>
-                                    <span className="text-white font-bold">{svc.count} citas</span>
-                                </div>
-                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-accent to-orange-500 rounded-full transition-all duration-1000"
-                                        style={{ width: `${(svc.count / (topServices[0]?.count || 1)) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                        {topServices.length === 0 && <p className="text-sm text-muted">No hay datos suficientes.</p>}
-                    </div>
-                </div>
-
                 {/* ── Reminders ── */}
-                <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5">
+                <div className="lg:col-span-3 glass-panel p-6 rounded-2xl border border-white/5">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <Bell size={100} />
                     </div>
