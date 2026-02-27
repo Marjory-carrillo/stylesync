@@ -258,6 +258,39 @@ export default function Settings() {
                             </div>
                         </div>
 
+                        {/* Theme Color Indicator & Reset */}
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5">
+                            <div>
+                                <label className="block text-sm font-medium text-white mb-1">Color del Tema</label>
+                                <p className="text-xs text-muted">Extraído del logo. Si no te gusta, puedes restaurarlo.</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {infoForm.primaryColor ? (
+                                    <>
+                                        <div
+                                            className="w-8 h-8 rounded-full border border-white/20 shadow-lg"
+                                            style={{ backgroundColor: `hsl(${infoForm.primaryColor}, 80%, 50%)` }}
+                                            title="Color actual"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 text-xs px-3 py-1.5"
+                                            onClick={async () => {
+                                                const newConfig = { ...infoForm, primaryColor: '', accentColor: '' };
+                                                setInfoForm(newConfig);
+                                                await updateBusinessConfig({ primaryColor: '', accentColor: '' });
+                                                showToast('Colores restaurados por defecto', 'success');
+                                            }}
+                                        >
+                                            Restaurar Azul
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span className="text-xs text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">Por defecto</span>
+                                )}
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm text-muted mb-1">Nombre del Negocio</label>
                             <input
