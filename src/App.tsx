@@ -24,11 +24,11 @@ const AdminRoute = () => {
   if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
 
-  // If Super Admin tries to enter normal admin area, bounce them to HQ
-  if (isSuperAdmin) return <Navigate to="/super-admin" replace />;
+  // If Super Admin tries to enter normal admin area WITHOUT a selected tenant, bounce them to HQ
+  if (isSuperAdmin && !tenantId) return <Navigate to="/super-admin" replace />;
 
   // If normal user has no tenant, bounce to onboarding
-  if (!tenantId) return <Navigate to="/create-business" replace />;
+  if (!isSuperAdmin && !tenantId) return <Navigate to="/create-business" replace />;
 
   return <Outlet />;
 };
