@@ -455,11 +455,11 @@ export default function Landing() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div className="space-y-1.5">
                                         <label className="block text-xs font-semibold text-slate-300 ml-1">Tu Nombre</label>
-                                        <input required type="text" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="Juan Pérez" value={formData.contactName} onChange={e => setFormData({ ...formData, contactName: e.target.value })} />
+                                        <input required type="text" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium uppercase" placeholder="JUAN PÉREZ" value={formData.contactName} onChange={e => setFormData({ ...formData, contactName: e.target.value.toUpperCase() })} />
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="block text-xs font-semibold text-slate-300 ml-1">Nombre del Negocio</label>
-                                        <input required type="text" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="Ej. Barbería Central" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} />
+                                        <input required type="text" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium uppercase" placeholder="EJ. BARBERÍA CENTRAL" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value.toUpperCase() })} />
                                     </div>
                                 </div>
 
@@ -488,12 +488,12 @@ export default function Landing() {
 
                                 <div className="space-y-1.5">
                                     <label className="block text-xs font-semibold text-slate-300 ml-1">Correo Electrónico</label>
-                                    <input required type="email" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="correo@ejemplo.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                    <input required type="email" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium lowercase" placeholder="correo@ejemplo.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value.toLowerCase() })} />
                                 </div>
 
                                 <div className="space-y-1.5">
                                     <label className="block text-xs font-semibold text-slate-300 ml-1">WhatsApp de Contacto</label>
-                                    <input required type="tel" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium" placeholder="+52 81 0000 0000" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                    <input required type="tel" className="w-full bg-[#0b1120] border border-transparent rounded-2xl px-5 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-medium uppercase" placeholder="+52 81 0000 0000" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value.toUpperCase() })} />
                                 </div>
 
                                 <button

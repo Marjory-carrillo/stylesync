@@ -178,7 +178,7 @@ export default function Leads() {
                                 filteredLeads.map((lead) => (
                                     <tr key={lead.id} className="hover:bg-white/5 transition-colors group">
                                         <td className="p-6">
-                                            <div className="font-black text-white text-base flex items-center gap-3">
+                                            <div className="font-black text-white text-base flex items-center gap-3 uppercase">
                                                 <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center border border-violet-500/20 group-hover:scale-110 transition-transform shadow-lg shadow-violet-500/5">
                                                     <Building2 className="w-5 h-5 text-violet-400" />
                                                 </div>
@@ -193,9 +193,9 @@ export default function Leads() {
                                             </div>
                                         </td>
                                         <td className="p-6">
-                                            <div className="font-bold text-white mb-2 text-sm">{lead.contact_name}</div>
+                                            <div className="font-bold text-white mb-2 text-sm uppercase">{lead.contact_name}</div>
                                             <div className="flex flex-col gap-2">
-                                                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                                                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium lowercase">
                                                     <Mail className="w-3.5 h-3.5 text-slate-500" /> {lead.email}
                                                 </div>
                                                 {lead.phone && (
