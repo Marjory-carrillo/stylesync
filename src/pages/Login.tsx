@@ -47,7 +47,7 @@ export default function Login() {
             // Navigation will be handled by useEffect observing 'user' state
         } catch (err: any) {
             console.error('Auth error:', err);
-            setError(isSignUp ? 'Error al crear cuenta. Puede que el usuario ya exista.' : 'Credenciales incorrectas o error de conexión.');
+            setError(err.message || (isSignUp ? 'Error al crear cuenta.' : 'Credenciales incorrectas o error de conexión.'));
         } finally {
             setLoading(false);
         }
