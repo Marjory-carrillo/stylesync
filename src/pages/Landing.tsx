@@ -187,8 +187,8 @@ export default function Landing() {
                     {/* Real Dashboard Mockup Image */}
                     <div className="mt-20 mx-auto max-w-5xl rounded-2xl md:rounded-[2.5rem] bg-[#0f172a] border border-white/10 shadow-2xl p-2 md:p-4 rotate-1 hover:rotate-0 transition-transform duration-500 overflow-hidden relative">
                         <img
-                            src="/assets/mockup-dashboard.png"
-                            alt="CitaLink Dashboard Preview"
+                            src="/assets/mockup-hero.png"
+                            alt="CitaLink Hero App Preview"
                             className="w-full h-auto rounded-xl md:rounded-2xl border border-white/5 object-cover object-top"
                             loading="lazy"
                         />
