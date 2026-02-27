@@ -125,6 +125,7 @@ interface StoreContextType {
     user: User | null;
     session: Session | null;
     tenantId: string | null;
+    userRole: 'owner' | 'admin' | 'employee' | null;
     loadingAuth: boolean;
     createTenant: (name: string, slug: string, address: string, category: string) => Promise<{ success: boolean; error?: string }>;
     loadTenantBySlug: (slug: string) => Promise<boolean>;
@@ -294,6 +295,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [tenantId, setTenantId] = useState<string | null>(null);
+    const [userRole, setUserRole] = useState<'owner' | 'admin' | 'employee' | null>(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
 
     // ─── Auth Init ───
@@ -312,6 +314,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             } else {
                 // User is not logged in, stop loading immediately
                 setTenantId(null);
+                setUserRole(null);
                 setLoadingAuth(false);
             }
         });
@@ -328,14 +331,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             if (isUserSuperAdmin) {
                 // Super admin doesn't get forced into a single tenant on login
                 setTenantId(null);
+                setUserRole('admin');
             } else {
-                // Find tenant owned by user
-                const { data } = await supabase.from('tenants').select('id').eq('owner_id', userId).single();
-                if (data) {
-                    setTenantId(data.id);
-                } else {
-                    setTenantId(null); // Triggers "Create Business" flow
+                // 1. Try to find if user is owner
+                const { data: ownerData } = await supabase.from('tenants').select('id').eq('owner_id', userId).single();
+                if (ownerData) {
+                    setTenantId(ownerData.id);
+                    setUserRole('owner');
+                    return;
                 }
+
+                // 2. Try to find if user is an invited employee/admin
+                const { data: empData } = await supabase.from('tenant_users').select('tenant_id, role').eq('user_id', userId).single();
+                if (empData) {
+                    setTenantId(empData.tenant_id);
+                    setUserRole(empData.role as 'admin' | 'employee');
+                    return;
+                }
+
+                // 3. User has no tenant
+                setTenantId(null);
+                setUserRole(null); // Triggers "Create Business" flow
             }
         } catch (e) {
             console.error('Error loading tenant:', e);
@@ -1116,6 +1132,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         user,
         session,
         tenantId,
+        userRole,
         loadingAuth,
         createTenant,
         loadTenantBySlug,

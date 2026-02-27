@@ -5,7 +5,8 @@ import { useStore } from '../lib/store';
 import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
 
 export default function AdminLayout() {
-    const { isSuperAdmin } = useStore();
+    const { isSuperAdmin, userRole } = useStore();
+    const isEmployee = userRole === 'employee';
     const location = useLocation();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -85,33 +86,47 @@ export default function AdminLayout() {
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                     <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>
 
-                    <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')}>
-                        <LayoutDashboard size={18} />
-                        <span>Dashboard</span>
-                    </Link>
+                    {!isEmployee && (
+                        <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')}>
+                            <LayoutDashboard size={18} />
+                            <span>Dashboard</span>
+                        </Link>
+                    )}
+
                     <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')}>
                         <Calendar size={18} />
                         <span>Agenda</span>
                     </Link>
-                    <Link to="/admin/services" onClick={closeMobileMenu} className={navLinkClass('/admin/services')}>
-                        <Scissors size={18} />
-                        <span>Servicios</span>
-                    </Link>
-                    <Link to="/admin/staff" onClick={closeMobileMenu} className={navLinkClass('/admin/staff')}>
-                        <Users size={18} />
-                        <span>Estilistas</span>
-                    </Link>
+
                     <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')}>
                         <Users size={18} />
                         <span>Clientes</span>
                     </Link>
 
-                    <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-8">Configuración</div>
+                    {!isEmployee && (
+                        <>
+                            <Link to="/admin/services" onClick={closeMobileMenu} className={navLinkClass('/admin/services')}>
+                                <Scissors size={18} />
+                                <span>Servicios</span>
+                            </Link>
+                            <Link to="/admin/staff" onClick={closeMobileMenu} className={navLinkClass('/admin/staff')}>
+                                <Users size={18} />
+                                <span>Estilistas</span>
+                            </Link>
 
-                    <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')}>
-                        <SettingsIcon size={18} />
-                        <span>Ajustes del Negocio</span>
-                    </Link>
+                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-8">Configuración</div>
+
+                            <Link to="/admin/team" onClick={closeMobileMenu} className={navLinkClass('/admin/team')}>
+                                <Users size={18} />
+                                <span>Equipo y Roles</span>
+                            </Link>
+
+                            <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')}>
+                                <SettingsIcon size={18} />
+                                <span>Ajustes del Negocio</span>
+                            </Link>
+                        </>
+                    )}
                 </nav>
 
                 <div className="p-4 mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2">

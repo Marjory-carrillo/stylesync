@@ -9,6 +9,7 @@ import Clients from './pages/admin/Clients';
 import Services from './pages/admin/Services';
 import Staff from './pages/admin/Staff';
 import Settings from './pages/admin/Settings';
+import Team from './pages/admin/Team';
 import Booking from './pages/client/Booking';
 import Login from './pages/Login';
 import CreateBusiness from './pages/admin/CreateBusiness';
@@ -108,6 +109,7 @@ function App() {
               <Route path="clients" element={<Clients />} />
               <Route path="services" element={<Services />} />
               <Route path="staff" element={<Staff />} />
+              <Route path="team" element={<Team />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>
