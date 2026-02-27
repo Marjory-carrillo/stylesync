@@ -1,4 +1,4 @@
-import { Building2, Paintbrush, Settings as SettingsIcon, ShieldCheck, LogOut, Inbox } from 'lucide-react';
+import { Building2, Paintbrush, Settings as SettingsIcon, LogOut, Inbox, Infinity as InfinityIcon } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -46,11 +46,12 @@ export default function SuperAdminLayout() {
                 borderRight: '1px solid rgba(255,255,255,0.1)'
             }}>
                 <div className="sidebar-header" style={{ marginBottom: 'var(--space-xl)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ background: '#f59e0b', padding: '8px', borderRadius: '8px' }}>
-                        <ShieldCheck size={24} color="white" />
+                    <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer">
+                        <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
+                        <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h1 style={{ fontSize: '1.2rem', fontWeight: '800', margin: 0 }}>CitaLink</h1>
+                        <h1 style={{ fontSize: '1.2rem', fontWeight: '800', margin: 0, color: 'white' }}>Cita<span style={{ color: '#8b5cf6' }}>Link</span></h1>
                         <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#f59e0b', fontWeight: '700' }}>Super Admin</span>
                     </div>
                 </div>

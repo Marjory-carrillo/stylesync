@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../lib/store';
-import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon } from 'lucide-react';
 
 export default function AdminLayout() {
     const { isSuperAdmin, userRole } = useStore();
@@ -41,10 +41,11 @@ export default function AdminLayout() {
         <div className="flex h-screen overflow-hidden bg-[var(--color-bg)] text-slate-200">
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--color-bg-secondary)] border-b border-white/10 z-[100] px-4 flex items-center justify-between">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(34,211,238,0.4)] animate-pulse-soft">
-                    <Calendar className="text-white" size={18} />
+                <div className="relative flex items-center justify-center w-8 h-8">
+                    <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 rounded-full"></div>
+                    <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
                 </div>
-                <span className="font-bold text-white tracking-tight">CitaLink Admin</span>
+                <span className="font-bold text-white tracking-tight">Cita<span className="text-violet-500">Link</span> Admin</span>
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
                     className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-accent transition-all active:scale-90"
@@ -70,11 +71,12 @@ export default function AdminLayout() {
             `}>
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(34,211,238,0.3)] group-hover:scale-110 transition-transform duration-500">
-                            <Calendar className="text-white" size={20} />
+                        <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer">
+                            <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
+                            <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold tracking-tight text-white leading-none">CitaLink</h1>
+                            <h1 className="text-lg font-black tracking-tight text-white leading-none">Cita<span className="text-violet-500">Link</span></h1>
                             <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
                         </div>
                     </div>

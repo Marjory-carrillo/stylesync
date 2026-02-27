@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, ArrowRight, Mail, Loader2, Lock } from 'lucide-react';
+import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 import { useStore } from '../lib/store';
@@ -64,13 +64,16 @@ export default function Login() {
 
                 {/* Logo / Brand Area */}
                 <div className="text-center mb-8">
-                    <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.3)] mx-auto mb-6 transform -rotate-3 hover:rotate-0 transition-all duration-500 group-hover:scale-105">
-                        <Calendar size={40} className="text-white drop-shadow-lg" />
+                    <div className="mx-auto mb-6 flex items-center justify-center">
+                        <div className="relative flex items-center justify-center w-16 h-16 group cursor-pointer">
+                            <div className="absolute inset-0 bg-violet-500 blur-xl opacity-40 group-hover:opacity-60 transition-opacity rounded-full"></div>
+                            <InfinityIcon className="w-16 h-16 text-violet-400 relative z-10" strokeWidth={2.5} />
+                        </div>
                     </div>
-                    <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-white via-cyan-100 to-blue-200 bg-clip-text text-transparent mb-2">
-                        CitaLink
+                    <h1 className="text-4xl font-black tracking-tighter text-white mb-2">
+                        Cita<span className="text-violet-400">Link</span>
                     </h1>
-                    <p className="text-cyan-500/80 font-medium tracking-widest uppercase text-xs">Gestión Inteligente</p>
+                    <p className="text-violet-400/80 font-medium tracking-widest uppercase text-xs">Gestión Inteligente</p>
                 </div>
 
                 {/* Login Card */}

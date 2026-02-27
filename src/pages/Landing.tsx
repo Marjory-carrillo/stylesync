@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store';
 import { Link } from 'react-router-dom';
-import { CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight, CheckCircle2, Facebook, Instagram, Twitter, X, Sparkles, Scissors, Flower2, Stethoscope } from 'lucide-react';
+import { CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight, CheckCircle2, Facebook, Instagram, Twitter, X, Sparkles, Scissors, Flower2, Stethoscope, Infinity as InfinityIcon } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Landing() {
@@ -87,12 +87,13 @@ export default function Landing() {
                 <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-20">
                         {/* Logo */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
-                                <CalendarDays className="text-white h-5 w-5" />
+                        <div className="flex items-center gap-2 group cursor-pointer">
+                            <div className="relative flex items-center justify-center w-8 h-8">
+                                <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
+                                <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
                             </div>
-                            <span className="text-xl font-bold tracking-tight text-white">
-                                CitaLink<span className="text-violet-500">.</span>
+                            <span className="text-2xl font-black tracking-tighter text-white">
+                                Cita<span className="text-violet-500">Link</span>
                             </span>
                         </div>
 
@@ -358,9 +359,11 @@ export default function Landing() {
             <footer className="border-t border-white/10 bg-[#020817] py-16">
                 <div className="container mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="flex flex-col items-center md:items-start gap-4">
-                        <div className="flex items-center gap-2 opacity-80 text-white">
-                            <CalendarDays className="h-6 w-6" />
-                            <span className="font-bold text-xl tracking-tight">CitaLink.</span>
+                        <div className="flex items-center gap-2 group">
+                            <InfinityIcon className="h-7 w-7 text-violet-500" strokeWidth={2.5} />
+                            <span className="text-2xl font-black tracking-tighter text-white">
+                                Cita<span className="text-violet-500">Link</span>
+                            </span>
                         </div>
                         <p className="text-slate-500 text-sm max-w-xs text-center md:text-left">
                             La plataforma que simplifica la administración de salones y clínicas, automatizando lo aburrido.
