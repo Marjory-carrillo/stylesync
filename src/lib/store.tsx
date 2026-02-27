@@ -341,23 +341,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                // 2. Try to find if user is an invited employee/admin
-                let { data: empData } = await supabase.from('tenant_users').select('id, tenant_id, role, user_id').eq('user_id', userId).single();
+                // 2. Ejecutar la función segura RPC para enlazar usuario invitado si es su primer inicio de sesión
+                await supabase.rpc('link_invited_user');
 
-                // If not found by user_id, check if they were invited by email
-                if (!empData && userResponse.data.user?.email) {
-                    const { data: inviteData } = await supabase.from('tenant_users')
-                        .select('id, tenant_id, role')
-                        .eq('email', userResponse.data.user.email)
-                        .is('user_id', null)
-                        .single();
-
-                    if (inviteData) {
-                        // Link the newly created auth user_id to the invitation
-                        await supabase.from('tenant_users').update({ user_id: userId }).eq('id', inviteData.id);
-                        empData = { ...inviteData, user_id: userId };
-                    }
-                }
+                // 3. Try to find if user is an invited employee/admin
+                const { data: empData } = await supabase.from('tenant_users').select('id, tenant_id, role, user_id').eq('user_id', userId).single();
 
                 if (empData) {
                     setTenantId(empData.tenant_id);
