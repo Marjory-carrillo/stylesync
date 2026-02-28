@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2 } from 'lucide-react';
+import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2, LogOut } from 'lucide-react';
 import { useStore } from '../../lib/store';
+import { supabase } from '../../lib/supabaseClient';
 import SplashScreen from '../../components/SplashScreen';
 
 export default function CreateBusiness() {
@@ -64,6 +65,11 @@ export default function CreateBusiness() {
         setSlug(autoSlug);
     };
 
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
+
     if (!user) {
         return <SplashScreen />;
     }
@@ -75,7 +81,16 @@ export default function CreateBusiness() {
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-[var(--color-accent)]/20 rounded-full blur-[128px] pointer-events-none" />
             <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[var(--color-primary)]/10 rounded-full blur-[128px] pointer-events-none" />
 
-            <div className="w-full max-w-4xl grid md:grid-cols-2 gap-8 items-center relative z-10 animate-fade-in">
+            {/* Logout Button */}
+            <button
+                onClick={handleLogout}
+                className="absolute top-4 right-4 md:top-8 md:right-8 flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl transition-all border border-white/10 text-sm font-medium z-50"
+            >
+                <LogOut size={16} />
+                Cerrar Sesión
+            </button>
+
+            <div className="w-full max-w-4xl grid md:grid-cols-2 gap-8 items-center relative z-10 animate-fade-in mt-12 md:mt-0">
 
                 {/* Left Side: Welcome & Value Prop */}
                 <div className="hidden md:block space-y-6 pr-8">
