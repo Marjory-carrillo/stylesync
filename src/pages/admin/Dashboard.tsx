@@ -30,9 +30,17 @@ export default function Dashboard() {
 
     const revenue = useMemo(() => {
         return todayAppts.reduce((sum, a) => {
-            if (a.status !== 'completada') return sum;
             const svc = services.find(s => s.id === a.serviceId);
-            return sum + (svc?.price ?? 0);
+            if (!svc) return sum;
+
+            let isFinished = a.status === 'completada';
+            if (!isFinished && a.status !== 'cancelada') {
+                const end = new Date(`${a.date}T${a.time}`);
+                end.setMinutes(end.getMinutes() + svc.duration);
+                if (new Date() >= end) isFinished = true;
+            }
+
+            return isFinished ? sum + svc.price : sum;
         }, 0);
     }, [todayAppts, services]);
 
@@ -75,14 +83,26 @@ export default function Dashboard() {
                     currentCanceled++;
                 } else {
                     currentCompleted++;
-                    if (a.status === 'completada') {
+                    let isFinished = a.status === 'completada';
+                    if (!isFinished) {
+                        const end = new Date(`${a.date}T${a.time}`);
+                        end.setMinutes(end.getMinutes() + (svc?.duration || 0));
+                        if (new Date() >= end) isFinished = true;
+                    }
+                    if (isFinished) {
                         currentRevenue += price;
                     }
                 }
             } else if (isLastMonth) {
                 if (!isCanceled) {
                     lastCompleted++;
-                    if (a.status === 'completada') {
+                    let isFinished = a.status === 'completada';
+                    if (!isFinished) {
+                        const end = new Date(`${a.date}T${a.time}`);
+                        end.setMinutes(end.getMinutes() + (svc?.duration || 0));
+                        if (new Date() >= end) isFinished = true;
+                    }
+                    if (isFinished) {
                         lastRevenue += price;
                     }
                 }
@@ -114,10 +134,19 @@ export default function Dashboard() {
             const dateStr = d.toLocaleDateString('en-CA');
 
             const dayRevenue = appointments
-                .filter(a => a.date === dateStr && a.status === 'completada')
+                .filter(a => a.date === dateStr && a.status !== 'cancelada')
                 .reduce((sum, appt) => {
                     const svc = services.find(s => s.id === appt.serviceId);
-                    return sum + (svc?.price || 0);
+                    if (!svc) return sum;
+
+                    let isFinished = appt.status === 'completada';
+                    if (!isFinished) {
+                        const end = new Date(`${appt.date}T${appt.time}`);
+                        end.setMinutes(end.getMinutes() + svc.duration);
+                        if (new Date() >= end) isFinished = true;
+                    }
+
+                    return isFinished ? sum + svc.price : sum;
                 }, 0);
 
             data.push({
