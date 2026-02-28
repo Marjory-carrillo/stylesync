@@ -30,6 +30,7 @@ export default function Dashboard() {
 
     const revenue = useMemo(() => {
         return todayAppts.reduce((sum, a) => {
+            if (a.status !== 'completada') return sum;
             const svc = services.find(s => s.id === a.serviceId);
             return sum + (svc?.price ?? 0);
         }, 0);
@@ -74,12 +75,16 @@ export default function Dashboard() {
                     currentCanceled++;
                 } else {
                     currentCompleted++;
-                    currentRevenue += price;
+                    if (a.status === 'completada') {
+                        currentRevenue += price;
+                    }
                 }
             } else if (isLastMonth) {
                 if (!isCanceled) {
                     lastCompleted++;
-                    lastRevenue += price;
+                    if (a.status === 'completada') {
+                        lastRevenue += price;
+                    }
                 }
             }
         });
@@ -109,7 +114,7 @@ export default function Dashboard() {
             const dateStr = d.toLocaleDateString('en-CA');
 
             const dayRevenue = appointments
-                .filter(a => a.date === dateStr && a.status !== 'cancelada')
+                .filter(a => a.date === dateStr && a.status === 'completada')
                 .reduce((sum, appt) => {
                     const svc = services.find(s => s.id === appt.serviceId);
                     return sum + (svc?.price || 0);
