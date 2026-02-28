@@ -340,7 +340,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 setUserStylistId(null);
             } else {
                 // 1. Try to find if user is owner
-                const { data: ownerData } = await supabase.from('tenants').select('id').eq('owner_id', userId).single();
+                const { data: ownerData } = await supabase.from('tenants').select('id').eq('owner_id', userId).maybeSingle();
                 if (ownerData) {
                     setTenantId(ownerData.id);
                     setUserRole('owner');
@@ -349,10 +349,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 }
 
                 // 2. Ejecutar la función segura RPC para enlazar usuario invitado si es su primer inicio de sesión
-                await supabase.rpc('link_invited_user');
+                const { error: rpcError } = await supabase.rpc('link_invited_user');
+                if (rpcError) {
+                    console.error('RPC link error:', rpcError);
+                }
 
                 // 3. Try to find if user is an invited employee/admin
-                const { data: empData } = await supabase.from('tenant_users').select('id, tenant_id, role, user_id, stylist_id').eq('user_id', userId).single();
+                const { data: empData } = await supabase.from('tenant_users').select('id, tenant_id, role, user_id, stylist_id').eq('user_id', userId).maybeSingle();
 
                 if (empData) {
                     setTenantId(empData.tenant_id);
@@ -361,13 +364,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                // 3. User has no tenant
+                // 4. User has no tenant
                 setTenantId(null);
                 setUserRole(null); // Triggers "Create Business" flow
                 setUserStylistId(null);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error loading tenant:', e);
+            showToast(`Error de enlace: ${e.message}`, 'error');
         } finally {
             // Small delay to ensure router state stabilizes and prevent flickering
             setTimeout(() => setLoadingAuth(false), 300);
