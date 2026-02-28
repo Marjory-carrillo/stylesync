@@ -104,7 +104,8 @@ export default function Booking() {
     const selectedDateSchedule = useMemo(() => getScheduleForDate(selectedDate), [selectedDate, getScheduleForDate]);
 
     const baseDate = useMemo(() => {
-        return selectedDate === format(new Date(), 'yyyy-MM-dd')
+        const todayLocal = format(new Date(), 'yyyy-MM-dd');
+        return selectedDate === todayLocal
             ? new Date()
             : new Date(selectedDate + 'T00:00:00');
     }, [selectedDate]);
@@ -128,7 +129,8 @@ export default function Booking() {
         const metadata: Record<string, string[]> = {};
         if (!selectedService || !selectedDateSchedule.open) return metadata;
 
-        const baseDate = selectedDate === new Date().toISOString().split('T')[0]
+        const todayLocal = format(new Date(), 'yyyy-MM-dd');
+        const baseDate = selectedDate === todayLocal
             ? new Date()
             : new Date(selectedDate + 'T00:00:00');
 
@@ -787,7 +789,9 @@ export default function Booking() {
                                 <p className="text-sm text-muted mb-6">
                                     {isDayBlockedManually
                                         ? 'Este día no hay servicio por causa de fuerza mayor o descanso.'
-                                        : 'Parece que el día está completo para este servicio.'}
+                                        : (selectedDate === format(new Date(), 'yyyy-MM-dd')
+                                            ? 'Las horas laborales han concluido por el día de hoy o la agenda está llena. Intenta otro día.'
+                                            : 'Parece que el día está completamente reservado para este servicio.')}
                                 </p>
 
                                 {!isDayBlockedManually && (
