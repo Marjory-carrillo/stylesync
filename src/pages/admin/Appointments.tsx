@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStore } from '../../lib/store';
 import { Trash2, CheckCircle, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock } from 'lucide-react';
 
@@ -6,7 +6,7 @@ import ResourceCalendar from '../../components/admin/ResourceCalendar';
 
 export default function Appointments() {
     const {
-        appointments,
+        appointments: allAppointments,
         services,
         stylists,
         waitingList,
@@ -19,8 +19,17 @@ export default function Appointments() {
         isPhoneBlocked,
         generateWhatsAppUrl,
         generateReminderWhatsAppUrl,
-        showToast
+        showToast,
+        userRole,
+        userStylistId
     } = useStore();
+
+    const appointments = useMemo(() => {
+        if (userRole === 'employee' && userStylistId) {
+            return allAppointments.filter(a => a.stylistId === userStylistId);
+        }
+        return allAppointments;
+    }, [allAppointments, userRole, userStylistId]);
 
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
     const [showWaiting, setShowWaiting] = useState(false);

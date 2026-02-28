@@ -126,6 +126,7 @@ interface StoreContextType {
     session: Session | null;
     tenantId: string | null;
     userRole: 'owner' | 'admin' | 'employee' | null;
+    userStylistId: number | null;
     loadingAuth: boolean;
     createTenant: (name: string, slug: string, address: string, category: string) => Promise<{ success: boolean; error?: string }>;
     loadTenantBySlug: (slug: string) => Promise<boolean>;
@@ -296,6 +297,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [tenantId, setTenantId] = useState<string | null>(null);
     const [userRole, setUserRole] = useState<'owner' | 'admin' | 'employee' | null>(null);
+    const [userStylistId, setUserStylistId] = useState<number | null>(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
 
     // ─── Auth Init ───
@@ -315,6 +317,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 // User is not logged in, stop loading immediately
                 setTenantId(null);
                 setUserRole(null);
+                setUserStylistId(null);
                 setLoadingAuth(false);
             }
         });
@@ -334,12 +337,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 const savedTenantId = localStorage.getItem('stylesync_tenant_id');
                 setTenantId(savedTenantId || null);
                 setUserRole('admin');
+                setUserStylistId(null);
             } else {
                 // 1. Try to find if user is owner
                 const { data: ownerData } = await supabase.from('tenants').select('id').eq('owner_id', userId).single();
                 if (ownerData) {
                     setTenantId(ownerData.id);
                     setUserRole('owner');
+                    setUserStylistId(null);
                     return;
                 }
 
@@ -347,17 +352,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 await supabase.rpc('link_invited_user');
 
                 // 3. Try to find if user is an invited employee/admin
-                const { data: empData } = await supabase.from('tenant_users').select('id, tenant_id, role, user_id').eq('user_id', userId).single();
+                const { data: empData } = await supabase.from('tenant_users').select('id, tenant_id, role, user_id, stylist_id').eq('user_id', userId).single();
 
                 if (empData) {
                     setTenantId(empData.tenant_id);
                     setUserRole(empData.role as 'admin' | 'employee');
+                    setUserStylistId(empData.stylist_id ? Number(empData.stylist_id) : null);
                     return;
                 }
 
                 // 3. User has no tenant
                 setTenantId(null);
                 setUserRole(null); // Triggers "Create Business" flow
+                setUserStylistId(null);
             }
         } catch (e) {
             console.error('Error loading tenant:', e);
@@ -1139,6 +1146,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         session,
         tenantId,
         userRole,
+        userStylistId,
         loadingAuth,
         createTenant,
         loadTenantBySlug,

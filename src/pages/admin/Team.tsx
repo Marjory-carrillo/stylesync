@@ -8,14 +8,16 @@ interface TeamMember {
     email: string;
     role: 'owner' | 'admin' | 'employee';
     created_at: string;
+    stylist_id?: number | null;
 }
 
 export default function Team() {
-    const { tenantId, userRole, showToast } = useStore();
+    const { tenantId, userRole, showToast, stylists } = useStore();
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState<'admin' | 'employee'>('employee');
+    const [inviteStylistId, setInviteStylistId] = useState<string>('');
 
     useEffect(() => {
         if (tenantId) fetchMembers();
@@ -50,13 +52,15 @@ export default function Team() {
                 .insert({
                     tenant_id: tenantId,
                     email: inviteEmail.trim(),
-                    role: inviteRole
+                    role: inviteRole,
+                    stylist_id: inviteStylistId ? parseInt(inviteStylistId) : null
                 });
 
             if (error) throw error;
 
             showToast('Se ha agregado al equipo', 'success');
             setInviteEmail('');
+            setInviteStylistId('');
             fetchMembers();
         } catch (error: any) {
             console.error('Error inviting member:', error);
@@ -163,6 +167,28 @@ export default function Team() {
                             </div>
                         </div>
 
+                        {inviteRole === 'employee' && stylists.length > 0 && (
+                            <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">Vincular a Perfil Público (Opcional)</label>
+                                <p className="text-xs text-slate-400 mb-3">Si seleccionas un perfil, este empleado solo verá su propia agenda personal.</p>
+                                <div className="relative">
+                                    <select
+                                        value={inviteStylistId}
+                                        onChange={(e) => setInviteStylistId(e.target.value)}
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-blue-500 font-medium appearance-none"
+                                    >
+                                        <option value="">Sin vincular (verá toda la agenda)</option>
+                                        {stylists.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} - {s.role}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                        ▼
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <button type="submit" className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_30px_-5px_rgba(37,99,235,0.4)]">
                             <Plus size={20} />
                             Enviar Invitación
@@ -195,32 +221,40 @@ export default function Team() {
                                 <p className="text-sm text-slate-400 max-w-xs">Aún no has invitado a ningún colaborador para administrar este negocio.</p>
                             </div>
                         ) : (
-                            members.map(member => (
-                                <div key={member.id} className="flex items-center justify-between p-4 bg-slate-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center font-bold text-slate-300 uppercase shadow-inner">
-                                            {member.email.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-white truncate max-w-[150px] sm:max-w-[200px] md:max-w-xs">{member.email}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                {member.role === 'admin' ? (
-                                                    <span className="text-[10px] font-black uppercase tracking-wider text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md">Admin</span>
-                                                ) : (
-                                                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">Empleado</span>
-                                                )}
+                            members.map(member => {
+                                const linkedStylist = member.stylist_id ? stylists.find(s => s.id === member.stylist_id) : null;
+                                return (
+                                    <div key={member.id} className="flex items-center justify-between p-4 bg-slate-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center font-bold text-slate-300 uppercase shadow-inner">
+                                                {member.email.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-white truncate max-w-[150px] sm:max-w-[200px] md:max-w-xs">{member.email}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    {member.role === 'admin' ? (
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md">Admin</span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">Empleado</span>
+                                                    )}
+                                                    {linkedStylist && (
+                                                        <span className="text-[10px] font-medium text-slate-400 border border-slate-700 bg-slate-800/50 px-2 py-0.5 rounded-md truncate max-w-[120px]">
+                                                            🔗 {linkedStylist.name}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
+                                        <button
+                                            onClick={() => removeMember(member.id, member.email)}
+                                            className="p-2.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 border border-transparent rounded-xl transition-all"
+                                            title="Revocar acceso"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => removeMember(member.id, member.email)}
-                                        className="p-2.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 border border-transparent rounded-xl transition-all"
-                                        title="Revocar acceso"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            ))
+                                )
+                            })
                         )}
                     </div>
                 </section>

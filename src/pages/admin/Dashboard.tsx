@@ -5,14 +5,45 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 export default function Dashboard() {
     const {
-        getAppointmentsForToday, getTodayRevenue, appointments, services,
-        getReminders, generateReminderWhatsAppUrl, getServiceById,
+        appointments: allAppointments, services,
+        generateReminderWhatsAppUrl, getServiceById,
         cancellationLog, waitingList, businessConfig, showToast,
-        addToWaitingList
+        addToWaitingList, userRole, userStylistId
     } = useStore();
-    const todayAppts = getAppointmentsForToday();
-    const revenue = getTodayRevenue();
-    const reminders = getReminders();
+
+    const appointments = useMemo(() => {
+        if (userRole === 'employee' && userStylistId) {
+            return allAppointments.filter(a => a.stylistId === userStylistId);
+        }
+        return allAppointments;
+    }, [allAppointments, userRole, userStylistId]);
+
+    const todayAppts = useMemo(() => {
+        // Actually, we should use format from date-fns or local formatting
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const tStr = `${yyyy}-${mm}-${dd}`;
+        return appointments.filter(a => a.date === tStr && a.status !== 'cancelada');
+    }, [appointments]);
+
+    const revenue = useMemo(() => {
+        return todayAppts.reduce((sum, a) => {
+            const svc = services.find(s => s.id === a.serviceId);
+            return sum + (svc?.price ?? 0);
+        }, 0);
+    }, [todayAppts, services]);
+
+    const reminders = useMemo(() => {
+        const target = new Date();
+        target.setDate(target.getDate() + 1);
+        const yyyy = target.getFullYear();
+        const mm = String(target.getMonth() + 1).padStart(2, '0');
+        const dd = String(target.getDate()).padStart(2, '0');
+        const tStr = `${yyyy}-${mm}-${dd}`;
+        return appointments.filter(a => a.date === tStr && a.status !== 'cancelada');
+    }, [appointments]);
 
     // ── Reports Logic ──
     const currentMonthStats = useMemo(() => {
@@ -370,9 +401,15 @@ export default function Dashboard() {
                             {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
                         </div>
                     </div>
-                    <div className="mt-3 text-xs text-slate-500 font-medium">
-                        vs ${currentMonthStats.lastRevenue} mes pasado
-                    </div>
+                    {userRole === 'employee' ? (
+                        <div className="mt-3 text-xs text-slate-500 font-medium">
+                            Tus ingresos generados en este mes
+                        </div>
+                    ) : (
+                        <div className="mt-3 text-xs text-slate-500 font-medium">
+                            vs ${currentMonthStats.lastRevenue} mes pasado
+                        </div>
+                    )}
                 </div>
             </div>
 
