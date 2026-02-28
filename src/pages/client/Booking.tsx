@@ -736,7 +736,7 @@ export default function Booking() {
                                 return (
                                     <button
                                         key={d.dateStr}
-                                        onClick={() => { setSelectedDate(d.dateStr); setSelectedTime(null); }}
+                                        onClick={() => { setSelectedDate(d.dateStr); setSelectedTime(null); setStep(3); }}
                                         className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 ${selectedDate === d.dateStr ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${closed ? 'opacity-40 cursor-not-allowed' : ''}`}
                                         disabled={closed}
                                     >
