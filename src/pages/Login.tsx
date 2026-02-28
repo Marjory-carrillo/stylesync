@@ -31,15 +31,16 @@ export default function Login() {
         setError('');
 
         try {
+            const trimmedEmail = email.trim();
             if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
-                    email,
+                    email: trimmedEmail,
                     password,
                 });
                 if (error) throw error;
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
-                    email,
+                    email: trimmedEmail,
                     password,
                 });
                 if (error) throw error;
