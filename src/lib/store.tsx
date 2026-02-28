@@ -329,7 +329,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         try {
             // First check if user is super admin
             const userResponse = await supabase.auth.getUser();
-            const isUserSuperAdmin = userResponse.data.user?.email === 'infinitummisael@gmail.com';
+            const userEmail = userResponse.data.user?.email || '';
+            const isUserSuperAdmin = userEmail === 'infinitummisael@gmail.com';
 
             if (isUserSuperAdmin) {
                 // Super admin doesn't get forced into a single tenant on login,
@@ -352,6 +353,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 const { error: rpcError } = await supabase.rpc('link_invited_user');
                 if (rpcError) {
                     console.error('RPC link error:', rpcError);
+                }
+
+                // 2.5 FALLBACK FRONTEND: Si el RPC falló (o el usuario no corrió el SQL), emparejamos manual
+                if (userEmail) {
+                    // Buscar si hay un registro de invitación con ese email
+                    const { data: inviteMatch } = await supabase
+                        .from('tenant_users')
+                        .select('id, user_id')
+                        .ilike('email', userEmail.trim())
+                        .maybeSingle();
+
+                    if (inviteMatch && !inviteMatch.user_id) {
+                        console.log('Fallback: Emparejando usuario manualmente', inviteMatch.id);
+                        await supabase
+                            .from('tenant_users')
+                            .update({ user_id: userId })
+                            .eq('id', inviteMatch.id);
+                    }
                 }
 
                 // 3. Try to find if user is an invited employee/admin
