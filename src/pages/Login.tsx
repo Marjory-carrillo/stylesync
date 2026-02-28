@@ -31,7 +31,9 @@ export default function Login() {
         setError('');
 
         try {
-            const trimmedEmail = email.trim();
+            // Eliminar espacios y CUALQUIER caracter invisible o erróneo que los teclados móviles/autocompletar inyecten
+            const trimmedEmail = email.replace(/[^a-zA-Z0-9@._-]/g, '').toLowerCase();
+
             if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
                     email: trimmedEmail,
