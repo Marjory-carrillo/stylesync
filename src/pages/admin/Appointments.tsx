@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useStore } from '../../lib/store';
 import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+import Pagination from '../../components/Pagination';
 
 
 export default function Appointments() {
@@ -31,9 +32,12 @@ export default function Appointments() {
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [showWaiting, setShowWaiting] = useState(false);
     const [showLog, setShowLog] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; appt: any | null }>({ open: false, appt: null });
+
+    const PAGE_SIZE = 20;
 
 
     // ── Filter Logic ──
@@ -127,7 +131,10 @@ export default function Appointments() {
                         ].map((tab) => (
                             <button
                                 key={tab.id}
-                                onClick={() => setFilter(tab.id as any)}
+                                onClick={() => {
+                                    setFilter(tab.id as any);
+                                    setCurrentPage(1);
+                                }}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filter === tab.id
                                     ? `bg-white/5 border-white/10 text-white`
                                     : 'border-transparent text-muted hover:bg-white/5'
@@ -149,7 +156,10 @@ export default function Appointments() {
                         type="text"
                         placeholder="Buscar por nombre o teléfono..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                        }}
                         className="bg-transparent border-none outline-none text-sm text-white placeholder:text-slate-500 w-full focus:ring-0"
                     />
                 </div>
@@ -157,7 +167,10 @@ export default function Appointments() {
                     <input
                         type="date"
                         value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
+                        onChange={(e) => {
+                            setDateFilter(e.target.value);
+                            setCurrentPage(1);
+                        }}
                         className="bg-transparent border-none outline-none text-sm text-white focus:ring-0 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 cursor-pointer"
                     />
                 </div>
@@ -205,7 +218,8 @@ export default function Appointments() {
 
                         {/* Grouped List Items */}
                         {(() => {
-                            const grouped = filteredAppointments.reduce((acc, apt) => {
+                            const paginatedAppts = filteredAppointments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+                            const grouped = paginatedAppts.reduce((acc, apt) => {
                                 if (!acc[apt.date]) acc[apt.date] = [];
                                 acc[apt.date].push(apt);
                                 return acc;
@@ -326,8 +340,15 @@ export default function Appointments() {
                                 </div>
                             ));
                         })()}
-                    </div>
 
+                        {filteredAppointments.length > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={Math.ceil(filteredAppointments.length / PAGE_SIZE)}
+                                onPageChange={setCurrentPage}
+                            />
+                        )}
+                    </div>
 
                     {/* Waiting List & Logs (Persistent across views) */}
                     {(waitingList.length > 0 || cancellationLog.length > 0) && (

@@ -81,14 +81,16 @@ export default function Booking() {
         const dates: { dateStr: string; label: string; dayName: string; isToday: boolean }[] = [];
         const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-        for (let i = 0; i < 7; i++) { // Increased range to ensure we find 5 valid days
+        const daysAheadConfig = businessConfig.bookingDaysAhead || 14;
+
+        for (let i = 0; i < daysAheadConfig * 2; i++) { // Check enough days to find valid ones
             const d = addDays(new Date(), i);
             const dateStr = format(d, 'yyyy-MM-dd');
 
             // Skip past dates (safety guard)
             if (dateStr < todayStr) continue;
 
-            if (dates.length >= 5) break;
+            if (dates.length >= daysAheadConfig) break;
 
             const dayIdx = d.getDay();
             const dayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayIdx];

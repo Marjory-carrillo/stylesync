@@ -81,6 +81,7 @@ export interface BusinessConfig {
     phone: string;
     category: string;
     slug: string;
+    bookingDaysAhead?: number;
     logoUrl?: string;
     description?: string;
     primaryColor?: string;

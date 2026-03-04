@@ -3,6 +3,7 @@ import { useStore } from '../../lib/store';
 import { Search, User, Phone } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Pagination from '../../components/Pagination';
 
 interface ClientStats {
     phone: string;
@@ -16,8 +17,11 @@ interface ClientStats {
 export default function Clients() {
     const { clients: dbClients, appointments, services, updateClientNotes, updateClientTags } = useStore();
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [editingNotes, setEditingNotes] = useState<string | null>(null);
     const [tempNotes, setTempNotes] = useState('');
+
+    const PAGE_SIZE = 12;
 
     const clients = useMemo(() => {
         const clientMap = new Map<string, ClientStats>();
@@ -105,13 +109,16 @@ export default function Clients() {
                     placeholder="Buscar por nombre o teléfono..."
                     className="bg-transparent border-none outline-none text-white w-full placeholder:text-slate-500 focus:ring-0"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                    }}
                 />
             </div>
 
             {/* Clients Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredClients.map(client => (
+                {filteredClients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(client => (
                     <div key={client.phone} className="glass-card p-6 rounded-2xl group hover:border-accent/40 transition-all duration-300 relative overflow-hidden">
 
                         <div className="flex items-start justify-between mb-6 relative z-10">
@@ -152,8 +159,8 @@ export default function Clients() {
                                                 key={tag}
                                                 onClick={() => toggleTag(client.id, client.tags, tag)}
                                                 className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all ${isActive
-                                                        ? 'bg-accent/20 text-accent border-accent/30'
-                                                        : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20'
+                                                    ? 'bg-accent/20 text-accent border-accent/30'
+                                                    : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20'
                                                     }`}
                                             >
                                                 {tag}
@@ -238,6 +245,14 @@ export default function Clients() {
                     </div>
                 ))}
             </div>
+
+            {filteredClients.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(filteredClients.length / PAGE_SIZE)}
+                    onPageChange={setCurrentPage}
+                />
+            )}
 
             {filteredClients.length === 0 && (
                 <div className="py-20 text-center">

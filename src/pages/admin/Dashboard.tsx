@@ -1,9 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../../lib/store';
 import { Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 
 export default function Dashboard() {
+    const [chartRange, setChartRange] = useState<ChartRange>('7D');
+
     const {
         appointments: allAppointments, services,
         generateReminderWhatsAppUrl, getServiceById,
@@ -123,40 +129,90 @@ export default function Dashboard() {
         };
     }, [appointments, services]);
 
-    // Graph Data: Last 7 Days Revenue
+    // Graph Data
     const revenueChartData = useMemo(() => {
         const data = [];
         const today = new Date();
 
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            const dateStr = d.toLocaleDateString('en-CA');
+        if (chartRange === '7D' || chartRange === '30D') {
+            const daysCount = chartRange === '7D' ? 7 : 30;
+            for (let i = daysCount - 1; i >= 0; i--) {
+                const d = subDays(today, i);
+                const dateStr = format(d, 'yyyy-MM-dd');
+                const label = format(d, 'd MMM', { locale: es });
 
-            const dayRevenue = appointments
-                .filter(a => a.date === dateStr && a.status !== 'cancelada')
-                .reduce((sum, appt) => {
-                    const svc = services.find(s => s.id === appt.serviceId);
-                    if (!svc) return sum;
+                const dayRevenue = appointments
+                    .filter(a => a.date === dateStr && a.status !== 'cancelada')
+                    .reduce((sum, appt) => {
+                        const svc = services.find(s => s.id === appt.serviceId);
+                        if (!svc) return sum;
+                        let isFinished = appt.status === 'completada';
+                        if (!isFinished) {
+                            const end = new Date(`${appt.date}T${appt.time}`);
+                            end.setMinutes(end.getMinutes() + svc.duration);
+                            if (new Date() >= end) isFinished = true;
+                        }
+                        return isFinished ? sum + svc.price : sum;
+                    }, 0);
 
-                    let isFinished = appt.status === 'completada';
-                    if (!isFinished) {
-                        const end = new Date(`${appt.date}T${appt.time}`);
-                        end.setMinutes(end.getMinutes() + svc.duration);
-                        if (new Date() >= end) isFinished = true;
-                    }
+                data.push({
+                    name: label,
+                    date: dateStr,
+                    Ingresos: dayRevenue
+                });
+            }
+        } else if (chartRange === '3M') {
+            // Last 12 weeks
+            for (let i = 11; i >= 0; i--) {
+                const startOfTargetWeek = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+                const endOfTargetWeek = endOfWeek(startOfTargetWeek, { weekStartsOn: 1 });
+                const label = `${format(startOfTargetWeek, 'd', { locale: es })}-${format(endOfTargetWeek, 'd MMM', { locale: es })}`;
 
-                    return isFinished ? sum + svc.price : sum;
-                }, 0);
+                const weekRevenue = appointments
+                    .filter(a => {
+                        if (a.status === 'cancelada') return false;
+                        const d = new Date(a.date + 'T12:00:00');
+                        return isWithinInterval(d, { start: startOfTargetWeek, end: endOfTargetWeek });
+                    })
+                    .reduce((sum, appt) => {
+                        const svc = services.find(s => s.id === appt.serviceId);
+                        if (!svc) return sum;
+                        return sum + svc.price;
+                    }, 0);
 
-            data.push({
-                name: d.toLocaleDateString('es-MX', { weekday: 'short' }).substring(0, 3).toUpperCase(),
-                date: dateStr,
-                Ingresos: dayRevenue
-            });
+                data.push({
+                    name: label,
+                    Ingresos: weekRevenue
+                });
+            }
+        } else if (chartRange === 'AÑO') {
+            // Last 12 months
+            for (let i = 11; i >= 0; i--) {
+                const targetMonth = startOfMonth(subMonths(today, i));
+                const endOfTargetMonth = endOfMonth(targetMonth);
+                const label = format(targetMonth, 'MMM yy', { locale: es });
+
+                const monthRevenue = appointments
+                    .filter(a => {
+                        if (a.status === 'cancelada') return false;
+                        const d = new Date(a.date + 'T12:00:00');
+                        return isWithinInterval(d, { start: targetMonth, end: endOfTargetMonth });
+                    })
+                    .reduce((sum, appt) => {
+                        const svc = services.find(s => s.id === appt.serviceId);
+                        if (!svc) return sum;
+                        return sum + svc.price;
+                    }, 0);
+
+                data.push({
+                    name: label.charAt(0).toUpperCase() + label.slice(1),
+                    Ingresos: monthRevenue
+                });
+            }
         }
+
         return data;
-    }, [appointments, services]);
+    }, [appointments, services, chartRange]);
 
     const topServices = useMemo(() => {
         const counts: Record<number, number> = {};
@@ -453,8 +509,23 @@ export default function Dashboard() {
                 <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <TrendingUp size={20} className="text-accent" /> Ingresos (Últimos 7 Días)
+                            <TrendingUp size={20} className="text-accent" /> Ingresos
                         </h3>
+                        {/* Rango Selector */}
+                        <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 overflow-x-auto hide-scrollbar">
+                            {(["7D", "30D", "3M", "AÑO"] as ChartRange[]).map(range => (
+                                <button
+                                    key={range}
+                                    onClick={() => setChartRange(range)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap ${chartRange === range
+                                        ? 'bg-[var(--accent)] text-white shadow-md'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                        }`}
+                                >
+                                    {range}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex-1 w-full relative">
                         {revenueChartData.every(d => d.Ingresos === 0) ? (

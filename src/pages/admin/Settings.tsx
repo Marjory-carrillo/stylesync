@@ -368,6 +368,21 @@ export default function Settings() {
                             </p>
                         </div>
 
+                        {/* Booking Horizon */}
+                        <div>
+                            <label className="block text-sm text-muted mb-1 flex items-center gap-1"><Calendar size={14} /> Días de anticipación para reservas</label>
+                            <select
+                                className="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none cursor-pointer"
+                                value={infoForm.bookingDaysAhead || 14}
+                                onChange={e => setInfoForm({ ...infoForm, bookingDaysAhead: parseInt(e.target.value) })}
+                            >
+                                <option value={7}>7 días (1 semana)</option>
+                                <option value={14}>14 días (2 semanas)</option>
+                                <option value={30}>30 días (1 mes)</option>
+                                <option value={60}>60 días (2 meses)</option>
+                            </select>
+                        </div>
+
                         <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-2 flex justify-center items-center gap-2">
                             <Save size={18} /> Guardar Cambios
                         </button>

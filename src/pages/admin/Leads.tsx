@@ -100,11 +100,11 @@ export default function Leads() {
     );
 
     return (
-        <div className="space-y-8 animate-fade-in" style={{ color: 'white' }}>
+        <div className="space-y-8 animate-fade-in text-white">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight" style={{ margin: 0 }}>Prospectos y Trials</h1>
-                    <p style={{ color: '#94a3b8', marginTop: '8px' }}>
+                    <h1 className="text-3xl font-black text-white tracking-tight m-0">Prospectos y Trials</h1>
+                    <p className="text-[#94a3b8] mt-2">
                         Gestiona los negocios interesados en CitaLink y sus pruebas VIP de 14 días.
                     </p>
                 </div>
