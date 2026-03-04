@@ -330,7 +330,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             // First check if user is super admin
             const userResponse = await supabase.auth.getUser();
             const userEmail = userResponse.data.user?.email || '';
-            const isUserSuperAdmin = userEmail === 'infinitummisael@gmail.com';
+            const userMeta = userResponse.data.user?.user_metadata || {};
+            const isUserSuperAdmin = userMeta.is_super_admin === true;
 
             if (isUserSuperAdmin) {
                 // Super admin doesn't get forced into a single tenant on login,
@@ -484,7 +485,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [allTenants, setAllTenants] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const isSuperAdmin = user?.email === 'infinitummisael@gmail.com';
+    const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
     // ── Safety Timeout (Reduced for better UX) ──
     useEffect(() => {
@@ -640,7 +641,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             return data.publicUrl;
         } catch (error: any) {
             console.error('Error uploading staff photo:', error);
-            alert(`Error al subir foto: ${error.message || error}`);
+            showToast(`Error al subir foto: ${error.message || error}`, 'error');
             return null;
         }
     };
@@ -661,7 +662,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             return data.publicUrl;
         } catch (error: any) {
             console.error('Error uploading service image:', error);
-            alert(`Error al subir imagen: ${error.message || error}`);
+            showToast(`Error al subir imagen: ${error.message || error}`, 'error');
             return null;
         }
     };
@@ -676,13 +677,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const removeService = useCallback(async (id: number) => {
         if (!tenantId) return;
         await supabase.from('services').delete().eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const updateService = useCallback(async (id: number, data: Partial<Service>) => {
         if (!tenantId) return;
         await supabase.from('services').update(data).eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const addStylist = useCallback(async (stylist: Omit<Stylist, 'id'>) => {
@@ -695,13 +696,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const removeStylist = useCallback(async (id: number) => {
         if (!tenantId) return;
         await supabase.from('stylists').delete().eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const updateStylist = useCallback(async (id: number, data: Partial<Stylist>) => {
         if (!tenantId) return;
         await supabase.from('stylists').update(data).eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const addAppointment = useCallback(async (appt: Omit<Appointment, 'id' | 'status' | 'bookedAt'>): Promise<{ success: boolean; error?: string }> => {
@@ -775,7 +776,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         if (getDevicePendingId() === id) clearDevicePending();
-        fetchData();
+        await fetchData();
 
         return { success: true };
     }, [appointments, cancellationLog, services, tenantId, fetchData]);
@@ -783,14 +784,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const completeAppointment = useCallback(async (id: string) => {
         if (!tenantId) return;
         await supabase.from('appointments').update({ status: 'completada' }).eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
         if (getDevicePendingId() === id) clearDevicePending();
     }, [tenantId, fetchData]);
 
     const updateAppointmentTime = useCallback(async (id: string, newTime: string) => {
         if (!tenantId) return;
         await supabase.from('appointments').update({ time: newTime }).eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const getActiveAppointmentByPhone = useCallback((phone: string): Appointment | undefined => {
@@ -819,13 +820,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const blockPhone = useCallback(async (phone: string) => {
         if (!tenantId) return;
         await supabase.from('blocked_phones').upsert([{ phone, reason: 'Manual Block', tenant_id: tenantId }]);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const unblockPhone = useCallback(async (phone: string) => {
         if (!tenantId) return;
         await supabase.from('blocked_phones').delete().eq('phone', phone).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const isPhoneBlocked = useCallback((phone: string) => blockedPhones.includes(phone), [blockedPhones]);
@@ -896,13 +897,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             date: client.date,
             service_id: client.serviceId
         }]);
-        fetchData();
+        await fetchData();
     }, [waitingList, tenantId, fetchData]);
 
     const removeFromWaitingList = useCallback(async (id: string) => {
         if (!tenantId) return;
         await supabase.from('waiting_list').delete().eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const getWaitingListForDate = useCallback((date: string) => {
@@ -1013,13 +1014,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const addAnnouncement = useCallback(async (message: string, type: Announcement['type']) => {
         if (!tenantId) return;
         await supabase.from('announcements').insert([{ tenant_id: tenantId, message, type, active: true }]);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const removeAnnouncement = useCallback(async (id: string) => {
         if (!tenantId) return;
         await supabase.from('announcements').delete().eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const toggleAnnouncement = useCallback(async (id: string) => {
@@ -1027,7 +1028,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const ann = announcements.find(a => a.id === id);
         if (ann) {
             await supabase.from('announcements').update({ active: !ann.active }).eq('id', id).eq('tenant_id', tenantId);
-            fetchData();
+            await fetchData();
         }
     }, [announcements, tenantId, fetchData]);
 
@@ -1061,7 +1062,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setBusinessConfig(prev => ({ ...prev, ...data }));
         // Do not call fetchData() immediately if we just want optimistic update to stick
         // But fetchData is good to ensure sync. Let's keep it.
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     // ── Blocked Slots Actions ──────────────────────────────────────────────
@@ -1075,13 +1076,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             end_time: slot.endTime,
             reason: slot.reason
         }]);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const removeBlockedSlot = useCallback(async (id: string) => {
         if (!tenantId) return;
         await supabase.from('blocked_slots').delete().eq('id', id).eq('tenant_id', tenantId);
-        fetchData();
+        await fetchData();
     }, [tenantId, fetchData]);
 
     const getBlockedSlotsForDate = useCallback((date: string) => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../../lib/store';
 import { supabase } from '../../lib/supabaseClient';
 import { Users, Mail, Shield, Plus, Trash2 } from 'lucide-react';
+import ConfirmModal from '../../components/ConfirmModal';
 
 interface TeamMember {
     id: string;
@@ -18,6 +19,7 @@ export default function Team() {
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState<'admin' | 'employee'>('employee');
     const [inviteStylistId, setInviteStylistId] = useState<string>('');
+    const [confirmRevoke, setConfirmRevoke] = useState<{ open: boolean; memberId: string | null; email: string | null }>({ open: false, memberId: null, email: null });
 
     useEffect(() => {
         if (tenantId) fetchMembers();
@@ -72,17 +74,24 @@ export default function Team() {
         }
     };
 
-    const removeMember = async (id: string, email: string) => {
-        if (!confirm(`¿Estás seguro de quitar el acceso a ${email}?`)) return;
+    const removeMember = (id: string, email: string) => {
+        setConfirmRevoke({ open: true, memberId: id, email });
+    };
+
+    const confirmRevokeAction = async () => {
+        const { memberId } = confirmRevoke;
+        if (!memberId) return;
 
         try {
-            const { error } = await supabase.from('tenant_users').delete().eq('id', id);
+            const { error } = await supabase.from('tenant_users').delete().eq('id', memberId);
             if (error) throw error;
             showToast('Acceso revocado', 'success');
             fetchMembers();
         } catch (error: any) {
             console.error('Error removing member:', error);
             showToast('Error al remover miembro', 'error');
+        } finally {
+            setConfirmRevoke({ open: false, memberId: null, email: null });
         }
     };
 
@@ -259,6 +268,16 @@ export default function Team() {
                     </div>
                 </section>
             </div>
+
+            <ConfirmModal
+                isOpen={confirmRevoke.open}
+                title="Revocar Acceso"
+                message={`¿Estás seguro de que deseas quitar el acceso a ${confirmRevoke.email}? El usuario ya no podrá entrar al panel de administración de este negocio.`}
+                confirmLabel="Revocar"
+                onConfirm={confirmRevokeAction}
+                onCancel={() => setConfirmRevoke({ open: false, memberId: null, email: null })}
+                danger
+            />
         </div>
     );
 }

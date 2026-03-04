@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../../lib/store';
 import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock } from 'lucide-react';
+import ConfirmModal from '../../components/ConfirmModal';
 
 
 export default function Appointments() {
@@ -30,6 +31,7 @@ export default function Appointments() {
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
     const [showWaiting, setShowWaiting] = useState(false);
     const [showLog, setShowLog] = useState(false);
+    const [confirmModal, setConfirmModal] = useState<{ open: boolean; appt: any | null }>({ open: false, appt: null });
 
 
     // ── Filter Logic ──
@@ -69,10 +71,16 @@ export default function Appointments() {
         return a.time.localeCompare(b.time);
     });
 
-    const handleAdminCancel = async (apt: typeof appointments[0]) => {
-        if (!confirm('¿Estás seguro de cancelar esta cita?')) return;
+    const handleAdminCancel = (apt: typeof appointments[0]) => {
+        setConfirmModal({ open: true, appt: apt });
+    };
+
+    const confirmCancel = async () => {
+        const apt = confirmModal.appt;
+        if (!apt) return;
 
         await cancelAppointment(apt.id);
+        setConfirmModal({ open: false, appt: null });
 
         // Check waiting list for this date
         const waitingForDate = waitingList.filter(w => w.date === apt.date);
@@ -343,6 +351,16 @@ export default function Appointments() {
                     )}
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.open}
+                title="Cancelar Cita"
+                message={`¿Estás seguro de que deseas cancelar la cita de ${confirmModal.appt?.clientName}? Esta acción no se puede deshacer y el cliente será notificado por la lista de espera si hay alguien interesado.`}
+                confirmLabel="Sí, Cancelar"
+                onConfirm={confirmCancel}
+                onCancel={() => setConfirmModal({ open: false, appt: null })}
+                danger
+            />
         </div>
     );
 }

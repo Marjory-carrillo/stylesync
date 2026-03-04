@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
 import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon } from 'lucide-react';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Services() {
     const { services, addService, removeService, updateService, uploadServiceImage } = useStore();
@@ -11,6 +12,7 @@ export default function Services() {
     const [formPrice, setFormPrice] = useState('');
     const [formImage, setFormImage] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
 
     const openAdd = () => {
         setEditingId(null);
@@ -42,10 +44,15 @@ export default function Services() {
         setIsModalOpen(false);
     };
 
-    const handleDelete = async (id: number) => {
-        if (confirm('¿Estás seguro de eliminar este servicio?')) {
-            await removeService(id);
+    const handleDelete = (id: number) => {
+        setConfirmDelete({ open: true, id });
+    };
+
+    const confirmDeleteAction = async () => {
+        if (confirmDelete.id !== null) {
+            await removeService(confirmDelete.id);
         }
+        setConfirmDelete({ open: false, id: null });
     };
 
     return (
@@ -215,6 +222,16 @@ export default function Services() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={confirmDelete.open}
+                title="Eliminar Servicio"
+                message="¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer y el servicio ya no estará disponible para nuevas reservas."
+                confirmLabel="Eliminar"
+                onConfirm={confirmDeleteAction}
+                onCancel={() => setConfirmDelete({ open: false, id: null })}
+                danger
+            />
         </div>
     );
 }

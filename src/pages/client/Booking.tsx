@@ -6,6 +6,7 @@ import { useStore, DAY_NAMES, type Announcement, type Service, type Stylist } fr
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield } from 'lucide-react';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Booking() {
     const { slug } = useParams();
@@ -61,6 +62,7 @@ export default function Booking() {
     const [bookingResult, setBookingResult] = useState<{ success: boolean; error?: string } | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
+    const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
     // const [cancelError, setCancelError] = useState<string | null>(null);
 
     // Formatter for 12h time
@@ -555,7 +557,7 @@ export default function Booking() {
                                 }
 
                                 return (
-                                    <button className="btn btn-ghost w-full py-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20" onClick={() => { if (confirm('¿Estás seguro de cancelar tu cita?')) handleClientCancel(activeAppt.id); }}>
+                                    <button className="btn btn-ghost w-full py-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20" onClick={() => setIsCancelConfirmOpen(true)}>
                                         <XCircle size={20} /> Cancelar Cita
                                     </button>
                                 );
@@ -1076,6 +1078,19 @@ export default function Booking() {
                     )
                 }
             </div >
+
+            <ConfirmModal
+                isOpen={isCancelConfirmOpen}
+                title="Cancelar Cita"
+                message="¿Estás seguro de que deseas cancelar tu cita? Esta acción liberará el espacio para otro cliente."
+                confirmLabel="Sí, Cancelar"
+                onConfirm={() => {
+                    setIsCancelConfirmOpen(false);
+                    if (activeAppt) handleClientCancel(activeAppt.id);
+                }}
+                onCancel={() => setIsCancelConfirmOpen(false)}
+                danger
+            />
         </div >
     );
 }

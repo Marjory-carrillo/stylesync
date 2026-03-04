@@ -97,6 +97,7 @@ export default function Settings() {
     const [infoForm, setInfoForm] = useState(businessConfig);
     const [scheduleForm, setScheduleForm] = useState(schedule);
     const [newAnnouncement, setNewAnnouncement] = useState('');
+    const [newAnnouncementType, setNewAnnouncementType] = useState<'info' | 'warning' | 'closed'>('info');
     const [uploadingLogo, setUploadingLogo] = useState(false);
 
     // Blocked slots form
@@ -140,8 +141,9 @@ export default function Settings() {
     const handleAddAnnouncement = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newAnnouncement.trim()) return;
-        addAnnouncement(newAnnouncement, 'info'); // Default to info
+        addAnnouncement(newAnnouncement, newAnnouncementType);
         setNewAnnouncement('');
+        setNewAnnouncementType('info');
     };
 
     const handleAddBlockedSlot = (e: React.FormEvent) => {
@@ -475,17 +477,36 @@ export default function Settings() {
                         <h3 className="text-lg font-bold text-white">Anuncios</h3>
                     </div>
 
-                    <form onSubmit={handleAddAnnouncement} className="flex gap-2">
-                        <input
-                            type="text"
-                            placeholder="Nuevo anuncio (ej: Descuentos de Primavera)"
-                            className="flex-1 glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all"
-                            value={newAnnouncement}
-                            onChange={e => setNewAnnouncement(e.target.value)}
-                        />
-                        <button type="submit" className="btn bg-accent text-slate-900 hover:bg-accent/90 p-3 rounded-lg">
-                            <Plus size={24} />
-                        </button>
+                    <form onSubmit={handleAddAnnouncement} className="space-y-4">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                placeholder="Nuevo anuncio (ej: Descuentos de Primavera)"
+                                className="flex-1 glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all"
+                                value={newAnnouncement}
+                                onChange={e => setNewAnnouncement(e.target.value)}
+                            />
+                            <button type="submit" className="btn bg-accent text-slate-900 hover:bg-accent/90 p-3 rounded-lg">
+                                <Plus size={24} />
+                            </button>
+                        </div>
+
+                        <div className="flex gap-2">
+                            {[
+                                { id: 'info', label: 'Info', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+                                { id: 'warning', label: 'Advertencia', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+                                { id: 'closed', label: 'Cierre', color: 'bg-red-500/20 text-red-400 border-red-500/30' }
+                            ].map(t => (
+                                <button
+                                    key={t.id}
+                                    type="button"
+                                    onClick={() => setNewAnnouncementType(t.id as any)}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border transition-all ${newAnnouncementType === t.id ? t.color : 'bg-white/5 text-muted border-transparent hover:bg-white/10'}`}
+                                >
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
                     </form>
 
                     <div className="space-y-3">
@@ -493,8 +514,22 @@ export default function Settings() {
                             <p className="text-muted text-center py-4">No hay anuncios activos.</p>
                         ) : (
                             announcements.map(ann => (
-                                <div key={ann.id} className="flex justify-between items-center p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border-l-4 border-accent">
-                                    <span className="text-white font-medium">{ann.message}</span>
+                                <div
+                                    key={ann.id}
+                                    className={`flex justify-between items-center p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border-l-4 ${ann.type === 'warning' ? 'border-amber-500' :
+                                            ann.type === 'closed' ? 'border-red-500' :
+                                                'border-blue-500'
+                                        }`}
+                                >
+                                    <div className="flex flex-col">
+                                        <span className="text-white font-medium">{ann.message}</span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${ann.type === 'warning' ? 'text-amber-400' :
+                                                ann.type === 'closed' ? 'text-red-400' :
+                                                    'text-blue-400'
+                                            }`}>
+                                            {ann.type}
+                                        </span>
+                                    </div>
                                     <button
                                         onClick={() => removeAnnouncement(ann.id)}
                                         className="text-muted hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-500/10"
