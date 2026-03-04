@@ -16,6 +16,7 @@ export interface Stylist {
     role: string;
     phone: string;
     image?: string;
+    commissionRate?: number; // percentage (0-100)
 }
 
 export interface Appointment {
@@ -82,6 +83,9 @@ export interface BusinessConfig {
     category: string;
     slug: string;
     bookingDaysAhead?: number;
+    commissionsEnabled?: boolean;
+    confirmationTemplate?: string;
+    reminderTemplate?: string;
     logoUrl?: string;
     description?: string;
     primaryColor?: string;
@@ -109,6 +113,15 @@ export interface Announcement {
     type: 'info' | 'warning' | 'closed';
     active: boolean;
     createdAt: string;
+}
+
+export interface CommissionEntry {
+    stylistId: number;
+    stylistName: string;
+    totalRevenue: number;
+    appointmentsCount: number;
+    commissionRate: number;
+    commissionEarned: number;
 }
 
 // ─── Store Interface ─────────────────────────────────────────────────────────
@@ -139,6 +152,8 @@ export interface StoreContextType {
     blockedSlots: BlockedSlot[];
     blockedPhones: string[];
     toasts: Toast[];
+
+    updateStylistCommissionRate: (stylistId: number, rate: number) => Promise<void>;
 
     // Super Admin
     allTenants: Tenant[];

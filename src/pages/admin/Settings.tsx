@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useStore, DAY_NAMES, DAY_KEYS } from '../../lib/store';
 import ColorThief from 'colorthief';
-import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon } from 'lucide-react';
+import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent } from 'lucide-react';
 
 // Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -87,9 +87,9 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
 
 export default function Settings() {
     const {
-        businessConfig, schedule, announcements, blockedSlots,
+        businessConfig, schedule, announcements, blockedSlots, stylists, userRole,
         updateBusinessConfig, saveSchedule, addAnnouncement, removeAnnouncement, addBlockedSlot, removeBlockedSlot,
-        uploadLogo, showToast
+        uploadLogo, showToast, updateStylistCommissionRate
     } = useStore();
 
     const [infoForm, setInfoForm] = useState(businessConfig);
@@ -389,7 +389,51 @@ export default function Settings() {
                     </form>
                 </section>
 
+                {/* ── WhatsApp Templates ── */}
+                <section className="glass-panel p-6 rounded-xl space-y-6">
+                    <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                        <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
+                            <MessageSquare size={24} />
+                        </div>
+                        <h3 className="text-lg font-bold text-white">Plantillas de WhatsApp</h3>
+                    </div>
 
+                    <form onSubmit={handleInfoSubmit} className="space-y-4">
+                        <p className="text-sm text-muted">
+                            Personaliza los mensajes precargados. Variables disponibles:<br />
+                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[NOMBRE]</span>
+                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[SERVICIO]</span>
+                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[FECHA]</span>
+                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[HORA]</span>
+                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[NEGOCIO]</span>
+                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent">[DIRECCION]</span>
+                        </p>
+
+                        <div>
+                            <label className="block text-sm font-medium text-white mb-1">Confirmación de Reserva</label>
+                            <textarea
+                                className="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all min-h-[100px] text-sm"
+                                placeholder="Ej: Hola [NOMBRE], confirmamos tu cita para [SERVICIO] el [FECHA] a las [HORA] en [NEGOCIO]."
+                                value={infoForm.confirmationTemplate || ''}
+                                onChange={e => setInfoForm({ ...infoForm, confirmationTemplate: e.target.value })}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-white mb-1">Mensaje de Recordatorio</label>
+                            <textarea
+                                className="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all min-h-[100px] text-sm"
+                                placeholder="Ej: Hola [NOMBRE], te recordamos que tienes una cita para [SERVICIO] el [FECHA] a las [HORA]."
+                                value={infoForm.reminderTemplate || ''}
+                                onChange={e => setInfoForm({ ...infoForm, reminderTemplate: e.target.value })}
+                            />
+                        </div>
+
+                        <button type="submit" className="w-full btn bg-white/10 hover:bg-white/20 text-white py-3 mt-2 flex justify-center items-center gap-2">
+                            <Save size={18} /> Guardar Plantillas
+                        </button>
+                    </form>
+                </section>
 
                 {/* ── Schedule ── */}
                 <section className="glass-panel p-6 rounded-xl space-y-6">
@@ -649,6 +693,78 @@ export default function Settings() {
                     </div>
                 </section>
 
+                {/* ── Commissions Module (Owner Only) ── */}
+                {userRole === 'owner' && (
+                    <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2">
+                        <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                            <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
+                                <Percent size={24} />
+                            </div>
+                            <h3 className="text-lg font-bold text-white">Nómina y Comisiones</h3>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5">
+                                <div>
+                                    <h4 className="text-white font-medium">Activar Sistema de Nómina</h4>
+                                    <p className="text-sm text-muted">Habilita el cálculo automático de comisiones por cita completada y muestra el panel de Nómina a tu cuenta.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.commissionsEnabled || false}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, commissionsEnabled: val });
+                                            await updateBusinessConfig({ commissionsEnabled: val });
+                                            showToast(val ? 'Módulo de Nómina activado' : 'Módulo de Nómina desactivado', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+
+                            {infoForm.commissionsEnabled && (
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-medium text-white mb-2">Porcentajes de Comisión por Profesional</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                        {stylists.map(stylist => (
+                                            <div key={stylist.id} className="flex flex-col gap-2 p-4 bg-[#0f172a]/50 border border-white/5 rounded-lg">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-xs shrink-0">
+                                                        {stylist.name.charAt(0)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm text-white font-medium truncate">{stylist.name}</p>
+                                                        <p className="text-xs text-muted truncate">{stylist.role}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        className="w-20 bg-transparent border-b border-white/20 text-white text-center text-sm py-1 focus:border-accent focus:outline-none focus:bg-white/5 rounded"
+                                                        value={stylist.commissionRate || 0}
+                                                        onChange={(e) => {
+                                                            const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                                            updateStylistCommissionRate(stylist.id, val);
+                                                        }}
+                                                    />
+                                                    <span className="text-muted text-sm">%</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-muted">
+                                        Los cambios de porcentaje se guardan automáticamente y afectan el cálculo global histórico. Cambiar para periodos de prueba.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
             </div>
         </div>
     );

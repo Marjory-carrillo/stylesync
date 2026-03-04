@@ -10,6 +10,7 @@ import Services from './pages/admin/Services';
 import Staff from './pages/admin/Staff';
 import Settings from './pages/admin/Settings';
 import Team from './pages/admin/Team';
+import Commissions from './pages/admin/Commissions';
 import Booking from './pages/client/Booking';
 import Login from './pages/Login';
 import CreateBusiness from './pages/admin/CreateBusiness';
@@ -92,6 +93,7 @@ function App() {
               <Route path="staff" element={<Staff />} />
               <Route path="team" element={<Team />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="commissions" element={<Commissions />} />
             </Route>
           </Route>
 

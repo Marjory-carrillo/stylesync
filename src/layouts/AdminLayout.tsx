@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useStore } from '../lib/store';
-import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon } from 'lucide-react';
+import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent } from 'lucide-react';
 
 export default function AdminLayout() {
-    const { isSuperAdmin, userRole } = useStore();
+    const { isSuperAdmin, userRole, businessConfig } = useStore();
     const isEmployee = userRole === 'employee';
     const location = useLocation();
     const navigate = useNavigate();
@@ -130,6 +130,12 @@ export default function AdminLayout() {
                                 <SettingsIcon size={18} />
                                 <span>Ajustes del Negocio</span>
                             </Link>
+                            {userRole === 'owner' && businessConfig?.commissionsEnabled && (
+                                <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')}>
+                                    <Percent size={18} />
+                                    <span>Nómina</span>
+                                </Link>
+                            )}
                         </>
                     )}
                 </nav>

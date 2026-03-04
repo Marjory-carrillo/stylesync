@@ -353,7 +353,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             ]);
 
             if (sData) setServices(sData);
-            if (stData) setStylists(stData);
+            if (stData) setStylists(stData.map((st: any) => ({ ...st, commissionRate: st.commission_rate })));
             if (aData) setAppointments(aData.map((a: any) => ({
                 ...a,
                 clientName: a.client_name,
@@ -375,7 +375,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     logoUrl: tData.logo_url || '',
                     description: tData.description || '',
                     primaryColor: tData.primary_color || '',
-                    accentColor: tData.accent_color || ''
+                    accentColor: tData.accent_color || '',
+                    bookingDaysAhead: tData.booking_days_ahead,
+                    commissionsEnabled: tData.commissions_enabled || false,
+                    confirmationTemplate: tData.confirmation_template || '',
+                    reminderTemplate: tData.reminder_template || ''
                 });
             }
 
@@ -853,6 +857,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await fetchData();
     }, [tenantId, fetchData]);
 
+    // ── Staff / Stylists Actions ──────────────────────────────────────────
+
+    const updateStylistCommissionRate = useCallback(async (stylistId: number, rate: number) => {
+        if (!tenantId) return;
+        const { error } = await supabase.from('stylists').update({ commission_rate: rate }).eq('id', stylistId).eq('tenant_id', tenantId);
+        if (error) {
+            console.error('Error updating commission rate:', error);
+            showToast('Error al actualizar comisión', 'error');
+            return;
+        }
+        setStylists(prev => prev.map(s => s.id === stylistId ? { ...s, commissionRate: rate } : s));
+    }, [tenantId]);
+
     const removeAnnouncement = useCallback(async (id: string) => {
         if (!tenantId) return;
         await supabase.from('announcements').delete().eq('id', id).eq('tenant_id', tenantId);
@@ -886,6 +903,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (data.description !== undefined) updatePayload.description = data.description;
         if (data.primaryColor !== undefined) updatePayload.primary_color = data.primaryColor;
         if (data.accentColor !== undefined) updatePayload.accent_color = data.accentColor;
+        if (data.bookingDaysAhead !== undefined) updatePayload.booking_days_ahead = data.bookingDaysAhead;
+        if (data.commissionsEnabled !== undefined) updatePayload.commissions_enabled = data.commissionsEnabled;
+        if (data.confirmationTemplate !== undefined) updatePayload.confirmation_template = data.confirmationTemplate;
+        if (data.reminderTemplate !== undefined) updatePayload.reminder_template = data.reminderTemplate;
 
         const { error } = await supabase.from('tenants').update(updatePayload).eq('id', tenantId);
 
@@ -944,15 +965,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const generateReminderWhatsAppUrl = useCallback((apt: Appointment) => {
         const svc = services.find(s => s.id === apt.serviceId);
-        const message = encodeURIComponent(
-            `👋 Hola *${apt.clientName}*,\n\n` +
-            `Te recordamos que tienes una cita *mañana* en *${businessConfig.name}*:\n\n` +
-            `💇 Servicio: ${svc?.name ?? 'N/A'}\n` +
-            `🕐 Hora: ${apt.time}\n` +
-            `📍 Ubicación: ${businessConfig.address}\n${businessConfig.googleMapsUrl}\n\n` +
-            `¿Confirmas tu asistencia? ✅`
-        );
-        return `https://wa.me/${apt.clientPhone.replace(/\D/g, '')}?text=${message}`;
+
+        let messageToEncode = '';
+        if (businessConfig.reminderTemplate) {
+            messageToEncode = businessConfig.reminderTemplate
+                .replace(/\[NOMBRE\]/g, apt.clientName || '')
+                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
+                .replace(/\[FECHA\]/g, apt.date || '')
+                .replace(/\[HORA\]/g, apt.time || '')
+                .replace(/\[NEGOCIO\]/g, businessConfig.name || '')
+                .replace(/\[DIRECCION\]/g, businessConfig.address || '');
+        } else {
+            messageToEncode = `👋 Hola *${apt.clientName}*,\n\n` +
+                `Te recordamos que tienes una cita *mañana* en *${businessConfig.name}*:\n\n` +
+                `💇 Servicio: ${svc?.name ?? 'N/A'}\n` +
+                `🕐 Hora: ${apt.time}\n` +
+                `📍 Ubicación: ${businessConfig.address}\n${businessConfig.googleMapsUrl ? businessConfig.googleMapsUrl : ''}\n\n` +
+                `¿Confirmas tu asistencia? ✅`;
+        }
+
+        return `https://wa.me/${apt.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(messageToEncode)}`;
     }, [services, businessConfig]);
 
     // ── Helpers ────────────────────────────────────────────────────────────
@@ -989,12 +1021,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const generateWhatsAppUrl = useCallback((apt: Appointment) => {
         const svc = services.find(s => s.id === apt.serviceId);
-        const message = encodeURIComponent(
-            `✂️ *${businessConfig.name}*\n\n📋 *Confirmación de Cita*\n━━━━━━━━━━━━━━━\n` +
-            `👤 Cliente: ${apt.clientName}\n💇 Servicio: ${svc?.name ?? 'N/A'}\n📅 Fecha: ${apt.date}\n🕐 Hora: ${apt.time}\n💰 Precio: $${svc?.price ?? 0}\n` +
-            `━━━━━━━━━━━━━━━\n\n📍 *Ubicación:*\n${businessConfig.address}\n${businessConfig.googleMapsUrl}\n\n¡Te esperamos! 💈`
-        );
-        return `https://wa.me/${apt.clientPhone.replace(/\D/g, '')}?text=${message}`;
+
+        let messageToEncode = '';
+        if (businessConfig.confirmationTemplate) {
+            messageToEncode = businessConfig.confirmationTemplate
+                .replace(/\[NOMBRE\]/g, apt.clientName || '')
+                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
+                .replace(/\[FECHA\]/g, apt.date || '')
+                .replace(/\[HORA\]/g, apt.time || '')
+                .replace(/\[NEGOCIO\]/g, businessConfig.name || '')
+                .replace(/\[DIRECCION\]/g, businessConfig.address || '');
+        } else {
+            messageToEncode = `✂️ *${businessConfig.name}*\n\n📋 *Confirmación de Cita*\n━━━━━━━━━━━━━━━\n` +
+                `👤 Cliente: ${apt.clientName}\n💇 Servicio: ${svc?.name ?? 'N/A'}\n📅 Fecha: ${apt.date}\n🕐 Hora: ${apt.time}\n💰 Precio: $${svc?.price ?? 0}\n` +
+                `━━━━━━━━━━━━━━━\n\n📍 *Ubicación:*\n${businessConfig.address}\n${businessConfig.googleMapsUrl ? businessConfig.googleMapsUrl : ''}\n\n¡Te esperamos! 💈`;
+        }
+
+        return `https://wa.me/${apt.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(messageToEncode)}`;
     }, [services, businessConfig]);
 
     // ── Store Value ────────────────────────────────────────────────────────
@@ -1034,6 +1077,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         addStylist,
         removeStylist,
         updateStylist,
+        updateStylistCommissionRate,
 
         addAppointment,
         cancelAppointment,
