@@ -185,15 +185,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                // 2. Ejecutar la función segura RPC para enlazar usuario invitado si es su primer inicio de sesión
+                // 2. Ejecutar el RPC para vincular usuario invitado en su primer inicio de sesión
                 const { error: rpcError } = await supabase.rpc('link_invited_user');
                 if (rpcError) {
-                    console.error('RPC link error:', rpcError);
+                    // RPC no existe aún en BD — usar fallback frontend
+                    console.warn('RPC link_invited_user no disponible, usando fallback frontend:', rpcError.message);
                 }
 
-                // 2.5 FALLBACK FRONTEND: Si el RPC falló (o el usuario no corrió el SQL), emparejamos manual
+                // 2.5 FALLBACK FRONTEND: Emparejar manualmente por email si el RPC falló
                 if (userEmail) {
-                    // Buscar si hay un registro de invitación con ese email
                     const { data: inviteMatch } = await supabase
                         .from('tenant_users')
                         .select('id, user_id')
@@ -201,7 +201,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                         .maybeSingle();
 
                     if (inviteMatch && !inviteMatch.user_id) {
-                        console.debug('Fallback: Emparejando usuario manualmente', inviteMatch.id);
+                        console.debug('Fallback: Enlazando user_id manualmente para', userEmail);
                         await supabase
                             .from('tenant_users')
                             .update({ user_id: userId })
@@ -209,8 +209,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     }
                 }
 
-                // 3. Try to find if user is an invited employee/admin
-                const { data: empData } = await supabase.from('tenant_users').select('id, tenant_id, role, user_id, stylist_id').eq('user_id', userId).maybeSingle();
+                // 3. Buscar en tenant_users por user_id (después del enlace)
+                const { data: empData } = await supabase
+                    .from('tenant_users')
+                    .select('id, tenant_id, role, user_id, stylist_id')
+                    .eq('user_id', userId)
+                    .maybeSingle();
 
                 if (empData) {
                     setTenantId(empData.tenant_id);
@@ -219,9 +223,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                // 4. User has no tenant
+                // 3.5 ÚLTIMO INTENTO: buscar de nuevo por email en caso de que el update recién haya ocurrido
+                if (userEmail) {
+                    const { data: empByEmail } = await supabase
+                        .from('tenant_users')
+                        .select('id, tenant_id, role, user_id, stylist_id')
+                        .ilike('email', userEmail.trim())
+                        .maybeSingle();
+
+                    if (empByEmail) {
+                        setTenantId(empByEmail.tenant_id);
+                        setUserRole(empByEmail.role as 'admin' | 'employee');
+                        setUserStylistId(empByEmail.stylist_id ? Number(empByEmail.stylist_id) : null);
+                        return;
+                    }
+                }
+
+                // 4. Sin negocio asignado — el correo no está invitado
                 setTenantId(null);
-                setUserRole(null); // Triggers "Create Business" flow
+                setUserRole('no_tenant' as any); // Indica que el login fue exitoso pero sin negocio asignado
                 setUserStylistId(null);
             }
         } catch (e: any) {
