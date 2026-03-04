@@ -3,109 +3,22 @@ import type { Session, User } from '@supabase/supabase-js';
 import { format } from 'date-fns';
 import { supabase } from './supabaseClient';
 import SplashScreen from '../components/SplashScreen';
+import type {
+    Service, Stylist, Appointment, Client, WaitingClient,
+    CancellationLog, BlockedSlot, Toast, BusinessConfig, Tenant,
+    DaySchedule, WeekSchedule, Announcement, StoreContextType
+} from './types/store.types';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Re-exports for backwards compatibility ──────────────────────────────────
+export type {
+    Service, Stylist, Appointment, Client, WaitingClient,
+    CancellationLog, BlockedSlot, Toast, BusinessConfig, Tenant,
+    DaySchedule, WeekSchedule, Announcement
+} from './types/store.types';
 
-export interface Service {
-    id: number;
-    name: string;
-    price: number;
-    duration: number; // minutes
-    image?: string;
-}
+export type Store = StoreContextType;
 
-export interface Stylist {
-    id: number;
-    name: string;
-    role: string;
-    phone: string;
-    image?: string;
-}
-
-export interface Appointment {
-    id: string;
-    clientName: string;
-    clientPhone: string;
-    serviceId: number;
-    stylistId: number | null;
-    date: string; // "2026-02-15"
-    time: string; // "10:00"
-    status: 'confirmada' | 'cancelada' | 'completada';
-    bookedAt: string; // ISO timestamp of when this was booked
-}
-
-export interface WaitingClient {
-    id: string;
-    name: string;
-    phone: string;
-    serviceId: number;
-    date: string; // YYYY-MM-DD
-    createdAt: string;
-}
-
-export interface CancellationLog {
-    id: string;
-    appointmentId: string;
-    clientName: string;
-    clientPhone: string;
-    serviceName: string;
-    date: string;
-    time: string;
-    cancelledAt: string;
-}
-
-export interface BlockedSlot {
-    id: string;
-    date: string; // YYYY-MM-DD
-    startTime: string; // HH:mm
-    endTime: string; // HH:mm
-    reason?: string;
-}
-
-export interface Toast {
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-}
-
-export interface BusinessConfig {
-    name: string;
-    address: string;
-    googleMapsUrl: string;
-    phone: string;
-    category: string;
-    slug: string;
-    logoUrl?: string;
-    description?: string;
-    primaryColor?: string;
-    accentColor?: string;
-}
-
-export interface Tenant extends BusinessConfig {
-    id: string;
-    created_at: string;
-}
-
-export interface DaySchedule {
-    open: boolean;
-    start: string; // "09:00"
-    end: string;   // "18:00"
-    breakStart?: string; // "14:00"
-    breakEnd?: string;   // "15:00"
-}
-
-export type WeekSchedule = Record<string, DaySchedule>;
-
-export interface Announcement {
-    id: string;
-    message: string;
-    type: 'info' | 'warning' | 'closed';
-    active: boolean;
-    createdAt: string;
-}
-
-// ─── Day Names ───────────────────────────────────────────────────────────────
-
+// ─── Day Names (re-exported for backwards compatibility) ─────────────────────────
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes',
     tuesday: 'Martes',
@@ -115,115 +28,7 @@ export const DAY_NAMES: Record<string, string> = {
     saturday: 'Sábado',
     sunday: 'Domingo',
 };
-
 export const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-// ─── State & Actions ─────────────────────────────────────────────────────────
-
-interface StoreContextType {
-    // Auth & SaaS
-    user: User | null;
-    session: Session | null;
-    tenantId: string | null;
-    userRole: 'owner' | 'admin' | 'employee' | null;
-    userStylistId: number | null;
-    loadingAuth: boolean;
-    createTenant: (name: string, slug: string, address: string, category: string) => Promise<{ success: boolean; error?: string }>;
-    loadTenantBySlug: (slug: string) => Promise<boolean>;
-    uploadLogo: (file: File) => Promise<string | null>;
-    uploadStylistPhoto: (file: File) => Promise<string | null>;
-    uploadServiceImage: (file: File) => Promise<string | null>;
-
-    services: Service[];
-    stylists: Stylist[];
-    appointments: Appointment[];
-    schedule: WeekSchedule; // Changed from ScheduleConfig to WeekSchedule
-    businessConfig: BusinessConfig;
-    announcements: Announcement[];
-    waitingList: WaitingClient[];
-    cancellationLog: CancellationLog[];
-    blockedSlots: BlockedSlot[];
-    blockedPhones: string[];
-    toasts: Toast[];
-
-    // Super Admin
-    allTenants: Tenant[];
-    isSuperAdmin: boolean;
-    fetchAllTenants: () => Promise<void>;
-    switchTenant: (tenantId: string) => Promise<void>;
-    deleteTenant: (tenantId: string) => Promise<void>;
-
-    sendSMS: (phone: string, message: string) => Promise<{ success: boolean; error?: string }>;
-
-    loading: boolean;
-
-    // Actions
-    addService: (data: Omit<Service, 'id'>) => Promise<void>;
-    removeService: (id: number) => Promise<void>;
-    updateService: (id: number, data: Partial<Service>) => Promise<void>;
-
-    addStylist: (data: Omit<Stylist, 'id'>) => Promise<void>;
-    removeStylist: (id: number) => Promise<void>;
-    updateStylist: (id: number, data: Partial<Stylist>) => Promise<void>;
-
-    addAppointment: (data: Omit<Appointment, 'id' | 'status' | 'bookedAt'>) => Promise<{ success: boolean; error?: string }>;
-    cancelAppointment: (id: string, byClient?: boolean) => Promise<{ success: boolean; error?: string }>;
-    completeAppointment: (id: string) => Promise<void>;
-    updateAppointmentTime: (id: string, newTime: string) => Promise<void>;
-
-    updateDaySchedule: (day: string, data: Partial<DaySchedule>) => Promise<void>;
-    saveSchedule: (schedule: WeekSchedule) => Promise<void>;
-    updateBusinessConfig: (data: Partial<BusinessConfig>) => Promise<void>;
-
-    addAnnouncement: (message: string, type: 'info' | 'warning' | 'closed') => Promise<void>;
-    removeAnnouncement: (id: string) => Promise<void>;
-    toggleAnnouncement: (id: string) => Promise<void>; // Added
-
-    addToWaitingList: (client: Omit<WaitingClient, 'id' | 'createdAt'>) => Promise<void>;
-    removeFromWaitingList: (id: string) => Promise<void>;
-    getWaitingListForDate: (date: string) => WaitingClient[];
-
-    addBlockedSlot: (slot: Omit<BlockedSlot, 'id'>) => Promise<void>;
-    removeBlockedSlot: (id: string) => Promise<void>;
-    getBlockedSlotsForDate: (date: string) => BlockedSlot[];
-
-    isPhoneBlocked: (phone: string) => boolean;
-    blockPhone: (phone: string) => Promise<void>;
-    unblockPhone: (phone: string) => Promise<void>;
-
-    getServiceById: (id: number) => Service | undefined;
-    getStylistById: (id: number | null) => Stylist | undefined; // Changed from getStaffById
-
-    getTodaySchedule: () => DaySchedule;
-    getScheduleForDate: (date: string) => DaySchedule;
-    getActiveAnnouncements: () => Announcement[];
-
-    // Client Side Helpers
-    hasActiveAppointment: (phone: string) => boolean;
-    getActiveAppointmentByPhone: (phone: string) => Appointment | undefined;
-
-    deviceHasPending: boolean;
-    setDeviceHasPending: (id: string | null) => void;
-
-    // Reminders
-    getReminders: () => Appointment[];
-    generateReminderWhatsAppUrl: (apt: Appointment) => string;
-
-    // Helpers
-    getAppointmentsForToday: () => Appointment[];
-    getAppointmentsForDate: (date: string) => Appointment[];
-    getTodayRevenue: () => number;
-    generateWhatsAppUrl: (appointment: Appointment) => string;
-    getWeeklyCancellations: (phone: string) => number;
-    canDeviceBook: () => boolean;
-
-    // Toast
-    showToast: (message: string, type?: Toast['type']) => void;
-    removeToast: (id: string) => void;
-}
-
-// ─── Store Type ──────────────────────────────────────────────────────────────
-export type Store = StoreContextType;
 
 // ─── Constants & Utils ────────────────────────────────────────────────────────
 import { CATEGORY_DEFAULTS } from './categoryDefaults';
@@ -300,8 +105,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [userStylistId, setUserStylistId] = useState<number | null>(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
 
-    // ─── Auth Init ───
-    // ─── Auth Init ───
+    const [schedule, setSchedule] = useState<WeekSchedule>(DEFAULT_SCHEDULE);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [waitingList, setWaitingList] = useState<WaitingClient[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
+
+
+    // Restore missing state for device pending
+    const [deviceHasPendingId, setDeviceHasPendingId] = useState<string | null>(() => getDevicePendingId());
+    const deviceHasPending = !!deviceHasPendingId;
+
+    const setDeviceHasPending = (id: string | null) => {
+        if (id) {
+            localStorage.setItem(DEVICE_BOOKING_KEY, id);
+            setDeviceHasPendingId(id);
+        } else {
+            localStorage.removeItem(DEVICE_BOOKING_KEY);
+            setDeviceHasPendingId(null);
+        }
+    };
+
+    const [allTenants, setAllTenants] = useState<Tenant[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
+
+    // ── Safety Timeout (Reduced for better UX) ──
+    useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 1000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // ── Auth Init ──
     useEffect(() => {
         // Single source of truth: onAuthStateChange
         // It fires INITIAL_SESSION on mount, reducing race conditions
@@ -464,35 +299,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { success: true };
     }, [user]);
 
-    const [schedule, setSchedule] = useState<WeekSchedule>(DEFAULT_SCHEDULE);
-    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-    const [waitingList, setWaitingList] = useState<WaitingClient[]>([]);
-
-    // Restore missing state for device pending
-    const [deviceHasPendingId, setDeviceHasPendingId] = useState<string | null>(() => getDevicePendingId());
-    const deviceHasPending = !!deviceHasPendingId;
-
-    const setDeviceHasPending = (id: string | null) => {
-        if (id) {
-            localStorage.setItem(DEVICE_BOOKING_KEY, id);
-            setDeviceHasPendingId(id);
-        } else {
-            localStorage.removeItem(DEVICE_BOOKING_KEY);
-            setDeviceHasPendingId(null);
-        }
-    };
-
-    const [allTenants, setAllTenants] = useState<Tenant[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
-
-    // ── Safety Timeout (Reduced for better UX) ──
-    useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
-
     // ── Realtime Subscription ──
     useEffect(() => {
         if (!tenantId) return;
@@ -504,6 +310,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `tenant_id=eq.${tenantId}` }, () => fetchData(tenantId))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'services', filter: `tenant_id=eq.${tenantId}` }, () => fetchData(tenantId))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'stylists', filter: `tenant_id=eq.${tenantId}` }, () => fetchData(tenantId))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'clients', filter: `tenant_id=eq.${tenantId}` }, () => fetchData(tenantId))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'blocked_slots', filter: `tenant_id=eq.${tenantId}` }, () => fetchData(tenantId))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_config', filter: `tenant_id=eq.${tenantId}` }, () => fetchData(tenantId))
             // ... add other tables if needed
@@ -528,6 +335,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 { data: scData, error: scError },
                 { data: anData },
                 { data: wlData },
+                { data: clientsData },
                 { data: bpData },
                 { data: clData }
             ] = await Promise.all([
@@ -539,6 +347,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 supabase.from('schedule_config').select('*').eq('tenant_id', currentTenantId).limit(1).single(),
                 supabase.from('announcements').select('*').eq('tenant_id', currentTenantId).order('created_at', { ascending: false }),
                 supabase.from('waiting_list').select('*').eq('tenant_id', currentTenantId),
+                supabase.from('clients').select('*').eq('tenant_id', currentTenantId),
                 supabase.from('blocked_phones').select('phone').eq('tenant_id', currentTenantId),
                 supabase.from('cancellation_log').select('*').eq('tenant_id', currentTenantId)
             ]);
@@ -582,6 +391,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
             if (anData) setAnnouncements(anData.map((a: any) => ({ ...a, createdAt: a.created_at })));
             if (wlData) setWaitingList(wlData.map((w: any) => ({ ...w, serviceId: w.service_id, createdAt: w.created_at })));
+            if (clientsData) setClients(clientsData.map((c: any) => ({ ...c, tenantId: c.tenant_id, createdAt: c.created_at })));
             if (bpData) setBlockedPhones(bpData.map((p: any) => p.phone));
             if (clData) setCancellationLog(clData.map((c: any) => ({
                 ...c,
@@ -816,9 +626,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // ── Anti-Spam Actions ──────────────────────────────────────────────────
 
-    const blockPhone = useCallback(async (phone: string) => {
+    const blockPhone = useCallback(async (phone: string, reason?: string) => {
         if (!tenantId) return;
-        await supabase.from('blocked_phones').upsert([{ phone, reason: 'Manual Block', tenant_id: tenantId }]);
+        await supabase.from('blocked_phones').upsert([{ phone, reason: reason || 'Manual Block', tenant_id: tenantId }]);
         await fetchData();
     }, [tenantId, fetchData]);
 
@@ -883,19 +693,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // ── Waiting List Actions ───────────────────────────────────────────────
 
-    const addToWaitingList = useCallback(async (client: Omit<WaitingClient, 'id' | 'createdAt'>) => {
-        if (!tenantId) return;
+    const addToWaitingList = useCallback(async (clientData: Omit<WaitingClient, 'id' | 'createdAt'>): Promise<{ success: boolean; error?: string }> => {
+        if (!tenantId) return { success: false, error: 'No tenant selected' };
         // Avoid duplicates for same service/date locally first (optimistic)
-        if (waitingList.some(c => c.phone === client.phone && c.date === client.date)) return;
+        if (waitingList.some(c => c.phone === clientData.phone && c.date === clientData.date)) {
+            return { success: false, error: 'Ya existe una solicitud para este cliente en la misma fecha.' };
+        }
 
-        await supabase.from('waiting_list').insert([{
+        const { error } = await supabase.from('waiting_list').insert([{
             tenant_id: tenantId,
-            name: client.name,
-            phone: client.phone,
-            date: client.date,
-            service_id: client.serviceId
+            name: clientData.name,
+            phone: clientData.phone,
+            date: clientData.date,
+            service_id: clientData.serviceId
         }]);
+
+        if (error) {
+            console.error('Error adding to waiting list:', error);
+            return { success: false, error: error.message };
+        }
         await fetchData();
+        return { success: true };
     }, [waitingList, tenantId, fetchData]);
 
     const removeFromWaitingList = useCallback(async (id: string) => {
@@ -907,6 +725,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const getWaitingListForDate = useCallback((date: string) => {
         return waitingList.filter(c => c.date === date);
     }, [waitingList]);
+
+    // ── Client Actions ─────────────────────────────────────────────────────
+
+    const updateClientNotes = useCallback(async (id: string, notes: string) => {
+        if (!tenantId) return;
+        try {
+            const { error } = await supabase.from('clients').update({ notes }).eq('id', id).eq('tenant_id', tenantId);
+            if (error) throw error;
+            await fetchData();
+        } catch (error: any) {
+            console.error('Error updating client notes:', error);
+            showToast('Error al guardar notas', 'error');
+        }
+    }, [tenantId, fetchData, showToast]);
+
+    const updateClientTags = useCallback(async (id: string, tags: string[]) => {
+        if (!tenantId) return;
+        try {
+            const { error } = await supabase.from('clients').update({ tags }).eq('id', id).eq('tenant_id', tenantId);
+            if (error) throw error;
+            await fetchData();
+        } catch (error: any) {
+            console.error('Error updating client tags:', error);
+            showToast('Error al guardar etiquetas', 'error');
+        }
+    }, [tenantId, fetchData, showToast]);
 
     // ── Schedule Actions ───────────────────────────────────────────────────
 
@@ -1175,6 +1019,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         businessConfig,
         announcements,
         waitingList,
+        clients,
         cancellationLog,
         blockedSlots,
         blockedPhones,
@@ -1206,6 +1051,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         addToWaitingList,
         removeFromWaitingList,
         getWaitingListForDate,
+        updateClientNotes,
+        updateClientTags,
 
         addBlockedSlot,
         removeBlockedSlot,

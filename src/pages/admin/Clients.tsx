@@ -14,8 +14,10 @@ interface ClientStats {
 }
 
 export default function Clients() {
-    const { appointments, services } = useStore();
+    const { clients: dbClients, appointments, services, updateClientNotes, updateClientTags } = useStore();
     const [searchTerm, setSearchTerm] = useState('');
+    const [editingNotes, setEditingNotes] = useState<string | null>(null);
+    const [tempNotes, setTempNotes] = useState('');
 
     const clients = useMemo(() => {
         const clientMap = new Map<string, ClientStats>();
@@ -51,16 +53,40 @@ export default function Clients() {
             client.history.push({ date: appt.date, serviceName, price });
         });
 
-        return Array.from(clientMap.values());
-    }, [appointments, services]);
+        return Array.from(clientMap.values()).map(visitStats => {
+            const dbRef = dbClients.find(c => c.phone === visitStats.phone);
+            return {
+                ...visitStats,
+                id: dbRef?.id || '',
+                name: dbRef?.name || visitStats.name, // base name on DB if available
+                notes: dbRef?.notes || '',
+                tags: dbRef?.tags || []
+            };
+        });
+    }, [appointments, services, dbClients]);
 
     const filteredClients = useMemo(() => {
         const lowerSearch = searchTerm.toLowerCase();
         return clients.filter(c =>
             c.name.toLowerCase().includes(lowerSearch) ||
-            c.phone.includes(lowerSearch)
+            c.phone.includes(lowerSearch) ||
+            c.tags.some(t => t.toLowerCase().includes(lowerSearch))
         );
     }, [clients, searchTerm]);
+
+    const handleSaveNotes = async (id: string) => {
+        if (!id) return;
+        await updateClientNotes(id, tempNotes);
+        setEditingNotes(null);
+    };
+
+    const toggleTag = async (clientId: string, tags: string[], tag: string) => {
+        if (!clientId) return;
+        const newTags = tags.includes(tag)
+            ? tags.filter(t => t !== tag)
+            : [...tags, tag];
+        await updateClientTags(clientId, newTags);
+    };
 
     return (
         <div className="animate-fade-in space-y-6">
@@ -113,6 +139,74 @@ export default function Clients() {
                                 <span className="text-xl font-bold text-emerald-400">${client.totalSpent}</span>
                             </div>
                         </div>
+
+                        {/* Interactive Tags */}
+                        {client.id && (
+                            <div className="mb-4 relative z-10">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted block mb-2">Etiquetas</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {['VIP', 'Frecuente', 'Nuevo'].map(tag => {
+                                        const isActive = client.tags.includes(tag);
+                                        return (
+                                            <button
+                                                key={tag}
+                                                onClick={() => toggleTag(client.id, client.tags, tag)}
+                                                className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all ${isActive
+                                                        ? 'bg-accent/20 text-accent border-accent/30'
+                                                        : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20'
+                                                    }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Notes Section */}
+                        {client.id && (
+                            <div className="mb-6 relative z-10 bg-black/20 rounded-xl p-3 border border-white/5">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-bold text-muted uppercase tracking-widest">Notas Internas</span>
+                                    {editingNotes !== client.id ? (
+                                        <button
+                                            onClick={() => { setEditingNotes(client.id); setTempNotes(client.notes); }}
+                                            className="text-[10px] font-bold text-accent hover:text-white transition-colors"
+                                        >
+                                            Editar
+                                        </button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleSaveNotes(client.id)}
+                                                className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                                            >
+                                                Guardar
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingNotes(null)}
+                                                className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                {editingNotes === client.id ? (
+                                    <textarea
+                                        value={tempNotes}
+                                        onChange={e => setTempNotes(e.target.value)}
+                                        placeholder="Preferencias, alergias, estilo de corte..."
+                                        className="w-full bg-black/40 rounded-lg p-2 text-sm text-white border border-white/10 focus:border-accent outline-none min-h-[60px] resize-none"
+                                    />
+                                ) : (
+                                    <p className="text-sm text-slate-300 min-h-[20px]">
+                                        {client.notes || <span className="opacity-40 italic">Sin notas registradas</span>}
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         <div className="pt-4 border-t border-white/10 relative z-10">
                             <div className="flex items-center justify-between mb-3">

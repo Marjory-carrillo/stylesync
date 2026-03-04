@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../../lib/store';
-import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock } from 'lucide-react';
+import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 
 
@@ -29,6 +29,8 @@ export default function Appointments() {
     }, [allAppointments, userRole, userStylistId]);
 
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
     const [showWaiting, setShowWaiting] = useState(false);
     const [showLog, setShowLog] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; appt: any | null }>({ open: false, appt: null });
@@ -65,6 +67,19 @@ export default function Appointments() {
             return isFinished;
         }
         return apt.status === filter;
+    }).filter(apt => {
+        // Text search filter
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            if (!apt.clientName.toLowerCase().includes(q) && !apt.clientPhone.includes(q)) {
+                return false;
+            }
+        }
+        // Date filter
+        if (dateFilter) {
+            return apt.date === dateFilter;
+        }
+        return true;
     }).sort((a, b) => {
         // Sort by date then time
         if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -125,6 +140,38 @@ export default function Appointments() {
                     </div>
                 </div>
             </div>
+
+            {/* Secondary Controls: Search & Date Filter */}
+            <div className="flex flex-col sm:flex-row gap-3 flex-none px-1">
+                <div className="flex-1 bg-black/40 p-2 rounded-xl border border-white/10 flex items-center gap-2">
+                    <Search className="text-muted shrink-0 ml-1" size={16} />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre o teléfono..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-transparent border-none outline-none text-sm text-white placeholder:text-slate-500 w-full focus:ring-0"
+                    />
+                </div>
+                <div className="bg-black/40 p-2 rounded-xl border border-white/10 flex items-center gap-2 sm:w-auto">
+                    <input
+                        type="date"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        className="bg-transparent border-none outline-none text-sm text-white focus:ring-0 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 cursor-pointer"
+                    />
+                </div>
+                {(searchQuery || dateFilter) && (
+                    <button
+                        onClick={() => { setSearchQuery(''); setDateFilter(''); }}
+                        className="bg-red-500/10 text-red-400 p-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-colors flex items-center justify-center"
+                        title="Limpiar filtros"
+                    >
+                        <X size={18} />
+                    </button>
+                )}
+            </div>
+
             <div className="space-y-2 flex-none">
                 {/* Waiting List Alert (Compact) */}
                 {waitingList.length > 0 && !showWaiting && (
