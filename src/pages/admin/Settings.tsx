@@ -67,11 +67,9 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
                         }
                     }
 
-                    // Fallbacks
                     if (finalPrimary && !foundAccent) finalAccent = finalPrimary;
                 }
 
-                console.log(`[getBrandColors] Extracted: Primary=${finalPrimary}, Accent=${finalAccent}`);
                 resolve({ primary: finalPrimary, accent: finalAccent });
 
             } catch (e) {
@@ -517,15 +515,15 @@ export default function Settings() {
                                 <div
                                     key={ann.id}
                                     className={`flex justify-between items-center p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border-l-4 ${ann.type === 'warning' ? 'border-amber-500' :
-                                            ann.type === 'closed' ? 'border-red-500' :
-                                                'border-blue-500'
+                                        ann.type === 'closed' ? 'border-red-500' :
+                                            'border-blue-500'
                                         }`}
                                 >
                                     <div className="flex flex-col">
                                         <span className="text-white font-medium">{ann.message}</span>
                                         <span className={`text-[10px] font-bold uppercase tracking-widest ${ann.type === 'warning' ? 'text-amber-400' :
-                                                ann.type === 'closed' ? 'text-red-400' :
-                                                    'text-blue-400'
+                                            ann.type === 'closed' ? 'text-red-400' :
+                                                'text-blue-400'
                                             }`}>
                                             {ann.type}
                                         </span>

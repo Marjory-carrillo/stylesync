@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../lib/store';
 import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+import PlaceholderSVG from '../../assets/placeholder-service.svg';
 
 export default function Services() {
     const { services, addService, removeService, updateService, uploadServiceImage } = useStore();
@@ -85,10 +86,10 @@ export default function Services() {
                                     <td className="p-4">
                                         <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden border border-white/10">
                                             <img
-                                                src={service.image || 'https://via.placeholder.com/40?text=?'}
+                                                src={service.image || PlaceholderSVG}
                                                 alt=""
                                                 className="w-full h-full object-cover"
-                                                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/40?text=?'; }}
+                                                onError={(e) => { e.currentTarget.src = PlaceholderSVG; }}
                                             />
                                         </div>
                                     </td>

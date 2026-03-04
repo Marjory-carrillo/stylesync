@@ -336,7 +336,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             if (isUserSuperAdmin) {
                 // Super admin doesn't get forced into a single tenant on login,
                 // BUT we should respect their previously selected tenant if they are managing one.
-                const savedTenantId = localStorage.getItem('stylesync_tenant_id');
+                const savedTenantId = localStorage.getItem('citalink_tenant_id');
                 setTenantId(savedTenantId || null);
                 setUserRole('admin');
                 setUserStylistId(null);
@@ -366,7 +366,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                         .maybeSingle();
 
                     if (inviteMatch && !inviteMatch.user_id) {
-                        console.log('Fallback: Emparejando usuario manualmente', inviteMatch.id);
+                        console.debug('Fallback: Emparejando usuario manualmente', inviteMatch.id);
                         await supabase
                             .from('tenant_users')
                             .update({ user_id: userId })
@@ -737,7 +737,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [blockedPhones, tenantId, fetchData]);
 
     const cancelAppointment = useCallback(async (id: string, byClient = false): Promise<{ success: boolean; error?: string }> => {
-        console.log('Intento de cancelar cita:', id);
         const apt = appointments.find(a => a.id === id);
         if (!apt) {
             console.error('Cita no encontrada en estado local.');
@@ -845,11 +844,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const switchTenant = useCallback(async (id: string) => {
         if (!isSuperAdmin) return;
-        localStorage.setItem('stylesync_tenant_id', id);
+        localStorage.setItem('citalink_tenant_id', id);
         setTenantId(id);
-        // Navigate to the admin dashboard and force a full reload to clear any stale state
-        window.location.href = '/admin';
-    }, [isSuperAdmin]);
+        await fetchData();
+    }, [fetchData, isSuperAdmin]);
 
     const deleteTenant = useCallback(async (id: string) => {
         if (!isSuperAdmin) return;
@@ -914,7 +912,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const updateDaySchedule = useCallback(async (day: string, data: Partial<DaySchedule>) => {
         if (!tenantId) return;
-        console.log(`[updateDaySchedule] Updating ${day} with:`, data);
+
         const newSchedule = { ...schedule, [day]: { ...schedule[day], ...data } };
 
         // Optimistic update
@@ -931,8 +929,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 console.error('Error updating schedule:', error);
                 showToast(`Error al guardar: ${error.message}`, 'error');
                 fetchData(); // Revert
-            } else {
-                console.log('[updateDaySchedule] Success!');
             }
         } catch (err: any) {
             console.error('Unexpected error:', err);
@@ -943,7 +939,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const saveSchedule = useCallback(async (newSchedule: WeekSchedule) => {
         if (!tenantId) return;
-        console.log('[saveSchedule] Saving full schedule:', newSchedule);
 
         // Optimistic update
         setSchedule(newSchedule);
@@ -968,16 +963,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 // No need to select if we only check for error.
                 // Or if we need data: .select();
 
-                console.log('[saveSchedule] Update result:', { error: updateError });
                 error = updateError;
             } else {
                 // 3. Insert
-                const { error: insertError, data: inserted } = await supabase
+                const { error: insertError } = await supabase
                     .from('schedule_config')
                     .insert({ tenant_id: tenantId, schedule: newSchedule })
                     .select();
 
-                console.log('[saveSchedule] Insert result:', { error: insertError, data: inserted });
                 error = insertError;
             }
 
@@ -986,7 +979,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 showToast(`Error al guardar horarios: ${error.message}`, 'error');
                 fetchData(); // Revert
             } else {
-                console.log('[saveSchedule] Success!');
                 // Force fetch to ensure we have the DB state
                 await fetchData();
             }
@@ -1129,11 +1121,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return appointments.filter(a => a.date === t && a.status !== 'cancelada');
     }, [appointments]);
 
-    const sendSMS = useCallback(async (phone: string, message: string) => {
+    const sendSMS = useCallback(async (_phone: string, message: string) => {
         // En producción, llamaríamos a una Supabase Edge Function:
-        // const { data, error } = await supabase.functions.invoke('send-sms', { body: { phone, message } });
-
-        console.log(`[SMS Link - Twilio] Enviando a ${phone}: ${message}`);
+        // const { data, error } = await supabase.functions.invoke('send-sms', { body: { phone: _phone, message } });
 
         // Simulación: Mostrar en pantalla para pruebas (especialmente en móvil)
         showToast(message, 'info');
