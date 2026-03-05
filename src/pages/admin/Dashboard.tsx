@@ -244,35 +244,37 @@ export default function Dashboard() {
             </header>
 
             {/* ── Client App Link Banner ── */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-cyan-600/20 via-blue-600/10 to-purple-600/20 border border-cyan-500/20 p-6 md:p-10 shadow-2xl mb-10 group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-500">
-                    <Users size={120} />
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-cyan-600/15 via-blue-600/5 to-purple-600/15 border border-white/5 p-8 md:p-12 shadow-2xl mb-12 group">
+                <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:opacity-5 transition-all duration-700">
+                    <Users size={160} />
                 </div>
-                <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div className="relative z-10 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8">
                     <div className="flex-1">
-                        <h3 className="text-lg md:text-xl font-bold text-white mb-2 flex items-center gap-2">
-                            <span className="bg-blue-500/20 p-1.5 rounded-lg text-blue-400"><Users size={20} /></span>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest mb-4">
+                            PWA Discovery
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight">
                             Tu App de Reservas
                         </h3>
-                        <p className="text-slate-300 text-xs md:text-sm max-w-xl leading-relaxed">
-                            Tus clientes pueden instalar esta web como una app para reservar sin barra de navegación.
+                        <p className="text-slate-400 text-sm md:text-base max-w-xl leading-relaxed font-medium">
+                            Tus clientes pueden instalar esta web como una app nativa en su celular para reservar en segundos.
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                        <div className="flex items-center bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex-1 md:min-w-[280px]">
-                            <code className="text-blue-400 font-mono text-xs select-all truncate">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
+                        <div className="flex items-center bg-black/40 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/5 flex-1 md:min-w-[320px] shadow-inner">
+                            <code className="text-blue-400 font-mono text-xs md:text-sm select-all truncate">
                                 citalink.app/reserva/{businessConfig.slug || '...'}
                             </code>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <button
                                 onClick={() => {
                                     const url = `${window.location.origin}/reserva/${businessConfig.slug}`;
                                     navigator.clipboard.writeText(url);
                                     showToast('¡Enlace copiado!', 'success');
                                 }}
-                                className="flex-1 sm:flex-none px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl hover:from-cyan-400 hover:to-blue-500 transition-all active:scale-95 shadow-lg shadow-cyan-900/20 text-xs md:text-sm"
+                                className="flex-1 sm:flex-none px-10 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-xl shadow-cyan-900/40 text-sm tracking-wide"
                             >
                                 Copiar Link
                             </button>
@@ -280,7 +282,7 @@ export default function Dashboard() {
                                 href={`/reserva/${businessConfig.slug}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-4 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition-colors border border-white/10 text-xs md:text-sm flex items-center gap-2"
+                                className="px-5 py-4 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm flex items-center gap-2 backdrop-blur-sm"
                             >
                                 Abrir
                             </a>
@@ -334,10 +336,10 @@ export default function Dashboard() {
                                                 const time12Str = `${hh}:${m}${ampm}`;
 
                                                 return (
-                                                    <div key={match.id} className="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5">
+                                                    <div key={match.id} className="flex justify-between items-center bg-black/30 backdrop-blur-md p-3 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
                                                         <div>
-                                                            <span className="text-white font-bold text-sm block">{match.name}</span>
-                                                            <span className="text-xs text-muted">{match.phone}</span>
+                                                            <span className="text-white font-black text-sm block tracking-tight">{match.name.toUpperCase()}</span>
+                                                            <span className="text-[10px] text-slate-500 font-mono tracking-tighter">{match.phone}</span>
                                                         </div>
                                                         <a
                                                             href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, te contactamos de ${businessConfig.name}. ¡Se acaba de liberar un espacio el ${match.date} a las ${time12Str}! ¿Te interesa tomarlo?`}
@@ -399,15 +401,16 @@ export default function Dashboard() {
                         {waitingList.map(item => {
                             const svc = getServiceById(item.serviceId);
                             return (
-                                <div key={item.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-between group hover:bg-white/10 transition-all">
-                                    <div className="flex justify-between items-start mb-3">
+                                <div key={item.id} className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 flex flex-col justify-between group hover:border-accent/30 transition-all duration-500 relative overflow-hidden">
+                                    <div className="absolute -right-4 -top-4 w-12 h-12 bg-accent/5 blur-xl rounded-full"></div>
+                                    <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <span className="text-white font-bold block">{item.name}</span>
-                                            <span className="text-xs text-muted">{item.phone}</span>
+                                            <span className="text-white font-black text-base block tracking-tight leading-none mb-1">{item.name.toUpperCase()}</span>
+                                            <span className="text-[10px] text-slate-500 font-mono">{item.phone}</span>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-[10px] font-black uppercase text-accent tracking-tighter">Interés</span>
-                                            <span className="text-xs text-white block font-medium">{item.date}</span>
+                                            <span className="text-[9px] font-black uppercase text-accent/60 tracking-widest block mb-0.5">Esperando</span>
+                                            <span className="text-[10px] text-white font-bold bg-white/5 px-2 py-0.5 rounded-md">{item.date}</span>
                                         </div>
                                     </div>
 
@@ -432,74 +435,70 @@ export default function Dashboard() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group hover:border-blue-500/30">
-                    <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform duration-200 shadow-inner">
-                        <Calendar size={24} />
+                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
+                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-500/5 blur-2xl rounded-full group-hover:bg-blue-500/10 transition-all duration-700"></div>
+                    <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
+                        <Calendar size={26} />
                     </div>
-                    <div>
-                        <p className="text-sm text-slate-400 mb-1 font-medium">Citas Hoy</p>
-                        <p className="text-2xl font-black text-white tracking-tight">{todayAppts.length}</p>
-                    </div>
-                </div>
-
-                <div className="glass-card p-6 rounded-xl flex items-center gap-4 group hover:border-emerald-500/30 relative overflow-hidden">
-                    <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/20 blur-xl rounded-full"></div>
-                    <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-200 shadow-inner">
-                        <DollarSign size={24} />
-                    </div>
-                    <div>
-                        <p className="text-sm text-slate-400 mb-1 font-medium">Ingresos Hoy</p>
-                        <p className="text-2xl font-black text-emerald-400 tracking-tight">${revenue}</p>
+                    <div className="relative z-10">
+                        <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Citas Hoy</p>
+                        <p className="text-3xl font-black text-white tracking-tighter">{todayAppts.length}</p>
                     </div>
                 </div>
 
-                <div className="glass-card p-6 rounded-xl relative overflow-hidden group hover:border-amber-400/30">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-lg bg-amber-400/10 text-amber-400 group-hover:scale-110 transition-transform duration-200 shadow-inner">
-                                <Activity size={24} />
+                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-emerald-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
+                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
+                        <DollarSign size={26} />
+                    </div>
+                    <div className="relative z-10">
+                        <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Ingresos Hoy</p>
+                        <p className="text-3xl font-black text-emerald-400 tracking-tighter">${revenue}</p>
+                    </div>
+                </div>
+
+                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-amber-500/20 transition-all duration-500 bg-slate-900/40">
+                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-amber-500/5 blur-2xl rounded-full group-hover:bg-amber-500/10 transition-all duration-700"></div>
+                    <div className="flex items-start justify-between relative z-10">
+                        <div className="flex items-center gap-5">
+                            <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
+                                <Activity size={26} />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-400 mb-1 font-medium">Citas del Mes</p>
-                                <p className="text-2xl font-black text-white tracking-tight">{currentMonthStats.count}</p>
+                                <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Citas del Mes</p>
+                                <p className="text-3xl font-black text-white tracking-tighter">{currentMonthStats.count}</p>
                             </div>
                         </div>
-                        <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${currentMonthStats.appsGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                        <div className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1.5 rounded-xl border ${currentMonthStats.appsGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
                             {currentMonthStats.appsGrowth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                             {Math.abs(Math.round(currentMonthStats.appsGrowth))}%
                         </div>
                     </div>
-                    <div className="mt-3 text-xs text-slate-500 font-medium">
-                        {currentMonthStats.canceled} citas canceladas
+                    <div className="mt-4 text-[10px] text-slate-500 font-bold tracking-tight relative z-10">
+                        {currentMonthStats.canceled} CITAS CANCELADAS
                     </div>
                 </div>
 
-                <div className="glass-card p-6 rounded-xl relative overflow-hidden group hover:border-pink-500/30">
-                    <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-pink-500/20 blur-xl rounded-full"></div>
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-lg bg-pink-500/10 text-pink-500 group-hover:scale-110 transition-transform duration-200 shadow-inner">
-                                <CreditCard size={24} />
+                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500 bg-slate-900/40">
+                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-pink-500/5 blur-2xl rounded-full group-hover:bg-pink-500/10 transition-all duration-700"></div>
+                    <div className="flex items-start justify-between relative z-10">
+                        <div className="flex items-center gap-5">
+                            <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
+                                <CreditCard size={26} />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-400 mb-1 font-medium">Ingresos del Mes</p>
-                                <p className="text-2xl font-black text-pink-400 tracking-tight">${currentMonthStats.revenue}</p>
+                                <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Ingresos Mes</p>
+                                <p className="text-3xl font-black text-pink-400 tracking-tighter">${currentMonthStats.revenue}</p>
                             </div>
                         </div>
-                        <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                        <div className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1.5 rounded-xl border ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
                             {currentMonthStats.revenueGrowth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                             {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
                         </div>
                     </div>
-                    {userRole === 'employee' ? (
-                        <div className="mt-3 text-xs text-slate-500 font-medium">
-                            Tus ingresos generados en este mes
-                        </div>
-                    ) : (
-                        <div className="mt-3 text-xs text-slate-500 font-medium">
-                            vs ${currentMonthStats.lastRevenue} mes pasado
-                        </div>
-                    )}
+                    <div className="mt-4 text-[10px] text-slate-500 font-bold tracking-tight relative z-10">
+                        {userRole === 'employee' ? 'INGRESOS PROPIOS' : `VS $${currentMonthStats.lastRevenue} ANTERIOR`}
+                    </div>
                 </div>
             </div>
 
@@ -610,11 +609,11 @@ export default function Dashboard() {
                                 const svc = getServiceById(appt.serviceId);
                                 const waUrl = generateReminderWhatsAppUrl(appt);
                                 return (
-                                    <div key={appt.id} className="bg-white/5 border border-white/5 p-4 rounded-lg hover:bg-white/10 transition-colors">
-                                        <div className="flex justify-between items-start mb-3">
+                                    <div key={appt.id} className="bg-slate-900/40 backdrop-blur-md border border-white/5 p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group">
+                                        <div className="flex justify-between items-start mb-4">
                                             <div>
-                                                <div className="font-bold text-white">{appt.clientName}</div>
-                                                <div className="text-xs text-muted">{svc?.name}</div>
+                                                <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
+                                                <div className="text-[10px] font-bold text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded inline-block">{svc?.name.toUpperCase()}</div>
                                             </div>
                                             {(() => {
                                                 const [h, m] = appt.time.split(':');
@@ -622,12 +621,12 @@ export default function Dashboard() {
                                                 const ampm = hh >= 12 ? 'pm' : 'am';
                                                 hh = hh % 12;
                                                 hh = hh ? hh : 12;
-                                                return <span className="text-accent font-mono font-bold bg-accent/10 px-2 py-1 rounded text-xs">{hh}:{m}{ampm}</span>;
+                                                return <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>;
                                             })()}
                                         </div>
 
-                                        <div className="flex items-center gap-2 text-xs text-muted mb-4">
-                                            <Phone size={12} />
+                                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-6 font-medium">
+                                            <Phone size={12} className="opacity-50" />
                                             <span>{appt.clientPhone}</span>
                                         </div>
 
@@ -718,41 +717,42 @@ export default function Dashboard() {
                                         </div>
 
                                         {/* Main Info */}
-                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-lg shadow-inner ${isCurrentlyHappening ? 'bg-accent text-white shadow-accent/50' : 'bg-white/5 text-muted group-hover:text-white'}`}>
-                                                    {appt.clientName.charAt(0).toUpperCase()}
+                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
+                                            <div className="flex items-center gap-5">
+                                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-slate-800 text-slate-500'}`}>
+                                                    {isCurrentlyHappening && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
+                                                    <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
                                                 </div>
                                                 <div>
-                                                    <div className="flex items-center gap-2 mb-0.5">
-                                                        <span className="font-bold text-white text-base">{appt.clientName}</span>
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
                                                         {isCurrentlyHappening && (
-                                                            <span className="px-1.5 py-0.5 rounded-full bg-accent/20 text-[8px] font-black uppercase tracking-widest text-accent border border-accent/20">EN VIVO</span>
+                                                            <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
                                                         )}
                                                     </div>
-                                                    <div className="text-xs font-medium text-muted flex items-center gap-2">
-                                                        <div className="flex items-center gap-1"><Scissors size={10} className="text-accent/40" /> {svc?.name}</div>
-                                                        <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                                                        <div className="flex items-center gap-1"><Phone size={10} className="opacity-40" /> {appt.clientPhone}</div>
+                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
+                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-accent/60" /> {svc?.name}</div>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                        <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-4">
                                                 {isCurrentlyHappening ? (
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
-                                                        <Clock size={10} className="animate-spin-slow" /> Ahora
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
                                                     </span>
                                                 ) : (
-                                                    <span className="text-[10px] font-bold text-muted uppercase tracking-widest">Hoy</span>
+                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 py-1.5">Agenda</span>
                                                 )}
                                                 <div className={`
-                                                    px-3 py-1 rounded-lg text-xs font-bold border uppercase tracking-tighter
+                                                    px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner
                                                     ${isCurrentlyHappening
-                                                        ? 'bg-accent/20 text-accent border-accent/30'
-                                                        : 'bg-green-500/10 text-green-500 border-green-500/20'}
+                                                        ? 'bg-accent text-white border-white/10'
+                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
                                                 `}>
-                                                    {isCurrentlyHappening ? 'En proceso' : 'Confirmada'}
+                                                    {isCurrentlyHappening ? 'Atendiendo' : 'Confirmada'}
                                                 </div>
                                             </div>
                                         </div>
