@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { supabase } from './supabaseClient';
 import SplashScreen from '../components/SplashScreen';
 import { useAuthStore } from './store/authStore';
+import { useUIStore } from './store/uiStore';
 import type {
     Service, Stylist, Appointment, Client, WaitingClient,
     CancellationLog, BlockedSlot, Toast, BusinessConfig, Tenant,
@@ -1058,10 +1059,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // const { data, error } = await supabase.functions.invoke('send-sms', { body: { phone: _phone, message } });
 
         // Simulación: Mostrar en pantalla para pruebas (especialmente en móvil)
-        showToast(message, 'info');
+        useUIStore.getState().showToast(message, 'info');
 
         return { success: true };
-    }, [showToast]);
+    }, []);
 
     const getAppointmentsForDate = useCallback((dateStr: string) => {
         return appointments.filter(a => a.date === dateStr && a.status !== 'cancelada');
