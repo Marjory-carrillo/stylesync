@@ -745,6 +745,31 @@ export default function Settings() {
 
                             {infoForm.commissionsEnabled && (
                                 <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5 mb-6">
+                                        <div>
+                                            <h4 className="text-white font-medium">Día de Inicio de Semana</h4>
+                                            <p className="text-sm text-muted">Afecta el rango de fechas en "Esta Semana" dentro de la Nómina.</p>
+                                        </div>
+                                        <select
+                                            className="glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer text-sm"
+                                            value={infoForm.weekStartsOn ?? 1}
+                                            onChange={async (e) => {
+                                                const val = parseInt(e.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+                                                setInfoForm({ ...infoForm, weekStartsOn: val });
+                                                await updateBusinessConfig({ weekStartsOn: val });
+                                                showToast('Día de corte actualizado', 'success');
+                                            }}
+                                        >
+                                            <option value={1}>Lunes</option>
+                                            <option value={0}>Domingo</option>
+                                            <option value={2}>Martes</option>
+                                            <option value={3}>Miércoles</option>
+                                            <option value={4}>Jueves</option>
+                                            <option value={5}>Viernes</option>
+                                            <option value={6}>Sábado</option>
+                                        </select>
+                                    </div>
+
                                     <h4 className="text-sm font-medium text-white mb-2">Porcentajes de Comisión por Profesional</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                         {stylists.map(stylist => (

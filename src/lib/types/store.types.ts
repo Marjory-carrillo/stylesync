@@ -88,6 +88,7 @@ export interface BusinessConfig {
     slug: string;
     bookingDaysAhead?: number;
     commissionsEnabled?: boolean;
+    weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
     confirmationTemplate?: string;
     reminderTemplate?: string;
     logoUrl?: string;

@@ -14,26 +14,28 @@ import type { CommissionEntry } from '../../lib/types/store.types';
 export default function Commissions() {
     const { userRole } = useAuthStore();
     const { data: tenantConfig } = useTenantData();
+    const businessConfig = tenantConfig || {} as any;
     const [dateRange, setDateRange] = useState<'thisWeek' | 'thisMonth' | 'all'>('thisMonth');
 
     const { start: startDate, end: endDate } = useMemo(() => {
         const now = new Date();
+        const weekStartsOn = (businessConfig?.weekStartsOn ?? 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
         switch (dateRange) {
             case 'thisWeek':
-                return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+                return { start: startOfWeek(now, { weekStartsOn }), end: endOfWeek(now, { weekStartsOn }) };
             case 'thisMonth':
                 return { start: startOfMonth(now), end: endOfMonth(now) };
             default:
                 return { start: new Date('2020-01-01'), end: new Date('2100-01-01') };
         }
-    }, [dateRange]);
+    }, [dateRange, businessConfig?.weekStartsOn]);
 
     const { data: appointments = [] } = useAppointments({
         startDate: format(startDate, 'yyyy-MM-dd')
     });
     const { data: stylists = [] } = useStylists();
     const { data: services = [] } = useServices();
-    const businessConfig = tenantConfig || {} as any;
 
     if (userRole !== 'owner' || !businessConfig?.commissionsEnabled) {
         return (
@@ -48,9 +50,26 @@ export default function Commissions() {
     }
 
     const { commissionEntries, totalGenerated, totalToPay } = useMemo(() => {
+        const now = new Date();
+
         // Filter valid completed appointments within date range
         const validAppointments = appointments.filter(apt => {
-            if (apt.status !== 'completada' || !apt.stylistId) return false;
+            if (!apt.stylistId || apt.status === 'cancelada') return false;
+
+            let isCompleted = apt.status === 'completada';
+
+            // Autocompletado virtual para la nómina
+            if (!isCompleted && apt.status === 'confirmada') {
+                const svc = services.find(s => s.id === apt.serviceId);
+                const end = new Date(`${apt.date}T${apt.time}`);
+                end.setMinutes(end.getMinutes() + (svc?.duration || 0));
+
+                if (now >= end) {
+                    isCompleted = true; // La cita ya terminó, se marca como completada para nómina
+                }
+            }
+
+            if (!isCompleted) return false;
 
             const aptDate = parseISO(apt.date);
             return isWithinInterval(aptDate, { start: startDate, end: endDate });
