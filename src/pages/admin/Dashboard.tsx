@@ -738,6 +738,18 @@ export default function Dashboard() {
                                     return `${hh}:${m}${ampm}`;
                                 })();
 
+                                const duration = svc?.duration || 30;
+                                const endTimeDisplay = (() => {
+                                    const [hours, minutes] = appt.time.split(':').map(Number);
+                                    const endMinutes = hours * 60 + minutes + duration;
+                                    let endHours = Math.floor(endMinutes / 60);
+                                    const endMins = String(endMinutes % 60).padStart(2, '0');
+                                    const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
+                                    endHours = endHours % 12;
+                                    endHours = endHours ? endHours : 12;
+                                    return `${endHours}:${endMins}${ampm}`;
+                                })();
+
                                 return (
                                     <div key={appt.id} className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCurrentlyHappening
                                         ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-lg'
@@ -748,12 +760,15 @@ export default function Dashboard() {
                                         <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
 
                                         {/* Time Column */}
-                                        <div className={`flex flex-col items-center justify-center w-20 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
+                                        <div className={`flex flex-col items-center justify-center w-28 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
                                             <span className={`text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
                                                 {displayTime.replace(/(am|pm)/, '')}
                                             </span>
                                             <span className={`text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
                                                 {displayTime.match(/(am|pm)/)?.[0]}
+                                            </span>
+                                            <span className={`text-[9px] font-bold mt-2 opacity-60 ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
+                                                a {endTimeDisplay.replace(/(am|pm)/, '')} {endTimeDisplay.match(/(am|pm)/)?.[0].toUpperCase()}
                                             </span>
                                         </div>
 
@@ -877,6 +892,18 @@ export default function Dashboard() {
                                     return `${hh}:${m}${ampm}`;
                                 })();
 
+                                const duration = svc?.duration || 30;
+                                const endTimeDisplay = (() => {
+                                    const [hours, minutes] = appt.time.split(':').map(Number);
+                                    const endMinutes = hours * 60 + minutes + duration;
+                                    let endHours = Math.floor(endMinutes / 60);
+                                    const endMins = String(endMinutes % 60).padStart(2, '0');
+                                    const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
+                                    endHours = endHours % 12;
+                                    endHours = endHours ? endHours : 12;
+                                    return `${endHours}:${endMins}${ampm}`;
+                                })();
+
                                 return (
                                     <div key={appt.id} className="group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden glass-card border-white/5 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10">
 
@@ -884,12 +911,15 @@ export default function Dashboard() {
                                         <div className="w-1.5 shrink-0 bg-gradient-to-b from-emerald-500/50 to-transparent" />
 
                                         {/* Time Column */}
-                                        <div className="flex flex-col items-center justify-center w-20 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
+                                        <div className="flex flex-col items-center justify-center w-28 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
                                             <span className="text-base font-black tracking-tighter text-white">
                                                 {displayTime.replace(/(am|pm)/, '')}
                                             </span>
                                             <span className="text-[10px] font-black uppercase tracking-widest -mt-1 text-emerald-500/60">
                                                 {displayTime.match(/(am|pm)/)?.[0]}
+                                            </span>
+                                            <span className="text-[9px] font-bold mt-2 opacity-60 text-white">
+                                                a {endTimeDisplay.replace(/(am|pm)/, '')} {endTimeDisplay.match(/(am|pm)/)?.[0].toUpperCase()}
                                             </span>
                                         </div>
 
