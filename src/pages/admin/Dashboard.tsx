@@ -454,7 +454,7 @@ export default function Dashboard() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-500/5 blur-2xl rounded-full group-hover:bg-blue-500/10 transition-all duration-700"></div>
                     <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
@@ -526,269 +526,269 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Financial Charts & Trends */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* ── Revenue Chart ── */}
-                    <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <TrendingUp size={20} className="text-accent" /> {t('dashboard.charts.revenue')}
-                            </h3>
-                            {/* Rango Selector */}
-                            <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 overflow-x-auto hide-scrollbar">
-                                {(["7D", "30D", "3M", "AÑO"] as ChartRange[]).map(range => (
-                                    <button
-                                        key={range}
-                                        onClick={() => setChartRange(range)}
-                                        aria-current={chartRange === range ? 'page' : undefined}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap ${chartRange === range
-                                            ? 'bg-[var(--accent)] text-white shadow-md'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                                            }`}
-                                    >
-                                        {range}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex-1 w-full relative">
-                            {revenueChartData.every(d => d.Ingresos === 0) ? (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
-                                    <Activity size={48} className="mb-4 text-slate-500" />
-                                    <p className="text-sm text-slate-400 font-medium">No hay suficientes datos de ingresos para esta semana.</p>
-                                </div>
-                            ) : (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                                        <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
-                                            itemStyle={{ color: 'hsl(var(--hue-accent), 100%, 60%)', fontWeight: 'bold' }}
-                                            labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                                            formatter={(value: any) => [`$${value}`, 'Ingresos']}
-                                        />
-                                        <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* ── Top Services ── */}
-                    <div className="glass-panel p-6 rounded-2xl border border-white/5">
-                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                            <Scissors size={20} className="text-pink-400" /> {t('dashboard.charts.top_services')}
-                        </h3>
-                        <div className="space-y-5">
-                            {topServices.length > 0 ? topServices.map((svc, i) => (
-                                <div key={i} className="group">
-                                    <div className="flex justify-between items-end mb-2">
-                                        <div>
-                                            <div className="text-sm font-bold text-white mb-0.5">{svc.name}</div>
-                                            <div className="text-xs text-slate-400">{svc.count} citas completadas</div>
-                                        </div>
-                                        <div className="text-sm font-black text-pink-400">${svc.price * svc.count}</div>
-                                    </div>
-                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-1000"
-                                            style={{ width: `${(svc.count / (topServices[0]?.count || 1)) * 100}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            )) : (
-                                <p className="text-sm text-slate-500 text-center py-10">No hay datos suficientes para mostrar.</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* ── Reminders ── */}
-                    <div className="lg:col-span-3 glass-panel p-6 rounded-2xl border border-white/5">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <Bell size={100} />
-                        </div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="flex h-3 w-3 relative">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
-                                </span>
-                                <h3 className="font-bold text-lg text-white">{t('dashboard.reminders.title')} ({reminders.length})</h3>
-                            </div>
-                            <p className="text-sm text-muted mb-6 max-w-2xl">
-                                Estas citas fueron reservadas con anticipación (3+ días). Se recomienda enviar un recordatorio para confirmar asistencia.
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {reminders.map(appt => {
-                                    const svc = getServiceById(appt.serviceId);
-                                    const waUrl = generateReminderWhatsAppUrl(appt);
-                                    return (
-                                        <div key={appt.id} className="bg-slate-900/40 backdrop-blur-md border border-white/5 p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div>
-                                                    <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
-                                                    <div className="text-[10px] font-bold text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded inline-block">{svc?.name.toUpperCase()}</div>
-                                                </div>
-                                                {(() => {
-                                                    const [h, m] = appt.time.split(':');
-                                                    let hh = parseInt(h);
-                                                    const ampm = hh >= 12 ? 'pm' : 'am';
-                                                    hh = hh % 12;
-                                                    hh = hh ? hh : 12;
-                                                    return <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>;
-                                                })()}
-                                            </div>
-
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 mb-6 font-medium">
-                                                <Phone size={12} className="opacity-50" />
-                                                <span>{appt.clientPhone}</span>
-                                            </div>
-
-                                            <a
-                                                href={waUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="btn btn-primary w-full py-2 text-xs gap-2"
-                                            >
-                                                <MessageCircle size={14} /> WhatsApp
-                                            </a>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Today's Appointments */}
-                <div className="glass-card p-6 rounded-xl">
+            {/* Financial Charts & Trends */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* ── Revenue Chart ── */}
+                <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
-                        <button className="text-xs text-accent hover:underline">Ver todas</button>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <TrendingUp size={20} className="text-accent" /> {t('dashboard.charts.revenue')}
+                        </h3>
+                        {/* Rango Selector */}
+                        <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 overflow-x-auto hide-scrollbar">
+                            {(["7D", "30D", "3M", "AÑO"] as ChartRange[]).map(range => (
+                                <button
+                                    key={range}
+                                    onClick={() => setChartRange(range)}
+                                    aria-current={chartRange === range ? 'page' : undefined}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap ${chartRange === range
+                                        ? 'bg-[var(--accent)] text-white shadow-md'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                        }`}
+                                >
+                                    {range}
+                                </button>
+                            ))}
+                        </div>
                     </div>
+                    <div className="flex-1 w-full relative">
+                        {revenueChartData.every(d => d.Ingresos === 0) ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
+                                <Activity size={48} className="mb-4 text-slate-500" />
+                                <p className="text-sm text-slate-400 font-medium">No hay suficientes datos de ingresos para esta semana.</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                    <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                                        itemStyle={{ color: 'hsl(var(--hue-accent), 100%, 60%)', fontWeight: 'bold' }}
+                                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                                        formatter={(value: any) => [`$${value}`, 'Ingresos']}
+                                    />
+                                    <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+                </div>
 
-                    {(() => {
-                        const now = new Date();
-                        const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                        const upcomingAppts = todayAppts.filter(appt => {
-                            const svc = services.find(s => s.id === appt.serviceId);
-                            const duration = svc?.duration || 30;
-
-                            // Calculate end time
-                            const [hours, minutes] = appt.time.split(':').map(Number);
-                            const endMinutes = hours * 60 + minutes + duration;
-                            const endHours = Math.floor(endMinutes / 60);
-                            const endMins = endMinutes % 60;
-                            const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-
-                            // Show if it hasn't finished yet and isn't completed/cancelled
-                            return currentTimeStr < endTimeStr && appt.status === 'confirmada';
-                        }).sort((a, b) => a.time.localeCompare(b.time));
-
-                        if (upcomingAppts.length === 0) {
-                            return (
-                                <div className="text-center py-12 text-muted bg-white/5 rounded-lg border border-dashed border-white/10">
-                                    <Calendar size={48} className="mx-auto mb-4 opacity-20" />
-                                    <p>No hay más citas para lo que queda del día.</p>
-                                    <p className="text-xs mt-2">Buen trabajo, has terminado por hoy.</p>
+                {/* ── Top Services ── */}
+                <div className="glass-panel p-6 rounded-2xl border border-white/5">
+                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <Scissors size={20} className="text-pink-400" /> {t('dashboard.charts.top_services')}
+                    </h3>
+                    <div className="space-y-5">
+                        {topServices.length > 0 ? topServices.map((svc, i) => (
+                            <div key={i} className="group">
+                                <div className="flex justify-between items-end mb-2">
+                                    <div>
+                                        <div className="text-sm font-bold text-white mb-0.5">{svc.name}</div>
+                                        <div className="text-xs text-slate-400">{svc.count} citas completadas</div>
+                                    </div>
+                                    <div className="text-sm font-black text-pink-400">${svc.price * svc.count}</div>
                                 </div>
-                            );
-                        }
+                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-1000"
+                                        style={{ width: `${(svc.count / (topServices[0]?.count || 1)) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-sm text-slate-500 text-center py-10">No hay datos suficientes para mostrar.</p>
+                        )}
+                    </div>
+                </div>
+            </div>
 
-                        return (
-                            <div className="space-y-3">
-                                {upcomingAppts.map(appt => {
-                                    const svc = services.find(s => s.id === appt.serviceId);
-                                    const isCurrentlyHappening = currentTimeStr >= appt.time;
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* ── Reminders ── */}
+                <div className="lg:col-span-3 glass-panel p-6 rounded-2xl border border-white/5">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Bell size={100} />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="flex h-3 w-3 relative">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+                            </span>
+                            <h3 className="font-bold text-lg text-white">{t('dashboard.reminders.title')} ({reminders.length})</h3>
+                        </div>
+                        <p className="text-sm text-muted mb-6 max-w-2xl">
+                            Estas citas fueron reservadas con anticipación (3+ días). Se recomienda enviar un recordatorio para confirmar asistencia.
+                        </p>
 
-                                    const displayTime = (() => {
-                                        const [h, m] = appt.time.split(':');
-                                        let hh = parseInt(h);
-                                        const ampm = hh >= 12 ? 'pm' : 'am';
-                                        hh = hh % 12;
-                                        hh = hh ? hh : 12;
-                                        return `${hh}:${m}${ampm}`;
-                                    })();
-
-                                    return (
-                                        <div key={appt.id} className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCurrentlyHappening
-                                            ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-lg'
-                                            : 'glass-card border-white/5 hover:border-accent/30 hover:shadow-xl'
-                                            }`}>
-
-                                            {/* Status Indicator Bar */}
-                                            <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
-
-                                            {/* Time Column */}
-                                            <div className={`flex flex-col items-center justify-center w-20 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
-                                                <span className={`text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
-                                                    {displayTime.replace(/(am|pm)/, '')}
-                                                </span>
-                                                <span className={`text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
-                                                    {displayTime.match(/(am|pm)/)?.[0]}
-                                                </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {reminders.map(appt => {
+                                const svc = getServiceById(appt.serviceId);
+                                const waUrl = generateReminderWhatsAppUrl(appt);
+                                return (
+                                    <div key={appt.id} className="bg-slate-900/40 backdrop-blur-md border border-white/5 p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
+                                                <div className="text-[10px] font-bold text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded inline-block">{svc?.name.toUpperCase()}</div>
                                             </div>
-
-                                            {/* Main Info */}
-                                            <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
-                                                <div className="flex items-center gap-5">
-                                                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-slate-800 text-slate-500'}`}>
-                                                        {isCurrentlyHappening && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
-                                                        <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-3 mb-1">
-                                                            <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
-                                                            {isCurrentlyHappening && (
-                                                                <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
-                                                            <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-accent/60" /> {svc?.name}</div>
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                            <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-4">
-                                                    {isCurrentlyHappening ? (
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 py-1.5">Agenda</span>
-                                                    )}
-                                                    <div className={`
-                                                    px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner
-                                                    ${isCurrentlyHappening
-                                                            ? 'bg-accent text-white border-white/10'
-                                                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
-                                                `}>
-                                                        {isCurrentlyHappening ? 'Atendiendo' : 'Confirmada'}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            {(() => {
+                                                const [h, m] = appt.time.split(':');
+                                                let hh = parseInt(h);
+                                                const ampm = hh >= 12 ? 'pm' : 'am';
+                                                hh = hh % 12;
+                                                hh = hh ? hh : 12;
+                                                return <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>;
+                                            })()}
                                         </div>
-                                    );
-                                })}
+
+                                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-6 font-medium">
+                                            <Phone size={12} className="opacity-50" />
+                                            <span>{appt.clientPhone}</span>
+                                        </div>
+
+                                        <a
+                                            href={waUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn btn-primary w-full py-2 text-xs gap-2"
+                                        >
+                                            <MessageCircle size={14} /> WhatsApp
+                                        </a>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Today's Appointments */}
+            <div className="glass-card p-6 rounded-xl">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
+                    <button className="text-xs text-accent hover:underline">Ver todas</button>
+                </div>
+
+                {(() => {
+                    const now = new Date();
+                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+                    const upcomingAppts = todayAppts.filter(appt => {
+                        const svc = services.find(s => s.id === appt.serviceId);
+                        const duration = svc?.duration || 30;
+
+                        // Calculate end time
+                        const [hours, minutes] = appt.time.split(':').map(Number);
+                        const endMinutes = hours * 60 + minutes + duration;
+                        const endHours = Math.floor(endMinutes / 60);
+                        const endMins = endMinutes % 60;
+                        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+
+                        // Show if it hasn't finished yet and isn't completed/cancelled
+                        return currentTimeStr < endTimeStr && appt.status === 'confirmada';
+                    }).sort((a, b) => a.time.localeCompare(b.time));
+
+                    if (upcomingAppts.length === 0) {
+                        return (
+                            <div className="text-center py-12 text-muted bg-white/5 rounded-lg border border-dashed border-white/10">
+                                <Calendar size={48} className="mx-auto mb-4 opacity-20" />
+                                <p>No hay más citas para lo que queda del día.</p>
+                                <p className="text-xs mt-2">Buen trabajo, has terminado por hoy.</p>
                             </div>
                         );
-                    })()}
-                </div>
+                    }
+
+                    return (
+                        <div className="space-y-3">
+                            {upcomingAppts.map(appt => {
+                                const svc = services.find(s => s.id === appt.serviceId);
+                                const isCurrentlyHappening = currentTimeStr >= appt.time;
+
+                                const displayTime = (() => {
+                                    const [h, m] = appt.time.split(':');
+                                    let hh = parseInt(h);
+                                    const ampm = hh >= 12 ? 'pm' : 'am';
+                                    hh = hh % 12;
+                                    hh = hh ? hh : 12;
+                                    return `${hh}:${m}${ampm}`;
+                                })();
+
+                                return (
+                                    <div key={appt.id} className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCurrentlyHappening
+                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-lg'
+                                        : 'glass-card border-white/5 hover:border-accent/30 hover:shadow-xl'
+                                        }`}>
+
+                                        {/* Status Indicator Bar */}
+                                        <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
+
+                                        {/* Time Column */}
+                                        <div className={`flex flex-col items-center justify-center w-20 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
+                                            <span className={`text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
+                                                {displayTime.replace(/(am|pm)/, '')}
+                                            </span>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
+                                                {displayTime.match(/(am|pm)/)?.[0]}
+                                            </span>
+                                        </div>
+
+                                        {/* Main Info */}
+                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
+                                            <div className="flex items-center gap-5">
+                                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-slate-800 text-slate-500'}`}>
+                                                    {isCurrentlyHappening && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
+                                                    <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
+                                                        {isCurrentlyHappening && (
+                                                            <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
+                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-accent/60" /> {svc?.name}</div>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                        <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-4">
+                                                {isCurrentlyHappening ? (
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 py-1.5">Agenda</span>
+                                                )}
+                                                <div className={`
+                                                    px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner
+                                                    ${isCurrentlyHappening
+                                                        ? 'bg-accent text-white border-white/10'
+                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
+                                                `}>
+                                                    {isCurrentlyHappening ? 'Atendiendo' : 'Confirmada'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
             </div>
         </div>
     );
