@@ -359,7 +359,7 @@ export default function Appointments() {
                                                             {/* Client info */}
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-center gap-2 mb-1">
-                                                                    <span className={`text-lg font-bold truncate ${isCancelled ? 'text-muted line-through' : 'text-white'}`}>
+                                                                    <span className={`text-lg font-bold ${isCancelled ? 'text-muted line-through' : 'text-white'}`}>
                                                                         {apt.clientName}
                                                                     </span>
                                                                     {blocked && <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[10px] font-bold text-red-500 border border-red-500/20">BLOQUEADO</span>}
@@ -373,11 +373,11 @@ export default function Appointments() {
                                                             <div className="flex flex-col gap-1.5 md:min-w-[180px]">
                                                                 <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
                                                                     <div className="p-1 rounded-md bg-accent/10 text-accent"><Scissors size={12} /></div>
-                                                                    <span className="truncate">{service?.name}</span>
+                                                                    <span>{service?.name}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2 text-xs font-medium text-muted">
                                                                     <div className="p-1 rounded-md bg-white/5"><User size={12} /></div>
-                                                                    <span className="truncate">{stylist?.name || 'Cualquier profesional'}</span>
+                                                                    <span>{stylist?.name || 'Cualquier profesional'}</span>
                                                                 </div>
                                                             </div>
 

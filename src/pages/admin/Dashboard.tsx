@@ -479,51 +479,47 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-amber-500/20 transition-all duration-500 bg-slate-900/40">
+                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-amber-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-amber-500/5 blur-2xl rounded-full group-hover:bg-amber-500/10 transition-all duration-700"></div>
-                    <div className="flex items-start justify-between relative z-10">
-                        <div className="flex items-center gap-5">
-                            <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
-                                <Activity size={26} />
-                            </div>
-                            <div>
-                                <div className="w-full">
-                                    <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">{t('dashboard.metrics.month_appts')}</p>
-                                    {isLoading ? <Skeleton className="h-9 w-16" /> : <p className="text-3xl font-black text-white tracking-tighter">{currentMonthStats.count}</p>}
+                    <div className="flex items-center gap-4 relative z-10 mb-4">
+                        <div className="p-3.5 rounded-2xl bg-amber-500/10 text-amber-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
+                            <Activity size={24} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-slate-500 mb-0.5 font-black uppercase tracking-widest truncate">{t('dashboard.metrics.month_appts')}</p>
+                            <div className="flex items-center gap-2">
+                                {isLoading ? <Skeleton className="h-8 w-12" /> : <p className="text-3xl font-black text-white tracking-tighter">{currentMonthStats.count}</p>}
+                                <div className={`flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-lg border ${currentMonthStats.appsGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
+                                    {currentMonthStats.appsGrowth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                    {Math.abs(Math.round(currentMonthStats.appsGrowth))}%
                                 </div>
                             </div>
-                            <div className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1.5 rounded-xl border ${currentMonthStats.appsGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
-                                {currentMonthStats.appsGrowth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                                {Math.abs(Math.round(currentMonthStats.appsGrowth))}%
-                            </div>
                         </div>
-                        <div className="mt-4 text-[10px] text-slate-500 font-bold tracking-tight relative z-10 text-right">
-                            {t('dashboard.metrics.canceled', { count: currentMonthStats.canceled })}
-                        </div>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3">
+                        {t('dashboard.metrics.canceled', { count: currentMonthStats.canceled })}
                     </div>
                 </div>
 
-                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500 bg-slate-900/40">
+                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-pink-500/5 blur-2xl rounded-full group-hover:bg-pink-500/10 transition-all duration-700"></div>
-                    <div className="flex items-start justify-between relative z-10">
-                        <div className="flex items-center gap-5">
-                            <div className="p-4 rounded-2xl bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
-                                <CreditCard size={26} />
-                            </div>
-                            <div>
-                                <div className="w-full">
-                                    <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">{t('dashboard.metrics.month_revenue')}</p>
-                                    {isLoading ? <Skeleton className="h-9 w-24" /> : <p className="text-3xl font-black text-pink-400 tracking-tighter">${currentMonthStats.revenue}</p>}
+                    <div className="flex items-center gap-4 relative z-10 mb-4">
+                        <div className="p-3.5 rounded-2xl bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
+                            <CreditCard size={24} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-slate-500 mb-0.5 font-black uppercase tracking-widest truncate">{t('dashboard.metrics.month_revenue')}</p>
+                            <div className="flex items-center gap-2">
+                                {isLoading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-black text-pink-400 tracking-tighter">${currentMonthStats.revenue}</p>}
+                                <div className={`flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-lg border ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
+                                    {currentMonthStats.revenueGrowth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                    {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
                                 </div>
                             </div>
-                            <div className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1.5 rounded-xl border ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
-                                {currentMonthStats.revenueGrowth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                                {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
-                            </div>
                         </div>
-                        <div className="mt-4 text-[10px] text-slate-500 font-bold tracking-tight relative z-10 text-right uppercase">
-                            {userRole === 'employee' ? t('dashboard.metrics.own_revenue') : t('dashboard.metrics.vs_last_month', { amount: currentMonthStats.lastRevenue })}
-                        </div>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3 uppercase">
+                        {userRole === 'employee' ? t('dashboard.metrics.own_revenue') : t('dashboard.metrics.vs_last_month', { amount: currentMonthStats.lastRevenue })}
                     </div>
                 </div>
             </div>

@@ -653,7 +653,7 @@ export default function Booking() {
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">{service.name}</h4>
+                                            <h4 className="font-bold text-white text-lg mb-1 group-hover:text-cyan-400 transition-colors">{service.name}</h4>
                                             <div className="flex items-center gap-3 text-sm">
                                                 <span className="text-cyan-400 font-bold">${service.price}</span>
                                                 <span className="text-muted flex items-center gap-1"><Clock size={14} /> {service.duration} min</span>
