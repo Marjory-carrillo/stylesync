@@ -1,3 +1,4 @@
+// Force Vercel rebuild
 import { useState, useMemo } from 'react';
 import { useClients } from '../../lib/store/queries/useClients';
 import { Search, User, Phone } from 'lucide-react';
