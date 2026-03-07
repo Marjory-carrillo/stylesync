@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Paintbrush, Save, AlertCircle, RefreshCw } from 'lucide-react';
-import { useStore } from '../../lib/store';
+import { useUIStore } from '../../lib/store/uiStore';
 
 interface BrandingTheme {
     id: string;
@@ -13,7 +13,7 @@ interface BrandingTheme {
 }
 
 export default function Branding() {
-    const { showToast } = useStore();
+    const { showToast } = useUIStore();
     const [themes, setThemes] = useState<BrandingTheme[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);

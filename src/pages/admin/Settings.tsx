@@ -1,6 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { useStore, DAY_NAMES, DAY_KEYS } from '../../lib/store';
+import { useAuthStore } from '../../lib/store/authStore';
+import { useUIStore } from '../../lib/store/uiStore';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { useSchedule } from '../../lib/store/queries/useSchedule';
+import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
+import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
+import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
 import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent } from 'lucide-react';
 
@@ -86,11 +93,22 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
 
 
 export default function Settings() {
-    const {
-        businessConfig, schedule, announcements, blockedSlots, stylists, userRole,
-        updateBusinessConfig, saveSchedule, addAnnouncement, removeAnnouncement, addBlockedSlot, removeBlockedSlot,
-        uploadLogo, showToast, updateStylistCommissionRate
-    } = useStore();
+    const { uploadLogo } = useStore();
+    const { userRole } = useAuthStore();
+    const { showToast } = useUIStore();
+
+    const { data: tenantConfig, updateTenantData: updateBusinessConfig } = useTenantData();
+    const businessConfig = tenantConfig || {} as any;
+
+    const { schedule, saveSchedule } = useSchedule();
+
+    const { announcements, addAnnouncement, removeAnnouncement } = useAnnouncements();
+    const { blockedSlots, addBlockedSlot, removeBlockedSlot } = useBlockedSlots();
+    const { stylists, updateStylist } = useStylists();
+
+    const updateStylistCommissionRate = async (id: number, rate: number) => {
+        await updateStylist({ id, data: { commissionRate: rate } });
+    };
 
     const [infoForm, setInfoForm] = useState(businessConfig);
     const [scheduleForm, setScheduleForm] = useState(schedule);
@@ -139,7 +157,7 @@ export default function Settings() {
     const handleAddAnnouncement = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newAnnouncement.trim()) return;
-        addAnnouncement(newAnnouncement, newAnnouncementType);
+        addAnnouncement({ message: newAnnouncement, type: newAnnouncementType } as any);
         setNewAnnouncement('');
         setNewAnnouncementType('info');
     };

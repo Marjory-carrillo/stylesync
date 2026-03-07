@@ -1,10 +1,13 @@
 
 import { useState } from 'react';
 import { useStore } from '../../lib/store';
+import { useStylists } from '../../lib/store/queries/useStylists';
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon } from 'lucide-react';
+import { stylistSchema } from '../../lib/schemas';
 
 export default function Staff() {
-    const { stylists, addStylist, removeStylist, updateStylist, uploadStylistPhoto } = useStore();
+    const { uploadStylistPhoto } = useStore();
+    const { stylists, addStylist, removeStylist, updateStylist, isLoading } = useStylists();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -12,40 +15,59 @@ export default function Staff() {
     const [formRole, setFormRole] = useState('');
     const [formPhone, setFormPhone] = useState('');
     const [formImage, setFormImage] = useState('');
+    const [formCommission, setFormCommission] = useState<number>(0);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     const openAdd = () => {
+        setFormError(null);
         setEditingId(null);
         setFormName('');
         setFormRole('');
         setFormPhone('');
         setFormImage('');
+        setFormCommission(0);
         setIsModalOpen(true);
     };
 
     const openEdit = (id: number) => {
         const stylist = stylists.find(s => s.id === id);
         if (!stylist) return;
+        setFormError(null);
         setEditingId(id);
         setFormName(stylist.name);
         setFormRole(stylist.role);
         setFormPhone(stylist.phone);
         setFormImage(stylist.image || '');
+        setFormCommission(stylist.commissionRate || 0);
         setIsModalOpen(true);
     };
 
     const handleSave = async () => {
-        if (!formName || !formRole) return;
-
-        const data = {
+        const result = stylistSchema.safeParse({
             name: formName,
             role: formRole,
-            phone: formPhone,
-            image: formImage
+            phone: formPhone || '',
+            image: formImage || '',
+            commissionRate: formCommission
+        });
+
+        if (!result.success) {
+            setFormError(result.error.issues[0].message);
+            return;
+        }
+        setFormError(null);
+
+        const data = {
+            name: result.data.name,
+            role: result.data.role,
+            phone: result.data.phone || '',
+            image: result.data.image || '',
+            commissionRate: result.data.commissionRate
         };
 
         if (editingId !== null) {
-            await updateStylist(editingId, data);
+            await updateStylist({ id: editingId, data });
         } else {
             await addStylist(data);
         }
@@ -62,7 +84,10 @@ export default function Staff() {
         <div className="animate-fade-in space-y-6">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Equipo</h2>
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                        Equipo
+                        {isLoading && <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>}
+                    </h2>
                     <p className="text-sm text-muted">Gestiona a tus estilistas y personal.</p>
                 </div>
                 <button className="btn btn-primary" onClick={openAdd}>
@@ -93,7 +118,13 @@ export default function Staff() {
                                 )}
                             </div>
                             <h3 className="text-xl font-bold text-white mb-1">{person.name}</h3>
-                            <p className="text-accent text-sm font-medium mb-4">{person.role}</p>
+                            <p className="text-accent text-sm font-medium mb-2">{person.role}</p>
+
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md border border-emerald-500/20">
+                                    {person.commissionRate || 0}% COMISIÓN
+                                </span>
+                            </div>
 
                             {person.phone && (
                                 <div className="flex items-center gap-2 text-sm text-muted bg-white/5 py-1 px-3 rounded-full">
@@ -113,6 +144,13 @@ export default function Staff() {
                             <h3 className="text-xl font-bold text-white">{editingId ? 'Editar' : 'Nuevo'} Miembro</h3>
                             <button className="text-muted hover:text-white" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
                         </div>
+
+                        {formError && (
+                            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm animate-pulse-soft flex items-center gap-2">
+                                <X size={16} />
+                                <span>{formError}</span>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <div>
@@ -144,6 +182,20 @@ export default function Staff() {
                                     placeholder="555-0000"
                                     className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
                                 />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-muted mb-1 block">% Comisión (Nómina)</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        min="0" max="100"
+                                        value={formCommission}
+                                        onChange={e => setFormCommission(Number(e.target.value))}
+                                        placeholder="0"
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors pr-10"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">%</span>
+                                </div>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted mb-1 block">URL de Foto</label>

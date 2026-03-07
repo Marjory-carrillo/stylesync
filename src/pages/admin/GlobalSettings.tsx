@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Activity, ShieldCheck, Database, Sliders, Save, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Info } from 'lucide-react';
-import { useStore } from '../../lib/store';
+import { useUIStore } from '../../lib/store/uiStore';
 
 interface GlobalConfig {
     id: string;
@@ -13,7 +13,7 @@ interface GlobalConfig {
 }
 
 export default function GlobalSettings() {
-    const { showToast } = useStore();
+    const { showToast } = useUIStore();
     const [config, setConfig] = useState<GlobalConfig | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);

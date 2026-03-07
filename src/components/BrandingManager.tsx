@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useStore } from '../lib/store';
+import { useTenantData } from '../lib/store/queries/useTenantData';
 
 const THEMES: Record<string, { primary: string; accent: string }> = {
     barbershop: { primary: '200', accent: '190' }, // Cyan colors
@@ -12,7 +12,8 @@ const THEMES: Record<string, { primary: string; accent: string }> = {
 };
 
 export default function BrandingManager() {
-    const { businessConfig } = useStore();
+    const { data: tenantConfig } = useTenantData();
+    const businessConfig = tenantConfig || {} as any;
 
     useEffect(() => {
         if (!businessConfig) return;

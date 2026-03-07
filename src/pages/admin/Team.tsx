@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useStore } from '../../lib/store';
+import { useAuthStore } from '../../lib/store/authStore';
+import { useUIStore } from '../../lib/store/uiStore';
+import { useStylists } from '../../lib/store/queries/useStylists';
 import { supabase } from '../../lib/supabaseClient';
-import { Users, Mail, Shield, Plus, Trash2 } from 'lucide-react';
+import { Users, Mail, Shield, Plus, Trash2, AlertCircle } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+import { z } from 'zod';
 
 interface TeamMember {
     id: string;
@@ -13,13 +16,16 @@ interface TeamMember {
 }
 
 export default function Team() {
-    const { tenantId, userRole, showToast, stylists } = useStore();
+    const { tenantId, userRole } = useAuthStore();
+    const { showToast } = useUIStore();
+    const { stylists } = useStylists();
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState<'admin' | 'employee'>('employee');
     const [inviteStylistId, setInviteStylistId] = useState<string>('');
     const [confirmRevoke, setConfirmRevoke] = useState<{ open: boolean; memberId: string | null; email: string | null }>({ open: false, memberId: null, email: null });
+    const [inviteError, setInviteError] = useState<string | null>(null);
 
     useEffect(() => {
         if (tenantId) fetchMembers();
@@ -47,6 +53,13 @@ export default function Team() {
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteEmail || !tenantId) return;
+
+        const emailResult = z.string().email('El correo electrónico es inválido.').safeParse(inviteEmail.trim());
+        if (!emailResult.success) {
+            setInviteError(emailResult.error.issues[0].message);
+            return;
+        }
+        setInviteError(null);
 
         try {
             const { error } = await supabase
@@ -123,132 +136,164 @@ export default function Team() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* ── Invite Section ── */}
-                <section className="glass-panel p-8 rounded-3xl border border-white/10 relative overflow-hidden h-fit">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
+                <section className="glass-panel p-8 rounded-3xl border border-white/10 relative overflow-hidden h-fit transition-all hover:border-blue-500/30">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full"></div>
                     <div className="flex items-center gap-3 mb-6 relative z-10">
-                        <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-glow-sm">
                             <Plus size={24} />
                         </div>
-                        <h3 className="text-xl font-bold text-white">Nuevo Integrante</h3>
+                        <h3 className="text-xl font-bold text-white tracking-tight">Nuevo Integrante</h3>
                     </div>
 
                     <form onSubmit={handleInvite} className="space-y-6 relative z-10">
-                        <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
-                            <label className="block text-sm font-semibold text-slate-300 mb-2">Correo Electrónico de Acceso</label>
+                        <div className="bg-white/5 p-5 rounded-2xl border border-white/5 transition-all focus-within:border-blue-500/50">
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Correo Electrónico de Acceso</label>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                                 <input
                                     type="email"
                                     required
                                     value={inviteEmail}
                                     onChange={(e) => setInviteEmail(e.target.value)}
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500 font-medium placeholder:text-slate-600"
-                                    placeholder="correo@ejemplo.com"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500/50 font-medium placeholder:text-slate-600 transition-all"
+                                    placeholder="ejemplo@correo.com"
                                 />
                             </div>
+                            {inviteError && (
+                                <div className="mt-3 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-wider p-3 rounded-lg animate-fade-in flex items-center gap-2">
+                                    <AlertCircle size={14} /> {inviteError}
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
-                            <label className="block text-sm font-semibold text-slate-300 mb-4">Nivel de Permiso</label>
+                        <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Nivel de Permiso</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <button
                                     type="button"
-                                    className={`p-4 rounded-xl border text-left transition-all duration-300 ${inviteRole === 'employee' ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-white/5 bg-black/20 hover:bg-white/5'}`}
+                                    className={`group p-4 rounded-xl border text-left transition-all duration-500 ${inviteRole === 'employee' ? 'border-blue-500/50 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]' : 'border-white/5 bg-slate-900/50 hover:bg-white/5'}`}
                                     onClick={() => setInviteRole('employee')}
                                 >
-                                    <div className="font-bold text-white flex items-center justify-between">
+                                    <div className="font-bold text-white flex items-center justify-between text-sm">
                                         Empleado
-                                        {inviteRole === 'employee' && <div className="w-2 h-2 rounded-full bg-blue-500"></div>}
+                                        <div className={`w-2 h-2 rounded-full transition-all duration-500 ${inviteRole === 'employee' ? 'bg-blue-500 scale-125 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
                                     </div>
-                                    <div className="text-xs text-slate-400 mt-2 leading-relaxed">Solo lee y gestiona citas en la agenda y prospectos.</div>
+                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Acceso limitado a su propia agenda y prospectos.</div>
                                 </button>
                                 <button
                                     type="button"
-                                    className={`p-4 rounded-xl border text-left transition-all duration-300 ${inviteRole === 'admin' ? 'border-violet-500 bg-violet-500/10 shadow-[0_0_15px_rgba(139,92,246,0.2)]' : 'border-white/5 bg-black/20 hover:bg-white/5'}`}
+                                    className={`group p-4 rounded-xl border text-left transition-all duration-500 ${inviteRole === 'admin' ? 'border-violet-500/50 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.15)]' : 'border-white/5 bg-slate-900/50 hover:bg-white/5'}`}
                                     onClick={() => setInviteRole('admin')}
                                 >
-                                    <div className="font-bold text-white flex items-center justify-between">
+                                    <div className="font-bold text-white flex items-center justify-between text-sm">
                                         Administrador
-                                        {inviteRole === 'admin' && <div className="w-2 h-2 rounded-full bg-violet-500"></div>}
+                                        <div className={`w-2 h-2 rounded-full transition-all duration-500 ${inviteRole === 'admin' ? 'bg-violet-500 scale-125 shadow-[0_0_8px_#8b5cf6]' : 'bg-slate-700'}`}></div>
                                     </div>
-                                    <div className="text-xs text-slate-400 mt-2 leading-relaxed">Acceso integral a finanzas, equipo y configuración del negocio.</div>
+                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Control total sobre finanzas, equipo y configuración.</div>
                                 </button>
                             </div>
                         </div>
 
                         {inviteRole === 'employee' && stylists.length > 0 && (
-                            <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Vincular a Perfil Público (Opcional)</label>
-                                <p className="text-xs text-slate-400 mb-3">Si seleccionas un perfil, este empleado solo verá su propia agenda personal.</p>
+                            <div className="bg-white/5 p-5 rounded-2xl border border-white/5 animate-fade-in">
+                                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Perfil Público</label>
+                                <p className="text-[10px] text-slate-500 mb-3 font-medium">Vincular para habilitar la vista de agenda personal.</p>
                                 <div className="relative">
                                     <select
                                         value={inviteStylistId}
                                         onChange={(e) => setInviteStylistId(e.target.value)}
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-blue-500 font-medium appearance-none"
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-blue-500/50 font-medium appearance-none transition-all cursor-pointer"
                                     >
-                                        <option value="">Sin vincular (verá toda la agenda)</option>
+                                        <option value="">Sin vincular (acceso general)</option>
                                         {stylists.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name} - {s.role}</option>
+                                            <option key={s.id} value={s.id} className="bg-slate-900">{s.name} ({s.role})</option>
                                         ))}
                                     </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">
                                         ▼
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        <button type="submit" className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_30px_-5px_rgba(37,99,235,0.4)]">
-                            <Plus size={20} />
+                        <button
+                            type="submit"
+                            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-95 group"
+                        >
+                            <Plus size={20} className="group-hover:rotate-90 transition-transform" />
                             Enviar Invitación
                         </button>
                     </form>
                 </section>
 
                 {/* ── Member List ── */}
-                <section className="glass-panel p-8 rounded-3xl border border-white/10 relative overflow-hidden flex flex-col">
-                    <div className="flex items-center justify-between mb-6 relative z-10">
+                <section className="glass-panel p-8 rounded-3xl border border-white/10 relative overflow-hidden flex flex-col min-h-[500px]">
+                    <div className="flex items-center justify-between mb-8 relative z-10">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-glow-sm">
                                 <Users size={24} />
                             </div>
-                            <h3 className="text-xl font-bold text-white">Integrantes Activos</h3>
+                            <div>
+                                <h3 className="text-xl font-bold text-white tracking-tight">Integrantes Activos</h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Gestión de Cuentas</p>
+                            </div>
                         </div>
-                        <span className="bg-white/10 border border-white/5 text-slate-300 font-bold text-xs px-3 py-1.5 rounded-full">{members.length} Cuentas</span>
+                        <span className="bg-white/5 border border-white/10 text-slate-400 font-black text-[10px] px-3 py-1.5 rounded-full uppercase tracking-tighter">
+                            {members.length} {members.length === 1 ? 'Usuario' : 'Usuarios'}
+                        </span>
                     </div>
 
                     <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
                         {loading ? (
-                            <div className="animate-pulse flex flex-col items-center justify-center p-12 space-y-4">
-                                <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-                                <span className="text-slate-400 font-medium">Sincronizando equipo...</span>
+                            <div className="space-y-4">
+                                {Array(3).fill(0).map((_, i) => (
+                                    <div key={i} className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-4 animate-pulse">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-white/5"></div>
+                                                <div className="space-y-2">
+                                                    <div className="h-4 w-32 bg-white/5 rounded"></div>
+                                                    <div className="h-3 w-20 bg-white/5 rounded"></div>
+                                                </div>
+                                            </div>
+                                            <div className="w-8 h-8 rounded-lg bg-white/5"></div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : members.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-black/20 rounded-2xl border border-dashed border-white/10">
-                                <Users size={48} className="mx-auto mb-4 text-slate-600" />
-                                <h4 className="text-lg font-bold text-white mb-1">Equipo Vacío</h4>
-                                <p className="text-sm text-slate-400 max-w-xs">Aún no has invitado a ningún colaborador para administrar este negocio.</p>
+                            <div className="flex flex-col items-center justify-center h-full p-12 text-center bg-white/5 rounded-3xl border border-dashed border-white/10 animate-fade-in">
+                                <div className="w-20 h-20 rounded-full bg-slate-900 flex items-center justify-center mb-6">
+                                    <Users size={40} className="text-slate-700" />
+                                </div>
+                                <h4 className="text-xl font-bold text-white mb-2">Equipo Vacío</h4>
+                                <p className="text-sm text-slate-400 max-w-[240px] leading-relaxed">Aún no has invitado a ningún colaborador para administrar este negocio.</p>
                             </div>
                         ) : (
-                            members.map(member => {
+                            members.map((member, index) => {
                                 const linkedStylist = member.stylist_id ? stylists.find(s => s.id === member.stylist_id) : null;
                                 return (
-                                    <div key={member.id} className="flex items-center justify-between p-4 bg-slate-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
+                                    <div
+                                        key={member.id}
+                                        className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/[0.08] transition-all group animate-fade-in-up"
+                                        style={{ animationDelay: `${index * 50}ms` }}
+                                    >
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center font-bold text-slate-300 uppercase shadow-inner">
+                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center font-black text-slate-300 uppercase shadow-xl group-hover:scale-110 transition-transform">
                                                 {member.email.charAt(0)}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-white truncate max-w-[150px] sm:max-w-[200px] md:max-w-xs">{member.email}</p>
-                                                <div className="flex items-center gap-2 mt-1">
+                                                <p className="font-bold text-white text-base truncate max-w-[140px] sm:max-w-xs">{member.email}</p>
+                                                <div className="flex items-center gap-2 mt-1.5">
                                                     {member.role === 'admin' ? (
-                                                        <span className="text-[10px] font-black uppercase tracking-wider text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md">Admin</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md">Administrador</span>
                                                     ) : (
-                                                        <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">Empleado</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">Colaborador</span>
                                                     )}
                                                     {linkedStylist && (
-                                                        <span className="text-[10px] font-medium text-slate-400 border border-slate-700 bg-slate-800/50 px-2 py-0.5 rounded-md truncate max-w-[120px]">
-                                                            🔗 {linkedStylist.name}
+                                                        <span className="text-[9px] font-bold text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 rounded-md truncate flex items-center gap-1">
+                                                            <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></div>
+                                                            Vínculo: {linkedStylist.name}
                                                         </span>
                                                     )}
                                                 </div>
@@ -256,8 +301,8 @@ export default function Team() {
                                         </div>
                                         <button
                                             onClick={() => removeMember(member.id, member.email)}
-                                            className="p-2.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 border border-transparent rounded-xl transition-all"
-                                            title="Revocar acceso"
+                                            className="p-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 rounded-xl transition-all active:scale-90"
+                                            title="Revocar acceso permanente"
                                         >
                                             <Trash2 size={18} />
                                         </button>

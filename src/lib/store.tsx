@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { format } from 'date-fns';
 import { supabase } from './supabaseClient';
 import SplashScreen from '../components/SplashScreen';
+import { useAuthStore } from './store/authStore';
 import type {
     Service, Stylist, Appointment, Client, WaitingClient,
     CancellationLog, BlockedSlot, Toast, BusinessConfig, Tenant,
@@ -126,7 +127,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
 
     const [allTenants, setAllTenants] = useState<Tenant[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
     const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
@@ -138,22 +139,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // ── Auth Init ──
     useEffect(() => {
-        // Single source of truth: onAuthStateChange
-        // It fires INITIAL_SESSION on mount, reducing race conditions
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const currentUser = session?.user ?? null;
             setSession(session);
-            setUser(session?.user ?? null);
+            setUser(currentUser);
 
-            if (session?.user) {
-                // User is logged in, ensure loading is TRUE while we fetch tenant data
+            // Sincronizar con Zustand (useAuthStore)
+            useAuthStore.getState().setAuth({
+                user: currentUser,
+                session: session,
+                loadingAuth: true // Seguirá cargando hasta que loadTenant termine
+            });
+
+            if (currentUser) {
                 setLoadingAuth(true);
-                loadTenant(session.user.id);
+                loadTenant(currentUser.id);
             } else {
-                // User is not logged in, stop loading immediately
                 setTenantId(null);
                 setUserRole(null);
                 setUserStylistId(null);
                 setLoadingAuth(false);
+
+                // Sincronizar logout con Zustand
+                useAuthStore.getState().setAuth({
+                    user: null,
+                    session: null,
+                    loadingAuth: false
+                });
+                useAuthStore.getState().setTenantData({
+                    tenantId: null,
+                    userRole: null,
+                    userStylistId: null
+                });
             }
         });
 
@@ -249,9 +266,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             showToast(`Error de enlace: ${e.message}`, 'error');
         } finally {
             // Small delay to ensure router state stabilizes and prevent flickering
-            setTimeout(() => setLoadingAuth(false), 300);
+            setTimeout(() => {
+                setLoadingAuth(false);
+
+                // Sincronizar estado final con Zustand
+                // Note: we can't use useState values directly here because they might be stale
+                // But since loadTenant is async, the set calls above will eventually trigger re-renders.
+                // However, to be safe, we'll sync the local variables if we had them, 
+                // but since we are multi-setting, we'll just do it in the next tick or rely on the fact
+                // that we'll call another sync at the end of loadTenant or via separate useEffects.
+            }, 300);
         }
     };
+
+    // Sincronización proactiva de tenant/role hacia Zustand cada vez que cambian en Context
+    useEffect(() => {
+        useAuthStore.getState().setTenantData({
+            tenantId,
+            userRole: userRole as any,
+            userStylistId
+        });
+        useAuthStore.getState().setLoadingAuth(loadingAuth);
+    }, [tenantId, userRole, userStylistId, loadingAuth]);
 
     const loadTenantBySlug = async (slug: string) => {
         try {

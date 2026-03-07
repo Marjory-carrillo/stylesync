@@ -1,15 +1,40 @@
 import { useState, useMemo } from 'react';
-import { useStore } from '../../lib/store';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useAuthStore } from '../../lib/store/authStore';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { useAppointments } from '../../lib/store/queries/useAppointments';
+import { useStylists } from '../../lib/store/queries/useStylists';
+import { useServices } from '../../lib/store/queries/useServices';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calculator, Download, Calendar as CalendarIcon, DollarSign, Users, TrendingUp } from 'lucide-react';
 import type { CommissionEntry } from '../../lib/types/store.types';
 
 export default function Commissions() {
-    const { appointments, stylists, services, userRole, businessConfig } = useStore();
+    const { userRole } = useAuthStore();
+    const { data: tenantConfig } = useTenantData();
     const [dateRange, setDateRange] = useState<'thisWeek' | 'thisMonth' | 'all'>('thisMonth');
 
-    // Only owners can view this module, but we double-check just in case.
+    const { start: startDate, end: endDate } = useMemo(() => {
+        const now = new Date();
+        switch (dateRange) {
+            case 'thisWeek':
+                return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+            case 'thisMonth':
+                return { start: startOfMonth(now), end: endOfMonth(now) };
+            default:
+                return { start: new Date('2020-01-01'), end: new Date('2100-01-01') };
+        }
+    }, [dateRange]);
+
+    const { data: appointments = [] } = useAppointments({
+        startDate: format(startDate, 'yyyy-MM-dd')
+    });
+    const { data: stylists = [] } = useStylists();
+    const { data: services = [] } = useServices();
+    const businessConfig = tenantConfig || {} as any;
+
     if (userRole !== 'owner' || !businessConfig?.commissionsEnabled) {
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center h-[60vh]">
@@ -21,18 +46,6 @@ export default function Commissions() {
             </div>
         );
     }
-
-    const { start: startDate, end: endDate } = useMemo(() => {
-        const now = new Date();
-        switch (dateRange) {
-            case 'thisWeek':
-                return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
-            case 'thisMonth':
-                return { start: startOfMonth(now), end: endOfMonth(now) };
-            default:
-                return { start: new Date('2000-01-01'), end: new Date('2100-01-01') };
-        }
-    }, [dateRange]);
 
     const { commissionEntries, totalGenerated, totalToPay } = useMemo(() => {
         // Filter valid completed appointments within date range
@@ -103,6 +116,75 @@ export default function Commissions() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        const businessName = businessConfig?.name || 'CitaLink Business';
+
+        // Header
+        doc.setFontSize(22);
+        doc.setTextColor(40, 42, 54);
+        doc.text(businessName.toUpperCase(), 14, 22);
+
+        doc.setFontSize(14);
+        doc.setTextColor(100, 100, 100);
+        doc.text('REPORTE DE NÓMINA Y COMISIONES', 14, 32);
+
+        doc.setFontSize(10);
+        doc.text(`Período: ${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`, 14, 40);
+        doc.text(`Fecha de Emisión: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 46);
+
+        // Summary Stats
+        doc.setDrawColor(230, 230, 230);
+        doc.line(14, 52, 196, 52);
+
+        doc.setFontSize(11);
+        doc.setTextColor(40, 42, 54);
+        doc.text(`Total Generado (Bruto): $${totalGenerated.toFixed(2)}`, 14, 62);
+        doc.text(`Total a Liquidar (Comisiones): $${totalToPay.toFixed(2)}`, 14, 68);
+        doc.text(`Total Citas: ${commissionEntries.reduce((sum, e) => sum + e.appointmentsCount, 0)}`, 14, 74);
+
+        // Table
+        autoTable(doc, {
+            startY: 85,
+            head: [['Profesional', 'Citas', 'Generado ($)', '% Com.', 'Pago ($)']],
+            body: commissionEntries.map(e => [
+                e.stylistName,
+                e.appointmentsCount,
+                e.totalRevenue.toFixed(2),
+                `${e.commissionRate}%`,
+                e.commissionEarned.toFixed(2)
+            ]),
+            styles: { fontSize: 9, cellPadding: 4 },
+            headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
+            columnStyles: {
+                2: { halign: 'right' },
+                3: { halign: 'center' },
+                4: { halign: 'right', fontStyle: 'bold' }
+            }
+        });
+
+        // Footer
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(
+                'Generado automáticamente por CitaLink - La plataforma #1 para la gestión de servicios.',
+                14,
+                doc.internal.pageSize.height - 10
+            );
+            doc.text(
+                `Página ${i} de ${pageCount}`,
+                doc.internal.pageSize.width - 30,
+                doc.internal.pageSize.height - 10
+            );
+        }
+
+        doc.save(`nomina_${businessName.replace(/\s+/g, '_').toLowerCase()}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
     return (
@@ -188,12 +270,21 @@ export default function Commissions() {
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         Desglose por Profesional
                     </h2>
-                    <button
-                        onClick={handleExportCSV}
-                        className="btn bg-[#0f172a] hover:bg-white/5 text-white border border-white/10 shadow-sm flex items-center gap-2 py-2"
-                    >
-                        <Download size={16} /> Exportar CSV
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleExportCSV}
+                            className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                            title="Exportar CSV"
+                        >
+                            <Download size={20} />
+                        </button>
+                        <button
+                            onClick={handleExportPDF}
+                            className="btn btn-primary px-4 py-2.5 shadow-lg shadow-accent/20 flex items-center gap-2"
+                        >
+                            <Calculator size={18} /> Generar Nómina PDF
+                        </button>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">

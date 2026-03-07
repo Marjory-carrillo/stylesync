@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
-import { useStore } from '../lib/store';
+import { useAuthStore } from '../lib/store/authStore';
 
 export default function Login() {
-    const { user, isSuperAdmin } = useStore();
+    const { user, isSuperAdmin } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');

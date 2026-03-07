@@ -1,11 +1,17 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../../lib/store';
+import { useServices } from '../../lib/store/queries/useServices';
 import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon } from 'lucide-react';
+import { Skeleton } from '../../components/ui/Skeleton';
 import ConfirmModal from '../../components/ConfirmModal';
 import PlaceholderSVG from '../../assets/placeholder-service.svg';
+import { serviceSchema } from '../../lib/schemas';
 
 export default function Services() {
-    const { services, addService, removeService, updateService, uploadServiceImage } = useStore();
+    const { t } = useTranslation();
+    const { uploadServiceImage } = useStore();
+    const { services, addService, removeService, updateService, isLoading } = useServices();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formName, setFormName] = useState('');
@@ -14,8 +20,10 @@ export default function Services() {
     const [formImage, setFormImage] = useState('');
     const [uploading, setUploading] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
+    const [formError, setFormError] = useState<string | null>(null);
 
     const openAdd = () => {
+        setFormError(null);
         setEditingId(null);
         setFormName('');
         setFormDuration('');
@@ -27,6 +35,7 @@ export default function Services() {
     const openEdit = (id: number) => {
         const svc = services.find(s => s.id === id);
         if (!svc) return;
+        setFormError(null);
         setEditingId(id);
         setFormName(svc.name);
         setFormDuration(String(svc.duration));
@@ -36,11 +45,23 @@ export default function Services() {
     };
 
     const handleSave = async () => {
-        if (!formName || !formDuration || !formPrice) return;
+        const result = serviceSchema.safeParse({
+            name: formName,
+            duration: Number(formDuration),
+            price: Number(formPrice),
+            image: formImage || ''
+        });
+
+        if (!result.success) {
+            setFormError(result.error.issues[0].message);
+            return;
+        }
+        setFormError(null);
+
         if (editingId !== null) {
-            await updateService(editingId, { name: formName, duration: Number(formDuration), price: Number(formPrice), image: formImage });
+            await updateService({ id: editingId, data: result.data });
         } else {
-            await addService({ name: formName, duration: Number(formDuration), price: Number(formPrice), image: formImage });
+            await addService(result.data);
         }
         setIsModalOpen(false);
     };
@@ -60,11 +81,13 @@ export default function Services() {
         <div className="animate-fade-in space-y-6">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Servicios</h2>
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                        {t('services.title')}
+                    </h2>
                     <p className="text-sm text-muted">Administra el catálogo de servicios ofrecidos.</p>
                 </div>
                 <button className="btn btn-primary" onClick={openAdd}>
-                    <Plus size={20} /> <span className="hidden md:inline">Nuevo Servicio</span>
+                    <Plus size={20} /> <span className="hidden md:inline">{t('services.new_service')}</span>
                 </button>
             </div>
 
@@ -74,14 +97,30 @@ export default function Services() {
                         <thead>
                             <tr className="border-b border-white/10 bg-white/5">
                                 <th className="p-4 font-semibold text-white w-20">Imagen</th>
-                                <th className="p-4 font-semibold text-white">Nombre</th>
-                                <th className="p-4 font-semibold text-white">Duración</th>
-                                <th className="p-4 font-semibold text-white">Precio</th>
-                                <th className="p-4 font-semibold text-white text-center">Acciones</th>
+                                <th className="p-4 font-semibold text-white">{t('services.table.name')}</th>
+                                <th className="p-4 font-semibold text-white">{t('services.table.duration')}</th>
+                                <th className="p-4 font-semibold text-white">{t('services.table.price')}</th>
+                                <th className="p-4 font-semibold text-white text-center">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {services.map(service => (
+                            {isLoading ? (
+                                Array(5).fill(0).map((_, i) => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td className="p-4"><Skeleton className="w-12 h-12 rounded-lg" /></td>
+                                        <td className="p-4"><Skeleton className="h-4 w-32" /></td>
+                                        <td className="p-4"><Skeleton className="h-4 w-20" /></td>
+                                        <td className="p-4"><Skeleton className="h-4 w-16" /></td>
+                                        <td className="p-4"><Skeleton className="h-8 w-16 mx-auto rounded-full" /></td>
+                                    </tr>
+                                ))
+                            ) : services.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="p-12 text-center text-muted">
+                                        No hay servicios registrados. Click en "Nuevo Servicio" para empezar.
+                                    </td>
+                                </tr>
+                            ) : services.map(service => (
                                 <tr key={service.id} className="hover:bg-white/5 transition-colors group">
                                     <td className="p-4">
                                         <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden border border-white/10">
@@ -99,7 +138,7 @@ export default function Services() {
                                     <td className="p-4">
                                         <div className="flex items-center gap-2 text-muted">
                                             <Clock size={16} />
-                                            <span>{service.duration} min</span>
+                                            <span>{service.duration} {t('services.table.min')}</span>
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -110,12 +149,13 @@ export default function Services() {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex gap-2 justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-2 hover:bg-white/10 rounded-full text-muted hover:text-white transition-colors" title="Editar" onClick={() => openEdit(service.id)}>
+                                            <button className="p-2 hover:bg-white/10 rounded-full text-muted hover:text-white transition-colors" title="Editar" aria-label="Editar" onClick={() => openEdit(service.id)}>
                                                 <Edit2 size={18} />
                                             </button>
                                             <button
                                                 className="p-2 hover:bg-red-500/20 rounded-full text-muted hover:text-red-500 transition-colors"
                                                 title="Eliminar"
+                                                aria-label="Eliminar"
                                                 onClick={() => handleDelete(service.id)}
                                             >
                                                 <Trash2 size={18} />
@@ -137,6 +177,13 @@ export default function Services() {
                             <h3 className="text-xl font-bold text-white">{editingId ? 'Editar' : 'Nuevo'} Servicio</h3>
                             <button className="text-muted hover:text-white" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
                         </div>
+
+                        {formError && (
+                            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm animate-pulse-soft flex items-center gap-2">
+                                <X size={16} />
+                                <span>{formError}</span>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <div>

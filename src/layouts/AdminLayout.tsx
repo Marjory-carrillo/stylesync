@@ -1,16 +1,26 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabaseClient';
-import { useStore } from '../lib/store';
+import { useAuthStore } from '../lib/store/authStore';
+import { useTenantData } from '../lib/store/queries/useTenantData';
 import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent } from 'lucide-react';
 
 export default function AdminLayout() {
-    const { isSuperAdmin, userRole, businessConfig } = useStore();
+    const { t, i18n } = useTranslation();
+    const { isSuperAdmin, userRole } = useAuthStore();
+    const { data: tenantConfig } = useTenantData();
+    const businessConfig = tenantConfig || {} as any;
     const isEmployee = userRole === 'employee';
     const location = useLocation();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'es' ? 'en' : 'es';
+        i18n.changeLanguage(newLang);
+    };
 
     const handleLogout = async () => {
         setIsLogoutModalOpen(true);
@@ -58,16 +68,16 @@ export default function AdminLayout() {
             {/* Overlay for mobile menu */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] lg:hidden animate-fade-in"
+                    className="fixed inset-0 bg-black/60 z-[40] lg:hidden animate-fade-in"
                     onClick={closeMobileMenu}
                 />
             )}
 
             {/* Sidebar Navigation */}
             <aside className={`
-                fixed inset-y-0 left-0 w-72 glass-panel m-4 border-none shadow-[0_0_50px_rgba(0,0,0,0.5)] z-50 transform transition-all duration-500 ease-in-out
-                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)]'}
-                lg:relative lg:translate-x-0 lg:m-6 lg:rounded-[2.5rem]
+                fixed inset-y-0 left-0 w-72 bg-[#0f172a] shadow-2xl z-50 transform transition-all duration-500 ease-in-out
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+                lg:relative lg:translate-x-0 lg:m-6 lg:rounded-[2.5rem] lg:glass-panel lg:border-none
             `}>
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                     <div className="flex items-center gap-3">
@@ -94,46 +104,46 @@ export default function AdminLayout() {
                     {!isEmployee && (
                         <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')}>
                             <LayoutDashboard size={18} />
-                            <span>Dashboard</span>
+                            <span>{t('nav.dashboard')}</span>
                         </Link>
                     )}
 
                     <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')}>
                         <Calendar size={18} />
-                        <span>Agenda</span>
+                        <span>{t('nav.appointments')}</span>
                     </Link>
 
                     <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')}>
                         <Users size={18} />
-                        <span>Clientes</span>
+                        <span>{t('nav.clients')}</span>
                     </Link>
 
                     {!isEmployee && (
                         <>
                             <Link to="/admin/services" onClick={closeMobileMenu} className={navLinkClass('/admin/services')}>
                                 <Scissors size={18} />
-                                <span>Servicios</span>
+                                <span>{t('nav.services')}</span>
                             </Link>
                             <Link to="/admin/staff" onClick={closeMobileMenu} className={navLinkClass('/admin/staff')}>
                                 <Users size={18} />
-                                <span>Estilistas</span>
+                                <span>{t('nav.stylists')}</span>
                             </Link>
 
                             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-8">Configuración</div>
 
                             <Link to="/admin/team" onClick={closeMobileMenu} className={navLinkClass('/admin/team')}>
                                 <Users size={18} />
-                                <span>Equipo y Roles</span>
+                                <span>{t('nav.team')}</span>
                             </Link>
 
                             <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')}>
                                 <SettingsIcon size={18} />
-                                <span>Ajustes del Negocio</span>
+                                <span>{t('nav.settings')}</span>
                             </Link>
                             {userRole === 'owner' && businessConfig?.commissionsEnabled && (
                                 <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')}>
                                     <Percent size={18} />
-                                    <span>Nómina</span>
+                                    <span>{t('nav.commissions')}</span>
                                 </Link>
                             )}
                         </>
@@ -141,6 +151,18 @@ export default function AdminLayout() {
                 </nav>
 
                 <div className="p-4 mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2">
+                    <button
+                        onClick={toggleLanguage}
+                        className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 group"
+                        aria-label="Cambiar Idioma"
+                    >
+                        <div className="w-5 h-5 flex items-center justify-center font-bold text-[10px] border border-white/20 rounded-md">
+                            {i18n.language.toUpperCase().substring(0, 2)}
+                        </div>
+                        <span className="font-medium flex-1 text-left">
+                            {i18n.language.startsWith('es') ? 'English Language' : 'Idioma Español'}
+                        </span>
+                    </button>
                     {isSuperAdmin && (
                         <button
                             onClick={() => {
@@ -157,15 +179,16 @@ export default function AdminLayout() {
                     <button
                         onClick={() => { closeMobileMenu(); handleLogout(); }}
                         className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200 group"
+                        aria-label={t('nav.logout')}
                     >
                         <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="font-medium">Cerrar Sesión</span>
+                        <span className="font-medium">{t('nav.logout')}</span>
                     </button>
                 </div>
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 bg-transparent">
+            <main role="main" className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 bg-transparent">
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
                     <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-[var(--color-accent)]/10 blur-[120px]"></div>
                     <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--color-primary)]/10 blur-[120px]"></div>

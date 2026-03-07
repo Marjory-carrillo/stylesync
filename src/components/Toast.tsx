@@ -1,9 +1,9 @@
 
 import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
-import { useStore } from '../lib/store';
+import { useUIStore } from '../lib/store/uiStore';
 
 export default function ToastContainer() {
-    const { toasts, removeToast } = useStore();
+    const { toasts, removeToast } = useUIStore();
 
     return (
         <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">

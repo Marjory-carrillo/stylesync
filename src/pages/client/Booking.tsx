@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useStore, DAY_NAMES, type Announcement, type Service, type Stylist } from '../../lib/store';
+import { appointmentSchema } from '../../lib/schemas';
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield } from 'lucide-react';
@@ -203,21 +204,26 @@ export default function Booking() {
 
     // ── Step 1: Validate & Init OTP ───
     const handleClientSubmit = () => {
-        if (!clientName.trim() || !clientPhone.trim()) {
-            setClientError('Por favor completa tu nombre y teléfono.');
+        const cleanPhone = clientPhone.replace(/\s+/g, '');
+        const result = appointmentSchema.pick({ clientName: true, clientPhone: true }).safeParse({
+            clientName: clientName.trim(),
+            clientPhone: cleanPhone
+        });
+
+        if (!result.success) {
+            setClientError(result.error.issues[0].message);
             return;
         }
-        if (clientPhone.trim().length < 7) {
-            setClientError('Ingresa un número de teléfono válido.');
-            return;
-        }
-        if (isPhoneBlocked(clientPhone.trim())) {
+
+        if (isPhoneBlocked(cleanPhone)) {
             setClientError('Este número ha sido bloqueado. Contacta al establecimiento para más información.');
             return;
         }
-        setClientError(null);
 
-        if (hasActiveAppointment(clientPhone.trim())) {
+        setClientError(null);
+        setClientPhone(cleanPhone); // Update global state to clean value
+
+        if (hasActiveAppointment(cleanPhone)) {
             setStep(10);
             return;
         }
@@ -233,7 +239,7 @@ export default function Booking() {
 
         // Send "Professional" SMS using the central function
         const message = `Tu código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
-        sendSMS(clientPhone, message);
+        sendSMS(cleanPhone, message);
 
         setStep(16); // Go to OTP verification
     };

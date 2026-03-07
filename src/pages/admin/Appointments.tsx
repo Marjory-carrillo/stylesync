@@ -1,5 +1,13 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../../lib/store';
+import { useAuthStore } from '../../lib/store/authStore';
+import { useUIStore } from '../../lib/store/uiStore';
+import { useAppointments } from '../../lib/store/queries/useAppointments';
+import { useServices } from '../../lib/store/queries/useServices';
+import { useStylists } from '../../lib/store/queries/useStylists';
+import { useWaitingList } from '../../lib/store/queries/useWaitingList';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
@@ -7,22 +15,30 @@ import WeekCalendar from '../../components/WeekCalendar';
 
 
 export default function Appointments() {
+    const { t } = useTranslation();
+    const { userRole, userStylistId } = useAuthStore();
+    const { showToast } = useUIStore();
+
+    // Optimize: only load last 6 months for the agenda/list
+    const startDate = useMemo(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 6);
+        return d.toISOString().split('T')[0];
+    }, []);
+
+    const { appointments: allAppointments, cancelAppointment, isPending: apptsPending } = useAppointments({ startDate });
+    const { services, isPending: servicesPending } = useServices();
+    const { stylists, isPending: stylistsPending } = useStylists();
+    const { waitingList, removeFromWaitingList } = useWaitingList();
+
+    const isLoading = apptsPending || servicesPending || stylistsPending;
     const {
-        appointments: allAppointments,
-        services,
-        stylists,
-        waitingList,
         cancellationLog,
-        cancelAppointment,
-        removeFromWaitingList,
         getServiceById,
         getStylistById,
         isPhoneBlocked,
         generateWhatsAppUrl,
         generateReminderWhatsAppUrl,
-        showToast,
-        userRole,
-        userStylistId
     } = useStore();
 
     const appointments = useMemo(() => {
@@ -102,7 +118,7 @@ export default function Appointments() {
         const apt = confirmModal.appt;
         if (!apt) return;
 
-        await cancelAppointment(apt.id);
+        await cancelAppointment({ id: apt.id });
         setConfirmModal({ open: false, appt: null });
 
         // Check waiting list for this date
@@ -119,8 +135,8 @@ export default function Appointments() {
             {/* Header & Controls */}
             <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 flex-none px-1">
                 <div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">Agenda</h2>
-                    <p className="text-sm text-muted-foreground">Gestión de citas y reservas</p>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">{t('appointments.title')}</h2>
+                    <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
                 </div>
 
                 {/* Controls Container */}
@@ -130,14 +146,14 @@ export default function Appointments() {
                         <button
                             onClick={() => setViewMode('list')}
                             className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-muted hover:text-white'}`}
-                            title="Vista de Lista"
+                            title={t('appointments.view_list')}
                         >
                             <LayoutList size={18} />
                         </button>
                         <button
                             onClick={() => setViewMode('calendar')}
                             className={`p-1.5 rounded-lg transition-colors ${viewMode === 'calendar' ? 'bg-white/10 text-white' : 'text-muted hover:text-white'}`}
-                            title="Vista Semanal"
+                            title={t('appointments.view_calendar')}
                         >
                             <Grid3X3 size={18} />
                         </button>
@@ -146,10 +162,10 @@ export default function Appointments() {
                     {/* Filters (Compact) */}
                     <div className="flex gap-1">
                         {[
-                            { id: 'confirmada', label: 'Confirmadas', color: 'text-emerald-400' },
-                            { id: 'recordatorios', label: 'Recordatorios', color: 'text-amber-400' },
-                            { id: 'completada', label: 'Historial', color: 'text-slate-400' },
-                            { id: 'cancelada', label: 'Canceladas', color: 'text-red-400' }
+                            { id: 'confirmada', label: t('appointments.filters.confirmada'), color: 'text-emerald-400' },
+                            { id: 'recordatorios', label: t('appointments.filters.recordatorios'), color: 'text-amber-400' },
+                            { id: 'completada', label: t('appointments.filters.completada'), color: 'text-slate-400' },
+                            { id: 'cancelada', label: t('appointments.filters.cancelada'), color: 'text-red-400' }
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -161,6 +177,7 @@ export default function Appointments() {
                                     ? `bg-white/5 border-white/10 text-white`
                                     : 'border-transparent text-muted hover:bg-white/5'
                                     }`}
+                                aria-current={filter === tab.id ? 'page' : undefined}
                             >
                                 <span className={`mr-1.5 ${filter === tab.id ? tab.color : 'opacity-50'}`}>●</span>
                                 {tab.label}
@@ -243,141 +260,156 @@ export default function Appointments() {
                         </div>
                     ) : (
                         <div className="overflow-y-auto custom-scrollbar p-3 space-y-2 flex-1">
-                            {/* Empty State */}
-                            {filteredAppointments.length === 0 && (
+                            {/* Empty State / Loading State */}
+                            {isLoading ? (
+                                <div className="space-y-4">
+                                    {Array(5).fill(0).map((_, i) => (
+                                        <div key={i} className="flex flex-col sm:flex-row bg-[#111116] border border-white/5 rounded-2xl p-4 gap-4">
+                                            <div className="flex flex-col gap-2 flex-1">
+                                                <Skeleton className="h-6 w-1/3" />
+                                                <Skeleton className="h-4 w-1/2" />
+                                            </div>
+                                            <div className="w-full sm:w-48 flex flex-col gap-2">
+                                                <Skeleton className="h-4 w-full" />
+                                                <Skeleton className="h-4 w-2/3" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : filteredAppointments.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-60">
                                     <Scissors size={48} className="text-white/10 mb-4" />
                                     <h3 className="text-lg font-medium text-white mb-1">Sin citas aquí</h3>
                                     <p className="text-sm text-muted">No hay citas registradas en esta categoría.</p>
                                 </div>
+                            ) : (
+                                /* Grouped List Items */
+                                (() => {
+                                    const paginatedAppts = filteredAppointments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+                                    const grouped = paginatedAppts.reduce((acc, apt) => {
+                                        if (!acc[apt.date]) acc[apt.date] = [];
+                                        acc[apt.date].push(apt);
+                                        return acc;
+                                    }, {} as Record<string, typeof appointments>);
+
+                                    return Object.keys(grouped).sort().map(date => (
+                                        <div key={date} className="space-y-2 mb-6 last:mb-2">
+                                            {/* Date Header */}
+                                            <div className="flex items-center gap-3 px-3 py-2 sticky top-0 bg-[#161b2a]/95 backdrop-blur-sm z-10 border-b border-white/5 mx-[-8px]">
+                                                <div className="p-1.5 rounded-lg bg-accent/10 border border-accent/20">
+                                                    <CalendarDays size={12} className="text-accent" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">
+                                                        {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                                    </span>
+                                                    {date === todayStr && (
+                                                        <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">Hoy</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {grouped[date].map((apt: any) => {
+                                                const service = getServiceById(apt.serviceId);
+                                                const stylist = getStylistById(apt.stylistId);
+
+                                                let isCompleted = apt.status === 'completada';
+                                                if (!isCompleted && apt.status !== 'cancelada') {
+                                                    const end = new Date(`${apt.date}T${apt.time}`);
+                                                    end.setMinutes(end.getMinutes() + (service?.duration || 0));
+                                                    if (new Date() >= end) isCompleted = true;
+                                                }
+
+                                                const isCancelled = apt.status === 'cancelada';
+                                                const blocked = isPhoneBlocked(apt.clientPhone);
+
+                                                // Formatter for 12h time
+                                                const displayTime = (() => {
+                                                    const [h, m] = apt.time.split(':');
+                                                    let hh = parseInt(h);
+                                                    const ampm = hh >= 12 ? 'pm' : 'am';
+                                                    hh = hh % 12;
+                                                    hh = hh ? hh : 12;
+                                                    return `${hh}:${m}${ampm}`;
+                                                })();
+
+                                                return (
+                                                    <div
+                                                        key={apt.id}
+                                                        className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCompleted ? 'bg-white/[0.02] border-white/5 opacity-60 grayscale' :
+                                                            isCancelled ? 'bg-red-500/[0.02] border-red-500/10 opacity-70' :
+                                                                'glass-card border-white/5 hover:border-accent/30 hover:shadow-2xl hover:shadow-accent/5'
+                                                            }`}
+                                                    >
+                                                        {/* Status Indicator Bar */}
+                                                        <div className={`w-1.5 shrink-0 ${isCompleted ? 'bg-emerald-500/30' : isCancelled ? 'bg-red-500/30' : 'bg-gradient-to-b from-accent/80 to-accent/20'}`} />
+
+                                                        {/* Time Column */}
+                                                        <div className="flex flex-col items-center justify-center w-20 shrink-0 bg-white/[0.03] border-r border-white/5 py-4">
+                                                            <span className={`text-base font-black tracking-tighter ${isCancelled ? 'text-red-400 line-through' : 'text-white'}`}>
+                                                                {displayTime.replace(/(am|pm)/, '')}
+                                                            </span>
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-accent/80 -mt-1">
+                                                                {displayTime.match(/(am|pm)/)?.[0]}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Main Info */}
+                                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-4 p-4">
+                                                            {/* Client info */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className={`text-lg font-bold truncate ${isCancelled ? 'text-muted line-through' : 'text-white'}`}>
+                                                                        {apt.clientName}
+                                                                    </span>
+                                                                    {blocked && <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[10px] font-bold text-red-500 border border-red-500/20">BLOQUEADO</span>}
+                                                                </div>
+                                                                <a href={`tel:${apt.clientPhone}`} className="text-xs font-medium text-muted hover:text-accent transition-colors flex items-center gap-2 w-fit">
+                                                                    <div className="p-1 rounded-md bg-white/5"><Phone size={10} /></div> {apt.clientPhone}
+                                                                </a>
+                                                            </div>
+
+                                                            {/* Service & Stylist */}
+                                                            <div className="flex flex-col gap-1.5 md:min-w-[180px]">
+                                                                <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
+                                                                    <div className="p-1 rounded-md bg-accent/10 text-accent"><Scissors size={12} /></div>
+                                                                    <span className="truncate">{service?.name}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs font-medium text-muted">
+                                                                    <div className="p-1 rounded-md bg-white/5"><User size={12} /></div>
+                                                                    <span className="truncate">{stylist?.name || 'Cualquier profesional'}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Actions */}
+                                                            <div className="flex items-center justify-end gap-2 pr-2">
+                                                                {filter === 'recordatorios' ? (
+                                                                    <a href={generateReminderWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-500/20" title="Enviar Recordatorio">
+                                                                        <Send size={14} /> <span>Recordatorio</span>
+                                                                    </a>
+                                                                ) : (
+                                                                    apt.status === 'confirmada' && (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
+                                                                                <MessageCircle size={20} />
+                                                                            </a>
+                                                                            <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20" title="Cancelar">
+                                                                                <Trash2 size={20} />
+                                                                            </button>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ));
+                                })()
                             )}
 
-                            {/* Grouped List Items */}
-                            {(() => {
-                                const paginatedAppts = filteredAppointments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-                                const grouped = paginatedAppts.reduce((acc, apt) => {
-                                    if (!acc[apt.date]) acc[apt.date] = [];
-                                    acc[apt.date].push(apt);
-                                    return acc;
-                                }, {} as Record<string, typeof appointments>);
-
-                                return Object.keys(grouped).sort().map(date => (
-                                    <div key={date} className="space-y-2 mb-6 last:mb-2">
-                                        {/* Date Header */}
-                                        <div className="flex items-center gap-3 px-3 py-2 sticky top-0 bg-[#161b2a]/95 backdrop-blur-sm z-10 border-b border-white/5 mx-[-8px]">
-                                            <div className="p-1.5 rounded-lg bg-accent/10 border border-accent/20">
-                                                <CalendarDays size={12} className="text-accent" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">
-                                                    {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                                </span>
-                                                {date === todayStr && (
-                                                    <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">Hoy</span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {grouped[date].map(apt => {
-                                            const service = getServiceById(apt.serviceId);
-                                            const stylist = getStylistById(apt.stylistId);
-
-                                            let isCompleted = apt.status === 'completada';
-                                            if (!isCompleted && apt.status !== 'cancelada') {
-                                                const end = new Date(`${apt.date}T${apt.time}`);
-                                                end.setMinutes(end.getMinutes() + (service?.duration || 0));
-                                                if (new Date() >= end) isCompleted = true;
-                                            }
-
-                                            const isCancelled = apt.status === 'cancelada';
-                                            const blocked = isPhoneBlocked(apt.clientPhone);
-
-                                            // Formatter for 12h time
-                                            const displayTime = (() => {
-                                                const [h, m] = apt.time.split(':');
-                                                let hh = parseInt(h);
-                                                const ampm = hh >= 12 ? 'pm' : 'am';
-                                                hh = hh % 12;
-                                                hh = hh ? hh : 12;
-                                                return `${hh}:${m}${ampm}`;
-                                            })();
-
-                                            return (
-                                                <div
-                                                    key={apt.id}
-                                                    className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCompleted ? 'bg-white/[0.02] border-white/5 opacity-60 grayscale' :
-                                                        isCancelled ? 'bg-red-500/[0.02] border-red-500/10 opacity-70' :
-                                                            'glass-card border-white/5 hover:border-accent/30 hover:shadow-2xl hover:shadow-accent/5'
-                                                        }`}
-                                                >
-                                                    {/* Status Indicator Bar */}
-                                                    <div className={`w-1.5 shrink-0 ${isCompleted ? 'bg-emerald-500/30' : isCancelled ? 'bg-red-500/30' : 'bg-gradient-to-b from-accent/80 to-accent/20'}`} />
-
-                                                    {/* Time Column */}
-                                                    <div className="flex flex-col items-center justify-center w-20 shrink-0 bg-white/[0.03] border-r border-white/5 py-4">
-                                                        <span className={`text-base font-black tracking-tighter ${isCancelled ? 'text-red-400 line-through' : 'text-white'}`}>
-                                                            {displayTime.replace(/(am|pm)/, '')}
-                                                        </span>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-accent/80 -mt-1">
-                                                            {displayTime.match(/(am|pm)/)?.[0]}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Main Info */}
-                                                    <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-4 p-4">
-                                                        {/* Client info */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className={`text-lg font-bold truncate ${isCancelled ? 'text-muted line-through' : 'text-white'}`}>
-                                                                    {apt.clientName}
-                                                                </span>
-                                                                {blocked && <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[10px] font-bold text-red-500 border border-red-500/20">BLOQUEADO</span>}
-                                                            </div>
-                                                            <a href={`tel:${apt.clientPhone}`} className="text-xs font-medium text-muted hover:text-accent transition-colors flex items-center gap-2 w-fit">
-                                                                <div className="p-1 rounded-md bg-white/5"><Phone size={10} /></div> {apt.clientPhone}
-                                                            </a>
-                                                        </div>
-
-                                                        {/* Service & Stylist */}
-                                                        <div className="flex flex-col gap-1.5 md:min-w-[180px]">
-                                                            <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
-                                                                <div className="p-1 rounded-md bg-accent/10 text-accent"><Scissors size={12} /></div>
-                                                                <span className="truncate">{service?.name}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-xs font-medium text-muted">
-                                                                <div className="p-1 rounded-md bg-white/5"><User size={12} /></div>
-                                                                <span className="truncate">{stylist?.name || 'Cualquier profesional'}</span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Actions */}
-                                                        <div className="flex items-center justify-end gap-2 pr-2">
-                                                            {filter === 'recordatorios' ? (
-                                                                <a href={generateReminderWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-500/20" title="Enviar Recordatorio">
-                                                                    <Send size={14} /> <span>Recordatorio</span>
-                                                                </a>
-                                                            ) : (
-                                                                apt.status === 'confirmada' && (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
-                                                                            <MessageCircle size={20} />
-                                                                        </a>
-                                                                        <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20" title="Cancelar">
-                                                                            <Trash2 size={20} />
-                                                                        </button>
-                                                                    </div>
-                                                                )
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ));
-                            })()}
-
-                            {filteredAppointments.length > 0 && (
+                            {!isLoading && filteredAppointments.length > 0 && (
                                 <Pagination
                                     currentPage={currentPage}
                                     totalPages={Math.ceil(filteredAppointments.length / PAGE_SIZE)}

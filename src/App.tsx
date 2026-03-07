@@ -1,31 +1,35 @@
-
+import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { StoreProvider, useStore } from './lib/store';
+import { StoreProvider } from './lib/store';
+import { useAuthStore } from './lib/store/authStore';
 import AdminLayout from './layouts/AdminLayout';
 import ClientLayout from './layouts/ClientLayout';
-import Dashboard from './pages/admin/Dashboard';
-import Appointments from './pages/admin/Appointments';
-import Clients from './pages/admin/Clients';
-import Services from './pages/admin/Services';
-import Staff from './pages/admin/Staff';
-import Settings from './pages/admin/Settings';
-import Team from './pages/admin/Team';
-import Commissions from './pages/admin/Commissions';
-import Booking from './pages/client/Booking';
-import Login from './pages/Login';
-import CreateBusiness from './pages/admin/CreateBusiness';
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const Appointments = lazy(() => import('./pages/admin/Appointments'));
+const Clients = lazy(() => import('./pages/admin/Clients'));
+const Services = lazy(() => import('./pages/admin/Services'));
+const Staff = lazy(() => import('./pages/admin/Staff'));
+const Settings = lazy(() => import('./pages/admin/Settings'));
+const Team = lazy(() => import('./pages/admin/Team'));
+const Commissions = lazy(() => import('./pages/admin/Commissions'));
+const Booking = lazy(() => import('./pages/client/Booking'));
+const Login = lazy(() => import('./pages/Login'));
+const CreateBusiness = lazy(() => import('./pages/admin/CreateBusiness'));
+const SuperAdminPanel = lazy(() => import('./pages/admin/SuperAdminPanel'));
+const Leads = lazy(() => import('./pages/admin/Leads'));
+const GlobalSettings = lazy(() => import('./pages/admin/GlobalSettings'));
+const Branding = lazy(() => import('./pages/admin/Branding'));
+const Landing = lazy(() => import('./pages/Landing'));
+
 import SuperAdminLayout from './layouts/SuperAdminLayout';
-import SuperAdminPanel from './pages/admin/SuperAdminPanel';
-import Leads from './pages/admin/Leads';
-import GlobalSettings from './pages/admin/GlobalSettings';
-import Branding from './pages/admin/Branding';
 import BrandingManager from './components/BrandingManager';
 import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
-import Landing from './pages/Landing';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const AdminRoute = () => {
-  const { user, loadingAuth, isSuperAdmin, tenantId, userRole } = useStore();
+  const { user, loadingAuth, tenantId, userRole } = useAuthStore();
+  const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
   if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
@@ -66,7 +70,8 @@ const AdminRoute = () => {
 };
 
 const SuperAdminRoute = () => {
-  const { user, loadingAuth, isSuperAdmin } = useStore();
+  const { user, loadingAuth } = useAuthStore();
+  const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
   if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
@@ -76,7 +81,7 @@ const SuperAdminRoute = () => {
 };
 
 const OnboardingRoute = () => {
-  const { user, loadingAuth, tenantId } = useStore();
+  const { user, loadingAuth, tenantId } = useAuthStore();
 
   if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
@@ -92,48 +97,52 @@ function App() {
     <StoreProvider>
       <BrandingManager />
       <ToastContainer />
-      <Router>
-        <Routes>
-          {/* Main Landing */}
-          <Route path="/" element={<Landing />} />
+      <ErrorBoundary>
+        <Router>
+          <Suspense fallback={<SplashScreen />}>
+            <Routes>
+              {/* Main Landing */}
+              <Route path="/" element={<Landing />} />
 
-          {/* Client Routes */}
-          <Route path="/reserva/:slug" element={<ClientLayout />}>
-            <Route index element={<Booking />} />
-          </Route>
+              {/* Client Routes */}
+              <Route path="/reserva/:slug" element={<ClientLayout />}>
+                <Route index element={<Booking />} />
+              </Route>
 
-          <Route path="/login" element={<Login />} />
+              <Route path="/login" element={<Login />} />
 
-          {/* Onboarding Route (User logged in, no tenant) */}
-          <Route element={<OnboardingRoute />}>
-            <Route path="/create-business" element={<CreateBusiness />} />
-          </Route>
+              {/* Onboarding Route (User logged in, no tenant) */}
+              <Route element={<OnboardingRoute />}>
+                <Route path="/create-business" element={<CreateBusiness />} />
+              </Route>
 
-          {/* Admin Routes (User logged in + Tenant) */}
-          <Route path="/admin" element={<AdminRoute />}>
-            <Route element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="appointments" element={<Appointments />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="services" element={<Services />} />
-              <Route path="staff" element={<Staff />} />
-              <Route path="team" element={<Team />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="commissions" element={<Commissions />} />
-            </Route>
-          </Route>
+              {/* Admin Routes (User logged in + Tenant) */}
+              <Route path="/admin" element={<AdminRoute />}>
+                <Route element={<AdminLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="appointments" element={<Appointments />} />
+                  <Route path="clients" element={<Clients />} />
+                  <Route path="services" element={<Services />} />
+                  <Route path="staff" element={<Staff />} />
+                  <Route path="team" element={<Team />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="commissions" element={<Commissions />} />
+                </Route>
+              </Route>
 
-          {/* Super Admin Routes */}
-          <Route path="/super-admin" element={<SuperAdminRoute />}>
-            <Route element={<SuperAdminLayout />}>
-              <Route index element={<SuperAdminPanel />} />
-              <Route path="prospectos" element={<Leads />} />
-              <Route path="branding" element={<Branding />} />
-              <Route path="settings" element={<GlobalSettings />} />
-            </Route>
-          </Route>
-        </Routes>
-      </Router>
+              {/* Super Admin Routes */}
+              <Route path="/super-admin" element={<SuperAdminRoute />}>
+                <Route element={<SuperAdminLayout />}>
+                  <Route index element={<SuperAdminPanel />} />
+                  <Route path="prospectos" element={<Leads />} />
+                  <Route path="branding" element={<Branding />} />
+                  <Route path="settings" element={<GlobalSettings />} />
+                </Route>
+              </Route>
+            </Routes>
+          </Suspense>
+        </Router>
+      </ErrorBoundary>
     </StoreProvider>
   );
 }

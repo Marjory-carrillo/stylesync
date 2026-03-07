@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2, LogOut } from 'lucide-react';
 import { useStore } from '../../lib/store';
+import { useAuthStore } from '../../lib/store/authStore';
 import { supabase } from '../../lib/supabaseClient';
 import SplashScreen from '../../components/SplashScreen';
 
 export default function CreateBusiness() {
-    const { createTenant, user } = useStore();
+    const { createTenant } = useStore();
+    const { user } = useAuthStore();
     const navigate = useNavigate();
 
     const [name, setName] = useState('');

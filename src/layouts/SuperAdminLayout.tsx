@@ -1,9 +1,9 @@
 import { Building2, Paintbrush, Settings as SettingsIcon, LogOut, Inbox, Infinity as InfinityIcon } from 'lucide-react';
-import { useStore } from '../lib/store';
+import { useAuthStore } from '../lib/store/authStore';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 export default function SuperAdminLayout() {
-    const { user, isSuperAdmin } = useStore();
+    const { user, isSuperAdmin } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
 

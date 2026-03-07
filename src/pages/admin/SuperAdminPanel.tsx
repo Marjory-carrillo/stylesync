@@ -1,11 +1,23 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../../lib/store';
-import { Building2, Trash2, Search, Users, Activity, ChevronRight, LayoutDashboard } from 'lucide-react';
+import {
+    Building2, Trash2, Search, ChevronRight,
+    LayoutDashboard, TrendingUp, DollarSign, Plus, X, BarChart3,
+    ArrowUpRight, Globe, Zap, Calendar
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import {
+    ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
+    CartesianGrid, Tooltip
+} from 'recharts';
+import { format, subMonths, isAfter } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function SuperAdminPanel() {
-    const { allTenants, fetchAllTenants, switchTenant, deleteTenant } = useStore();
+    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant } = useStore();
     const [searchTerm, setSearchTerm] = useState('');
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', address: '' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -20,161 +32,367 @@ export default function SuperAdminPanel() {
         );
     }, [allTenants, searchTerm]);
 
+    // Metrics calculation
+    const mrr = allTenants.length * 29.99;
+    const activeLast30Days = allTenants.filter(t => isAfter(new Date(t.created_at || ''), subMonths(new Date(), 1))).length;
+
+    // Chart data preparation
+    const chartData = useMemo(() => {
+        const months = Array.from({ length: 6 }).map((_, i) => {
+            const date = subMonths(new Date(), 5 - i);
+            return {
+                name: format(date, 'MMM', { locale: es }).toUpperCase(),
+                count: allTenants.filter(t => isAfter(new Date(t.created_at || ''), subMonths(date, 1))).length,
+                month: format(date, 'yyyy-MM')
+            };
+        });
+        return months;
+    }, [allTenants]);
+
+    const handleCreateBusiness = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const res = await createTenant(newBusiness.name, newBusiness.slug, newBusiness.address, newBusiness.category);
+        if (res.success) {
+            setIsCreateModalOpen(false);
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', address: '' });
+            fetchAllTenants();
+        } else {
+            alert(res.error);
+        }
+    };
+
     return (
         <div className="animate-fade-in flex flex-col gap-8 h-full pb-10">
-            {/* Header / Command Center */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
-                {/* Subtle background glow for the header */}
-                <div className="absolute -top-10 -left-10 w-40 h-40 bg-accent/20 rounded-full blur-3xl -z-10 animate-pulse-soft"></div>
+            {/* HQ Header */}
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative">
+                <div className="absolute -top-10 -left-10 w-64 h-64 bg-accent/5 rounded-full blur-3xl -z-10 animate-pulse-soft"></div>
 
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white/5 border border-white/10 rounded-2xl glass-card text-accent">
-                        <LayoutDashboard size={28} />
+                <div className="flex items-center gap-5">
+                    <div className="p-4 bg-gradient-to-br from-accent/20 to-blue-600/20 border border-white/10 rounded-2xl glass-card text-accent shadow-lg shadow-accent/10">
+                        <LayoutDashboard size={32} />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-black text-white tracking-tight">CitaLink <span className="text-accent font-light">HQ</span></h1>
-                        <p className="text-sm text-text-muted mt-1 font-medium tracking-wide">Centro de Comando de Negocios</p>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-4xl font-black text-white tracking-tighter">CitaLink <span className="text-accent font-light italic">HQ</span></h1>
+                            <span className="bg-accent text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full tracking-widest uppercase mb-1">Central</span>
+                        </div>
+                        <p className="text-slate-400 text-sm font-medium tracking-wide">Panel de Control Global y Desempeño de Plataforma</p>
                     </div>
                 </div>
+
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="btn btn-primary px-8 py-3 w-full md:w-auto shadow-2xl shadow-accent/20 group"
+                >
+                    <Plus className="group-hover:rotate-90 transition-transform" />
+                    Crear Nuevo Negocio
+                </button>
             </header>
 
-            {/* Quick Stats - Premium Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Core Metrics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     icon={<Building2 size={24} />}
-                    title="Total Negocios Activos"
+                    title="Negocios Totales"
                     value={allTenants.length}
                     color="text-blue-400"
-                    bgGlow="bg-blue-500"
+                    trend="+1"
                     delay="0"
                 />
                 <StatCard
-                    icon={<Activity size={24} />}
-                    title="Estado del Sistema"
-                    value="En Línea"
+                    icon={<DollarSign size={24} />}
+                    title="MRR Estimado"
+                    value={`$${mrr.toFixed(2)}`}
                     color="text-emerald-400"
-                    bgGlow="bg-emerald-500"
+                    trend="+14%"
                     delay="1"
                 />
-                {/* Placeholder for future growth metrics */}
                 <StatCard
-                    icon={<Users size={24} />}
-                    title="Crecimiento Total"
-                    value="+12%"
-                    color="text-amber-400"
-                    bgGlow="bg-amber-500"
+                    icon={<Zap size={24} />}
+                    title="Nuevos (30d)"
+                    value={activeLast30Days}
+                    color="text-violet-400"
+                    trend="Activo"
                     delay="2"
+                />
+                <StatCard
+                    icon={<Globe size={24} />}
+                    title="Salud Plataforma"
+                    value="99.9%"
+                    color="text-accent"
+                    trend="Óptima"
+                    delay="3"
                 />
             </div>
 
-            {/* Main Content Area */}
-            <div className="glass-panel rounded-2xl overflow-hidden flex flex-col min-h-[500px]">
-                {/* Search Bar Container */}
-                <div className="p-6 border-b border-white/5 bg-white/[0.02]">
-                    <div className="relative group max-w-xl">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search className="text-slate-400 group-focus-within:text-accent transition-colors" size={20} />
+            {/* Platform Insights & Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 glass-panel p-6 border border-white/5 relative overflow-hidden flex flex-col min-h-[400px]">
+                    <div className="flex items-center justify-between mb-8 relative z-10">
+                        <div>
+                            <h3 className="text-white font-black text-xl flex items-center gap-2 uppercase tracking-tight">
+                                <TrendingUp className="text-accent" size={20} />
+                                Crecimiento de Negocios
+                            </h3>
+                            <p className="text-slate-500 text-xs mt-1">Registros mensuales consolidados de la red CitaLink</p>
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Buscar proveedor por nombre, enlace o categoría..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full glass-card bg-black/20 border-white/10 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-medium placeholder:text-slate-500"
-                        />
-                        {/* Subtle glow effect behind search when focused */}
-                        <div className="absolute -inset-0.5 bg-accent/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500 -z-10"></div>
+                        <div className="text-right">
+                            <span className="text-[10px] font-black text-accent border border-accent/30 px-2 py-1 rounded bg-accent/5 uppercase">Tiempo Real</span>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 min-h-[250px] relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+                                />
+                                <YAxis
+                                    hide
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                                    itemStyle={{ color: 'var(--color-accent)', fontWeight: 'bold' }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="count"
+                                    stroke="var(--color-accent)"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorCount)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Tenant List Grid */}
-                <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-                    {filteredTenants.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center opacity-60 py-12">
-                            <Building2 size={48} className="text-white/20 mb-4" />
-                            <h3 className="text-lg font-bold text-white mb-2">Sin resultados</h3>
-                            <p className="text-sm text-slate-400 max-w-sm">No se encontraron negocios activos que coincidan con la búsqueda actual.</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                            {filteredTenants.map((tenant, idx) => (
-                                <div
-                                    key={tenant.id}
-                                    className="glass-card flex items-center p-4 border-white/5 hover:border-accent/30 transition-all duration-300 group"
-                                    style={{ animationDelay: `${idx * 0.05}s` }}
-                                >
-                                    {/* Logo / Avatar */}
-                                    <div className="w-14 h-14 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-inner group-hover:border-accent/40 transition-colors">
-                                        {tenant.logoUrl ? (
-                                            <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <Building2 size={24} className="text-slate-500 group-hover:text-accent transition-colors" />
-                                        )}
+                <div className="glass-panel p-6 border border-white/5 flex flex-col">
+                    <h3 className="text-white font-black text-xl mb-6 flex items-center gap-2 uppercase tracking-tight">
+                        <BarChart3 className="text-violet-400" size={20} />
+                        Distribución
+                    </h3>
+                    <div className="space-y-6">
+                        {['barbershop', 'salon', 'spa', 'clinic'].map((cat, i) => {
+                            const count = allTenants.filter(t => t.category === cat).length;
+                            const percentage = allTenants.length ? Math.round((count / allTenants.length) * 100) : 0;
+                            return (
+                                <div key={cat} className="space-y-2">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-400 font-bold uppercase tracking-widest">{cat === 'barbershop' ? 'Barberías' : cat === 'salon' ? 'Salones' : cat === 'spa' ? 'Spas' : 'Clínicas'}</span>
+                                        <span className="text-white font-black">{percentage}%</span>
                                     </div>
-
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0 ml-4">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="text-base font-bold text-white truncate">{tenant.name}</h3>
-                                            <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-slate-300 border border-white/5 truncate max-w-[100px]">
-                                                {tenant.category || 'N/A'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                                            <span className="truncate bg-black/30 px-2 py-0.5 rounded-md border border-white/5 font-mono text-accent/80">/{tenant.slug}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-2 ml-4">
-                                        <button
-                                            onClick={async () => {
-                                                await switchTenant(tenant.id);
-                                                navigate('/admin');
-                                            }}
-                                            className="p-2.5 rounded-xl bg-accent/10 text-accent hover:bg-accent hover:text-slate-900 font-bold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(var(--hue-accent),100%,50%,0.1)] hover:shadow-[0_0_20px_rgba(var(--hue-accent),100%,50%,0.4)]"
-                                            title="Ingresar al Panel"
-                                        >
-                                            <span className="hidden sm:inline pl-1 text-sm">Gestionar</span>
-                                            <ChevronRight size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                if (window.confirm(`¿⚠️ PELIGRO: Estás seguro de eliminar el negocio "${tenant.name}" permanentemente?\n\nEsta acción eliminará todos sus datos, clientes y citas.`)) {
-                                                    deleteTenant(tenant.id);
-                                                }
-                                            }}
-                                            className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 border border-transparent transition-all"
-                                            title="Eliminar Negocio"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-violet-500 to-accent transition-all duration-1000"
+                                            style={{ width: `${percentage}%`, transitionDelay: `${i * 0.1}s` }}
+                                        ></div>
                                     </div>
                                 </div>
-                            ))}
+                            );
+                        })}
+                    </div>
+                    <div className="mt-auto pt-6 border-t border-white/5">
+                        <div className="p-4 bg-white/2 rounded-xl border border-white/5 flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent">
+                                    <ArrowUpRight size={18} />
+                                </div>
+                                <span className="text-sm font-bold text-slate-300">Ver reporte completo</span>
+                            </div>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
+
+            {/* Tenant Management Table */}
+            <div className="glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+                <div className="p-6 border-b border-white/5 bg-white/[0.03] flex justify-between items-center">
+                    <div className="relative group max-w-xl w-full">
+                        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                            <Search className="text-slate-500 group-focus-within:text-accent transition-colors" size={20} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Buscar proveedor o slug..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-black/40 border border-white/5 text-white rounded-xl py-4 pl-14 pr-6 focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/40 transition-all font-medium placeholder:text-slate-600"
+                        />
+                    </div>
+                </div>
+
+                <div className="p-6 overflow-y-auto max-h-[600px] custom-scrollbar">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {filteredTenants.map((tenant, idx) => (
+                            <div
+                                key={tenant.id}
+                                className="glass-card flex items-center p-5 border-white/5 hover:border-accent/20 hover:bg-white/5 transition-all duration-300 group"
+                                style={{ animationDelay: `${idx * 0.05}s` }}
+                            >
+                                <div className="w-16 h-16 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-2xl group-hover:scale-105 transition-transform">
+                                    {tenant.logoUrl ? (
+                                        <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Building2 size={24} className="text-slate-600 group-hover:text-accent transition-colors" />
+                                    )}
+                                </div>
+
+                                <div className="flex-1 min-w-0 ml-5">
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <h3 className="text-lg font-black text-white truncate uppercase tracking-tight">{tenant.name}</h3>
+                                        <span className="px-2.5 py-1 rounded bg-white/5 text-[9px] font-black tracking-widest uppercase text-slate-400 border border-white/5 shadow-inner">
+                                            {tenant.category || 'ESTÁNDAR'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate">
+                                            citalink.app/{tenant.slug}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+                                            <Calendar size={12} className="opacity-30" />
+                                            {format(new Date(tenant.created_at || ''), "MMM yyyy", { locale: es })}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 ml-4">
+                                    <button
+                                        onClick={async () => {
+                                            await switchTenant(tenant.id);
+                                            navigate('/admin');
+                                        }}
+                                        className="btn btn-primary p-3 rounded-xl shadow-none hover:shadow-accent/40"
+                                        title="Administrar Negocio"
+                                    >
+                                        <ChevronRight size={20} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm(`¿Seguro que quieres eliminar "${tenant.name}"? Se perderán todos los datos.`)) {
+                                                deleteTenant(tenant.id);
+                                            }
+                                        }}
+                                        className="p-3 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Create Business Modal */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                    <div className="glass-panel w-full max-w-lg border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.03]">
+                            <div>
+                                <h3 className="text-2xl font-black text-white tracking-tight uppercase">Nuevo Negocio</h3>
+                                <p className="text-slate-400 text-xs mt-1">Configuración rápida de instancia SaaS</p>
+                            </div>
+                            <button onClick={() => setIsCreateModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <X className="text-slate-400" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleCreateBusiness} className="p-8 space-y-6">
+                            <div className="grid grid-cols-1 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Nombre Comercial</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                                        placeholder="Ej. Barbería El Rey"
+                                        value={newBusiness.name}
+                                        onChange={e => setNewBusiness({ ...newBusiness, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Slug / URL Amigable</label>
+                                    <div className="flex">
+                                        <div className="bg-white/5 border border-white/10 rounded-l-xl px-4 py-3 text-slate-500 text-sm border-r-0">citalink.app/</div>
+                                        <input
+                                            required
+                                            type="text"
+                                            className="flex-1 bg-black/40 border border-white/10 rounded-r-xl px-3 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none font-mono"
+                                            placeholder="el-rey"
+                                            value={newBusiness.slug}
+                                            onChange={e => setNewBusiness({ ...newBusiness, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Categoría</label>
+                                        <select
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent transition-all outline-none appearance-none"
+                                            value={newBusiness.category}
+                                            onChange={e => setNewBusiness({ ...newBusiness, category: e.target.value })}
+                                        >
+                                            <option value="barbershop">Barbería</option>
+                                            <option value="salon">Salón</option>
+                                            <option value="spa">Spa</option>
+                                            <option value="clinic">Clínica</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Costo Mensual</label>
+                                        <div className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-accent font-black text-center">$29.99</div>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Dirección (Opcional)</label>
+                                    <textarea
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent transition-all outline-none h-20"
+                                        value={newBusiness.address}
+                                        onChange={e => setNewBusiness({ ...newBusiness, address: e.target.value })}
+                                    ></textarea>
+                                </div>
+                            </div>
+                            <button type="submit" className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-accent/20">
+                                Iniciar Instancia de Negocio
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-function StatCard({ icon, title, value, color, bgGlow, delay }: { icon: any, title: string, value: any, color: string, bgGlow: string, delay: string }) {
+function StatCard({ icon, title, value, color, trend, delay }: { icon: any, title: string, value: any, color: string, trend: string, delay: string }) {
     return (
         <div
-            className="animate-scale-in glass-card p-6 flex items-center gap-5 border border-white/5 hover:border-white/10 relative overflow-hidden group"
+            className="animate-scale-in glass-card p-6 border border-white/5 flex flex-col gap-4 group hover:bg-white/[0.04]"
             style={{ animationDelay: `0.${delay}s` }}
         >
-            {/* Subtle corner glow */}
-            <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 blur-2xl group-hover:opacity-20 transition-opacity ${bgGlow}`}></div>
-
-            <div className={`p-4 rounded-2xl bg-white/5 border border-white/5 shadow-inner ${color}`}>
-                {icon}
+            <div className="flex justify-between items-start">
+                <div className={`p-3 rounded-2xl bg-white/5 border border-white/5 shadow-inner ${color}`}>
+                    {icon}
+                </div>
+                <div className="flex flex-col items-end">
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${trend.includes('+') ? 'bg-emerald-500/20 text-emerald-400' : 'bg-accent/20 text-accent'} border border-current opacity-70 group-hover:opacity-100 transition-opacity`}>
+                        {trend}
+                    </span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter mt-1">Tendencia</span>
+                </div>
             </div>
-            <div className="relative z-10">
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{title}</div>
-                <div className="text-3xl font-black text-white tracking-tight">{value}</div>
+            <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 mb-0.5">{title}</div>
+                <div className="text-2xl font-black text-white tracking-tight">{value}</div>
             </div>
         </div>
     );

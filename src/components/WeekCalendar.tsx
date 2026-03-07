@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Appointment, Service, Stylist } from '../lib/types/store.types';
 import { format, addDays, startOfWeek, subWeeks, addWeeks, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -12,7 +12,7 @@ interface WeekCalendarProps {
     onCancel: (apt: Appointment) => void;
 }
 
-export default function WeekCalendar({ appointments, services, stylists, onWhatsApp, onCancel }: WeekCalendarProps) {
+const WeekCalendar = React.memo(function WeekCalendar({ appointments, services, stylists, onWhatsApp, onCancel }: WeekCalendarProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
 
@@ -230,4 +230,6 @@ export default function WeekCalendar({ appointments, services, stylists, onWhats
             )}
         </div>
     );
-}
+});
+
+export default WeekCalendar;

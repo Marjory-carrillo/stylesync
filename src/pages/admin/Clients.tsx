@@ -1,21 +1,15 @@
 import { useState, useMemo } from 'react';
-import { useStore } from '../../lib/store';
+import { useClients } from '../../lib/store/queries/useClients';
 import { Search, User, Phone } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Skeleton } from '../../components/ui/Skeleton';
 import Pagination from '../../components/Pagination';
 
-interface ClientStats {
-    phone: string;
-    name: string;
-    totalVisits: number;
-    totalSpent: number;
-    lastVisit: string;
-    history: { date: string; serviceName: string; price: number }[];
-}
-
 export default function Clients() {
-    const { clients: dbClients, appointments, services, updateClientNotes, updateClientTags } = useStore();
+    const { clients: dbClients, updateClientNotes, updateClientTags, isPending: clientsPending } = useClients();
+
+    const isLoading = clientsPending;
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [editingNotes, setEditingNotes] = useState<string | null>(null);
@@ -24,72 +18,37 @@ export default function Clients() {
     const PAGE_SIZE = 12;
 
     const clients = useMemo(() => {
-        const clientMap = new Map<string, ClientStats>();
-
-        // Sort appointments by date desc to get latest name/visit first if we iterate
-        // Actually, let's just iterate and build.
-        const sortedAppts = [...appointments].sort((a, b) =>
-            new Date(b.date + 'T' + b.time).getTime() - new Date(a.date + 'T' + a.time).getTime()
-        );
-
-        sortedAppts.forEach(appt => {
-            if (appt.status === 'cancelada') return;
-
-            const service = services.find(s => s.id === appt.serviceId);
-            const price = service?.price || 0;
-            const serviceName = service?.name || 'Servicio eliminado';
-
-            if (!clientMap.has(appt.clientPhone)) {
-                clientMap.set(appt.clientPhone, {
-                    phone: appt.clientPhone,
-                    name: appt.clientName, // Most recent due to sort
-                    totalVisits: 0,
-                    totalSpent: 0,
-                    lastVisit: appt.date,
-                    history: []
-                });
-            }
-
-            const client = clientMap.get(appt.clientPhone)!;
-            client.totalVisits += 1;
-            client.totalSpent += price;
-            // Keep history limited or full? Let's keep full for now, slice later.
-            client.history.push({ date: appt.date, serviceName, price });
-        });
-
-        return Array.from(clientMap.values()).map(visitStats => {
-            const dbRef = dbClients.find(c => c.phone === visitStats.phone);
-            return {
-                ...visitStats,
-                id: dbRef?.id || '',
-                name: dbRef?.name || visitStats.name, // base name on DB if available
-                notes: dbRef?.notes || '',
-                tags: dbRef?.tags || []
-            };
-        });
-    }, [appointments, services, dbClients]);
+        // Now dbClients already contains pre-calculated stats from the server view
+        return dbClients.map(c => ({
+            ...c,
+            // History is now empty or could be fetched on demand, 
+            // but for the main list we don't need to load all appointments
+            history: []
+        }));
+    }, [dbClients]);
 
     const filteredClients = useMemo(() => {
         const lowerSearch = searchTerm.toLowerCase();
         return clients.filter(c =>
             c.name.toLowerCase().includes(lowerSearch) ||
             c.phone.includes(lowerSearch) ||
-            c.tags.some(t => t.toLowerCase().includes(lowerSearch))
+            (c.tags || []).some((t: string) => t.toLowerCase().includes(lowerSearch))
         );
     }, [clients, searchTerm]);
 
     const handleSaveNotes = async (id: string) => {
         if (!id) return;
-        await updateClientNotes(id, tempNotes);
+        await updateClientNotes({ id, notes: tempNotes });
         setEditingNotes(null);
     };
 
-    const toggleTag = async (clientId: string, tags: string[], tag: string) => {
+    const toggleTag = async (clientId: string, tags: string[] | undefined, tag: string) => {
         if (!clientId) return;
-        const newTags = tags.includes(tag)
-            ? tags.filter(t => t !== tag)
-            : [...tags, tag];
-        await updateClientTags(clientId, newTags);
+        const currentTags = tags || [];
+        const newTags = currentTags.includes(tag)
+            ? currentTags.filter(t => t !== tag)
+            : [...currentTags, tag];
+        await updateClientTags({ id: clientId, tags: newTags });
     };
 
     return (
@@ -118,7 +77,29 @@ export default function Clients() {
 
             {/* Clients Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredClients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(client => (
+                {isLoading ? (
+                    Array(6).fill(0).map((_, i) => (
+                        <div key={i} className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                            <div className="flex items-center gap-5">
+                                <Skeleton className="w-16 h-16 rounded-3xl" />
+                                <div className="space-y-2">
+                                    <Skeleton className="h-5 w-32" />
+                                    <Skeleton className="h-4 w-24" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Skeleton className="h-16 rounded-2xl" />
+                                <Skeleton className="h-16 rounded-2xl" />
+                            </div>
+                            <Skeleton className="h-20 rounded-2xl" />
+                        </div>
+                    ))
+                ) : filteredClients.length === 0 ? (
+                    <div className="col-span-full h-64 flex flex-col items-center justify-center bg-black/20 rounded-[2.5rem] border border-dashed border-white/5">
+                        <User size={48} className="text-slate-700 mb-4" />
+                        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No se encontraron clientes</p>
+                    </div>
+                ) : filteredClients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(client => (
                     <div key={client.phone} className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 p-8 rounded-[2.5rem] group hover:border-accent/30 transition-all duration-500 relative overflow-hidden shadow-2xl">
 
                         {/* Dynamic Background Glow */}
@@ -157,7 +138,7 @@ export default function Clients() {
                                 <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 block mb-3 pl-1">CLASIFICACIÓN</span>
                                 <div className="flex flex-wrap gap-2">
                                     {['VIP', 'Frecuente', 'Nuevo'].map(tag => {
-                                        const isActive = client.tags.includes(tag);
+                                        const isActive = (client.tags || []).includes(tag);
                                         return (
                                             <button
                                                 key={tag}
@@ -182,7 +163,7 @@ export default function Clients() {
                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.25em]">Notas Internas</span>
                                     {editingNotes !== client.id ? (
                                         <button
-                                            onClick={() => { setEditingNotes(client.id); setTempNotes(client.notes); }}
+                                            onClick={() => { setEditingNotes(client.id); setTempNotes(client.notes || ''); }}
                                             className="text-[10px] font-black text-accent hover:text-white transition-colors uppercase tracking-widest"
                                         >
                                             Editar
@@ -221,25 +202,11 @@ export default function Clients() {
                         )}
 
                         <div className="pt-6 border-t border-white/5 relative z-10">
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between">
                                 <span className="text-[9px] text-slate-600 font-black uppercase tracking-[0.2em]">Última Visita</span>
                                 <span className="text-[10px] text-accent font-black bg-accent/5 border border-accent/20 px-3 py-1 rounded-full uppercase tracking-widest">
-                                    {format(parse(client.lastVisit, 'yyyy-MM-dd', new Date()), 'd MMM yyyy', { locale: es })}
+                                    {client.lastVisit ? format(parse(client.lastVisit, 'yyyy-MM-dd', new Date()), 'd MMM yyyy', { locale: es }) : 'N/A'}
                                 </span>
-                            </div>
-
-                            <div className="space-y-2.5">
-                                {client.history.slice(0, 2).map((visit, idx) => (
-                                    <div key={idx} className="flex justify-between items-center text-[10px] p-3 rounded-xl bg-white/[0.02] border border-white/5 group-hover:bg-white/[0.04] transition-all">
-                                        <span className="text-slate-400 font-bold uppercase tracking-tight">{visit.serviceName}</span>
-                                        <span className="text-slate-600 font-mono">{visit.date}</span>
-                                    </div>
-                                ))}
-                                {client.history.length > 2 && (
-                                    <p className="text-center text-[9px] text-slate-600 mt-4 font-black uppercase tracking-[0.3em] opacity-50">
-                                        + {client.history.length - 2} VISITAS ADICIONALES
-                                    </p>
-                                )}
                             </div>
                         </div>
 

@@ -1,0 +1,10 @@
+
+> 7-stylesync-gestion-de-peluquerias-y-citas@0.0.0 build
+> tsc -b && vite build
+
+src/lib/store/queries/useAppointments.ts(69,34): error TS6133: 'byClient' is declared but its value is never read.
+src/lib/store/queries/useTenantData.ts(3,31): error TS6196: 'Tenant' is declared but never used.
+src/pages/admin/Dashboard.tsx(357,176): error TS2339: Property 'name' does not exist on type 'BusinessConfig | { slug: string; }'.
+  Property 'name' does not exist on type '{ slug: string; }'.
+src/pages/admin/Dashboard.tsx(435,154): error TS2339: Property 'name' does not exist on type 'BusinessConfig | { slug: string; }'.
+  Property 'name' does not exist on type '{ slug: string; }'.

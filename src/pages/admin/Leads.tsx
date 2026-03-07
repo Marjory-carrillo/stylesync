@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, Mail, Phone, Building2, Calendar, Search, AlertCircle, RefreshCw } from 'lucide-react';
+import { Users, Mail, Phone, Building2, Calendar, Search, AlertCircle, RefreshCw, Filter, ArrowRight } from 'lucide-react';
 
 interface Lead {
     id: string;
@@ -71,11 +71,11 @@ export default function Leads() {
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'nuevo':
-                return 'bg-violet-500/10 text-violet-400 border-violet-500/20';
+                return 'bg-violet-500/10 text-violet-400 border-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.1)]';
             case 'contactado':
-                return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+                return 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]';
             case 'prueba_iniciada':
-                return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]';
             case 'rechazado':
                 return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
             default:
@@ -85,9 +85,9 @@ export default function Leads() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'nuevo': return 'Nuevo Lead';
+            case 'nuevo': return 'Nuevo';
             case 'contactado': return 'Contactado';
-            case 'prueba_iniciada': return 'En Prueba (14 días)';
+            case 'prueba_iniciada': return 'Trial Activo';
             case 'rechazado': return 'Rechazado';
             default: return status;
         }
@@ -100,140 +100,162 @@ export default function Leads() {
     );
 
     return (
-        <div className="space-y-8 animate-fade-in text-white">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div className="space-y-8 animate-fade-in">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight m-0">Prospectos y Trials</h1>
-                    <p className="text-[#94a3b8] mt-2">
-                        Gestiona los negocios interesados en CitaLink y sus pruebas VIP de 14 días.
+                    <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
+                        <Users className="text-accent" size={36} />
+                        Prospectos y Trials
+                    </h1>
+                    <p className="text-slate-400 mt-2 text-lg">
+                        Control central de negocios interesados y pruebas gratuitas.
                     </p>
                 </div>
-                <button
-                    onClick={fetchLeads}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-[#1e293b] hover:bg-[#334155] text-white rounded-xl transition-all border border-white/10 shadow-lg font-bold"
-                >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    Actualizar Datos
-                </button>
+                <div className="flex gap-3 w-full lg:w-auto">
+                    <button
+                        onClick={fetchLeads}
+                        className="btn btn-secondary flex-1 lg:flex-none py-3"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        Actualizar
+                    </button>
+                    <button className="btn btn-primary flex-1 lg:flex-none py-3">
+                        <Filter className="w-4 h-4" />
+                        Filtros Avanzados
+                    </button>
+                </div>
             </div>
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5 flex items-center gap-4 text-red-400 shadow-xl">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5 flex items-center gap-4 text-red-400 animate-slide-up shadow-lg">
                     <AlertCircle className="w-6 h-6 flex-shrink-0" />
-                    <p className="font-medium text-sm">Error: {error}</p>
+                    <p className="font-semibold">Error de Sincronización: {error}</p>
                 </div>
             )}
 
-            {/* Search Bar - Definitivamente Oscuro */}
-            <div className="relative group max-w-2xl">
-                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-                    <Search className="w-5 h-5 text-slate-500 group-focus-within:text-violet-400 transition-colors" />
-                </div>
-                <input
-                    type="text"
-                    placeholder="Buscar por negocio, nombre o correo..."
-                    className="w-full bg-[#1e293b] border border-white/10 rounded-[1.2rem] pl-16 pr-8 py-4.5 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all font-semibold shadow-2xl py-4"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                {[
+                    { label: 'Total Leads', value: leads.length, color: 'text-white' },
+                    { label: 'Nuevos hoy', value: leads.filter(l => format(new Date(l.created_at), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')).length, color: 'text-violet-400' },
+                    { label: 'En Prueba', value: leads.filter(l => l.status === 'prueba_iniciada').length, color: 'text-emerald-400' },
+                    { label: 'Tasa Conversión', value: '12%', color: 'text-accent' }
+                ].map((stat, i) => (
+                    <div key={i} className="glass-card p-5 border border-white/5 bg-white/2 hover:bg-white/5 transition-all">
+                        <p className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">{stat.label}</p>
+                        <h4 className={`text-2xl font-black ${stat.color}`}>{stat.value}</h4>
+                    </div>
+                ))}
             </div>
 
-            {/* Leads Table - Premium Dark Style */}
-            <div className="bg-[#1e293b] rounded-[1.5rem] border border-white/10 shadow-2xl overflow-hidden shadow-violet-500/5">
+            {/* Toolbar */}
+            <div className="flex flex-col md:flex-row gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                <div className="relative group flex-1">
+                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                        <Search className="w-5 h-5 text-slate-500 group-focus-within:text-accent transition-colors" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar por negocio, responsable o email..."
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-accent/50 focus:bg-white/10 transition-all font-medium shadow-inner"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Table Container */}
+            <div className="glass-panel border border-white/5 overflow-hidden animate-slide-up shadow-2xl" style={{ animationDelay: '0.3s' }}>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-white/5 border-b border-white/10 text-slate-400 text-[10px] uppercase tracking-[0.2em]">
-                                <th className="p-6 font-black">Negocio</th>
-                                <th className="p-6 font-black">Información de Contacto</th>
-                                <th className="p-6 font-black">Equipo</th>
-                                <th className="p-6 font-black">Registro</th>
-                                <th className="p-6 font-black text-center">Estado / Acción</th>
+                            <tr className="bg-white/5 border-b border-white/10 text-slate-400 text-[11px] uppercase tracking-widest">
+                                <th className="p-6 font-bold">Información del Negocio</th>
+                                <th className="p-6 font-bold">Contacto Principal</th>
+                                <th className="p-6 font-bold">Infraestructura</th>
+                                <th className="p-6 font-bold">Fecha Registro</th>
+                                <th className="p-6 font-bold text-center">Estado del Lead</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5 text-sm">
-                            {(loading && leads.length === 0) ? (
+                        <tbody className="divide-y divide-white/5">
+                            {loading && leads.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="p-24 text-center">
-                                        <div className="flex flex-col items-center gap-5">
-                                            <div className="w-12 h-12 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin"></div>
-                                            <p className="text-slate-400 font-bold tracking-wide">Sincronizando con la nube...</p>
-                                        </div>
+                                    <td colSpan={5} className="p-32 text-center text-slate-400">
+                                        <RefreshCw className="w-10 h-10 animate-spin mx-auto mb-4 opacity-20" />
+                                        <p className="font-bold tracking-widest uppercase text-xs">Obteniendo datos de la nube...</p>
                                     </td>
                                 </tr>
                             ) : filteredLeads.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="p-24 text-center">
-                                        <div className="flex flex-col items-center gap-4 max-w-xs mx-auto">
-                                            <div className="p-5 bg-white/5 rounded-full border border-white/5 text-slate-700">
-                                                <Users size={40} strokeWidth={1.5} />
-                                            </div>
-                                            <h3 className="text-white font-black text-xl">Sin Datos</h3>
-                                            <p className="text-slate-500 text-sm leading-relaxed">No se encontraron prospectos que coincidan con tu búsqueda actual.</p>
+                                    <td colSpan={5} className="p-32 text-center">
+                                        <div className="max-w-xs mx-auto space-y-4 opacity-50">
+                                            <Search size={48} className="mx-auto text-slate-600" />
+                                            <h3 className="text-white font-black text-xl">Sin Resultados</h3>
+                                            <p className="text-slate-400 text-sm">No encontramos ningún prospecto que coincida con "{searchTerm}".</p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredLeads.map((lead) => (
-                                    <tr key={lead.id} className="hover:bg-white/5 transition-colors group">
+                                    <tr key={lead.id} className="hover:bg-white/[0.03] transition-colors group">
                                         <td className="p-6">
-                                            <div className="font-black text-white text-base flex items-center gap-3 uppercase">
-                                                <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center border border-violet-500/20 group-hover:scale-110 transition-transform shadow-lg shadow-violet-500/5">
-                                                    <Building2 className="w-5 h-5 text-violet-400" />
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent/20 to-violet-500/20 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                    <Building2 className="w-6 h-6 text-accent" />
                                                 </div>
-                                                {lead.business_name}
-                                            </div>
-                                            <div className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-widest ml-[52px] flex items-center gap-2">
-                                                <span className="w-2 h-2 bg-violet-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.6)]"></span>
-                                                {lead.business_type === 'barbershop' ? 'Barbería' :
-                                                    lead.business_type === 'salon' ? 'Salón de Belleza' :
-                                                        lead.business_type === 'spa' ? 'Spa' :
-                                                            lead.business_type === 'clinic' ? 'Clínica' : 'Otro'}
+                                                <div>
+                                                    <div className="font-black text-white text-lg tracking-tight uppercase">{lead.business_name}</div>
+                                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                                                        {lead.business_type === 'barbershop' ? 'Barbería' :
+                                                            lead.business_type === 'salon' ? 'Salón de Belleza' :
+                                                                lead.business_type === 'spa' ? 'Spa' :
+                                                                    lead.business_type === 'clinic' ? 'Clínica' : 'SaaS / Tech'}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="p-6">
-                                            <div className="font-bold text-white mb-2 text-sm uppercase">{lead.contact_name}</div>
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium lowercase">
-                                                    <Mail className="w-3.5 h-3.5 text-slate-500" /> {lead.email}
+                                            <div className="font-bold text-white mb-1.5 uppercase tracking-wide text-xs">{lead.contact_name}</div>
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center gap-2 text-[11px] text-slate-400 hover:text-white transition-colors">
+                                                    <Mail className="w-3 h-3 opacity-50" /> {lead.email}
                                                 </div>
                                                 {lead.phone && (
                                                     <a
                                                         href={`https://wa.me/${lead.phone.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(lead.contact_name)},%20te%20escribo%20de%20CitaLink%20por%20tu%20solicitud%20de%20acceso...`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-all font-bold group/wa w-fit"
-                                                        title="Enviar mensaje por WhatsApp"
+                                                        className="flex items-center gap-2 text-[11px] text-emerald-400 font-bold hover:translate-x-1 transition-all"
                                                     >
-                                                        <Phone className="w-3.5 h-3.5 group-hover/wa:scale-110 transition-transform" />
-                                                        {lead.phone}
-                                                        <span className="bg-emerald-500/10 text-[9px] px-2 py-0.5 rounded border border-emerald-500/20 ml-1">WHATSAPP</span>
+                                                        <Phone className="w-3 h-3" /> {lead.phone}
+                                                        <span className="bg-emerald-500/10 text-[8px] px-1.5 py-0.5 rounded border border-emerald-500/20 ml-1">WHATSAPP</span>
                                                     </a>
                                                 )}
                                             </div>
                                         </td>
                                         <td className="p-6">
-                                            <div className="flex items-center gap-2.5 px-4 py-2 bg-white/5 rounded-xl border border-white/5 w-fit text-slate-300 font-bold">
+                                            <div className="flex items-center gap-2 text-slate-300 font-bold bg-white/5 border border-white/5 px-3 py-1.5 rounded-lg w-fit">
                                                 <Users className="w-4 h-4 text-slate-500" />
-                                                <span className="text-xs">{lead.employee_count} {lead.employee_count === '1' ? 'Persona' : 'Personas'}</span>
+                                                <span className="text-xs">{lead.employee_count} {parseInt(lead.employee_count) === 1 ? 'Staff' : 'Staff'}</span>
                                             </div>
                                         </td>
                                         <td className="p-6">
-                                            <div className="flex items-center gap-2 text-slate-500 font-medium">
-                                                <Calendar className="w-4 h-4 text-slate-600" />
-                                                <span className="text-xs">{format(new Date(lead.created_at), "d MMM, yyyy", { locale: es })}</span>
+                                            <div className="flex items-center gap-2 text-slate-400">
+                                                <Calendar className="w-4 h-4 opacity-40" />
+                                                <span className="text-xs font-medium">{format(new Date(lead.created_at), "dd/MM/yyyy", { locale: es })}</span>
                                             </div>
                                         </td>
-                                        <td className="p-6">
-                                            <div className="flex justify-center">
-                                                <button
-                                                    onClick={() => updateLeadStatus(lead.id, lead.status)}
-                                                    className={`px-5 py-2.5 text-[10px] font-black tracking-[0.15em] uppercase rounded-xl border shadow-xl transition-all hover:brightness-125 focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1e293b] ${getStatusStyle(lead.status)}`}
-                                                >
+                                        <td className="p-6 text-center">
+                                            <button
+                                                onClick={() => updateLeadStatus(lead.id, lead.status)}
+                                                className={`group/btn relative px-6 py-2.5 rounded-xl border font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105 active:scale-95 ${getStatusStyle(lead.status)}`}
+                                            >
+                                                <span className="flex items-center justify-center gap-2">
                                                     {getStatusText(lead.status)}
-                                                </button>
-                                            </div>
+                                                    <ArrowRight size={12} className="opacity-0 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
+                                                </span>
+                                            </button>
                                         </td>
                                     </tr>
                                 ))

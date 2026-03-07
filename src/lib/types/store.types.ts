@@ -39,6 +39,10 @@ export interface Client {
     notes?: string;
     tags?: string[];
     createdAt: string;
+    // Pre-calculated stats from view
+    totalVisits: number;
+    totalSpent: number;
+    lastVisit: string;
 }
 
 export interface WaitingClient {

@@ -1,0 +1,161 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../supabaseClient';
+import type { Appointment } from '../../types/store.types';
+import { useAuthStore } from '../authStore';
+import { useUIStore } from '../uiStore';
+import { useServices } from './useServices';
+
+export const useAppointments = (options?: { startDate?: string }) => {
+    const { tenantId } = useAuthStore();
+    const { showToast, setDeviceHasPending, getDevicePendingId, clearDevicePending } = useUIStore();
+    const { services } = useServices(); // Needed for some logic
+    const queryClient = useQueryClient();
+    const queryKey = ['appointments', tenantId, options?.startDate];
+
+    // GET Appointments
+    const query = useQuery({
+        queryKey,
+        queryFn: async (): Promise<Appointment[]> => {
+            if (!tenantId) return [];
+
+            let queryBuilder = supabase
+                .from('appointments')
+                .select('*')
+                .eq('tenant_id', tenantId);
+
+            if (options?.startDate) {
+                queryBuilder = queryBuilder.gte('date', options.startDate);
+            }
+
+            const { data, error } = await queryBuilder;
+            if (error) throw error;
+
+            return data.map((a: any) => ({
+                ...a,
+                clientName: a.client_name,
+                clientPhone: a.client_phone,
+                serviceId: a.service_id,
+                stylistId: a.stylist_id,
+                bookedAt: a.booked_at,
+            })) as Appointment[];
+        },
+        enabled: !!tenantId,
+    });
+
+    // ADD Appointment
+    const addMutation = useMutation({
+        mutationFn: async (appt: Omit<Appointment, 'id' | 'status' | 'bookedAt'>) => {
+            if (!tenantId) throw new Error("No tenant info");
+
+            // RPC call for atomic booking
+            const { data: rpcResult, error: rpcError } = await supabase.rpc('create_appointment_v3', {
+                p_tenant_id: tenantId,
+                p_client_name: appt.clientName,
+                p_client_phone: appt.clientPhone,
+                p_service_id: appt.serviceId,
+                p_stylist_id: appt.stylistId,
+                p_date: appt.date,
+                p_time: appt.time
+            });
+
+            if (rpcError) throw rpcError;
+            if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Error desconocido al reservar');
+
+            return rpcResult;
+        },
+        onSuccess: (data) => {
+            if (data.id) setDeviceHasPending(data.id);
+            queryClient.invalidateQueries({ queryKey });
+            showToast('Cita reservada con éxito', 'success');
+        },
+        onError: (err: any) => showToast(`Error al reservar: ${err.message}`, 'error')
+    });
+
+    // CANCEL Appointment
+    const cancelMutation = useMutation({
+        mutationFn: async ({ id }: { id: string }) => {
+            if (!tenantId) throw new Error("No tenant info");
+
+            const apt = query.data?.find(a => a.id === id);
+            if (!apt) throw new Error('Cita no encontrada');
+
+            // TODO: Week cancellation limit logic here if needed (byClient)
+
+            const svc = services.find(s => s.id === apt.serviceId);
+
+            // Log it
+            await supabase.from('cancellation_log').insert([{
+                appointment_id: apt.id,
+                client_name: apt.clientName,
+                client_phone: apt.clientPhone,
+                service_name: svc?.name ?? 'Desconocido',
+                date: apt.date,
+                time: apt.time,
+                tenant_id: tenantId
+            }]);
+
+            // Cancel it
+            const { error } = await supabase.from('appointments')
+                .update({ status: 'cancelada' })
+                .eq('id', id)
+                .eq('tenant_id', tenantId);
+
+            if (error) throw error;
+            return id;
+        },
+        onSuccess: (id) => {
+            if (getDevicePendingId() === id) clearDevicePending();
+            queryClient.invalidateQueries({ queryKey });
+            showToast('Cita cancelada', 'success');
+        },
+        onError: (err: any) => showToast(`Error al cancelar: ${err.message}`, 'error')
+    });
+
+    // COMPLETE Appointment
+    const completeMutation = useMutation({
+        mutationFn: async (id: string) => {
+            if (!tenantId) throw new Error("No tenant info");
+            const { error } = await supabase.from('appointments')
+                .update({ status: 'completada' })
+                .eq('id', id)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+            return id;
+        },
+        onSuccess: (id) => {
+            if (getDevicePendingId() === id) clearDevicePending();
+            queryClient.invalidateQueries({ queryKey });
+            showToast('Cita completada', 'success');
+        },
+        onError: (err: any) => showToast(`Error al completar: ${err.message}`, 'error')
+    });
+
+    // UPDATE TIME
+    const updateTimeMutation = useMutation({
+        mutationFn: async ({ id, newTime }: { id: string, newTime: string }) => {
+            if (!tenantId) throw new Error("No tenant info");
+            const { error } = await supabase.from('appointments')
+                .update({ time: newTime })
+                .eq('id', id)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+            showToast('Hora actualizada', 'success');
+        },
+        onError: (err: any) => showToast(`Error al actualizar hora: ${err.message}`, 'error')
+    });
+
+    return {
+        ...query,
+        appointments: query.data || [],
+        addAppointment: addMutation.mutateAsync,
+        cancelAppointment: cancelMutation.mutateAsync,
+        completeAppointment: completeMutation.mutateAsync,
+        updateAppointmentTime: updateTimeMutation.mutateAsync,
+        isAdding: addMutation.isPending,
+        isCancelling: cancelMutation.isPending,
+        isCompleting: completeMutation.isPending
+    };
+};

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useStore } from '../lib/store';
+
+import { useAuthStore } from '../lib/store/authStore';
 import { Link } from 'react-router-dom';
 import { CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight, CheckCircle2, Facebook, Instagram, Twitter, X, Sparkles, Scissors, Flower2, Stethoscope, Infinity as InfinityIcon } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -20,7 +21,7 @@ const employeeCountOptions = [
     { value: '10+', label: 'Más de 10 empleados' },
 ];
 export default function Landing() {
-    const { user, isSuperAdmin } = useStore();
+    const { user, isSuperAdmin } = useAuthStore();
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [leadSuccess, setLeadSuccess] = useState(false);
