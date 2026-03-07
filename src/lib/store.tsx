@@ -1055,13 +1055,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [appointments]);
 
     const sendSMS = useCallback(async (_phone: string, message: string) => {
-        // En producción, llamaríamos a una Supabase Edge Function:
-        // const { data, error } = await supabase.functions.invoke('send-sms', { body: { phone: _phone, message } });
+        try {
+            const response = await fetch('/api/send-sms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phone: _phone, message }),
+            });
 
-        // Simulación: Mostrar en pantalla para pruebas (especialmente en móvil)
-        useUIStore.getState().showToast(message, 'info');
+            const data = await response.json();
 
-        return { success: true };
+            if (!response.ok) {
+                console.error("SMS API Error:", data.error);
+                useUIStore.getState().showToast(`Error de envío: ${data.error}`, 'error');
+                return { success: false, error: data.error };
+            }
+
+            console.log("SMS sent successfully", data.messageId);
+            useUIStore.getState().showToast('Código SMS enviado con éxito 📱', 'success');
+            return { success: true };
+        } catch (error: any) {
+            console.error("SMS Request Error:", error);
+            useUIStore.getState().showToast('Error de conexión al enviar el SMS', 'error');
+            return { success: false, error: error.message };
+        }
     }, []);
 
     const getAppointmentsForDate = useCallback((dateStr: string) => {

@@ -13,6 +13,8 @@ export default function Login() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -34,7 +36,13 @@ export default function Login() {
             // Eliminar espacios y CUALQUIER caracter invisible o erróneo que los teclados móviles/autocompletar inyecten
             const trimmedEmail = email.replace(/[^a-zA-Z0-9@._-]/g, '').toLowerCase();
 
-            if (isSignUp) {
+            if (isResetting) {
+                const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                });
+                if (error) throw error;
+                setResetSent(true);
+            } else if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
                     email: trimmedEmail,
                     password,
@@ -106,23 +114,36 @@ export default function Login() {
                             </div>
                         </div>
 
-                        {/* Password Input */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">Contraseña</label>
-                            <div className="relative group/input">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within/input:text-amber-400 transition-colors">
-                                    <Lock size={18} />
+                        {/* Password Input (Hidden if resetting) */}
+                        {!isResetting && (
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="text-sm font-medium text-slate-300">Contraseña</label>
+                                    {!isSignUp && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setIsResetting(true); setError(''); }}
+                                            className="text-xs text-amber-500 hover:text-amber-400 transition-colors"
+                                        >
+                                            ¿Olvidaste tu contraseña?
+                                        </button>
+                                    )}
                                 </div>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
-                                    placeholder="••••••••"
-                                    required
-                                />
+                                <div className="relative group/input">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within/input:text-amber-400 transition-colors">
+                                        <Lock size={18} />
+                                    </div>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                                        placeholder="••••••••"
+                                        required={!isResetting}
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Error Message */}
                         {error && (
@@ -132,30 +153,49 @@ export default function Login() {
                             </div>
                         )}
 
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all group/btn ${loading
-                                ? 'bg-slate-700 cursor-not-allowed opacity-70'
-                                : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 hover:scale-[1.02] shadow-orange-500/20'
-                                }`}
-                        >
-                            {loading ? (
-                                <><Loader2 className="animate-spin" size={18} /> {isSignUp ? 'Creando...' : 'Entrando...'}</>
-                            ) : (
-                                <>{isSignUp ? 'Crear Cuenta' : 'Entrar'} <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" /></>
-                            )}
-                        </button>
+                        {/* Success Message for Reset */}
+                        {resetSent && (
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-sm text-center">
+                                Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu correo electrónico.
+                            </div>
+                        )}
 
-                        <div className="text-center mt-4">
+                        {/* Submit Button */}
+                        {!resetSent && (
                             <button
-                                type="button"
-                                onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
-                                className="text-sm text-slate-400 hover:text-white transition-colors"
+                                type="submit"
+                                disabled={loading}
+                                className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all group/btn ${loading
+                                    ? 'bg-slate-700 cursor-not-allowed opacity-70'
+                                    : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 hover:scale-[1.02] shadow-orange-500/20'
+                                    }`}
                             >
-                                {isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿Eres nuevo empleado? Crea tu cuenta'}
+                                {loading ? (
+                                    <><Loader2 className="animate-spin" size={18} /> {isResetting ? 'Enviando...' : isSignUp ? 'Creando...' : 'Entrando...'}</>
+                                ) : (
+                                    <>{isResetting ? 'Enviar Enlace de Recuperación' : isSignUp ? 'Crear Cuenta' : 'Entrar'} <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" /></>
+                                )}
                             </button>
+                        )}
+
+                        <div className="text-center mt-4 flex flex-col gap-2">
+                            {isResetting ? (
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsResetting(false); setResetSent(false); setError(''); }}
+                                    className="text-sm text-slate-400 hover:text-white transition-colors"
+                                >
+                                    Volver a Iniciar Sesión
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+                                    className="text-sm text-slate-400 hover:text-white transition-colors"
+                                >
+                                    {isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿Eres nuevo empleado? Crea tu cuenta'}
+                                </button>
+                            )}
                         </div>
                     </form>
                 </div>

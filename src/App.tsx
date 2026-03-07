@@ -20,6 +20,7 @@ const Leads = lazy(() => import('./pages/admin/Leads'));
 const GlobalSettings = lazy(() => import('./pages/admin/GlobalSettings'));
 const Branding = lazy(() => import('./pages/admin/Branding'));
 const Landing = lazy(() => import('./pages/Landing'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 import SuperAdminLayout from './layouts/SuperAdminLayout';
 import BrandingManager from './components/BrandingManager';
@@ -110,6 +111,7 @@ function App() {
               </Route>
 
               <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Onboarding Route (User logged in, no tenant) */}
               <Route element={<OnboardingRoute />}>
