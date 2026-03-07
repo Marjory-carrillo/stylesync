@@ -38,13 +38,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const client = twilio(accountSid, authToken);
 
+        // Twilio requiere formato internacional (E.164)
+        // Si el teléfono no empieza con '+', asumimos que es de México (+52) por defecto
+        let formattedPhone = phone.replace(/\s+/g, '');
+        if (!formattedPhone.startsWith('+')) {
+            formattedPhone = `+52${formattedPhone}`;
+        }
+
         const response = await client.messages.create({
             body: message,
             from: fromPhone,
-            to: phone,
+            to: formattedPhone,
         });
 
-        console.log(`SMS enviado correctamente con SID: ${response.sid}`);
+        console.log(`SMS enviado correctamente con SID: ${response.sid} al número ${formattedPhone}`);
         return res.status(200).json({ success: true, messageId: response.sid });
     } catch (error: any) {
         console.error('Error al enviar SMS usando Twilio:', error);
