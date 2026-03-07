@@ -1,0 +1,17 @@
+CLIENTS: [
+  'maria (8681115546)',
+  'mier (616416161)',
+  'misael (8681361010)',
+  'maria (551548485)',
+  'karla (848226495)'
+]
+
+COMPLETED APPTS: []
+
+CLIENT SUMMARIES: [
+  'maria (8681115546): Visits 0, Spent $0',
+  'mier (616416161): Visits 0, Spent $0',
+  'misael (8681361010): Visits 0, Spent $0',
+  'maria (551548485): Visits 0, Spent $0',
+  'karla (848226495): Visits 0, Spent $0'
+]

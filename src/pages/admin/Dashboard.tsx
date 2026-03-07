@@ -786,8 +786,109 @@ export default function Dashboard() {
                     );
                 })()}
             </div>
+
+            {/* Completed Appointments Today */}
+            <div className="glass-card p-6 rounded-xl border border-emerald-500/10">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-lg text-emerald-400">Citas Completadas Hoy</h3>
+                </div>
+
+                {(() => {
+                    const now = new Date();
+                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+                    const completedAppts = todayAppts.filter(appt => {
+                        if (appt.status === 'completada') return true;
+
+                        const svc = services.find(s => s.id === appt.serviceId);
+                        const duration = svc?.duration || 30;
+
+                        // Calculate end time
+                        const [hours, minutes] = appt.time.split(':').map(Number);
+                        const endMinutes = hours * 60 + minutes + duration;
+                        const endHours = Math.floor(endMinutes / 60);
+                        const endMins = endMinutes % 60;
+                        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+
+                        // Show if it is confirmed but time has passed
+                        return currentTimeStr >= endTimeStr && appt.status === 'confirmada';
+                    }).sort((a, b) => b.time.localeCompare(a.time)); // Sort descending by time
+
+                    if (completedAppts.length === 0) {
+                        return (
+                            <div className="text-center py-12 text-emerald-500/40 bg-emerald-500/5 rounded-lg border border-dashed border-emerald-500/10">
+                                <Activity size={48} className="mx-auto mb-4 opacity-40" />
+                                <p>Aún no hay citas completadas el día de hoy.</p>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div className="space-y-3">
+                            {completedAppts.map(appt => {
+                                const svc = services.find(s => s.id === appt.serviceId);
+
+                                const displayTime = (() => {
+                                    const [h, m] = appt.time.split(':');
+                                    let hh = parseInt(h);
+                                    const ampm = hh >= 12 ? 'pm' : 'am';
+                                    hh = hh % 12;
+                                    hh = hh ? hh : 12;
+                                    return `${hh}:${m}${ampm}`;
+                                })();
+
+                                return (
+                                    <div key={appt.id} className="group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden glass-card border-white/5 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10">
+
+                                        {/* Status Indicator Bar */}
+                                        <div className="w-1.5 shrink-0 bg-gradient-to-b from-emerald-500/50 to-transparent" />
+
+                                        {/* Time Column */}
+                                        <div className="flex flex-col items-center justify-center w-20 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
+                                            <span className="text-base font-black tracking-tighter text-white">
+                                                {displayTime.replace(/(am|pm)/, '')}
+                                            </span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest -mt-1 text-emerald-500/60">
+                                                {displayTime.match(/(am|pm)/)?.[0]}
+                                            </span>
+                                        </div>
+
+                                        {/* Main Info */}
+                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
+                                            <div className="flex items-center gap-5">
+                                                <div className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden bg-slate-800 text-emerald-500/70">
+                                                    <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
+                                                    </div>
+                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
+                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-emerald-500/60" /> {svc?.name}</div>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                        <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right mr-2 hidden sm:block">
+                                                    <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Ingreso</span>
+                                                    <span className="text-sm font-black text-emerald-400">${svc?.price || 0}</span>
+                                                </div>
+                                                <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                                    Completada
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
+            </div>
         </div>
     );
 }
-
 
