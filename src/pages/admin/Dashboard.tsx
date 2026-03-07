@@ -7,8 +7,9 @@ import { useAppointments } from '../../lib/store/queries/useAppointments';
 import { useServices } from '../../lib/store/queries/useServices';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { useStylists } from '../../lib/store/queries/useStylists';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -18,6 +19,7 @@ type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 export default function Dashboard() {
     const { t } = useTranslation();
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
+    const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>('all');
 
     const { userRole, userStylistId } = useAuthStore();
     const { showToast } = useUIStore();
@@ -25,12 +27,13 @@ export default function Dashboard() {
     // Optimize: only load last 12 months for dashboard metrics
     const startDate = useMemo(() => format(subMonths(new Date(), 12), 'yyyy-MM-01'), []);
     const { appointments: allAppointments, isPending: apptsPending } = useAppointments({ startDate });
-    const { services, isPending: servicesPending } = useServices();
+    const { services, isPending: svcsLoading } = useServices();
     const { waitingList, addToWaitingList } = useWaitingList();
+    const { stylists } = useStylists();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || { slug: '' };
 
-    const isLoading = apptsPending || servicesPending;
+    const isLoading = apptsPending || svcsLoading;
 
     const {
         generateReminderWhatsAppUrl, getServiceById,
@@ -673,7 +676,19 @@ export default function Dashboard() {
             <div className="glass-card p-6 rounded-xl">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
-                    <button className="text-xs text-accent hover:underline">Ver todas</button>
+                    <div className="flex items-center gap-2">
+                        <User size={14} className="text-accent hidden sm:block" />
+                        <select
+                            value={dashboardStylistId}
+                            onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                            className="bg-slate-900/50 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-accent"
+                        >
+                            <option value="all">Todos los barberos</option>
+                            {stylists.map(s => (
+                                <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {(() => {
@@ -681,6 +696,9 @@ export default function Dashboard() {
                     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
                     const upcomingAppts = todayAppts.filter(appt => {
+                        const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
+                        if (!isMatch) return false;
+
                         const svc = services.find(s => s.id === appt.serviceId);
                         const duration = svc?.duration || 30;
 
@@ -755,6 +773,12 @@ export default function Dashboard() {
                                                     </div>
                                                     <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
                                                         <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-accent/60" /> {svc?.name}</div>
+                                                        {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
+                                                            <>
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                                <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-accent/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
+                                                            </>
+                                                        )}
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
                                                         <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
                                                     </div>
@@ -791,6 +815,19 @@ export default function Dashboard() {
             <div className="glass-card p-6 rounded-xl border border-emerald-500/10">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg text-emerald-400">Citas Completadas Hoy</h3>
+                    <div className="flex items-center gap-2">
+                        <User size={14} className="text-emerald-500 hidden sm:block" />
+                        <select
+                            value={dashboardStylistId}
+                            onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                            className="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
+                        >
+                            <option value="all">Todos los barberos</option>
+                            {stylists.map(s => (
+                                <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {(() => {
@@ -798,6 +835,9 @@ export default function Dashboard() {
                     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
                     const completedAppts = todayAppts.filter(appt => {
+                        const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
+                        if (!isMatch) return false;
+
                         if (appt.status === 'completada') return true;
 
                         const svc = services.find(s => s.id === appt.serviceId);
@@ -865,6 +905,12 @@ export default function Dashboard() {
                                                     </div>
                                                     <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
                                                         <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-emerald-500/60" /> {svc?.name}</div>
+                                                        {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
+                                                            <>
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                                <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-emerald-500/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
+                                                            </>
+                                                        )}
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
                                                         <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
                                                     </div>
