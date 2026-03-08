@@ -43,6 +43,7 @@ export interface Client {
     totalVisits: number;
     totalSpent: number;
     lastVisit: string;
+    mainService?: string;
 }
 
 export interface WaitingClient {

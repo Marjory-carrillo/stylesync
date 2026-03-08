@@ -28,7 +28,8 @@ export const useClients = () => {
                 // Aseguramos que los campos de la vista mapeen correctamente si es necesario
                 totalVisits: c.total_visits,
                 totalSpent: c.total_spent,
-                lastVisit: c.last_visit
+                lastVisit: c.last_visit,
+                mainService: c.main_service
             })) as Client[];
         },
         enabled: !!tenantId,
