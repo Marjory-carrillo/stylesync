@@ -29,6 +29,7 @@ top_service_ids AS (
 ),
 stats AS (
     -- Calculamos estadísticas generales de visitas y gasto total
+    -- Nota: Usamos solo 'completada' ya que el sistema autocompleta citas pasadas.
     SELECT 
         a.client_phone,
         a.tenant_id,

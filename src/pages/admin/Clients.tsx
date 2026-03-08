@@ -101,36 +101,50 @@ export default function Clients() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 mb-4 relative z-10">
-                            <div className="bg-black/40 backdrop-blur-md rounded-xl p-3 border border-white/5 shadow-inner">
-                                <span className="block text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Visitas</span>
-                                <span className="text-xl font-black text-white tracking-tighter">{client.totalVisits}</span>
+                        {/* Highlights Grid - Enhanced Visibility */}
+                        <div className="grid grid-cols-2 gap-4 mb-6 relative z-10">
+                            <div className="bg-gradient-to-br from-slate-800/50 to-black/50 backdrop-blur-xl rounded-3xl p-5 border border-white/5 shadow-2xl group/stat hover:border-accent/30 transition-all duration-500">
+                                <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2 group-hover/stat:text-accent transition-colors">Total Visitas</span>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-3xl font-black text-white tracking-tighter tabular-nums">{client.totalVisits || 0}</span>
+                                    <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Visitas</span>
+                                </div>
                             </div>
-                            <div className="bg-black/40 backdrop-blur-md rounded-xl p-3 border border-white/5 shadow-inner">
-                                <span className="block text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Invertido</span>
-                                <span className="text-xl font-black text-emerald-400 tracking-tighter">${client.totalSpent}</span>
+                            <div className="bg-gradient-to-br from-slate-800/50 to-black/50 backdrop-blur-xl rounded-3xl p-5 border border-white/5 shadow-2xl group/stat hover:border-emerald-500/30 transition-all duration-500">
+                                <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2 group-hover/stat:text-emerald-400 transition-colors">Invertido</span>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-sm font-black text-emerald-500 opacity-70 tracking-tighter">$</span>
+                                    <span className="text-3xl font-black text-emerald-400 tracking-tighter tabular-nums">{client.totalSpent || 0}</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Most Frequent Service */}
-                        <div className="mb-6 relative z-10 bg-accent/5 backdrop-blur-md rounded-xl p-3 border border-accent/10 shadow-inner">
-                            <span className="block text-[8px] text-accent/70 font-black uppercase tracking-[0.2em] mb-1">Servicio Favorito</span>
-                            <span className="text-xs font-bold text-white truncate block">
-                                {client.mainService || <span className="opacity-30 italic">Sin datos suficientes</span>}
-                            </span>
+                        {/* Favorite Service with Premium styling */}
+                        <div className="mb-6 relative z-10">
+                            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-inner group-hover:border-accent/20 transition-all duration-500 overflow-hidden relative">
+                                {/* Service badge background decoration */}
+                                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-accent/5 to-transparent pointer-events-none"></div>
+                                <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Servicio Preferido</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-accent animate-pulse-soft"></div>
+                                    <span className="text-sm font-black text-white uppercase tracking-tight truncate block">
+                                        {client.mainService || <span className="opacity-20 italic font-normal normal-case">Sin datos previos</span>}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="pt-4 border-t border-white/5 relative z-10">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[8px] text-slate-600 font-black uppercase tracking-[0.2em]">Última Visita</span>
-                                <span className="text-[9px] text-accent font-black bg-accent/5 border border-accent/20 px-2.5 py-0.5 rounded-full uppercase tracking-widest">
-                                    {client.lastVisit ? format(parse(client.lastVisit, 'yyyy-MM-dd', new Date()), 'd MMM yyyy', { locale: es }) : 'N/A'}
+                        <div className="pt-4 border-t border-white/5 relative z-10 flex items-center justify-between">
+                            <div>
+                                <span className="text-[8px] text-slate-600 font-black uppercase tracking-[0.2em] block mb-1">Última Visita</span>
+                                <span className="text-[10px] text-accent font-black uppercase tracking-widest bg-accent/5 px-3 py-1 rounded-full border border-accent/20">
+                                    {client.lastVisit ? format(parse(client.lastVisit, 'yyyy-MM-dd', new Date()), 'd MMM yyyy', { locale: es }) : 'RECIÉN REGISTRADO'}
                                 </span>
                             </div>
                         </div>
 
-                        <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
-                            <User size={80} />
+                        <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-700 pointer-events-none rotate-12 scale-150 transform">
+                            <User size={100} />
                         </div>
                     </div>
                 ))}

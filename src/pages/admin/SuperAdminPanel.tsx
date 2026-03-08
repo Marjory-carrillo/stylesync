@@ -63,6 +63,18 @@ export default function SuperAdminPanel() {
     useEffect(() => {
         fetchAllTenants();
         fetchSmsMetrics();
+
+        // Suscripción en tiempo real para SMS
+        const channel = supabase
+            .channel('public:sms_logs')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_logs' }, () => {
+                fetchSmsMetrics();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [fetchAllTenants]);
 
     const fetchSmsMetrics = async () => {
