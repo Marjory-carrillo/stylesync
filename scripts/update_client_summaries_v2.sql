@@ -15,7 +15,7 @@ WITH service_counts AS (
         service_id,
         COUNT(*) as cnt
     FROM public.appointments
-    WHERE status IN ('completada', 'confirmada')
+    WHERE status = 'completada'
     GROUP BY client_phone, tenant_id, service_id
 ),
 top_service_ids AS (
@@ -29,7 +29,7 @@ top_service_ids AS (
 ),
 stats AS (
     -- Calculamos estadísticas generales de visitas y gasto total
-    -- Nota: Incluimos confirmada para dar feedback inmediato al usuario
+    -- Nota: Regresamos a la lógica estricta de 'completada' por solicitud del usuario.
     SELECT 
         a.client_phone,
         a.tenant_id,
@@ -38,7 +38,7 @@ stats AS (
         MAX(a.date) as last_visit_date
     FROM public.appointments a
     LEFT JOIN public.services svc ON svc.id = a.service_id
-    WHERE a.status IN ('completada', 'confirmada')
+    WHERE a.status = 'completada'
     GROUP BY a.client_phone, a.tenant_id
 )
 SELECT 
