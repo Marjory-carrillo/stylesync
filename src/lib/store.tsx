@@ -1054,27 +1054,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return appointments.filter(a => a.date === t && a.status !== 'cancelada');
     }, [appointments]);
 
-    const sendSMS = useCallback(async (_phone: string, message: string) => {
-        // --- MODO SIMULACIÓN PARA EVITAR COSTOS ---
-        // Desactivamos Twilio temporalmente para que no gastes centavos en pruebas.
-        // Si quieres reactivarlo, solo descomenta el bloque de fetch más abajo.
-
-        console.log("SIMULACIÓN SMS:", { phone: _phone, message });
-        useUIStore.getState().showToast(`[SIMULACIÓN] Código: ${message.split(':').pop()?.trim()}`, 'info');
-        return { success: true };
-
-        /* 
+    const sendSMS = useCallback(async (phone: string, message: string) => {
         try {
+            if (!tenantId) {
+                console.error('sendSMS: tenantId is missing');
+                return { success: false, error: 'Configuración incompleta' };
+            }
+
             const response = await fetch('/api/send-sms', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ phone: _phone, message }),
+                body: JSON.stringify({ phone, message, tenantId }),
             });
-            ... rest of the code ...
-        */
-    }, []);
+
+            const data = await response.json();
+
+            if (response.status === 403) {
+                // El servicio está desactivado (Modo Simulación automático)
+                console.log("SIMULACIÓN (Servicio desactivado):", { phone, message });
+                useUIStore.getState().showToast(`[DEMO] Código: ${message.split(':').pop()?.trim()}`, 'info');
+                return { success: true, simulated: true };
+            }
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al enviar SMS');
+            }
+
+            return { success: true, messageId: data.messageId };
+        } catch (error: any) {
+            console.error('Error sendSMS:', error);
+            useUIStore.getState().showToast(`Error de envío: ${error.message}`, 'error');
+            return { success: false, error: error.message };
+        }
+    }, [tenantId]);
 
     const getAppointmentsForDate = useCallback((dateStr: string) => {
         return appointments.filter(a => a.date === dateStr && a.status !== 'cancelada');
