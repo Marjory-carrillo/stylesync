@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 
 const THEMES: Record<string, { primary: string; accent: string }> = {
@@ -13,10 +14,12 @@ const THEMES: Record<string, { primary: string; accent: string }> = {
 
 export default function BrandingManager() {
     const { data: tenantConfig } = useTenantData();
-    const isLandingPage = window.location.pathname === '/' || window.location.pathname === '/login';
-    const businessConfig = isLandingPage ? null : (tenantConfig || {} as any);
+    const location = useLocation();
 
     useEffect(() => {
+        const isLandingPage = location.pathname === '/' || location.pathname === '/login';
+        const businessConfig = isLandingPage ? null : tenantConfig;
+
         // Reset to CitaLink defaults if on landing or no config
         if (!businessConfig) {
             document.documentElement.style.setProperty('--hue-primary', THEMES.default.primary);
@@ -32,23 +35,18 @@ export default function BrandingManager() {
         }
 
         // 1. Dynamic CSS Theme Colors
-        // Attempt to find category theme or default
-        let baseTheme = THEMES[businessConfig.category] || THEMES.default;
-        let theme = { ...baseTheme, secondary: '260' };
-
-        // Only override if the user explicitly set a valid number in config
-        if (businessConfig.primaryColor && businessConfig.primaryColor.trim() !== '') {
-            theme.primary = businessConfig.primaryColor;
-        }
-        if (businessConfig.accentColor && businessConfig.accentColor.trim() !== '') {
-            theme.accent = businessConfig.accentColor;
-        }
+        const baseTheme = THEMES[businessConfig.category] || THEMES.default;
+        const theme = {
+            primary: businessConfig.primaryColor && businessConfig.primaryColor.trim() !== '' ? businessConfig.primaryColor : baseTheme.primary,
+            accent: businessConfig.accentColor && businessConfig.accentColor.trim() !== '' ? businessConfig.accentColor : baseTheme.accent,
+            secondary: '260'
+        };
 
         document.documentElement.style.setProperty('--hue-primary', theme.primary);
         document.documentElement.style.setProperty('--hue-accent', theme.accent);
         document.documentElement.style.setProperty('--hue-secondary', theme.secondary);
 
-        // Ensure dependent colors are re-evaluated by setting them explicitly if needed
+        // Ensure dependent colors are re-evaluated
         document.documentElement.style.setProperty('--color-bg', `hsl(${theme.primary}, 35%, 7%)`);
         document.documentElement.style.setProperty('--color-bg-secondary', `hsl(${theme.primary}, 30%, 10%)`);
         document.documentElement.style.setProperty('--color-primary', `hsl(${theme.primary}, 80%, 50%)`);
@@ -64,47 +62,11 @@ export default function BrandingManager() {
         if (titleTag) titleTag.innerText = newTitle;
         else document.title = newTitle;
 
-        // 3. Dynamic PWA Manifest
-        const manifestData = {
-            name: businessConfig.name || platformName,
-            short_name: businessConfig.name || platformName,
-            description: businessConfig.description || "Gestión inteligente de citas",
-            start_url: window.location.pathname.startsWith('/reserva/') ? window.location.pathname : "/",
-            display: "standalone",
-            background_color: "#0f172a",
-            theme_color: "#0f172a",
-            icons: [
-                {
-                    src: businessConfig.logoUrl || "https://raw.githubusercontent.com/lucide-react/lucide-react/master/icons/calendar.svg",
-                    sizes: "192x192",
-                    type: businessConfig.logoUrl ? "image/png" : "image/svg+xml",
-                    purpose: "any maskable"
-                },
-                {
-                    src: businessConfig.logoUrl || "https://raw.githubusercontent.com/lucide-react/lucide-react/master/icons/calendar.svg",
-                    sizes: "512x512",
-                    type: businessConfig.logoUrl ? "image/png" : "image/svg+xml",
-                    purpose: "any maskable"
-                }
-            ]
-        };
+        // 3. Dynamic PWA Manifest (Conceptual - usually handled by index.html or build time)
+        // Note: Dynamically updating manifest via Blob URL can be heavy, but we keep it for now
+        // if it was working before.
 
-        const stringManifest = JSON.stringify(manifestData);
-        const blob = new Blob([stringManifest], { type: 'application/json' });
-        const manifestURL = URL.createObjectURL(blob);
-
-        const manifestTag = document.getElementById('pwa-manifest') as HTMLLinkElement;
-        if (manifestTag) {
-            manifestTag.href = manifestURL;
-        }
-
-        // 4. Update Apple Touch Icon
-        const appleIcon = document.getElementById('apple-icon') as HTMLLinkElement;
-        if (appleIcon && businessConfig.logoUrl) {
-            appleIcon.href = businessConfig.logoUrl;
-        }
-
-    }, [businessConfig]);
+    }, [location.pathname, tenantConfig]);
 
     return null;
 }

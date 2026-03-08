@@ -52,7 +52,8 @@ const MaintenancePage = () => (
 
 const AdminRoute = () => {
   const { user, loadingAuth, tenantId, userRole } = useAuthStore();
-  const { config, loadingConfig } = useGlobalStore();
+  const config = useGlobalStore(s => s.config);
+  const loadingConfig = useGlobalStore(s => s.loadingConfig);
   const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
   if (loadingAuth || loadingConfig) return <SplashScreen />;
@@ -110,7 +111,8 @@ const SuperAdminRoute = () => {
 };
 
 const ClientRoute = () => {
-  const { config, loadingConfig } = useGlobalStore(s => ({ config: s.config, loadingConfig: s.loadingConfig }));
+  const config = useGlobalStore(s => s.config);
+  const loadingConfig = useGlobalStore(s => s.loadingConfig);
   if (loadingConfig) return <SplashScreen />;
   if (config?.maintenance_mode) return <MaintenancePage />;
   return <ClientLayout />;
@@ -118,7 +120,8 @@ const ClientRoute = () => {
 
 const OnboardingRoute = () => {
   const { user, loadingAuth, tenantId } = useAuthStore();
-  const { config, loadingConfig } = useGlobalStore();
+  const config = useGlobalStore(s => s.config);
+  const loadingConfig = useGlobalStore(s => s.loadingConfig);
   const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
   if (loadingAuth || loadingConfig) return <SplashScreen />;

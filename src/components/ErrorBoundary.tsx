@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AlertCircle, RefreshCw, Home } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Props {
     children?: ReactNode;
@@ -57,17 +57,10 @@ export class ErrorBoundary extends Component<Props, State> {
                             <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                                 <button
                                     onClick={() => window.location.reload()}
-                                    className="btn bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white border-transparent px-8 py-4 text-sm font-bold flex items-center justify-center gap-2 rounded-2xl transition-all shadow-lg shadow-red-900/20 hover:shadow-red-900/40"
+                                    className="btn bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white border-transparent px-8 py-4 text-sm font-bold flex items-center justify-center gap-2 rounded-2xl transition-all shadow-lg shadow-red-900/20 hover:shadow-red-900/40 w-full max-w-xs"
                                 >
                                     <RefreshCw size={18} />
                                     Recargar Página
-                                </button>
-                                <button
-                                    onClick={() => window.location.href = '/'}
-                                    className="btn bg-white/5 hover:bg-white/10 text-white border-white/10 px-8 py-4 text-sm font-bold flex items-center justify-center gap-2 rounded-2xl transition-all backdrop-blur-sm"
-                                >
-                                    <Home size={18} />
-                                    Volver al Inicio
                                 </button>
                             </div>
                         </div>

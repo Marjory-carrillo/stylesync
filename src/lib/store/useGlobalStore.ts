@@ -44,18 +44,20 @@ export const useGlobalStore = create<GlobalState>((set) => ({
                 });
             }
 
-            // 2. Suscripción Realtime para cambios inmediatos
-            supabase
-                .channel('global-config-changes')
-                .on(
-                    'postgres_changes',
-                    { event: 'UPDATE', schema: 'public', table: 'global_configs', filter: 'id=eq.main' },
-                    (payload) => {
-                        console.log('Global Config Updated:', payload.new);
-                        set({ config: payload.new as GlobalConfig });
-                    }
-                )
-                .subscribe();
+            // 2. Suscripción Realtime para cambios inmediatos (Solo si no existe)
+            if (!(supabase as any)._globalConfigChannel) {
+                (supabase as any)._globalConfigChannel = supabase
+                    .channel('global-config-changes')
+                    .on(
+                        'postgres_changes',
+                        { event: 'UPDATE', schema: 'public', table: 'global_configs', filter: 'id=eq.main' },
+                        (payload) => {
+                            console.log('Global Config Updated:', payload.new);
+                            set({ config: payload.new as GlobalConfig });
+                        }
+                    )
+                    .subscribe();
+            }
 
         } catch (err) {
             console.error('Unexpected error fetching global config:', err);
