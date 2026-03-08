@@ -211,17 +211,21 @@ export default function SuperAdminPanel() {
 
                             return categories.map((cat, i) => {
                                 let count = 0;
+                                const legacyMap: Record<string, string> = {
+                                    'salon': 'beauty_salon',
+                                    'clinic': 'consulting',
+                                    'barber': 'barbershop'
+                                };
+
                                 if (cat.id === 'other') {
-                                    // Count anything not in the main list
+                                    // Count anything not in the main list AND not in legacy mappings
                                     const mainIds = categories.filter(c => c.id !== 'other').map(c => c.id);
-                                    count = allTenants.filter(t => !mainIds.includes(t.category || '')).length;
+                                    count = allTenants.filter(t => {
+                                        const catId = t.category || '';
+                                        const normalizedId = legacyMap[catId] || catId;
+                                        return !mainIds.includes(normalizedId);
+                                    }).length;
                                 } else {
-                                    // Handle legacy 'salon' or 'clinic' mapping too just in case
-                                    const legacyMap: Record<string, string> = {
-                                        'salon': 'beauty_salon',
-                                        'clinic': 'consulting',
-                                        'barber': 'barbershop'
-                                    };
                                     count = allTenants.filter(t =>
                                         t.category === cat.id ||
                                         (legacyMap[t.category || ''] === cat.id)
