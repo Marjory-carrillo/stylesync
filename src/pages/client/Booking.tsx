@@ -198,12 +198,13 @@ export default function Booking() {
         return Object.keys(slotsMetadata).sort();
     }, [slotsMetadata]);
 
+    const [isSendingSms, setIsSendingSms] = useState(false);
     const [otpCode, setOtpCode] = useState('');
     const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
     const [otpAttempts, setOtpAttempts] = useState(0);
 
     // ── Step 1: Validate & Init OTP ───
-    const handleClientSubmit = () => {
+    const handleClientSubmit = async () => {
         const cleanPhone = clientPhone.replace(/\s+/g, '');
         const result = appointmentSchema.pick({ clientName: true, clientPhone: true }).safeParse({
             clientName: clientName.trim(),
@@ -228,20 +229,24 @@ export default function Booking() {
             return;
         }
 
-        // If today is closed, show info screen but still allow booking for future?
-        // Actually step 15 was used for "Closed". Let's use 16 for OTP.
+        setIsSendingSms(true);
+        try {
+            // Generate OTP
+            const code = Math.floor(1000 + Math.random() * 9000).toString();
+            setGeneratedOtp(code);
+            setOtpAttempts(0);
+            setOtpCode('');
 
-        // Generate OTP
-        const code = Math.floor(1000 + Math.random() * 9000).toString();
-        setGeneratedOtp(code);
-        setOtpAttempts(0);
-        setOtpCode('');
+            // Send "Professional" SMS using the central function
+            const message = `Tu código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
+            const smsRes = await sendSMS(cleanPhone, message);
 
-        // Send "Professional" SMS using the central function
-        const message = `Tu código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
-        sendSMS(cleanPhone, message);
-
-        setStep(16); // Go to OTP verification
+            if (smsRes.success) {
+                setStep(16); // Go to OTP verification
+            }
+        } finally {
+            setIsSendingSms(false);
+        }
     };
 
     const verifyOtp = () => {
@@ -259,17 +264,23 @@ export default function Booking() {
                 setClientError('Has excedido el número de intentos. Intenta más tarde.');
                 setStep(1);
             } else {
-                setClientError(`Código incorrecto.Intentos restantes: ${3 - newAttempts} `);
+                setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts} `);
             }
         }
     };
-    const resendOtp = () => {
-        const code = Math.floor(1000 + Math.random() * 9000).toString();
-        setGeneratedOtp(code);
-        setOtpAttempts(0);
 
-        const message = `Tu nuevo código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
-        sendSMS(clientPhone, message);
+    const resendOtp = async () => {
+        setIsSendingSms(true);
+        try {
+            const code = Math.floor(1000 + Math.random() * 9000).toString();
+            setGeneratedOtp(code);
+            setOtpAttempts(0);
+
+            const message = `Tu nuevo código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
+            await sendSMS(clientPhone, message);
+        } finally {
+            setIsSendingSms(false);
+        }
     };
 
     // ── Manage existing ───
@@ -461,8 +472,17 @@ export default function Booking() {
                                 </div>
                             )}
 
-                            <button className="btn btn-primary w-full py-4 text-lg shadow-glow mt-2" onClick={handleClientSubmit}>
-                                Continuar
+                            <button
+                                className="btn btn-primary w-full py-4 text-lg shadow-glow mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={handleClientSubmit}
+                                disabled={isSendingSms || !clientName || !clientPhone}
+                            >
+                                {isSendingSms ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <RefreshCw className="animate-spin" size={20} />
+                                        Enviando...
+                                    </div>
+                                ) : 'Continuar'}
                             </button>
                         </div>
                     </div>
@@ -607,15 +627,19 @@ export default function Booking() {
                             )}
 
                             <button
-                                className="btn btn-primary w-full py-4 text-lg shadow-glow"
+                                className="btn btn-primary w-full py-4 text-lg shadow-glow disabled:opacity-50"
                                 onClick={verifyOtp}
-                                disabled={otpCode.length !== 4}
+                                disabled={otpCode.length !== 4 || isSendingSms}
                             >
-                                Verificar
+                                {isSendingSms ? 'Cargando...' : 'Verificar'}
                             </button>
 
-                            <button className="btn btn-ghost text-sm w-full text-muted hover:text-white" onClick={resendOtp}>
-                                ¿No recibiste el código? Reenviar
+                            <button
+                                className="btn btn-ghost text-sm w-full text-muted hover:text-white disabled:opacity-50"
+                                onClick={resendOtp}
+                                disabled={isSendingSms}
+                            >
+                                {isSendingSms ? 'Enviando nuevo código...' : '¿No recibiste el código? Reenviar'}
                             </button>
                         </div>
                         <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar número</button>

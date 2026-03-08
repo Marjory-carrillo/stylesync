@@ -1082,6 +1082,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 throw new Error(data.error || 'Error al enviar SMS');
             }
 
+            useUIStore.getState().showToast('Código enviado con éxito', 'success');
             return { success: true, messageId: data.messageId };
         } catch (error: any) {
             console.error('Error sendSMS:', error);
