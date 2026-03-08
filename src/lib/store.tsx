@@ -721,16 +721,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [fetchData, isSuperAdmin]);
 
     const deleteTenant = useCallback(async (id: string) => {
-        if (!isSuperAdmin) return;
+        if (!isSuperAdmin) return { success: false, error: 'No autorizado' };
         const { error } = await supabase.from('tenants').delete().eq('id', id);
         if (error) {
             console.error('Error deleting tenant:', error);
-            showToast('Error al eliminar negocio', 'error');
-            return;
+            return { success: false, error: error.message };
         }
-        showToast('Negocio eliminado', 'success');
         fetchAllTenants();
-    }, [isSuperAdmin, fetchAllTenants, showToast]);
+        return { success: true };
+    }, [isSuperAdmin, fetchAllTenants]);
 
     const canDeviceBook = useCallback(() => {
         const pendingId = getDevicePendingId();

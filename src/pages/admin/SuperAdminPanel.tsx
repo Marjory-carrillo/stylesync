@@ -3,7 +3,7 @@ import { useStore } from '../../lib/store';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, TrendingUp, DollarSign, Plus, X, BarChart3,
-    ArrowUpRight, Globe, Zap, Calendar
+    ArrowUpRight, Globe, Zap, AlertTriangle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -13,23 +13,81 @@ import {
 import { format, subMonths, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '../../lib/supabaseClient';
+import { useUIStore } from '../../lib/store/uiStore';
+
+// Modal de confirmación premium para borrado
+const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="glass-panel max-w-md w-full p-8 border border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-transparent"></div>
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-6 mx-auto">
+                    <AlertTriangle size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-white text-center mb-2 uppercase tracking-tight">¿Eliminar Negocio?</h3>
+                <p className="text-slate-400 text-center mb-8 leading-relaxed">
+                    Estás a punto de eliminar <span className="text-white font-bold">"{tenantName}"</span>. Esta acción es irreversible y borrará todos los datos asociados.
+                </p>
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={onConfirm}
+                        className="w-full py-4 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black uppercase tracking-widest transition-all shadow-lg shadow-red-500/20"
+                    >
+                        Confirmar Eliminación
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold uppercase tracking-widest transition-all"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant } = useStore();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [tenantToDelete, setTenantToDelete] = useState<any>(null);
     const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', address: '' });
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
+    const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, number>>({});
+    const showToast = useUIStore(s => s.showToast);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchAllTenants();
-        fetchTotalSms();
+        fetchSmsMetrics();
     }, [fetchAllTenants]);
 
-    const fetchTotalSms = async () => {
-        const { count } = await supabase.from('sms_logs').select('*', { count: 'exact', head: true });
-        setTotalSmsCount(count || 0);
+    const fetchSmsMetrics = async () => {
+        try {
+            // Conteo total
+            const { count } = await supabase.from('sms_logs').select('*', { count: 'exact', head: true });
+            setTotalSmsCount(count || 0);
+
+            // Conteos por tenant
+            const { data: logsData, error } = await supabase
+                .from('sms_logs')
+                .select('tenant_id');
+
+            if (error) throw error;
+
+            const counts: Record<string, number> = {};
+            logsData?.forEach(log => {
+                if (log.tenant_id) {
+                    counts[log.tenant_id] = (counts[log.tenant_id] || 0) + 1;
+                }
+            });
+            setSmsCountsByTenant(counts);
+        } catch (err) {
+            console.error("Error fetching SMS metrics:", err);
+        }
     };
 
     const filteredTenants = useMemo(() => {
@@ -63,9 +121,28 @@ export default function SuperAdminPanel() {
         if (res.success) {
             setIsCreateModalOpen(false);
             setNewBusiness({ name: '', slug: '', category: 'barbershop', address: '' });
+            showToast('Negocio creado correctamente', 'success');
             fetchAllTenants();
         } else {
-            alert(res.error);
+            showToast(res.error || 'Error al crear negocio', 'error');
+        }
+    };
+
+    const handleDeleteClick = (tenant: any) => {
+        setTenantToDelete(tenant);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!tenantToDelete) return;
+        const res = await deleteTenant(tenantToDelete.id);
+        if (res.success) {
+            showToast('Negocio eliminado', 'success');
+            setIsDeleteModalOpen(false);
+            setTenantToDelete(null);
+            fetchAllTenants();
+        } else {
+            showToast(res.error || 'Error al eliminar', 'error');
         }
     };
 
@@ -316,14 +393,16 @@ export default function SuperAdminPanel() {
                                             })()}
                                         </span>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-4">
                                         <span className="text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate">
                                             citalink.app/{tenant.slug}
                                         </span>
-                                        <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                                            <Calendar size={12} className="opacity-30" />
-                                            {format(new Date(tenant.created_at || ''), "MMM yyyy", { locale: es })}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 rounded border border-amber-500/20 shadow-sm animate-fade-in">
+                                            <Zap size={10} className="text-amber-500" />
+                                            <span className="text-[10px] font-black text-amber-500 tracking-tighter">
+                                                {smsCountsByTenant[tenant.id] || 0} SMS
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -340,11 +419,7 @@ export default function SuperAdminPanel() {
                                             <ChevronRight size={20} />
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                if (window.confirm(`¿Seguro que quieres eliminar "${tenant.name}"? Se perderán todos los datos.`)) {
-                                                    deleteTenant(tenant.id);
-                                                }
-                                            }}
+                                            onClick={() => handleDeleteClick(tenant)}
                                             className="p-3 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
                                         >
                                             <Trash2 size={20} />
@@ -362,12 +437,12 @@ export default function SuperAdminPanel() {
                                         <button
                                             onClick={async () => {
                                                 const newState = !tenant.sms_enabled;
-                                                // Definiremos updateTenantSms en el store
                                                 const { error } = await supabase.from('tenants').update({ sms_enabled: newState }).eq('id', tenant.id);
                                                 if (error) {
-                                                    alert("Error al actualizar SMS: " + error.message);
+                                                    showToast("Error al actualizar SMS: " + error.message, 'error');
                                                 } else {
                                                     fetchAllTenants();
+                                                    showToast(`Servicio SMS ${newState ? 'activado' : 'desactivado'} para ${tenant.name}`, 'info');
                                                 }
                                             }}
                                             className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${tenant.sms_enabled ? 'bg-accent' : 'bg-slate-700'}`}
@@ -383,6 +458,14 @@ export default function SuperAdminPanel() {
                     </div>
                 </div>
             </div>
+
+            {/* Modals */}
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                tenantName={tenantToDelete?.name}
+            />
 
             {/* Create Business Modal */}
             {isCreateModalOpen && (

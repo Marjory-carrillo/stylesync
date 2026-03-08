@@ -28,7 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Supabase Setup
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    // IMPORTANTE: Para bypass de RLS en logs de sistema, usamos SERVICE_ROLE_KEY si está disponible
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
     // Twilio Setup
     const accountSid = process.env.VITE_TWILIO_ACCOUNT_SID || process.env.TWILIO_ACCOUNT_SID;
@@ -36,7 +37,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fromPhone = process.env.VITE_TWILIO_FROM_NUMBER || process.env.TWILIO_FROM_NUMBER;
 
     if (!supabaseUrl || !supabaseKey || !accountSid || !authToken || !fromPhone) {
-        console.error('Configuración incompleta');
+        console.error('Configuración incompleta:', {
+            hasUrl: !!supabaseUrl,
+            hasKey: !!supabaseKey,
+            hasSid: !!accountSid,
+            hasToken: !!authToken,
+            hasFrom: !!fromPhone
+        });
         return res.status(500).json({ error: 'Servidor mal configurado.' });
     }
 

@@ -166,7 +166,7 @@ export interface StoreContextType {
     isSuperAdmin: boolean;
     fetchAllTenants: () => Promise<void>;
     switchTenant: (tenantId: string) => Promise<void>;
-    deleteTenant: (tenantId: string) => Promise<void>;
+    deleteTenant: (tenantId: string) => Promise<{ success: boolean; error?: string }>;
 
     sendSMS: (phone: string, message: string) => Promise<{ success: boolean; error?: string }>;
 
