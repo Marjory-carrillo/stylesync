@@ -13,10 +13,23 @@ const THEMES: Record<string, { primary: string; accent: string }> = {
 
 export default function BrandingManager() {
     const { data: tenantConfig } = useTenantData();
-    const businessConfig = tenantConfig || {} as any;
+    const isLandingPage = window.location.pathname === '/' || window.location.pathname === '/login';
+    const businessConfig = isLandingPage ? null : (tenantConfig || {} as any);
 
     useEffect(() => {
-        if (!businessConfig) return;
+        // Reset to CitaLink defaults if on landing or no config
+        if (!businessConfig) {
+            document.documentElement.style.setProperty('--hue-primary', THEMES.default.primary);
+            document.documentElement.style.setProperty('--hue-accent', THEMES.default.accent);
+            document.documentElement.style.setProperty('--hue-secondary', '260');
+
+            const defaultTitle = "CitaLink - Gestión de Citas";
+            document.title = defaultTitle;
+            const titleTag = document.getElementById('app-title');
+            if (titleTag) titleTag.innerText = defaultTitle;
+
+            return;
+        }
 
         // 1. Dynamic CSS Theme Colors
         // Attempt to find category theme or default

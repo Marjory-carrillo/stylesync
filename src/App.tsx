@@ -145,10 +145,10 @@ function App() {
 
   return (
     <StoreProvider>
-      <BrandingManager />
-      <ToastContainer />
       <ErrorBoundary>
         <Router>
+          <BrandingManager />
+          <ToastContainer />
           <Suspense fallback={<SplashScreen />}>
             <Routes>
               {/* Main Landing */}
@@ -194,7 +194,7 @@ function App() {
           </Suspense>
         </Router>
       </ErrorBoundary>
-    </StoreProvider>
+    </StoreProvider >
   );
 }
 
