@@ -1,7 +1,7 @@
 // Force Vercel rebuild
 import { useState, useMemo } from 'react';
 import { useClients } from '../../lib/store/queries/useClients';
-import { Search, User, Phone } from 'lucide-react';
+import { Search, User, Phone, ChevronRight } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -74,77 +74,75 @@ export default function Clients() {
                             <Skeleton className="h-12 rounded-xl" />
                         </div>
                     ))
-                ) : filteredClients.length === 0 ? (
-                    <div className="col-span-full h-64 flex flex-col items-center justify-center bg-black/20 rounded-[2rem] border border-dashed border-white/5">
-                        <User size={48} className="text-slate-700 mb-4" />
-                        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No se encontraron clientes</p>
-                    </div>
                 ) : filteredClients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(client => (
-                    <div key={client.phone} className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 p-6 rounded-[2rem] group hover:border-accent/30 transition-all duration-500 relative overflow-hidden shadow-2xl">
+                    <div key={client.phone} className="liquid-glass p-8 group hover:border-accent/40 transition-all duration-700 shadow-2xl hover:shadow-accent/10">
+                        {/* Status Dots decoration */}
+                        <div className="absolute top-4 right-4 flex gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent/30"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent/20"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent/10"></div>
+                        </div>
 
-                        {/* Dynamic Background Glow */}
-                        <div className="absolute -left-10 -top-10 w-32 h-32 bg-accent/5 blur-[50px] rounded-full group-hover:bg-accent/10 transition-all duration-700"></div>
-
-                        <div className="flex items-start justify-between mb-6 relative z-10">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center text-white font-black text-xl shadow-xl border border-white/10 relative overflow-hidden group-hover:scale-105 transition-transform duration-500">
-                                    <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <span className="relative z-10 text-accent">{client.name.charAt(0).toUpperCase()}</span>
-                                </div>
-                                <div>
-                                    <h3 className="font-black text-white text-lg tracking-tight leading-none mb-1.5 uppercase">{client.name}</h3>
-                                    <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 tracking-widest bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
-                                        <Phone size={10} className="opacity-50" />
-                                        <span>{client.phone}</span>
-                                    </div>
+                        <div className="flex items-center gap-5 mb-8 relative z-10">
+                            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center text-accent font-black text-2xl shadow-2xl border border-white/10 group-hover:scale-110 transition-transform duration-500">
+                                {client.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h3 className="font-black text-white text-xl tracking-tighter uppercase mb-1.5">{client.name}</h3>
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 tracking-[0.2em] bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                                    <Phone size={12} className="opacity-50" />
+                                    <span>{client.phone}</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Highlights Grid - Enhanced Visibility */}
-                        <div className="grid grid-cols-2 gap-4 mb-6 relative z-10">
-                            <div className="bg-gradient-to-br from-slate-800/50 to-black/50 backdrop-blur-xl rounded-3xl p-5 border border-white/5 shadow-2xl group/stat hover:border-accent/30 transition-all duration-500">
-                                <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2 group-hover/stat:text-accent transition-colors">Total Visitas</span>
+                        {/* Highlights Grid - Liquid Glass Style */}
+                        <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
+                            <div className="bg-white/5 backdrop-blur-2xl rounded-[2rem] p-5 border border-white/10 shadow-inner group/stat hover:bg-white/10 transition-all duration-500">
+                                <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2 group-hover/stat:text-accent transition-colors">Visitas</span>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-3xl font-black text-white tracking-tighter tabular-nums">{client.totalVisits || 0}</span>
-                                    <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Visitas</span>
+                                    <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Total</span>
                                 </div>
                             </div>
-                            <div className="bg-gradient-to-br from-slate-800/50 to-black/50 backdrop-blur-xl rounded-3xl p-5 border border-white/5 shadow-2xl group/stat hover:border-emerald-500/30 transition-all duration-500">
+                            <div className="bg-white/5 backdrop-blur-2xl rounded-[2rem] p-5 border border-white/10 shadow-inner group/stat hover:bg-emerald-500/10 transition-all duration-500">
                                 <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2 group-hover/stat:text-emerald-400 transition-colors">Invertido</span>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-sm font-black text-emerald-500 opacity-70 tracking-tighter">$</span>
+                                    <span className="text-sm font-black text-emerald-500 opacity-70 mb-0.5">$</span>
                                     <span className="text-3xl font-black text-emerald-400 tracking-tighter tabular-nums">{client.totalSpent || 0}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Favorite Service with Premium styling */}
-                        <div className="mb-6 relative z-10">
-                            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-inner group-hover:border-accent/20 transition-all duration-500 overflow-hidden relative">
-                                {/* Service badge background decoration */}
-                                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-accent/5 to-transparent pointer-events-none"></div>
-                                <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Servicio Preferido</span>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-accent animate-pulse-soft"></div>
+                        <div className="mb-8 relative z-10">
+                            <div className="bg-gradient-to-br from-white/5 to-transparent rounded-3xl p-5 border border-white/10 shadow-xl overflow-hidden relative group/service">
+                                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-accent/5 to-transparent opacity-0 group-hover/service:opacity-100 transition-opacity"></div>
+                                <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-3">Servicio Preferido</span>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(var(--hue-accent),0.5)] animate-pulse-soft"></div>
                                     <span className="text-sm font-black text-white uppercase tracking-tight truncate block">
-                                        {client.mainService || <span className="opacity-20 italic font-normal normal-case">Sin datos previos</span>}
+                                        {client.mainService || <span className="opacity-20 italic font-normal normal-case tracking-normal">Sin historial</span>}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-white/5 relative z-10 flex items-center justify-between">
+                        <div className="pt-5 border-t border-white/5 relative z-10 flex items-center justify-between">
                             <div>
-                                <span className="text-[8px] text-slate-600 font-black uppercase tracking-[0.2em] block mb-1">Última Visita</span>
-                                <span className="text-[10px] text-accent font-black uppercase tracking-widest bg-accent/5 px-3 py-1 rounded-full border border-accent/20">
+                                <span className="text-[9px] text-slate-600 font-black uppercase tracking-[0.2em] block mb-2">Última Actividad</span>
+                                <span className="text-[10px] text-accent font-black uppercase tracking-[0.15em] bg-accent/10 px-4 py-1.5 rounded-full border border-accent/20">
                                     {client.lastVisit ? format(parse(client.lastVisit, 'yyyy-MM-dd', new Date()), 'd MMM yyyy', { locale: es }) : 'RECIÉN REGISTRADO'}
                                 </span>
                             </div>
+                            <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-slate-700 hover:text-white transition-colors cursor-pointer group-hover:bg-accent/10 group-hover:border-accent/20">
+                                <ChevronRight size={18} />
+                            </div>
                         </div>
 
-                        <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.08] transition-all duration-700 pointer-events-none rotate-12 scale-150 transform">
-                            <User size={100} />
+                        {/* Large Background Decorative Icon */}
+                        <div className="absolute -bottom-6 -right-6 p-8 opacity-[0.03] group-hover:opacity-[0.1] transition-all duration-700 pointer-events-none rotate-[-15deg] scale-150 transform">
+                            <User size={120} strokeWidth={1} />
                         </div>
                     </div>
                 ))}

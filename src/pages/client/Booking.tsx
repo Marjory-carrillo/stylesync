@@ -1012,102 +1012,103 @@ export default function Booking() {
 
                 {/* ══ STEP 5: Success ══ */}
                 {step === 5 && (
-                    <div className="animate-scale-in text-center pt-4 sm:pt-8 flex flex-col items-center">
-                        <div className="relative mb-8">
-                            {/* Animated Glow Rings */}
+                    <div className="animate-scale-in text-center pt-2 sm:pt-4 flex flex-col items-center">
+                        <div className="relative mb-6">
                             <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full animate-pulse-soft"></div>
-                            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center relative z-10 shadow-[0_0_40px_rgba(34,197,94,0.4)] text-white group">
-                                <CheckCircle size={48} className="group-hover:scale-110 transition-transform duration-500" />
+                            <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center relative z-10 shadow-[0_0_40px_rgba(34,197,94,0.4)] text-white">
+                                <CheckCircle size={40} />
                             </div>
                         </div>
 
-                        <h3 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase italic">¡Reserva Exitosa!</h3>
-                        <p className="text-slate-400 mb-8 text-sm font-bold uppercase tracking-[0.2em]">Cita confirmada correctamente</p>
+                        <h3 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase italic">¡Cita Confirmada!</h3>
+                        <p className="text-slate-400 mb-8 text-[10px] font-black uppercase tracking-[0.3em]">Reserva finalizada con éxito</p>
 
-                        {/* Premium Service Card */}
-                        <div className="w-full max-w-sm glass-panel !rounded-[2.5rem] p-8 border border-white/10 relative overflow-hidden mb-8 shadow-2xl">
-                            {/* Decorative background service name */}
-                            <div className="absolute -right-4 -bottom-4 text-white/5 font-black text-6xl uppercase tracking-tighter pointer-events-none rotate-[-10deg] select-none">
-                                {selectedService?.name?.split(' ')[0]}
-                            </div>
-
-                            <div className="flex flex-col items-center text-center relative z-10">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center mb-4 border border-white/10 shadow-xl">
-                                    {selectedService?.image ? (
-                                        <img src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" />
-                                    ) : (
-                                        <Calendar className="text-accent" size={24} />
-                                    )}
-                                </div>
-                                <h4 className="text-xl font-black text-white uppercase tracking-tight mb-1">{selectedService?.name}</h4>
-                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent font-bold text-[10px] uppercase tracking-widest mb-6">
-                                    <Clock size={12} />
-                                    <span>{selectedService?.duration} MINUTOS</span>
-                                </div>
-
-                                <div className="w-full grid grid-cols-2 gap-4 pt-6 border-t border-white/5">
-                                    <div className="text-left">
-                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">Fecha</span>
-                                        <p className="text-white font-bold text-sm leading-tight">
-                                            {selectedDate ? format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMMM', { locale: es }) : '---'}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">Hora</span>
-                                        <p className="text-accent font-black text-xl leading-none tracking-tighter">
-                                            {format12h(selectedTime)}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Contact & Professional Info */}
-                        <div className="w-full max-w-sm space-y-4 mb-8">
-                            <div className="flex items-center justify-between p-4 glass-card border-white/5 shadow-inner">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-                                        {selectedStylist?.image ? <img src={selectedStylist.image} className="w-full h-full object-cover" alt="" /> : <User size={20} className="text-slate-500" />}
-                                    </div>
-                                    <div className="text-left leading-tight">
-                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Atendido por</span>
-                                        <span className="text-xs font-bold text-white uppercase">{selectedStylist?.name ?? 'Cualquier disponible'}</span>
-                                    </div>
+                        {/* Liquid Glass Unified Card */}
+                        <div className="w-full max-w-sm liquid-glass p-8 border border-white/20 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] mb-8 flex flex-col items-center">
+                            {/* Header Section: Date & Time */}
+                            <div className="w-full flex justify-between items-center mb-10 pb-6 border-b border-white/10">
+                                <div className="text-left">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Día</span>
+                                    <p className="text-white font-bold text-lg leading-tight uppercase">
+                                        {selectedDate ? format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMM', { locale: es }) : '---'}
+                                    </p>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Total</span>
-                                    <span className="text-sm font-black text-emerald-400">${selectedService?.price}</span>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Hora</span>
+                                    <p className="text-accent font-black text-2xl leading-none tracking-tighter">
+                                        {format12h(selectedTime)}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            {/* Service Section */}
+                            <div className="w-full mb-10 text-center">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Servicio Reservado</h4>
+                                <div className="inline-flex items-center gap-4 bg-white/5 rounded-3xl p-4 border border-white/10 w-full justify-center">
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center border border-white/10 shrink-0">
+                                        {selectedService?.image ? <img src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Calendar size={20} className="text-accent" />}
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-black text-white uppercase text-base leading-tight">{selectedService?.name}</p>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <span className="text-[9px] font-black text-slate-400 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-widest">{selectedService?.duration} MIN</span>
+                                            <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase tracking-widest">${selectedService?.price}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Staff Section */}
+                            <div className="w-full mb-10">
+                                <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 overflow-hidden flex items-center justify-center">
+                                            {selectedStylist?.image ? <img src={selectedStylist.image} className="w-full h-full object-cover" alt="" /> : <User size={20} className="text-slate-500" />}
+                                        </div>
+                                        <div className="text-left leading-tight">
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Profesional</span>
+                                            <span className="text-xs font-bold text-white uppercase truncate max-w-[120px] block">{selectedStylist?.name ?? 'Cualquiera'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent/20">
+                                            <Shield size={14} className="text-accent" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quick Actions Grid */}
+                            <div className="w-full grid grid-cols-2 gap-3 mb-6">
                                 <a
                                     href={businessConfig.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessConfig.address)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-sm font-bold text-slate-300 group"
+                                    className="flex flex-col items-center justify-center py-4 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
                                 >
-                                    <MapPin size={16} className="group-hover:text-accent" />
-                                    <span>Mapa</span>
+                                    <MapPin size={20} className="mb-2" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Ubicación</span>
                                 </a>
                                 <a
                                     href={`tel:${businessConfig.phone.replace(/\D/g, '')}`}
-                                    className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-sm font-bold text-slate-300 group"
+                                    className="flex flex-col items-center justify-center py-4 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
                                 >
-                                    <Phone size={16} className="group-hover:text-accent" />
-                                    <span>Llamar</span>
+                                    <Phone size={20} className="mb-2" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Llamada</span>
                                 </a>
                             </div>
+
+                            {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
+                            <a
+                                href="/"
+                                className="w-full py-5 rounded-[2.5rem] bg-gradient-to-r from-accent to-blue-600 hover:scale-[1.02] active:scale-95 transition-all duration-300 text-slate-900 font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3"
+                            >
+                                <span>Finalizar Reserva</span>
+                                <ChevronRight size={20} />
+                            </a>
                         </div>
 
-                        {/* Final Action Button */}
-                        <a
-                            href="/"
-                            className="w-full max-w-sm py-5 rounded-[2rem] bg-gradient-to-r from-accent to-blue-600 hover:to-accent transition-all duration-500 text-slate-900 font-black uppercase tracking-[0.2em] shadow-2xl shadow-accent/20 flex items-center justify-center gap-3"
-                        >
-                            <span>Finalizar y Salir</span>
-                            <ChevronRight size={20} />
-                        </a>
+                        <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.2em] mb-8">Gracias por confiar en {businessConfig.name}</p>
                     </div>
                 )}
 
