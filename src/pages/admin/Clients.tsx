@@ -101,7 +101,7 @@ export default function Clients() {
                             <div className="bg-white/5 backdrop-blur-2xl rounded-[2rem] p-5 border border-white/10 shadow-inner group/stat hover:bg-white/10 transition-all duration-500">
                                 <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2 group-hover/stat:text-accent transition-colors">Visitas</span>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-3xl font-black text-white tracking-tighter tabular-nums">{client.totalVisits || 0}</span>
+                                    <span className="text-3xl font-black text-white tracking-tighter tabular-nums">{Number(client.totalVisits) || 0}</span>
                                     <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Total</span>
                                 </div>
                             </div>
@@ -109,7 +109,7 @@ export default function Clients() {
                                 <span className="block text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2 group-hover/stat:text-emerald-400 transition-colors">Invertido</span>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-sm font-black text-emerald-500 opacity-70 mb-0.5">$</span>
-                                    <span className="text-3xl font-black text-emerald-400 tracking-tighter tabular-nums">{client.totalSpent || 0}</span>
+                                    <span className="text-3xl font-black text-emerald-400 tracking-tighter tabular-nums">{Number(client.totalSpent) || 0}</span>
                                 </div>
                             </div>
                         </div>
