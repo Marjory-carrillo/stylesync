@@ -217,7 +217,11 @@ export default function SuperAdminPanel() {
                                     count = allTenants.filter(t => !mainIds.includes(t.category || '')).length;
                                 } else {
                                     // Handle legacy 'salon' or 'clinic' mapping too just in case
-                                    const legacyMap: Record<string, string> = { 'salon': 'beauty_salon', 'clinic': 'consulting' };
+                                    const legacyMap: Record<string, string> = {
+                                        'salon': 'beauty_salon',
+                                        'clinic': 'consulting',
+                                        'barber': 'barbershop'
+                                    };
                                     count = allTenants.filter(t =>
                                         t.category === cat.id ||
                                         (legacyMap[t.category || ''] === cat.id)
@@ -296,7 +300,16 @@ export default function SuperAdminPanel() {
                                     <div className="flex items-center gap-3 mb-1">
                                         <h3 className="text-lg font-black text-white truncate uppercase tracking-tight">{tenant.name}</h3>
                                         <span className="px-2.5 py-1 rounded bg-white/5 text-[9px] font-black tracking-widest uppercase text-slate-400 border border-white/5 shadow-inner">
-                                            {tenant.category || 'ESTÁNDAR'}
+                                            {(() => {
+                                                const cat = tenant.category?.toLowerCase() || '';
+                                                if (cat === 'barbershop' || cat === 'barber') return 'BARBERÍA';
+                                                if (cat === 'beauty_salon' || cat === 'salon') return 'SALÓN';
+                                                if (cat === 'nail_bar') return "NAIL'S";
+                                                if (cat === 'spa') return 'SPA';
+                                                if (cat === 'consulting' || cat === 'clinic') return 'CLÍNICA';
+                                                if (cat === 'other') return 'OTRO';
+                                                return cat.toUpperCase() || 'ESTÁNDAR';
+                                            })()}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-3">
