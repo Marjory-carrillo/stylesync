@@ -2,14 +2,28 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Activity, ShieldCheck, Database, Sliders, Save, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Info } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
+import { z } from 'zod';
 
-interface GlobalConfig {
+// Esquema de validación con Zod
+const globalConfigSchema = z.object({
+    basic_plan_price: z.number().min(0, 'El precio no puede ser negativo').max(100000, 'El precio parece excesivo'),
+    premium_plan_price: z.number().min(0, 'El precio no puede ser negativo').max(100000, 'El precio parece excesivo'),
+    trial_days: z.number().int().min(0, 'Los días de prueba no pueden ser negativos').max(365, 'El período de prueba no puede exceder 1 año'),
+    maintenance_mode: z.boolean(),
+    system_email: z.string().email('Debe ser un correo electrónico válido').min(1, 'El correo es requerido'),
+});
+
+type GlobalConfigValidation = z.infer<typeof globalConfigSchema>;
+
+interface GlobalConfig extends GlobalConfigValidation {
     id: string;
-    basic_plan_price: number;
-    premium_plan_price: number;
-    trial_days: number;
-    maintenance_mode: boolean;
-    system_email: string;
+}
+
+interface ValidationErrors {
+    basic_plan_price?: string;
+    premium_plan_price?: string;
+    trial_days?: string;
+    system_email?: string;
 }
 
 export default function GlobalSettings() {
@@ -17,6 +31,8 @@ export default function GlobalSettings() {
     const [config, setConfig] = useState<GlobalConfig | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [errors, setErrors] = useState<ValidationErrors>({});
+    const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
 
     useEffect(() => {
         fetchConfig();
@@ -50,7 +66,11 @@ export default function GlobalSettings() {
                         .select()
                         .single();
 
-                    if (insertError) throw insertError;
+                    if (insertError) {
+                        console.error('Error creating default config:', insertError);
+                        showToast('Error al crear configuración por defecto: ' + insertError.message, 'error');
+                        return;
+                    }
                     setConfig(newData);
                 } else {
                     throw error;
@@ -58,20 +78,56 @@ export default function GlobalSettings() {
             } else {
                 setConfig(data);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error fetching global config:', error);
-            showToast('Error al cargar configuración: ' + error.message, 'error');
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido al cargar la configuración';
+            showToast('Error al cargar configuración: ' + errorMessage, 'error');
         } finally {
             setLoading(false);
         }
+    };
+
+    const validateConfig = (configToValidate: GlobalConfig): ValidationErrors => {
+        const result = globalConfigSchema.safeParse(configToValidate);
+        if (!result.success) {
+            const formattedErrors: ValidationErrors = {};
+            result.error.errors.forEach((err) => {
+                const path = err.path[0] as keyof ValidationErrors;
+                formattedErrors[path] = err.message;
+            });
+            return formattedErrors;
+        }
+        return {};
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!config) return;
 
+        // Validar antes de guardar
+        const validationErrors = validateConfig(config);
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            showToast('Por favor corrige los errores antes de guardar.', 'error');
+            return;
+        }
+
+        // Confirmación extra si se activa modo mantenimiento
+        if (config.maintenance_mode) {
+            const confirmed = window.confirm(
+                '⚠️ ¿ESTÁS SEGURO?\n\n' +
+                'El Modo Mantenimiento impedirá que TODOS los usuarios (excepto Super Admin) accedan a la plataforma.\n\n' +
+                'Esto afectará a todos los negocios activos.'
+            );
+            if (!confirmed) {
+                setConfig({ ...config, maintenance_mode: false });
+                return;
+            }
+        }
+
         try {
             setSaving(true);
+            setErrors({});
             const { error } = await supabase
                 .from('global_configs')
                 .update({
@@ -86,9 +142,10 @@ export default function GlobalSettings() {
 
             if (error) throw error;
             showToast('Configuración global guardada exitosamente.', 'success');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error saving global config:', error);
-            showToast('Error al guardar: ' + error.message, 'error');
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            showToast('Error al guardar: ' + errorMessage, 'error');
         } finally {
             setSaving(false);
         }
@@ -146,12 +203,27 @@ export default function GlobalSettings() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium"
+                                        min="0"
+                                        className={`w-full bg-black/20 border rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${
+                                            errors.basic_plan_price ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                        }`}
                                         value={config.basic_plan_price}
-                                        onChange={(e) => setConfig({ ...config, basic_plan_price: parseFloat(e.target.value) })}
+                                        onChange={(e) => {
+                                            const value = parseFloat(e.target.value);
+                                            setConfig({ ...config, basic_plan_price: value });
+                                            // Limpiar error al editar
+                                            if (errors.basic_plan_price) {
+                                                setErrors({ ...errors, basic_plan_price: undefined });
+                                            }
+                                        }}
                                         required
                                     />
                                 </div>
+                                {errors.basic_plan_price && (
+                                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                                        <AlertCircle size={12} /> {errors.basic_plan_price}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
@@ -161,23 +233,52 @@ export default function GlobalSettings() {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium"
+                                        min="0"
+                                        className={`w-full bg-black/20 border rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${
+                                            errors.premium_plan_price ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                        }`}
                                         value={config.premium_plan_price}
-                                        onChange={(e) => setConfig({ ...config, premium_plan_price: parseFloat(e.target.value) })}
+                                        onChange={(e) => {
+                                            const value = parseFloat(e.target.value);
+                                            setConfig({ ...config, premium_plan_price: value });
+                                            if (errors.premium_plan_price) {
+                                                setErrors({ ...errors, premium_plan_price: undefined });
+                                            }
+                                        }}
                                         required
                                     />
                                 </div>
+                                {errors.premium_plan_price && (
+                                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                                        <AlertCircle size={12} /> {errors.premium_plan_price}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5">
                                 <label className="block text-sm font-semibold text-slate-300 mb-2">Días de Prueba Gratis (Trial)</label>
                                 <input
                                     type="number"
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium"
+                                    min="0"
+                                    max="365"
+                                    className={`w-full bg-black/20 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${
+                                        errors.trial_days ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                    }`}
                                     value={config.trial_days}
-                                    onChange={(e) => setConfig({ ...config, trial_days: parseInt(e.target.value) })}
+                                    onChange={(e) => {
+                                        const value = parseInt(e.target.value);
+                                        setConfig({ ...config, trial_days: value });
+                                        if (errors.trial_days) {
+                                            setErrors({ ...errors, trial_days: undefined });
+                                        }
+                                    }}
                                     required
                                 />
+                                {errors.trial_days && (
+                                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                                        <AlertCircle size={12} /> {errors.trial_days}
+                                    </p>
+                                )}
                                 <p className="text-xs text-slate-500 mt-2 flex items-center gap-1 group">
                                     <Info size={12} /> Cambiar esto no afecta los trials actuales, solo los futuros.
                                 </p>
@@ -225,12 +326,24 @@ export default function GlobalSettings() {
                                 <label className="block text-sm font-semibold text-slate-300 mb-2">Correo Transaccional (Sistema)</label>
                                 <input
                                     type="email"
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500 font-medium lowercase"
+                                    className={`w-full bg-black/20 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500 font-medium lowercase transition-colors ${
+                                        errors.system_email ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                    }`}
                                     value={config.system_email}
-                                    onChange={(e) => setConfig({ ...config, system_email: e.target.value })}
+                                    onChange={(e) => {
+                                        setConfig({ ...config, system_email: e.target.value });
+                                        if (errors.system_email) {
+                                            setErrors({ ...errors, system_email: undefined });
+                                        }
+                                    }}
                                     required
                                     placeholder="ejemplo@citalink.app"
                                 />
+                                {errors.system_email && (
+                                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                                        <AlertCircle size={12} /> {errors.system_email}
+                                    </p>
+                                )}
                                 <p className="text-xs text-slate-500 mt-2">Este correo aparecerá como remitente de las notificaciones oficiales.</p>
                             </div>
 

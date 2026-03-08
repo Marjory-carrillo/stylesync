@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { StoreProvider } from './lib/store';
 import { useAuthStore } from './lib/store/authStore';
@@ -22,18 +22,46 @@ const Branding = lazy(() => import('./pages/admin/Branding'));
 const Landing = lazy(() => import('./pages/Landing'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
+import { useGlobalStore } from './lib/store/useGlobalStore';
+import { Settings as SettingsIcon } from 'lucide-react';
 import SuperAdminLayout from './layouts/SuperAdminLayout';
 import BrandingManager from './components/BrandingManager';
 import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 
+const MaintenancePage = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0f172a] text-center">
+    <div className="w-20 h-20 mb-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center animate-pulse shadow-[0_0_50px_-10px_rgba(59,130,246,0.5)]">
+      <SettingsIcon className="w-10 h-10 text-blue-400 animate-spin-slow" />
+    </div>
+    <h1 className="text-4xl font-black text-white mb-4 tracking-tight uppercase italic underline decoration-blue-500/50 underline-offset-8">Modo Mantenimiento</h1>
+    <div className="max-w-md p-8 glass-panel border border-white/10 rounded-3xl mt-4">
+      <p className="text-slate-400 text-lg leading-relaxed mb-6 font-medium">Estamos realizando mejoras globales para ofrecerte una experiencia increíble. 🚀</p>
+      <div className="p-4 bg-white/5 rounded-2xl border border-white/5 mb-6 text-sm text-slate-500 italic">"CitaLink: Unificando tu negocio, paso a paso."</div>
+      <p className="text-blue-400 font-bold uppercase tracking-widest text-sm">Estaremos de vuelta en unos minutos</p>
+    </div>
+    <button
+      onClick={() => import('./lib/supabaseClient').then(m => m.supabase.auth.signOut())}
+      className="mt-8 text-slate-600 hover:text-slate-400 text-xs font-bold uppercase tracking-widest transition-colors"
+    >
+      Cerrar Sesión actual
+    </button>
+  </div>
+);
+
 const AdminRoute = () => {
   const { user, loadingAuth, tenantId, userRole } = useAuthStore();
+  const { config, loadingConfig } = useGlobalStore();
   const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
-  if (loadingAuth) return <SplashScreen />;
+  if (loadingAuth || loadingConfig) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
+
+  // Maintenance Mode BLOCK (Allowed only for Super Admin)
+  if (config?.maintenance_mode && !isSuperAdmin) {
+    return <MaintenancePage />;
+  }
 
   // Super Admin sin tenant seleccionado → HQ
   if (isSuperAdmin && !tenantId) return <Navigate to="/super-admin" replace />;
@@ -94,6 +122,12 @@ const OnboardingRoute = () => {
 
 
 function App() {
+  const fetchGlobalConfig = useGlobalStore(s => s.fetchGlobalConfig);
+
+  useEffect(() => {
+    fetchGlobalConfig();
+  }, [fetchGlobalConfig]);
+
   return (
     <StoreProvider>
       <BrandingManager />
