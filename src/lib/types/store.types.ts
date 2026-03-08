@@ -95,6 +95,7 @@ export interface BusinessConfig {
     description?: string;
     primaryColor?: string;
     accentColor?: string;
+    sms_enabled?: boolean;
 }
 
 export interface Tenant extends BusinessConfig {

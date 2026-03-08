@@ -760,15 +760,15 @@ export default function Dashboard() {
                                         <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
 
                                         {/* Time Column */}
-                                        <div className={`flex flex-col items-center justify-center w-28 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
-                                            <span className={`text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
+                                        <div className={`flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
+                                            <span className={`text-sm sm:text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
                                                 {displayTime.replace(/(am|pm)/, '')}
                                             </span>
-                                            <span className={`text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
+                                            <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
                                                 {displayTime.match(/(am|pm)/)?.[0]}
                                             </span>
-                                            <span className={`text-[9px] font-bold mt-2 opacity-60 ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
-                                                a {endTimeDisplay.replace(/(am|pm)/, '')} {endTimeDisplay.match(/(am|pm)/)?.[0].toUpperCase()}
+                                            <span className={`text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
+                                                a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
                                             </span>
                                         </div>
 
@@ -795,7 +795,15 @@ export default function Dashboard() {
                                                             </>
                                                         )}
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                        <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
+                                                        <a
+                                                            href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-1.5 text-accent hover:text-white transition-colors"
+                                                        >
+                                                            <Phone size={12} className="opacity-70" />
+                                                            <span className="underline underline-offset-2 decoration-accent/30">{appt.clientPhone}</span>
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -911,15 +919,15 @@ export default function Dashboard() {
                                         <div className="w-1.5 shrink-0 bg-gradient-to-b from-emerald-500/50 to-transparent" />
 
                                         {/* Time Column */}
-                                        <div className="flex flex-col items-center justify-center w-28 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
-                                            <span className="text-base font-black tracking-tighter text-white">
+                                        <div className="flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
+                                            <span className="text-sm sm:text-base font-black tracking-tighter text-white">
                                                 {displayTime.replace(/(am|pm)/, '')}
                                             </span>
-                                            <span className="text-[10px] font-black uppercase tracking-widest -mt-1 text-emerald-500/60">
+                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 text-emerald-500/60">
                                                 {displayTime.match(/(am|pm)/)?.[0]}
                                             </span>
-                                            <span className="text-[9px] font-bold mt-2 opacity-60 text-white">
-                                                a {endTimeDisplay.replace(/(am|pm)/, '')} {endTimeDisplay.match(/(am|pm)/)?.[0].toUpperCase()}
+                                            <span className="text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 text-white">
+                                                a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
                                             </span>
                                         </div>
 
@@ -942,7 +950,15 @@ export default function Dashboard() {
                                                             </>
                                                         )}
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                        <div className="flex items-center gap-1.5"><Phone size={12} className="opacity-40" /> {appt.clientPhone}</div>
+                                                        <a
+                                                            href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-1.5 text-emerald-500/70 hover:text-emerald-400 transition-colors"
+                                                        >
+                                                            <Phone size={12} className="opacity-70" />
+                                                            <span className="underline underline-offset-2 decoration-emerald-500/30">{appt.clientPhone}</span>
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </div>

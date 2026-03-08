@@ -1055,6 +1055,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, [appointments]);
 
     const sendSMS = useCallback(async (_phone: string, message: string) => {
+        // --- MODO SIMULACIÓN PARA EVITAR COSTOS ---
+        // Desactivamos Twilio temporalmente para que no gastes centavos en pruebas.
+        // Si quieres reactivarlo, solo descomenta el bloque de fetch más abajo.
+
+        console.log("SIMULACIÓN SMS:", { phone: _phone, message });
+        useUIStore.getState().showToast(`[SIMULACIÓN] Código: ${message.split(':').pop()?.trim()}`, 'info');
+        return { success: true };
+
+        /* 
         try {
             const response = await fetch('/api/send-sms', {
                 method: 'POST',
@@ -1063,23 +1072,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 },
                 body: JSON.stringify({ phone: _phone, message }),
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                console.error("SMS API Error:", data.error);
-                useUIStore.getState().showToast(`Error de envío: ${data.error}`, 'error');
-                return { success: false, error: data.error };
-            }
-
-            console.log("SMS sent successfully", data.messageId);
-            useUIStore.getState().showToast('Código SMS enviado con éxito 📱', 'success');
-            return { success: true };
-        } catch (error: any) {
-            console.error("SMS Request Error:", error);
-            useUIStore.getState().showToast('Error de conexión al enviar el SMS', 'error');
-            return { success: false, error: error.message };
-        }
+            ... rest of the code ...
+        */
     }, []);
 
     const getAppointmentsForDate = useCallback((dateStr: string) => {

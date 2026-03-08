@@ -12,17 +12,25 @@ import {
 } from 'recharts';
 import { format, subMonths, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant } = useStore();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', address: '' });
+    const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchAllTenants();
+        fetchTotalSms();
     }, [fetchAllTenants]);
+
+    const fetchTotalSms = async () => {
+        const { count } = await supabase.from('sms_logs').select('*', { count: 'exact', head: true });
+        setTotalSmsCount(count || 0);
+    };
 
     const filteredTenants = useMemo(() => {
         return allTenants.filter(t =>
@@ -122,6 +130,14 @@ export default function SuperAdminPanel() {
                     color="text-accent"
                     trend="Óptima"
                     delay="3"
+                />
+                <StatCard
+                    icon={<Zap size={24} />}
+                    title="SMS Totales (Log)"
+                    value={totalSmsCount !== null ? totalSmsCount : '...'}
+                    color="text-amber-400"
+                    trend="Plataforma"
+                    delay="4"
                 />
             </div>
 
@@ -266,27 +282,56 @@ export default function SuperAdminPanel() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 ml-4">
-                                    <button
-                                        onClick={async () => {
-                                            await switchTenant(tenant.id);
-                                            navigate('/admin');
-                                        }}
-                                        className="btn btn-primary p-3 rounded-xl shadow-none hover:shadow-accent/40"
-                                        title="Administrar Negocio"
-                                    >
-                                        <ChevronRight size={20} />
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            if (window.confirm(`¿Seguro que quieres eliminar "${tenant.name}"? Se perderán todos los datos.`)) {
-                                                deleteTenant(tenant.id);
-                                            }
-                                        }}
-                                        className="p-3 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
+                                <div className="flex flex-col items-end gap-3 ml-4">
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={async () => {
+                                                await switchTenant(tenant.id);
+                                                navigate('/admin');
+                                            }}
+                                            className="btn btn-primary p-3 rounded-xl shadow-none hover:shadow-accent/40"
+                                            title="Administrar Negocio"
+                                        >
+                                            <ChevronRight size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm(`¿Seguro que quieres eliminar "${tenant.name}"? Se perderán todos los datos.`)) {
+                                                    deleteTenant(tenant.id);
+                                                }
+                                            }}
+                                            className="p-3 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
+
+                                    {/* SMS Control Toggle */}
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Servicio SMS</span>
+                                            <span className={`text-[10px] font-bold ${tenant.sms_enabled ? 'text-accent' : 'text-amber-500/70'}`}>
+                                                {tenant.sms_enabled ? 'ACTIVO' : 'DEMO'}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                const newState = !tenant.sms_enabled;
+                                                // Definiremos updateTenantSms en el store
+                                                const { error } = await supabase.from('tenants').update({ sms_enabled: newState }).eq('id', tenant.id);
+                                                if (error) {
+                                                    alert("Error al actualizar SMS: " + error.message);
+                                                } else {
+                                                    fetchAllTenants();
+                                                }
+                                            }}
+                                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${tenant.sms_enabled ? 'bg-accent' : 'bg-slate-700'}`}
+                                        >
+                                            <span
+                                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${tenant.sms_enabled ? 'translate-x-5' : 'translate-x-0'}`}
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
