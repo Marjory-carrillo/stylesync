@@ -484,6 +484,12 @@ export default function Booking() {
                                     </div>
                                 ) : 'Continuar'}
                             </button>
+
+                            {isSendingSms && (
+                                <p className="text-[10px] text-accent/70 text-center mt-3 animate-pulse-soft font-medium">
+                                    El código puede tardar unos 10 segundos en llegar...
+                                </p>
+                            )}
                         </div>
                     </div>
                 )}
@@ -641,6 +647,12 @@ export default function Booking() {
                             >
                                 {isSendingSms ? 'Enviando nuevo código...' : '¿No recibiste el código? Reenviar'}
                             </button>
+
+                            {isSendingSms && (
+                                <p className="text-[10px] text-accent/70 text-center animate-pulse-soft font-medium">
+                                    El código puede tardar unos 10 segundos en llegar...
+                                </p>
+                            )}
                         </div>
                         <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar número</button>
                     </div>
