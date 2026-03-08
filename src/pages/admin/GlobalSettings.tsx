@@ -32,7 +32,6 @@ export default function GlobalSettings() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<ValidationErrors>({});
-    const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
 
     useEffect(() => {
         fetchConfig();
@@ -91,9 +90,9 @@ export default function GlobalSettings() {
         const result = globalConfigSchema.safeParse(configToValidate);
         if (!result.success) {
             const formattedErrors: ValidationErrors = {};
-            result.error.errors.forEach((err) => {
-                const path = err.path[0] as keyof ValidationErrors;
-                formattedErrors[path] = err.message;
+            result.error.issues.forEach((issue) => {
+                const path = issue.path[0] as keyof ValidationErrors;
+                formattedErrors[path] = issue.message;
             });
             return formattedErrors;
         }
@@ -204,9 +203,8 @@ export default function GlobalSettings() {
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        className={`w-full bg-black/20 border rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${
-                                            errors.basic_plan_price ? 'border-red-500 focus:border-red-500' : 'border-white/10'
-                                        }`}
+                                        className={`w-full bg-black/20 border rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${errors.basic_plan_price ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                            }`}
                                         value={config.basic_plan_price}
                                         onChange={(e) => {
                                             const value = parseFloat(e.target.value);
@@ -234,9 +232,8 @@ export default function GlobalSettings() {
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        className={`w-full bg-black/20 border rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${
-                                            errors.premium_plan_price ? 'border-red-500 focus:border-red-500' : 'border-white/10'
-                                        }`}
+                                        className={`w-full bg-black/20 border rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${errors.premium_plan_price ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                            }`}
                                         value={config.premium_plan_price}
                                         onChange={(e) => {
                                             const value = parseFloat(e.target.value);
@@ -261,9 +258,8 @@ export default function GlobalSettings() {
                                     type="number"
                                     min="0"
                                     max="365"
-                                    className={`w-full bg-black/20 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${
-                                        errors.trial_days ? 'border-red-500 focus:border-red-500' : 'border-white/10'
-                                    }`}
+                                    className={`w-full bg-black/20 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 font-medium transition-colors ${errors.trial_days ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                        }`}
                                     value={config.trial_days}
                                     onChange={(e) => {
                                         const value = parseInt(e.target.value);
@@ -326,9 +322,8 @@ export default function GlobalSettings() {
                                 <label className="block text-sm font-semibold text-slate-300 mb-2">Correo Transaccional (Sistema)</label>
                                 <input
                                     type="email"
-                                    className={`w-full bg-black/20 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500 font-medium lowercase transition-colors ${
-                                        errors.system_email ? 'border-red-500 focus:border-red-500' : 'border-white/10'
-                                    }`}
+                                    className={`w-full bg-black/20 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-500 font-medium lowercase transition-colors ${errors.system_email ? 'border-red-500 focus:border-red-500' : 'border-white/10'
+                                        }`}
                                     value={config.system_email}
                                     onChange={(e) => {
                                         setConfig({ ...config, system_email: e.target.value });

@@ -109,11 +109,26 @@ const SuperAdminRoute = () => {
   return <Outlet />;
 };
 
+const ClientRoute = () => {
+  const { config, loadingConfig } = useGlobalStore(s => ({ config: s.config, loadingConfig: s.loadingConfig }));
+  if (loadingConfig) return <SplashScreen />;
+  if (config?.maintenance_mode) return <MaintenancePage />;
+  return <ClientLayout />;
+};
+
 const OnboardingRoute = () => {
   const { user, loadingAuth, tenantId } = useAuthStore();
+  const { config, loadingConfig } = useGlobalStore();
+  const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
-  if (loadingAuth) return <SplashScreen />;
+  if (loadingAuth || loadingConfig) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
+
+  // Maintenance Mode BLOCK
+  if (config?.maintenance_mode && !isSuperAdmin) {
+    return <MaintenancePage />;
+  }
+
   if (tenantId) return <Navigate to="/admin" replace />;
 
   return <Outlet />;
@@ -140,7 +155,7 @@ function App() {
               <Route path="/" element={<Landing />} />
 
               {/* Client Routes */}
-              <Route path="/reserva/:slug" element={<ClientLayout />}>
+              <Route path="/reserva/:slug" element={<ClientRoute />}>
                 <Route index element={<Booking />} />
               </Route>
 
