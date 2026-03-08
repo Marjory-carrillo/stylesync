@@ -199,40 +199,68 @@ export default function SuperAdminPanel() {
                         Distribución
                     </h3>
                     <div className="space-y-6">
-                        {['barbershop', 'salon', 'spa', 'clinic'].map((cat, i) => {
-                            const count = allTenants.filter(t => t.category === cat).length;
-                            const percentage = allTenants.length ? Math.round((count / allTenants.length) * 100) : 0;
-                            return (
-                                <div key={cat} className="space-y-2">
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-slate-400 font-bold uppercase tracking-widest">{cat === 'barbershop' ? 'Barberías' : cat === 'salon' ? 'Salones' : cat === 'spa' ? 'Spas' : 'Clínicas'}</span>
-                                        <span className="text-white font-black">{percentage}%</span>
+                        {(() => {
+                            const categories = [
+                                { id: 'barbershop', label: 'Barberías' },
+                                { id: 'beauty_salon', label: 'Salones' },
+                                { id: 'nail_bar', label: "Nail's" },
+                                { id: 'spa', label: 'Spas' },
+                                { id: 'consulting', label: 'Clínicas' },
+                                { id: 'other', label: 'Otros' }
+                            ];
+
+                            return categories.map((cat, i) => {
+                                let count = 0;
+                                if (cat.id === 'other') {
+                                    // Count anything not in the main list
+                                    const mainIds = categories.filter(c => c.id !== 'other').map(c => c.id);
+                                    count = allTenants.filter(t => !mainIds.includes(t.category || '')).length;
+                                } else {
+                                    // Handle legacy 'salon' or 'clinic' mapping too just in case
+                                    const legacyMap: Record<string, string> = { 'salon': 'beauty_salon', 'clinic': 'consulting' };
+                                    count = allTenants.filter(t =>
+                                        t.category === cat.id ||
+                                        (legacyMap[t.category || ''] === cat.id)
+                                    ).length;
+                                }
+
+                                const percentage = allTenants.length ? Math.round((count / allTenants.length) * 100) : 0;
+
+                                return (
+                                    <div key={cat.id} className="space-y-2">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-slate-400 font-bold uppercase tracking-widest">{cat.label}</span>
+                                            <span className="text-white font-black">{percentage}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-violet-500 to-accent transition-all duration-1000"
+                                                style={{ width: `${percentage}%`, transitionDelay: `${i * 0.1}s` }}
+                                            ></div>
+                                        </div>
                                     </div>
-                                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-gradient-to-r from-violet-500 to-accent transition-all duration-1000"
-                                            style={{ width: `${percentage}%`, transitionDelay: `${i * 0.1}s` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            });
+                        })()}
                     </div>
                     <div className="mt-auto pt-6 border-t border-white/5">
-                        <div className="p-4 bg-white/2 rounded-xl border border-white/5 flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-colors">
+                        <button
+                            onClick={() => document.getElementById('tenants-table')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="w-full p-4 bg-white/2 rounded-xl border border-white/5 flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-colors"
+                        >
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent">
+                                <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
                                     <ArrowUpRight size={18} />
                                 </div>
                                 <span className="text-sm font-bold text-slate-300">Ver reporte completo</span>
                             </div>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>
 
             {/* Tenant Management Table */}
-            <div className="glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+            <div id="tenants-table" className="glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl">
                 <div className="p-6 border-b border-white/5 bg-white/[0.03] flex justify-between items-center">
                     <div className="relative group max-w-xl w-full">
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
@@ -383,14 +411,16 @@ export default function SuperAdminPanel() {
                                     <div className="space-y-2">
                                         <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Categoría</label>
                                         <select
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent transition-all outline-none appearance-none"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent transition-all outline-none appearance-none cursor-pointer"
                                             value={newBusiness.category}
                                             onChange={e => setNewBusiness({ ...newBusiness, category: e.target.value })}
                                         >
                                             <option value="barbershop">Barbería</option>
-                                            <option value="salon">Salón</option>
+                                            <option value="beauty_salon">Salón</option>
+                                            <option value="nail_bar">Nail's</option>
                                             <option value="spa">Spa</option>
-                                            <option value="clinic">Clínica</option>
+                                            <option value="consulting">Clínica</option>
+                                            <option value="other">Otro</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2">

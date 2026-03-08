@@ -335,7 +335,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setTenantId(data.id);
 
         // 4. Inject Category Defaults (Seed Data)
-        const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS['other'];
+        const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS['other'] || CATEGORY_DEFAULTS['barbershop'];
 
         // A. Schedule
         await supabase.from('schedule_config').insert({ tenant_id: data.id, schedule: defaults.schedule });

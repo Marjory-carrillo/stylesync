@@ -93,5 +93,13 @@ export const CATEGORY_DEFAULTS: Record<string, {
             saturday: { open: false, start: '10:00', end: '14:00' }, // Usually closed weekends
         }
     },
-
+    other: {
+        services: [
+            { name: 'Servicio General', price: 20, duration: 30, image: '' },
+        ],
+        stylists: [
+            { name: 'Personal 1', role: 'Staff', phone: '', image: '' },
+        ],
+        schedule: STANDARD_SCHEDULE
+    }
 };
