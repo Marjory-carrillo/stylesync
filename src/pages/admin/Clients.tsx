@@ -19,7 +19,12 @@ export default function Clients() {
     const clients = useMemo(() => {
         return dbClients.map(c => ({
             ...c,
-            history: []
+            history: [],
+            // Asegurar valores por defecto para campos que pueden ser null
+            totalVisits: Number(c.totalVisits) || 0,
+            totalSpent: Number(c.totalSpent) || 0,
+            lastVisit: c.lastVisit || null,
+            mainService: c.mainService || null
         }));
     }, [dbClients]);
 

@@ -25,11 +25,11 @@ export const useClients = () => {
                 ...c,
                 tenantId: c.tenant_id,
                 createdAt: c.created_at,
-                // Aseguramos que los campos de la vista mapeen correctamente si es necesario
-                totalVisits: c.total_visits,
-                totalSpent: c.total_spent,
-                lastVisit: c.last_visit,
-                mainService: c.main_service
+                // Mapeo seguro de campos con fallback para null/undefined
+                totalVisits: Number(c.total_visits) || 0,
+                totalSpent: Number(c.total_spent) || 0,
+                lastVisit: c.last_visit || null,
+                mainService: c.main_service || null
             })) as Client[];
         },
         enabled: !!tenantId,

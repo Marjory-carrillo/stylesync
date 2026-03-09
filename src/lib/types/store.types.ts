@@ -42,8 +42,8 @@ export interface Client {
     // Pre-calculated stats from view
     totalVisits: number;
     totalSpent: number;
-    lastVisit: string;
-    mainService?: string;
+    lastVisit: string | null;
+    mainService?: string | null;
 }
 
 export interface WaitingClient {
