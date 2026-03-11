@@ -1,47 +1,46 @@
 -- ══════════════════════════════════════════════════════════════════
--- CitaLink: ACTUALIZACIÓN DE VISTA CLIENT_SUMMARIES (V2 - FIX)
+-- CitaLink: FIX VISTA CLIENT_SUMMARIES - JOIN TOLERANTE A FORMATOS
 -- ══════════════════════════════════════════════════════════════════
--- Objetivo: Añadir el servicio más frecuente por cliente.
--- Nota: Usamos DROP VIEW porque Postgres no permite cambiar tipos de datos con OR REPLACE.
+-- Problema: Los teléfonos tienen formatos distintos (+52, sin +52, 9, 10, 11 dígitos)
+-- Solución: El JOIN compara los ÚLTIMOS 10 dígitos de cada teléfono
+-- ══════════════════════════════════════════════════════════════════
 
 DROP VIEW IF EXISTS public.client_summaries CASCADE;
 
 CREATE VIEW public.client_summaries AS
-WITH service_counts AS (
-    -- Contamos cada servicio por cliente
-    SELECT 
-        client_phone,
-        tenant_id,
-        service_id,
-        COUNT(*) as cnt
-    FROM public.appointments
-    WHERE status = 'completada'
-    GROUP BY client_phone, tenant_id, service_id
+WITH 
+-- Normalizamos appointments a los últimos 10 dígitos para el JOIN
+normalized_appts AS (
+    SELECT
+        a.*,
+        RIGHT(REGEXP_REPLACE(a.client_phone, '\D', '', 'g'), 10) AS phone_norm
+    FROM public.appointments a
 ),
-top_service_ids AS (
-    -- Obtenemos el ID del servicio con más citas para cada cliente
-    SELECT DISTINCT ON (client_phone, tenant_id)
-        client_phone,
-        tenant_id,
-        service_id
+service_counts AS (
+    SELECT phone_norm, tenant_id, service_id, COUNT(*) as cnt
+    FROM normalized_appts
+    WHERE status = 'completada'
+    GROUP BY phone_norm, tenant_id, service_id
+),
+top_service AS (
+    SELECT DISTINCT ON (phone_norm, tenant_id)
+        phone_norm, tenant_id, service_id AS top_service_id
     FROM service_counts
-    ORDER BY client_phone, tenant_id, cnt DESC
+    ORDER BY phone_norm, tenant_id, cnt DESC
 ),
 stats AS (
-    -- Calculamos estadísticas generales de visitas y gasto total
-    -- Nota: Regresamos a la lógica estricta de 'completada' por solicitud del usuario.
-    SELECT 
-        a.client_phone,
-        a.tenant_id,
-        COUNT(*) as total_visits,
-        SUM(COALESCE(svc.price, 0)) as total_spent,
-        MAX(a.date) as last_visit_date
-    FROM public.appointments a
-    LEFT JOIN public.services svc ON svc.id = a.service_id
-    WHERE a.status = 'completada'
-    GROUP BY a.client_phone, a.tenant_id
+    SELECT
+        na.phone_norm,
+        na.tenant_id,
+        COUNT(*)                          AS total_visits,
+        SUM(COALESCE(s.price, 0))         AS total_spent,
+        MAX(na.date)                      AS last_visit_date
+    FROM normalized_appts na
+    LEFT JOIN public.services s ON s.id = na.service_id
+    WHERE na.status = 'completada'
+    GROUP BY na.phone_norm, na.tenant_id
 )
-SELECT 
+SELECT
     c.id,
     c.phone,
     c.name,
@@ -49,19 +48,32 @@ SELECT
     c.tags,
     c.tenant_id,
     c.created_at,
-    COALESCE(s.total_visits, 0) as total_visits,
-    COALESCE(s.total_spent, 0) as total_spent,
-    COALESCE(s.last_visit_date, (
-        -- Fallback si no hay citas completadas
-        SELECT MAX(date) FROM public.appointments a2 
-        WHERE a2.client_phone = c.phone AND a2.tenant_id = c.tenant_id
-    )) as last_visit,
-    (SELECT name FROM public.services WHERE id = ts.service_id) as main_service
+    -- JOIN tolerante: usamos los últimos 10 dígitos del teléfono del cliente
+    COALESCE(st.total_visits, 0)::bigint                 AS total_visits,
+    COALESCE(st.total_spent,  0)::numeric                AS total_spent,
+    COALESCE(st.last_visit_date, (
+        SELECT MAX(na2.date)
+        FROM normalized_appts na2
+        WHERE RIGHT(REGEXP_REPLACE(c.phone, '\D', '', 'g'), 10) = na2.phone_norm
+          AND c.tenant_id = na2.tenant_id
+    ))                                                   AS last_visit,
+    (SELECT name FROM public.services WHERE id = ts.top_service_id) AS main_service
 FROM public.clients c
-LEFT JOIN stats s ON c.phone = s.client_phone AND c.tenant_id = s.tenant_id
-LEFT JOIN top_service_ids ts ON c.phone = ts.client_phone AND c.tenant_id = ts.tenant_id;
+-- JOIN por últimos 10 dígitos
+LEFT JOIN stats     st ON RIGHT(REGEXP_REPLACE(c.phone, '\D', '', 'g'), 10) = st.phone_norm
+                       AND c.tenant_id = st.tenant_id
+LEFT JOIN top_service ts ON RIGHT(REGEXP_REPLACE(c.phone, '\D', '', 'g'), 10) = ts.phone_norm
+                         AND c.tenant_id = ts.tenant_id;
 
--- Asegurar permisos
+-- Permisos
 GRANT SELECT ON public.client_summaries TO authenticated;
 GRANT SELECT ON public.client_summaries TO anon;
 GRANT SELECT ON public.client_summaries TO service_role;
+
+-- ══════════════════════════════════════════════════════════════════
+-- VERIFICACIÓN: Deberías ver visitas > 0 para los clientes con citas completadas
+-- ══════════════════════════════════════════════════════════════════
+SELECT name, phone, total_visits, total_spent, last_visit, main_service
+FROM public.client_summaries
+ORDER BY total_visits DESC
+LIMIT 10;
