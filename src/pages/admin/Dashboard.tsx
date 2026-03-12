@@ -22,6 +22,7 @@ export default function Dashboard() {
     const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>('all');
 
     const { userRole, userStylistId } = useAuthStore();
+    const isEmployee = userRole === 'employee';
     const { showToast } = useUIStore();
 
     // Optimize: only load last 12 months for dashboard metrics
@@ -469,18 +470,20 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-emerald-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
-                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
-                    <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
-                        <DollarSign size={26} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="relative z-10 w-full">
-                            <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">{t('dashboard.metrics.today_revenue')}</p>
-                            {isLoading ? <Skeleton className="h-9 w-24" /> : <p className="text-3xl font-black text-emerald-400 tracking-tighter">${revenue}</p>}
+                {!isEmployee && (
+                    <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-emerald-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
+                        <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
+                        <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
+                            <DollarSign size={26} />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="relative z-10 w-full">
+                                <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">{t('dashboard.metrics.today_revenue')}</p>
+                                {isLoading ? <Skeleton className="h-9 w-24" /> : <p className="text-3xl font-black text-emerald-400 tracking-tighter">${revenue}</p>}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-amber-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-amber-500/5 blur-2xl rounded-full group-hover:bg-amber-500/10 transition-all duration-700"></div>
@@ -504,112 +507,118 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
-                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-pink-500/5 blur-2xl rounded-full group-hover:bg-pink-500/10 transition-all duration-700"></div>
-                    <div className="flex items-center gap-4 relative z-10 mb-4">
-                        <div className="p-3.5 rounded-2xl bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
-                            <CreditCard size={24} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-[10px] text-slate-500 mb-0.5 font-black uppercase tracking-widest truncate">{t('dashboard.metrics.month_revenue')}</p>
-                            <div className="flex items-center gap-2">
-                                {isLoading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-black text-pink-400 tracking-tighter">${currentMonthStats.revenue}</p>}
-                                <div className={`flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-lg border ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
-                                    {currentMonthStats.revenueGrowth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                                    {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
+                {!isEmployee && (
+                    <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
+                        <div className="absolute -left-4 -top-4 w-20 h-20 bg-pink-500/5 blur-2xl rounded-full group-hover:bg-pink-500/10 transition-all duration-700"></div>
+                        <div className="flex items-center gap-4 relative z-10 mb-4">
+                            <div className="p-3.5 rounded-2xl bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
+                                <CreditCard size={24} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-slate-500 mb-0.5 font-black uppercase tracking-widest truncate">{t('dashboard.metrics.month_revenue')}</p>
+                                <div className="flex items-center gap-2">
+                                    {isLoading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-black text-pink-400 tracking-tighter">${currentMonthStats.revenue}</p>}
+                                    <div className={`flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-lg border ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
+                                        {currentMonthStats.revenueGrowth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                        {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3 uppercase">
+                            {t('dashboard.metrics.vs_last_month', { amount: currentMonthStats.lastRevenue })}
+                        </div>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3 uppercase">
-                        {userRole === 'employee' ? t('dashboard.metrics.own_revenue') : t('dashboard.metrics.vs_last_month', { amount: currentMonthStats.lastRevenue })}
-                    </div>
-                </div>
+                )}
             </div>
 
-            {/* Financial Charts & Trends */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* ── Revenue Chart ── */}
-                <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <TrendingUp size={20} className="text-accent" /> {t('dashboard.charts.revenue')}
-                        </h3>
-                        {/* Rango Selector */}
-                        <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 overflow-x-auto hide-scrollbar">
-                            {(["7D", "30D", "3M", "AÑO"] as ChartRange[]).map(range => (
-                                <button
-                                    key={range}
-                                    onClick={() => setChartRange(range)}
-                                    aria-current={chartRange === range ? 'page' : undefined}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap ${chartRange === range
-                                        ? 'bg-[var(--accent)] text-white shadow-md'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                                        }`}
-                                >
-                                    {range}
-                                </button>
-                            ))}
+            {!isEmployee && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* ── Revenue Chart ── */}
+                    <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <TrendingUp size={20} className="text-accent" /> {t('dashboard.charts.revenue')}
+                            </h3>
+                            {/* Rango Selector */}
+                            <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 overflow-x-auto hide-scrollbar">
+                                {(["7D", "30D", "3M", "AÑO"] as ChartRange[]).map(range => (
+                                    <button
+                                        key={range}
+                                        onClick={() => setChartRange(range)}
+                                        aria-current={chartRange === range ? 'page' : undefined}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap ${chartRange === range
+                                            ? 'bg-[var(--accent)] text-white shadow-md'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                            }`}
+                                    >
+                                        {range}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex-1 w-full relative">
+                            {revenueChartData.every(d => d.Ingresos === 0) ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
+                                    <Activity size={48} className="mb-4 text-slate-500" />
+                                    <p className="text-sm text-slate-400 font-medium">No hay suficientes datos de ingresos para esta semana.</p>
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                        <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                                            itemStyle={{ color: 'hsl(var(--hue-accent), 100%, 60%)', fontWeight: 'bold' }}
+                                            labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                                            formatter={(value: any) => [`$${value}`, 'Ingresos']}
+                                        />
+                                        <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                     </div>
-                    <div className="flex-1 w-full relative">
-                        {revenueChartData.every(d => d.Ingresos === 0) ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
-                                <Activity size={48} className="mb-4 text-slate-500" />
-                                <p className="text-sm text-slate-400 font-medium">No hay suficientes datos de ingresos para esta semana.</p>
-                            </div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                    <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                                    <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
-                                        itemStyle={{ color: 'hsl(var(--hue-accent), 100%, 60%)', fontWeight: 'bold' }}
-                                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                                        formatter={(value: any) => [`$${value}`, 'Ingresos']}
-                                    />
-                                    <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
                 </div>
+            )}
 
                 {/* ── Top Services ── */}
-                <div className="glass-panel p-6 rounded-2xl border border-white/5">
-                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                        <Scissors size={20} className="text-pink-400" /> {t('dashboard.charts.top_services')}
-                    </h3>
-                    <div className="space-y-5">
-                        {topServices.length > 0 ? topServices.map((svc, i) => (
-                            <div key={i} className="group">
-                                <div className="flex justify-between items-end mb-2">
-                                    <div>
-                                        <div className="text-sm font-bold text-white mb-0.5">{svc.name}</div>
-                                        <div className="text-xs text-slate-400">{svc.count} citas completadas</div>
+                {!isEmployee && (
+                    <div className="glass-panel p-6 rounded-2xl border border-white/5">
+                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <Scissors size={20} className="text-pink-400" /> {t('dashboard.charts.top_services')}
+                        </h3>
+                        <div className="space-y-5">
+                            {topServices.length > 0 ? topServices.map((svc, i) => (
+                                <div key={i} className="group">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <div>
+                                            <div className="text-sm font-bold text-white mb-0.5">{svc.name}</div>
+                                            <div className="text-xs text-slate-400">{svc.count} citas completadas</div>
+                                        </div>
+                                        <div className="text-sm font-black text-pink-400">${svc.price * svc.count}</div>
                                     </div>
-                                    <div className="text-sm font-black text-pink-400">${svc.price * svc.count}</div>
+                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-1000"
+                                            style={{ width: `${(svc.count / (topServices[0]?.count || 1)) * 100}%` }}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-1000"
-                                        style={{ width: `${(svc.count / (topServices[0]?.count || 1)) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        )) : (
-                            <p className="text-sm text-slate-500 text-center py-10">No hay datos suficientes para mostrar.</p>
-                        )}
+                            )) : (
+                                <p className="text-sm text-slate-500 text-center py-10">No hay datos suficientes para mostrar.</p>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -671,316 +680,314 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
-
-            {/* Today's Appointments */}
-            <div className="glass-card p-6 rounded-xl">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
-                    <div className="flex items-center gap-2">
-                        <User size={14} className="text-accent hidden sm:block" />
-                        <select
-                            value={dashboardStylistId}
-                            onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                            className="bg-slate-900/50 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-accent"
-                        >
-                            <option value="all">Todos los barberos</option>
-                            {stylists.map(s => (
-                                <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                {(() => {
-                    const now = new Date();
-                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                    const upcomingAppts = todayAppts.filter(appt => {
-                        const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
-                        if (!isMatch) return false;
-
-                        const svc = services.find(s => s.id === appt.serviceId);
-                        const duration = svc?.duration || 30;
-
-                        // Calculate end time
-                        const [hours, minutes] = appt.time.split(':').map(Number);
-                        const endMinutes = hours * 60 + minutes + duration;
-                        const endHours = Math.floor(endMinutes / 60);
-                        const endMins = endMinutes % 60;
-                        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-
-                        // Show if it hasn't finished yet and isn't completed/cancelled
-                        return currentTimeStr < endTimeStr && appt.status === 'confirmada';
-                    }).sort((a, b) => a.time.localeCompare(b.time));
-
-                    if (upcomingAppts.length === 0) {
-                        return (
-                            <div className="text-center py-12 text-muted bg-white/5 rounded-lg border border-dashed border-white/10">
-                                <Calendar size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No hay más citas para lo que queda del día.</p>
-                                <p className="text-xs mt-2">Buen trabajo, has terminado por hoy.</p>
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div className="space-y-3">
-                            {upcomingAppts.map(appt => {
-                                const svc = services.find(s => s.id === appt.serviceId);
-                                const isCurrentlyHappening = currentTimeStr >= appt.time;
-
-                                const displayTime = (() => {
-                                    const [h, m] = appt.time.split(':');
-                                    let hh = parseInt(h);
-                                    const ampm = hh >= 12 ? 'pm' : 'am';
-                                    hh = hh % 12;
-                                    hh = hh ? hh : 12;
-                                    return `${hh}:${m}${ampm}`;
-                                })();
-
-                                const duration = svc?.duration || 30;
-                                const endTimeDisplay = (() => {
-                                    const [hours, minutes] = appt.time.split(':').map(Number);
-                                    const endMinutes = hours * 60 + minutes + duration;
-                                    let endHours = Math.floor(endMinutes / 60);
-                                    const endMins = String(endMinutes % 60).padStart(2, '0');
-                                    const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
-                                    endHours = endHours % 12;
-                                    endHours = endHours ? endHours : 12;
-                                    return `${endHours}:${endMins}${ampm}`;
-                                })();
-
-                                return (
-                                    <div key={appt.id} className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCurrentlyHappening
-                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-lg'
-                                        : 'glass-card border-white/5 hover:border-accent/30 hover:shadow-xl'
-                                        }`}>
-
-                                        {/* Status Indicator Bar */}
-                                        <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
-
-                                        {/* Time Column */}
-                                        <div className={`flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
-                                            <span className={`text-sm sm:text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
-                                                {displayTime.replace(/(am|pm)/, '')}
-                                            </span>
-                                            <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
-                                                {displayTime.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                            <span className={`text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
-                                                a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                        </div>
-
-                                        {/* Main Info */}
-                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
-                                            <div className="flex items-center gap-5">
-                                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-slate-800 text-slate-500'}`}>
-                                                    {isCurrentlyHappening && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
-                                                    <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-3 mb-1">
-                                                        <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
-                                                        {isCurrentlyHappening && (
-                                                            <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
-                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-accent/60" /> {svc?.name}</div>
-                                                        {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
-                                                            <>
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                                <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-accent/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
-                                                            </>
-                                                        )}
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                        <a
-                                                            href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-1.5 text-accent hover:text-white transition-colors"
-                                                        >
-                                                            <Phone size={12} className="opacity-70" />
-                                                            <span className="underline underline-offset-2 decoration-accent/30">{appt.clientPhone}</span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                {isCurrentlyHappening ? (
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 py-1.5">Agenda</span>
-                                                )}
-                                                <div className={`
-                                                    px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner
-                                                    ${isCurrentlyHappening
-                                                        ? 'bg-accent text-white border-white/10'
-                                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
-                                                `}>
-                                                    {isCurrentlyHappening ? 'Atendiendo' : 'Confirmada'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })()}
-            </div>
-
-            {/* Completed Appointments Today */}
-            <div className="glass-card p-6 rounded-xl border border-emerald-500/10">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-lg text-emerald-400">Citas Completadas Hoy</h3>
-                    <div className="flex items-center gap-2">
-                        <User size={14} className="text-emerald-500 hidden sm:block" />
-                        <select
-                            value={dashboardStylistId}
-                            onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                            className="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
-                        >
-                            <option value="all">Todos los barberos</option>
-                            {stylists.map(s => (
-                                <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                {(() => {
-                    const now = new Date();
-                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                    const completedAppts = todayAppts.filter(appt => {
-                        const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
-                        if (!isMatch) return false;
-
-                        if (appt.status === 'completada') return true;
-
-                        const svc = services.find(s => s.id === appt.serviceId);
-                        const duration = svc?.duration || 30;
-
-                        // Calculate end time
-                        const [hours, minutes] = appt.time.split(':').map(Number);
-                        const endMinutes = hours * 60 + minutes + duration;
-                        const endHours = Math.floor(endMinutes / 60);
-                        const endMins = endMinutes % 60;
-                        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-
-                        // Show if it is confirmed but time has passed
-                        return currentTimeStr >= endTimeStr && appt.status === 'confirmada';
-                    }).sort((a, b) => b.time.localeCompare(a.time)); // Sort descending by time
-
-                    if (completedAppts.length === 0) {
-                        return (
-                            <div className="text-center py-12 text-emerald-500/40 bg-emerald-500/5 rounded-lg border border-dashed border-emerald-500/10">
-                                <Activity size={48} className="mx-auto mb-4 opacity-40" />
-                                <p>Aún no hay citas completadas el día de hoy.</p>
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div className="space-y-3">
-                            {completedAppts.map(appt => {
-                                const svc = services.find(s => s.id === appt.serviceId);
-
-                                const displayTime = (() => {
-                                    const [h, m] = appt.time.split(':');
-                                    let hh = parseInt(h);
-                                    const ampm = hh >= 12 ? 'pm' : 'am';
-                                    hh = hh % 12;
-                                    hh = hh ? hh : 12;
-                                    return `${hh}:${m}${ampm}`;
-                                })();
-
-                                const duration = svc?.duration || 30;
-                                const endTimeDisplay = (() => {
-                                    const [hours, minutes] = appt.time.split(':').map(Number);
-                                    const endMinutes = hours * 60 + minutes + duration;
-                                    let endHours = Math.floor(endMinutes / 60);
-                                    const endMins = String(endMinutes % 60).padStart(2, '0');
-                                    const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
-                                    endHours = endHours % 12;
-                                    endHours = endHours ? endHours : 12;
-                                    return `${endHours}:${endMins}${ampm}`;
-                                })();
-
-                                return (
-                                    <div key={appt.id} className="group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden glass-card border-white/5 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10">
-
-                                        {/* Status Indicator Bar */}
-                                        <div className="w-1.5 shrink-0 bg-gradient-to-b from-emerald-500/50 to-transparent" />
-
-                                        {/* Time Column */}
-                                        <div className="flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
-                                            <span className="text-sm sm:text-base font-black tracking-tighter text-white">
-                                                {displayTime.replace(/(am|pm)/, '')}
-                                            </span>
-                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 text-emerald-500/60">
-                                                {displayTime.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                            <span className="text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 text-white">
-                                                a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                        </div>
-
-                                        {/* Main Info */}
-                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
-                                            <div className="flex items-center gap-5">
-                                                <div className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden bg-slate-800 text-emerald-500/70">
-                                                    <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-3 mb-1">
-                                                        <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
-                                                    </div>
-                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
-                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-emerald-500/60" /> {svc?.name}</div>
-                                                        {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
-                                                            <>
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                                <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-emerald-500/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
-                                                            </>
-                                                        )}
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                        <a
-                                                            href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-1.5 text-emerald-500/70 hover:text-emerald-400 transition-colors"
-                                                        >
-                                                            <Phone size={12} className="opacity-70" />
-                                                            <span className="underline underline-offset-2 decoration-emerald-500/30">{appt.clientPhone}</span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right mr-2 hidden sm:block">
-                                                    <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Ingreso</span>
-                                                    <span className="text-sm font-black text-emerald-400">${svc?.price || 0}</span>
-                                                </div>
-                                                <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                                                    Completada
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })()}
+            {/* Today's Appointments */ }
+    <div className="glass-card p-6 rounded-xl">
+        <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
+            <div className="flex items-center gap-2">
+                <User size={14} className="text-accent hidden sm:block" />
+                <select
+                    value={dashboardStylistId}
+                    onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                    className="bg-slate-900/50 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-accent"
+                >
+                    <option value="all">Todos los barberos</option>
+                    {stylists.map(s => (
+                        <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
+                    ))}
+                </select>
             </div>
         </div>
+
+        {(() => {
+            const now = new Date();
+            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            const upcomingAppts = todayAppts.filter(appt => {
+                const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
+                if (!isMatch) return false;
+
+                const svc = services.find(s => s.id === appt.serviceId);
+                const duration = svc?.duration || 30;
+
+                // Calculate end time
+                const [hours, minutes] = appt.time.split(':').map(Number);
+                const endMinutes = hours * 60 + minutes + duration;
+                const endHours = Math.floor(endMinutes / 60);
+                const endMins = endMinutes % 60;
+                const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+
+                // Show if it hasn't finished yet and isn't completed/cancelled
+                return currentTimeStr < endTimeStr && appt.status === 'confirmada';
+            }).sort((a, b) => a.time.localeCompare(b.time));
+
+            if (upcomingAppts.length === 0) {
+                return (
+                    <div className="text-center py-12 text-muted bg-white/5 rounded-lg border border-dashed border-white/10">
+                        <Calendar size={48} className="mx-auto mb-4 opacity-20" />
+                        <p>No hay más citas para lo que queda del día.</p>
+                        <p className="text-xs mt-2">Buen trabajo, has terminado por hoy.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-3">
+                    {upcomingAppts.map(appt => {
+                        const svc = services.find(s => s.id === appt.serviceId);
+                        const isCurrentlyHappening = currentTimeStr >= appt.time;
+
+                        const displayTime = (() => {
+                            const [h, m] = appt.time.split(':');
+                            let hh = parseInt(h);
+                            const ampm = hh >= 12 ? 'pm' : 'am';
+                            hh = hh % 12;
+                            hh = hh ? hh : 12;
+                            return `${hh}:${m}${ampm}`;
+                        })();
+
+                        const duration = svc?.duration || 30;
+                        const endTimeDisplay = (() => {
+                            const [hours, minutes] = appt.time.split(':').map(Number);
+                            const endMinutes = hours * 60 + minutes + duration;
+                            let endHours = Math.floor(endMinutes / 60);
+                            const endMins = String(endMinutes % 60).padStart(2, '0');
+                            const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
+                            endHours = endHours % 12;
+                            endHours = endHours ? endHours : 12;
+                            return `${endHours}:${endMins}${ampm}`;
+                        })();
+
+                        return (
+                            <div key={appt.id} className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCurrentlyHappening
+                                ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-lg'
+                                : 'glass-card border-white/5 hover:border-accent/30 hover:shadow-xl'
+                                }`}>
+
+                                {/* Status Indicator Bar */}
+                                <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
+
+                                {/* Time Column */}
+                                <div className={`flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
+                                    <span className={`text-sm sm:text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
+                                        {displayTime.replace(/(am|pm)/, '')}
+                                    </span>
+                                    <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
+                                        {displayTime.match(/(am|pm)/)?.[0]}
+                                    </span>
+                                    <span className={`text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
+                                        a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
+                                    </span>
+                                </div>
+
+                                {/* Main Info */}
+                                <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
+                                    <div className="flex items-center gap-5">
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-slate-800 text-slate-500'}`}>
+                                            {isCurrentlyHappening && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
+                                            <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
+                                                {isCurrentlyHappening && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
+                                                )}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
+                                                <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-accent/60" /> {svc?.name}</div>
+                                                {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
+                                                    <>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                        <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-accent/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
+                                                    </>
+                                                )}
+                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                <a
+                                                    href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1.5 text-accent hover:text-white transition-colors"
+                                                >
+                                                    <Phone size={12} className="opacity-70" />
+                                                    <span className="underline underline-offset-2 decoration-accent/30">{appt.clientPhone}</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        {isCurrentlyHappening ? (
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 py-1.5">Agenda</span>
+                                        )}
+                                        <div className={`
+                                                    px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner
+                                                    ${isCurrentlyHappening
+                                                ? 'bg-accent text-white border-white/10'
+                                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
+                                                `}>
+                                            {isCurrentlyHappening ? 'Atendiendo' : 'Confirmada'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        })()}
+    </div>
+    {/* Completed Appointments Today */ }
+    <div className="glass-card p-6 rounded-xl border border-emerald-500/10">
+        <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-lg text-emerald-400">Citas Completadas Hoy</h3>
+            <div className="flex items-center gap-2">
+                <User size={14} className="text-emerald-500 hidden sm:block" />
+                <select
+                    value={dashboardStylistId}
+                    onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                    className="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
+                >
+                    <option value="all">Todos los barberos</option>
+                    {stylists.map(s => (
+                        <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
+                    ))}
+                </select>
+            </div>
+        </div>
+
+        {(() => {
+            const now = new Date();
+            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            const completedAppts = todayAppts.filter(appt => {
+                const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
+                if (!isMatch) return false;
+
+                if (appt.status === 'completada') return true;
+
+                const svc = services.find(s => s.id === appt.serviceId);
+                const duration = svc?.duration || 30;
+
+                // Calculate end time
+                const [hours, minutes] = appt.time.split(':').map(Number);
+                const endMinutes = hours * 60 + minutes + duration;
+                const endHours = Math.floor(endMinutes / 60);
+                const endMins = endMinutes % 60;
+                const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+
+                // Show if it is confirmed but time has passed
+                return currentTimeStr >= endTimeStr && appt.status === 'confirmada';
+            }).sort((a, b) => b.time.localeCompare(a.time)); // Sort descending by time
+
+            if (completedAppts.length === 0) {
+                return (
+                    <div className="text-center py-12 text-emerald-500/40 bg-emerald-500/5 rounded-lg border border-dashed border-emerald-500/10">
+                        <Activity size={48} className="mx-auto mb-4 opacity-40" />
+                        <p>Aún no hay citas completadas el día de hoy.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-3">
+                    {completedAppts.map(appt => {
+                        const svc = services.find(s => s.id === appt.serviceId);
+
+                        const displayTime = (() => {
+                            const [h, m] = appt.time.split(':');
+                            let hh = parseInt(h);
+                            const ampm = hh >= 12 ? 'pm' : 'am';
+                            hh = hh % 12;
+                            hh = hh ? hh : 12;
+                            return `${hh}:${m}${ampm}`;
+                        })();
+
+                        const duration = svc?.duration || 30;
+                        const endTimeDisplay = (() => {
+                            const [hours, minutes] = appt.time.split(':').map(Number);
+                            const endMinutes = hours * 60 + minutes + duration;
+                            let endHours = Math.floor(endMinutes / 60);
+                            const endMins = String(endMinutes % 60).padStart(2, '0');
+                            const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
+                            endHours = endHours % 12;
+                            endHours = endHours ? endHours : 12;
+                            return `${endHours}:${endMins}${ampm}`;
+                        })();
+
+                        return (
+                            <div key={appt.id} className="group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden glass-card border-white/5 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10">
+
+                                {/* Status Indicator Bar */}
+                                <div className="w-1.5 shrink-0 bg-gradient-to-b from-emerald-500/50 to-transparent" />
+
+                                {/* Time Column */}
+                                <div className="flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
+                                    <span className="text-sm sm:text-base font-black tracking-tighter text-white">
+                                        {displayTime.replace(/(am|pm)/, '')}
+                                    </span>
+                                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 text-emerald-500/60">
+                                        {displayTime.match(/(am|pm)/)?.[0]}
+                                    </span>
+                                    <span className="text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 text-white">
+                                        a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
+                                    </span>
+                                </div>
+
+                                {/* Main Info */}
+                                <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
+                                    <div className="flex items-center gap-5">
+                                        <div className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden bg-slate-800 text-emerald-500/70">
+                                            <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
+                                                <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-emerald-500/60" /> {svc?.name}</div>
+                                                {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
+                                                    <>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                        <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-emerald-500/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
+                                                    </>
+                                                )}
+                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                <a
+                                                    href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1.5 text-emerald-500/70 hover:text-emerald-400 transition-colors"
+                                                >
+                                                    <Phone size={12} className="opacity-70" />
+                                                    <span className="underline underline-offset-2 decoration-emerald-500/30">{appt.clientPhone}</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right mr-2 hidden sm:block">
+                                            <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Ingreso</span>
+                                            <span className="text-sm font-black text-emerald-400">${svc?.price || 0}</span>
+                                        </div>
+                                        <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                            Completada
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        })()}
+    </div>
+</div >
     );
 }
 

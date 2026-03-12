@@ -1,14 +1,15 @@
 // Force Vercel rebuild
 import { useState, useMemo } from 'react';
 import { useClients } from '../../lib/store/queries/useClients';
-import { Search, User, Phone, ChevronRight } from 'lucide-react';
+import { ClientDebug } from '../../components/ClientDebug';
+import { Search, User, Phone, ChevronRight, Trash2 } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Skeleton } from '../../components/ui/Skeleton';
 import Pagination from '../../components/Pagination';
 
 export default function Clients() {
-    const { clients: dbClients, isPending: clientsPending } = useClients();
+    const { clients: dbClients, isPending: clientsPending, deleteClient, isDeleting } = useClients();
 
     const isLoading = clientsPending;
     const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +39,7 @@ export default function Clients() {
 
     return (
         <div className="animate-fade-in space-y-6">
+            <ClientDebug />
             <header className="flex justify-between items-end mb-6">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight text-white mb-1">Clientes</h2>
@@ -140,8 +142,22 @@ export default function Clients() {
                                     {client.lastVisit ? format(parse(client.lastVisit, 'yyyy-MM-dd', new Date()), 'd MMM yyyy', { locale: es }) : 'RECIÉN REGISTRADO'}
                                 </span>
                             </div>
-                            <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-slate-700 hover:text-white transition-colors cursor-pointer group-hover:bg-accent/10 group-hover:border-accent/20">
-                                <ChevronRight size={18} />
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm(`¿Estás seguro de que quieres eliminar a ${client.name}? Esta acción no se puede deshacer.`)) {
+                                            deleteClient(client.id);
+                                        }
+                                    }}
+                                    disabled={isDeleting}
+                                    className="p-3 bg-red-500/5 hover:bg-red-500/20 text-red-500/40 hover:text-red-500 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all duration-500"
+                                    title="Eliminar cliente"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                                <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-slate-700 hover:text-white transition-colors cursor-pointer group-hover:bg-accent/10 group-hover:border-accent/20">
+                                    <ChevronRight size={18} />
+                                </div>
                             </div>
                         </div>
 

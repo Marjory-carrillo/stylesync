@@ -14,11 +14,13 @@ export const useClients = () => {
     const query = useQuery({
         queryKey,
         queryFn: async (): Promise<Client[]> => {
+            console.log('[DEBUG useClients] tenantId:', tenantId);
             if (!tenantId) return [];
             const { data, error } = await supabase
                 .from('client_summaries')
                 .select('*')
                 .eq('tenant_id', tenantId);
+            console.log('[DEBUG useClients] Response:', { data, error, count: data?.length });
             if (error) throw error;
 
             return data.map((c: any) => ({
@@ -71,12 +73,32 @@ export const useClients = () => {
         onError: (err: any) => showToast(`Error al guardar notas: ${err.message}`, 'error')
     });
 
+    // DELETE Client
+    const deleteClientMutation = useMutation({
+        mutationFn: async (id: string) => {
+            if (!tenantId) throw new Error("No tenant info");
+            const { error } = await supabase
+                .from('clients')
+                .delete()
+                .eq('id', id)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+            showToast('Cliente eliminado correctamente', 'success');
+        },
+        onError: (err: any) => showToast(`Error al eliminar cliente: ${err.message}`, 'error')
+    });
+
     return {
         ...query,
         clients: query.data || [],
         updateClientTags: updateTagsMutation.mutateAsync,
         updateClientNotes: updateNotesMutation.mutateAsync,
+        deleteClient: deleteClientMutation.mutateAsync,
         isUpdatingTags: updateTagsMutation.isPending,
-        isUpdatingNotes: updateNotesMutation.isPending
+        isUpdatingNotes: updateNotesMutation.isPending,
+        isDeleting: deleteClientMutation.isPending
     };
 };

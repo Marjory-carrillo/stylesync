@@ -113,10 +113,12 @@ export default function AdminLayout() {
                         <span>{t('nav.appointments')}</span>
                     </Link>
 
-                    <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')}>
-                        <Users size={18} />
-                        <span>{t('nav.clients')}</span>
-                    </Link>
+                    {!isEmployee && (
+                        <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')}>
+                            <Users size={18} />
+                            <span>{t('nav.clients')}</span>
+                        </Link>
+                    )}
 
                     {!isEmployee && (
                         <>

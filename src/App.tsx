@@ -140,6 +140,7 @@ const OnboardingRoute = () => {
 
 
 function App() {
+  const { userRole } = useAuthStore();
   const fetchGlobalConfig = useGlobalStore(s => s.fetchGlobalConfig);
 
   useEffect(() => {
@@ -175,12 +176,16 @@ function App() {
                 <Route element={<AdminLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="appointments" element={<Appointments />} />
-                  <Route path="clients" element={<Clients />} />
-                  <Route path="services" element={<Services />} />
-                  <Route path="staff" element={<Staff />} />
-                  <Route path="team" element={<Team />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="commissions" element={<Commissions />} />
+
+                  {/* Rutas protegidas para empleados */}
+                  <Route element={userRole !== 'employee' ? <Outlet /> : <Navigate to="/admin" replace />}>
+                    <Route path="clients" element={<Clients />} />
+                    <Route path="services" element={<Services />} />
+                    <Route path="staff" element={<Staff />} />
+                    <Route path="team" element={<Team />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="commissions" element={<Commissions />} />
+                  </Route>
                 </Route>
               </Route>
 
