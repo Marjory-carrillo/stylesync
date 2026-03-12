@@ -160,12 +160,12 @@ export default function Appointments() {
                     </div>
 
                     {/* Filters (Compact) */}
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5 p-1 bg-white/5 rounded-xl border border-white/5 overflow-x-auto hide-scrollbar">
                         {[
-                            { id: 'confirmada', label: t('appointments.filters.confirmada'), color: 'text-emerald-400' },
-                            { id: 'recordatorios', label: t('appointments.filters.recordatorios'), color: 'text-amber-400' },
-                            { id: 'completada', label: t('appointments.filters.completada'), color: 'text-slate-400' },
-                            { id: 'cancelada', label: t('appointments.filters.cancelada'), color: 'text-red-400' }
+                            { id: 'confirmada', label: t('appointments.filters.confirmada'), color: 'bg-emerald-500', text: 'text-emerald-400' },
+                            { id: 'recordatorios', label: t('appointments.filters.recordatorios'), color: 'bg-amber-500', text: 'text-amber-400' },
+                            { id: 'completada', label: t('appointments.filters.completada'), color: 'bg-slate-500', text: 'text-slate-400' },
+                            { id: 'cancelada', label: t('appointments.filters.cancelada'), color: 'bg-red-500', text: 'text-red-400' }
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -173,14 +173,14 @@ export default function Appointments() {
                                     setFilter(tab.id as any);
                                     setCurrentPage(1);
                                 }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filter === tab.id
-                                    ? `bg-white/5 border-white/10 text-white`
-                                    : 'border-transparent text-muted hover:bg-white/5'
+                                className={`px-4 py-2 rounded-lg text-[11px] font-black transition-all whitespace-nowrap flex items-center gap-2 ${filter === tab.id
+                                    ? `bg-white/10 text-white shadow-lg border border-white/10`
+                                    : 'text-slate-500 hover:text-slate-300'
                                     }`}
                                 aria-current={filter === tab.id ? 'page' : undefined}
                             >
-                                <span className={`mr-1.5 ${filter === tab.id ? tab.color : 'opacity-50'}`}>●</span>
-                                {tab.label}
+                                <span className={`h-1.5 w-1.5 rounded-full ${filter === tab.id ? tab.color : 'bg-slate-600 opacity-40'}`} />
+                                {tab.label.toUpperCase()}
                             </button>
                         ))}
                     </div>
@@ -336,9 +336,9 @@ export default function Appointments() {
                                                 return (
                                                     <div
                                                         key={apt.id}
-                                                        className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCompleted ? 'bg-white/[0.02] border-white/5 opacity-60 grayscale' :
+                                                        className={`group flex items-stretch gap-0 rounded-2xl border transition-all duration-500 overflow-hidden ${isCompleted ? 'bg-white/[0.01] border-white/5 opacity-50 grayscale' :
                                                             isCancelled ? 'bg-red-500/[0.02] border-red-500/10 opacity-70' :
-                                                                'glass-card border-white/5 hover:border-accent/30 hover:shadow-2xl hover:shadow-accent/5'
+                                                                'bg-slate-900/40 backdrop-blur-md border-white/5 hover:border-accent/40 shadow-xl hover:shadow-accent/10'
                                                             }`}
                                                     >
                                                         {/* Status Indicator Bar */}
@@ -370,13 +370,13 @@ export default function Appointments() {
                                                             </div>
 
                                                             {/* Service & Stylist */}
-                                                            <div className="flex flex-col gap-1.5 md:min-w-[180px]">
-                                                                <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
-                                                                    <div className="p-1 rounded-md bg-accent/10 text-accent"><Scissors size={12} /></div>
-                                                                    <span>{service?.name}</span>
+                                                            <div className="flex flex-col gap-2 md:min-w-[200px]">
+                                                                <div className="flex items-center gap-2.5 text-sm font-black text-white px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 w-fit">
+                                                                    <Scissors size={14} className="text-accent" />
+                                                                    <span className="tracking-tight">{service?.name}</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-2 text-xs font-medium text-muted">
-                                                                    <div className="p-1 rounded-md bg-white/5"><User size={12} /></div>
+                                                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 px-3 uppercase tracking-widest leading-none">
+                                                                    <User size={12} className="opacity-40" />
                                                                     <span>{stylist?.name || 'Cualquier profesional'}</span>
                                                                 </div>
                                                             </div>

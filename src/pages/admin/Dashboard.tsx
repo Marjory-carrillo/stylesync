@@ -759,9 +759,9 @@ export default function Dashboard() {
                                 })();
 
                                 return (
-                                    <div key={appt.id} className={`group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden ${isCurrentlyHappening
-                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-lg'
-                                        : 'glass-card border-white/5 hover:border-accent/30 hover:shadow-xl'
+                                    <div key={appt.id} className={`group flex items-stretch gap-0 rounded-[1.5rem] border transition-all duration-500 overflow-hidden ${isCurrentlyHappening
+                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-2xl shadow-accent/10'
+                                        : 'bg-slate-900/40 backdrop-blur-md border-white/5 hover:border-accent/40 hover:shadow-2xl hover:shadow-accent/5'
                                         }`}>
 
                                         {/* Status Indicator Bar */}
@@ -788,14 +788,16 @@ export default function Dashboard() {
                                                     <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
                                                 </div>
                                                 <div>
-                                                    <div className="flex items-center gap-3 mb-1">
-                                                        <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
+                                                    <div className="flex items-center gap-3 mb-1.5">
+                                                        <span className="font-black text-white text-lg tracking-tighter uppercase">{appt.clientName}</span>
                                                         {isCurrentlyHappening && (
                                                             <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
                                                         )}
                                                     </div>
-                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
-                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-accent/60" /> {svc?.name}</div>
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        <div className="flex items-center gap-2 text-[10px] font-black text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 uppercase tracking-tight">
+                                                            <Scissors size={12} className="text-accent" /> {svc?.name}
+                                                        </div>
                                                         {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
                                                             <>
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
