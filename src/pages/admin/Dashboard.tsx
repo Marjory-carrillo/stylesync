@@ -19,10 +19,11 @@ type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 export default function Dashboard() {
     const { t } = useTranslation();
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
-    const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>('all');
-
     const { userRole, userStylistId } = useAuthStore();
     const isEmployee = userRole === 'employee';
+    const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>(
+        isEmployee && userStylistId ? userStylistId : 'all'
+    );
     const { showToast } = useUIStore();
 
     // Optimize: only load last 12 months for dashboard metrics
@@ -681,19 +682,21 @@ export default function Dashboard() {
             <div className="glass-card p-6 rounded-xl">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
-                    <div className="flex items-center gap-2">
-                        <User size={14} className="text-accent hidden sm:block" />
-                        <select
-                            value={dashboardStylistId}
-                            onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                            className="bg-slate-900/50 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-accent"
-                        >
-                            <option value="all">Todos los barberos</option>
-                            {stylists.map(s => (
-                                <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {!isEmployee && (
+                        <div className="flex items-center gap-2">
+                            <User size={14} className="text-accent hidden sm:block" />
+                            <select
+                                value={dashboardStylistId}
+                                onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                className="bg-slate-900/50 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-accent"
+                            >
+                                <option value="all">Todos los barberos</option>
+                                {stylists.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {(() => {
@@ -842,19 +845,21 @@ export default function Dashboard() {
             <div className="glass-card p-6 rounded-xl border border-emerald-500/10">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg text-emerald-400">Citas Completadas Hoy</h3>
-                    <div className="flex items-center gap-2">
-                        <User size={14} className="text-emerald-500 hidden sm:block" />
-                        <select
-                            value={dashboardStylistId}
-                            onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                            className="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
-                        >
-                            <option value="all">Todos los barberos</option>
-                            {stylists.map(s => (
-                                <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {!isEmployee && (
+                        <div className="flex items-center gap-2">
+                            <User size={14} className="text-emerald-500 hidden sm:block" />
+                            <select
+                                value={dashboardStylistId}
+                                onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                className="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
+                            >
+                                <option value="all">Todos los barberos</option>
+                                {stylists.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {(() => {

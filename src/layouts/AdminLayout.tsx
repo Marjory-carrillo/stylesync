@@ -101,12 +101,10 @@ export default function AdminLayout() {
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                     <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>
 
-                    {!isEmployee && (
-                        <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')}>
-                            <LayoutDashboard size={18} />
-                            <span>{t('nav.dashboard')}</span>
-                        </Link>
-                    )}
+                    <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')}>
+                        <LayoutDashboard size={18} />
+                        <span>{t('nav.dashboard')}</span>
+                    </Link>
 
                     <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')}>
                         <Calendar size={18} />
