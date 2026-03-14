@@ -634,7 +634,7 @@ export default function Dashboard() {
                             <h3 className="font-bold text-lg text-white">{t('dashboard.reminders.title')} ({reminders.length})</h3>
                         </div>
                         <p className="text-sm text-muted mb-6 max-w-2xl">
-                            Estas citas fueron reservadas con anticipación (3+ días). Se recomienda enviar un recordatorio para confirmar asistencia.
+                            Estas son todas tus citas programadas para mañana. Se recomienda enviarles un mensaje para confirmar su asistencia.
                         </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
