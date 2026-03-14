@@ -10,6 +10,7 @@ import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
 import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent } from 'lucide-react';
+import { CustomSelect } from '../../components/CustomSelect';
 
 // Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -389,16 +390,18 @@ export default function Settings() {
                         {/* Booking Horizon */}
                         <div>
                             <label className="block text-sm text-muted mb-1 flex items-center gap-1"><Calendar size={14} /> Días de anticipación para reservas</label>
-                            <select
-                                className="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none cursor-pointer"
-                                value={infoForm.bookingDaysAhead || 14}
-                                onChange={e => setInfoForm({ ...infoForm, bookingDaysAhead: parseInt(e.target.value) })}
-                            >
-                                <option value={7} className="bg-slate-900">7 días (1 semana)</option>
-                                <option value={14} className="bg-slate-900">14 días (2 semanas)</option>
-                                <option value={30} className="bg-slate-900">30 días (1 mes)</option>
-                                <option value={60} className="bg-slate-900">60 días (2 meses)</option>
-                            </select>
+                            <CustomSelect
+                                value={String(infoForm.bookingDaysAhead || 14)}
+                                onChange={(val: string) => setInfoForm({ ...infoForm, bookingDaysAhead: parseInt(val) })}
+                                options={[
+                                    { value: '7', label: '7 días (1 semana)' },
+                                    { value: '14', label: '14 días (2 semanas)' },
+                                    { value: '30', label: '30 días (1 mes)' },
+                                    { value: '60', label: '60 días (2 meses)' },
+                                ]}
+                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer flex items-center justify-between text-sm"
+                                dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                            />
                         </div>
 
                         <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-2 flex justify-center items-center gap-2">
@@ -750,24 +753,28 @@ export default function Settings() {
                                             <h4 className="text-white font-medium">Día de Inicio de Semana</h4>
                                             <p className="text-sm text-muted">Afecta el rango de fechas en "Esta Semana" dentro de la Nómina.</p>
                                         </div>
-                                        <select
-                                            className="glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer text-sm"
-                                            value={infoForm.weekStartsOn ?? 1}
-                                            onChange={async (e) => {
-                                                const val = parseInt(e.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
-                                                setInfoForm({ ...infoForm, weekStartsOn: val });
-                                                await updateBusinessConfig({ weekStartsOn: val });
-                                                showToast('Día de corte actualizado', 'success');
-                                            }}
-                                        >
-                                            <option value={1} className="bg-slate-900">Lunes</option>
-                                            <option value={0} className="bg-slate-900">Domingo</option>
-                                            <option value={2} className="bg-slate-900">Martes</option>
-                                            <option value={3} className="bg-slate-900">Miércoles</option>
-                                            <option value={4} className="bg-slate-900">Jueves</option>
-                                            <option value={5} className="bg-slate-900">Viernes</option>
-                                            <option value={6} className="bg-slate-900">Sábado</option>
-                                        </select>
+                                        <div className="relative w-40 sm:w-48">
+                                            <CustomSelect
+                                                value={String(infoForm.weekStartsOn ?? 1)}
+                                                onChange={async (val: string) => {
+                                                    const numericVal = parseInt(val) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+                                                    setInfoForm({ ...infoForm, weekStartsOn: numericVal });
+                                                    await updateBusinessConfig({ weekStartsOn: numericVal });
+                                                    showToast('Día de corte actualizado', 'success');
+                                                }}
+                                                options={[
+                                                    { value: '1', label: 'Lunes' },
+                                                    { value: '0', label: 'Domingo' },
+                                                    { value: '2', label: 'Martes' },
+                                                    { value: '3', label: 'Miércoles' },
+                                                    { value: '4', label: 'Jueves' },
+                                                    { value: '5', label: 'Viernes' },
+                                                    { value: '6', label: 'Sábado' },
+                                                ]}
+                                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-accent border-accent/30 transition-all cursor-pointer flex items-center justify-between text-sm"
+                                                dropdownClassName="absolute right-0 z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                                            />
+                                        </div>
                                     </div>
 
                                     <h4 className="text-sm font-medium text-white mb-2">Porcentajes de Comisión por Profesional</h4>
