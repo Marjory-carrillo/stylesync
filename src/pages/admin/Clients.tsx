@@ -1,7 +1,6 @@
 // Force Vercel rebuild
 import { useState, useMemo } from 'react';
 import { useClients } from '../../lib/store/queries/useClients';
-import { ClientDebug } from '../../components/ClientDebug';
 import { Search, User, Phone, ChevronRight, Trash2 } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -39,7 +38,6 @@ export default function Clients() {
 
     return (
         <div className="animate-fade-in space-y-6">
-            <ClientDebug />
             <header className="flex justify-between items-end mb-6">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight text-white mb-1">Clientes</h2>
