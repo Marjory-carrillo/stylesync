@@ -394,10 +394,10 @@ export default function Settings() {
                                 value={infoForm.bookingDaysAhead || 14}
                                 onChange={e => setInfoForm({ ...infoForm, bookingDaysAhead: parseInt(e.target.value) })}
                             >
-                                <option value={7}>7 días (1 semana)</option>
-                                <option value={14}>14 días (2 semanas)</option>
-                                <option value={30}>30 días (1 mes)</option>
-                                <option value={60}>60 días (2 meses)</option>
+                                <option value={7} className="bg-slate-900">7 días (1 semana)</option>
+                                <option value={14} className="bg-slate-900">14 días (2 semanas)</option>
+                                <option value={30} className="bg-slate-900">30 días (1 mes)</option>
+                                <option value={60} className="bg-slate-900">60 días (2 meses)</option>
                             </select>
                         </div>
 
@@ -760,13 +760,13 @@ export default function Settings() {
                                                 showToast('Día de corte actualizado', 'success');
                                             }}
                                         >
-                                            <option value={1}>Lunes</option>
-                                            <option value={0}>Domingo</option>
-                                            <option value={2}>Martes</option>
-                                            <option value={3}>Miércoles</option>
-                                            <option value={4}>Jueves</option>
-                                            <option value={5}>Viernes</option>
-                                            <option value={6}>Sábado</option>
+                                            <option value={1} className="bg-slate-900">Lunes</option>
+                                            <option value={0} className="bg-slate-900">Domingo</option>
+                                            <option value={2} className="bg-slate-900">Martes</option>
+                                            <option value={3} className="bg-slate-900">Miércoles</option>
+                                            <option value={4} className="bg-slate-900">Jueves</option>
+                                            <option value={5} className="bg-slate-900">Viernes</option>
+                                            <option value={6} className="bg-slate-900">Sábado</option>
                                         </select>
                                     </div>
 
