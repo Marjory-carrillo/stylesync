@@ -9,6 +9,7 @@ import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { CustomSelect } from '../../components/CustomSelect';
 import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -699,16 +700,16 @@ export default function Dashboard() {
                     {!isEmployee && (
                         <div className="flex items-center gap-2">
                             <User size={14} className="text-accent hidden sm:block" />
-                            <select
-                                value={dashboardStylistId}
-                                onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                                className="bg-slate-900/50 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-accent"
-                            >
-                                <option value="all" className="bg-slate-900 outline-none border-none">Todos los barberos</option>
-                                {stylists.map(s => (
-                                    <option key={s.id} value={s.id} className="bg-slate-900 outline-none border-none">{s.name.split(' ')[0]}</option>
-                                ))}
-                            </select>
+                            <CustomSelect
+                                value={String(dashboardStylistId)}
+                                onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
+                                options={[
+                                    { value: 'all', label: 'Todos los barberos' },
+                                    ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
+                                ]}
+                                buttonClassName="bg-slate-900/50 border border-white/10 text-white rounded-2xl px-4 py-1.5 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[160px]"
+                                dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                            />
                         </div>
                     )}
                 </div>
@@ -864,16 +865,16 @@ export default function Dashboard() {
                     {!isEmployee && (
                         <div className="flex items-center gap-2">
                             <User size={14} className="text-emerald-500 hidden sm:block" />
-                            <select
-                                value={dashboardStylistId}
-                                onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                                className="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"
-                            >
-                                <option value="all">Todos los barberos</option>
-                                {stylists.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
-                                ))}
-                            </select>
+                            <CustomSelect
+                                value={String(dashboardStylistId)}
+                                onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
+                                options={[
+                                    { value: 'all', label: 'Todos los barberos' },
+                                    ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
+                                ]}
+                                buttonClassName="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-2xl px-4 py-1.5 text-xs focus:outline-none focus:border-emerald-500 flex items-center justify-between min-w-[160px]"
+                                dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                            />
                         </div>
                     )}
                 </div>
