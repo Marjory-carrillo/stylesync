@@ -704,9 +704,9 @@ export default function Dashboard() {
                                 onChange={(e) => setDashboardStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
                                 className="bg-slate-900/50 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-accent"
                             >
-                                <option value="all">Todos los barberos</option>
+                                <option value="all" className="bg-slate-900 outline-none border-none">Todos los barberos</option>
                                 {stylists.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name.split(' ')[0]}</option>
+                                    <option key={s.id} value={s.id} className="bg-slate-900 outline-none border-none">{s.name.split(' ')[0]}</option>
                                 ))}
                             </select>
                         </div>
