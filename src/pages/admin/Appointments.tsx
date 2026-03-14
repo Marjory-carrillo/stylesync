@@ -221,7 +221,7 @@ export default function Appointments() {
                             setDateFilter(e.target.value);
                             setCurrentPage(1);
                         }}
-                        className="bg-transparent border-none outline-none text-sm text-white focus:ring-0 [&::-webkit-calendar-picker-indicator]:opacity-0 cursor-pointer absolute inset-0 w-full h-full"
+                        className="opacity-0 cursor-pointer absolute inset-0 w-full h-full z-10"
                     />
                     {dateFilter && (
                         <button onClick={(e) => { e.stopPropagation(); setDateFilter(''); }} className="p-1.5 text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors relative z-10 ml-2">
