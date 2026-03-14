@@ -188,9 +188,9 @@ export default function Appointments() {
             </div>
 
             {/* Secondary Controls: Search & Date Filter */}
-            <div className="flex flex-col sm:flex-row gap-3 flex-none px-1">
-                <div className="flex-1 bg-black/40 p-2 rounded-xl border border-white/10 flex items-center gap-2">
-                    <Search className="text-muted shrink-0 ml-1" size={16} />
+            <div className="flex flex-col sm:flex-row gap-4 flex-none px-1">
+                <div className="flex-1 bg-[#1a1f2e]/80 hover:bg-[#1f2536] p-3 rounded-2xl border border-white/5 hover:border-white/10 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-accent/50 focus-within:border-accent/30 shadow-inner">
+                    <Search className="text-muted shrink-0 ml-1" size={18} />
                     <input
                         type="text"
                         placeholder="Buscar por nombre o teléfono..."
@@ -199,10 +199,21 @@ export default function Appointments() {
                             setSearchQuery(e.target.value);
                             setCurrentPage(1);
                         }}
-                        className="bg-transparent border-none outline-none text-sm text-white placeholder:text-slate-500 w-full focus:ring-0"
+                        className="bg-transparent border-none outline-none text-[15px] text-white placeholder:text-slate-500 w-full focus:ring-0 font-medium"
                     />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} className="p-1.5 text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
+                            <X size={14} />
+                        </button>
+                    )}
                 </div>
-                <div className="bg-black/40 p-2 rounded-xl border border-white/10 flex items-center gap-2 sm:w-auto">
+                <div className="bg-[#1a1f2e]/80 hover:bg-[#1f2536] p-3 rounded-2xl border border-white/5 hover:border-white/10 flex items-center justify-between sm:justify-start gap-4 sm:w-auto relative group transition-all focus-within:ring-2 focus-within:ring-white/20 shadow-inner">
+                    <div className="flex items-center gap-3 pointer-events-none">
+                        <CalendarDays size={18} className="text-accent/80" />
+                        <span className="text-[15px] text-white font-medium">
+                            {dateFilter ? new Date(dateFilter + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'Filtrar Fecha'}
+                        </span>
+                    </div>
                     <input
                         type="date"
                         value={dateFilter}
@@ -210,18 +221,17 @@ export default function Appointments() {
                             setDateFilter(e.target.value);
                             setCurrentPage(1);
                         }}
-                        className="bg-transparent border-none outline-none text-sm text-white focus:ring-0 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 cursor-pointer"
+                        className="bg-transparent border-none outline-none text-sm text-white focus:ring-0 [&::-webkit-calendar-picker-indicator]:opacity-0 cursor-pointer absolute inset-0 w-full h-full"
                     />
+                    {dateFilter && (
+                        <button onClick={(e) => { e.stopPropagation(); setDateFilter(''); }} className="p-1.5 text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors relative z-10 ml-2">
+                            <X size={14} />
+                        </button>
+                    )}
+                    {!dateFilter && (
+                        <ChevronDown size={14} className="text-muted ml-2 relative z-10 pointer-events-none" />
+                    )}
                 </div>
-                {(searchQuery || dateFilter) && (
-                    <button
-                        onClick={() => { setSearchQuery(''); setDateFilter(''); }}
-                        className="bg-red-500/10 text-red-400 p-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-colors flex items-center justify-center"
-                        title="Limpiar filtros"
-                    >
-                        <X size={18} />
-                    </button>
-                )}
             </div>
 
             <div className="space-y-2 flex-none">
@@ -421,67 +431,97 @@ export default function Appointments() {
 
                     {/* Waiting List & Logs (Persistent across views) */}
                     {(waitingList.length > 0 || cancellationLog.length > 0) && (
-                        <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row gap-3 bg-black/40 flex-none">
+                        <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row gap-4 flex-none bg-black/20">
                             {waitingList.length > 0 && (
-                                <div className="flex-1 rounded-xl bg-black/20 border border-white/5 overflow-hidden">
+                                <div className="flex-1 rounded-2xl bg-[#161b2a]/95 backdrop-blur-md border border-amber-500/20 shadow-lg shadow-amber-500/5 overflow-hidden transition-all duration-300">
                                     <button
                                         onClick={() => setShowWaiting(!showWaiting)}
-                                        className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
+                                        className="w-full flex items-center justify-between p-4 hover:bg-amber-500/5 transition-colors group"
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <Users size={14} className="text-accent" />
-                                            <span className="text-[10px] font-black uppercase tracking-wider text-muted">Lista de Espera ({waitingList.length})</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 group-hover:scale-110 transition-transform">
+                                                <Users size={16} />
+                                            </div>
+                                            <span className="text-sm font-bold text-white tracking-wide">
+                                                Lista de Espera <span className="ml-2 px-2 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-black">{waitingList.length}</span>
+                                            </span>
                                         </div>
-                                        <ChevronDown size={14} className={`text-muted transition-transform ${showWaiting ? 'rotate-180' : ''}`} />
+                                        <div className={`p-1.5 rounded-lg bg-white/5 text-muted transition-transform duration-300 ${showWaiting ? 'rotate-180 bg-white/10' : ''}`}>
+                                            <ChevronDown size={14} />
+                                        </div>
                                     </button>
-                                    {showWaiting && (
-                                        <div className="p-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
-                                            {waitingList.map(client => (
-                                                <div key={client.id} className="flex justify-between items-center p-2 rounded-lg bg-white/5 text-sm hover:bg-white/10 transition-colors">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-white font-bold text-xs">{client.name}</span>
-                                                        <span className="text-muted text-[10px]">{client.phone} • {client.date}</span>
+                                    
+                                    {/* Expandable Content for Waiting List */}
+                                    <div className={`grid transition-all duration-300 ease-in-out ${showWaiting ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                        <div className="overflow-hidden">
+                                            <div className="p-3 pt-0 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {waitingList.map(client => (
+                                                    <div key={client.id} className="group flex justify-between items-center p-3 rounded-xl bg-black/40 border border-white/5 hover:border-amber-500/30 hover:bg-[#1a1f2e] transition-all">
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-white font-bold text-sm tracking-tight">{client.name}</span>
+                                                            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400">
+                                                                <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded text-slate-300"><Phone size={10} /> {client.phone}</span>
+                                                                <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider"><CalendarDays size={10} /> {client.date}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <a href={`https://wa.me/${client.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="p-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm">
+                                                                <MessageCircle size={16} />
+                                                            </a>
+                                                            <button onClick={() => removeFromWaitingList(client.id)} className="p-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <a href={`https://wa.me/${client.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded-md">
-                                                            <MessageCircle size={14} />
-                                                        </a>
-                                                        <button onClick={() => removeFromWaitingList(client.id)} className="text-red-400 hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-md">
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             )}
 
                             {cancellationLog.length > 0 && (
-                                <div className="flex-1 rounded-xl bg-black/20 border border-white/5 overflow-hidden">
+                                <div className="flex-1 rounded-2xl bg-[#161b2a]/95 backdrop-blur-md border border-white/5 hover:border-white/10 shadow-xl overflow-hidden transition-all duration-300">
                                     <button
                                         onClick={() => setShowLog(!showLog)}
-                                        className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
+                                        className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group"
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <Clock size={14} className="text-red-400" />
-                                            <span className="text-[10px] font-black uppercase tracking-wider text-muted">Historial de Cancelaciones</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 group-hover:scale-110 transition-transform">
+                                                <Clock size={16} />
+                                            </div>
+                                            <span className="text-sm font-bold text-white tracking-wide">
+                                                Historial de Cancelaciones <span className="ml-2 text-muted font-normal text-xs">({cancellationLog.length})</span>
+                                            </span>
                                         </div>
-                                        <ChevronDown size={14} className={`text-muted transition-transform ${showLog ? 'rotate-180' : ''}`} />
+                                        <div className={`p-1.5 rounded-lg bg-white/5 text-muted transition-transform duration-300 ${showLog ? 'rotate-180 bg-white/10' : ''}`}>
+                                            <ChevronDown size={14} />
+                                        </div>
                                     </button>
-                                    {showLog && (
-                                        <div className="p-2 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
-                                            {cancellationLog.slice(0, 10).map(log => (
-                                                <div key={log.id} className="flex justify-between items-center p-2 text-[10px] border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-white font-medium">{log.clientName}</span>
-                                                        <span className="text-muted">{log.serviceName} • {log.date}</span>
+                                    
+                                    {/* Expandable Content for Logs */}
+                                    <div className={`grid transition-all duration-300 ease-in-out ${showLog ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                        <div className="overflow-hidden">
+                                            <div className="p-3 pt-0 space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {cancellationLog.slice(0, 10).map(log => (
+                                                    <div key={log.id} className="flex justify-between items-center p-3 rounded-xl bg-black/20 border border-white/[0.02] hover:bg-white/5 hover:border-white/10 transition-colors">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="text-white/90 font-bold text-[13px]">{log.clientName}</span>
+                                                            <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
+                                                                <span className="capitalize">{log.serviceName}</span>
+                                                                <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                                                <span className="uppercase tracking-wider">{log.date}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded">Cancelada</span>
+                                                            <span className="opacity-50 text-[9px] font-medium text-slate-400">{new Date(log.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        </div>
                                                     </div>
-                                                    <span className="opacity-40 text-[9px]">{new Date(log.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             )}
                         </div>
