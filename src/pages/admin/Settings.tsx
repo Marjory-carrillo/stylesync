@@ -232,8 +232,8 @@ export default function Settings() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                {/* ── Business Info ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6">
+                {/* ── Business Info (Section 1) ── */}
+                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[60]">
                     <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                         <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
                             <Shield size={24} />
@@ -388,7 +388,7 @@ export default function Settings() {
                         </div>
 
                         {/* Booking Horizon */}
-                        <div>
+                        <div className="relative z-50">
                             <label className="block text-sm text-muted mb-1 flex items-center gap-1"><Calendar size={14} /> Días de anticipación para reservas</label>
                             <CustomSelect
                                 value={String(infoForm.bookingDaysAhead || 14)}
@@ -399,8 +399,8 @@ export default function Settings() {
                                     { value: '30', label: '30 días (1 mes)' },
                                     { value: '60', label: '60 días (2 meses)' },
                                 ]}
-                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer flex items-center justify-between text-sm"
-                                dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-2xl p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all cursor-pointer flex items-center justify-between text-sm"
+                                dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
                             />
                         </div>
 
@@ -410,8 +410,8 @@ export default function Settings() {
                     </form>
                 </section>
 
-                {/* ── WhatsApp Templates ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6">
+                {/* ── WhatsApp Templates (Section 2) ── */}
+                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[50]">
                     <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                         <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
                             <MessageSquare size={24} />
@@ -456,8 +456,8 @@ export default function Settings() {
                     </form>
                 </section>
 
-                {/* ── Schedule ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6">
+                {/* ── Schedule (Section 3) ── */}
+                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[40]">
                     <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                         <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
                             <Clock size={24} />
@@ -546,8 +546,8 @@ export default function Settings() {
                     </form>
                 </section>
 
-                {/* ── Announcements ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6">
+                {/* ── Announcements (Section 4) ── */}
+                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[30]">
                     <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                         <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
                             <Megaphone size={24} />
@@ -620,8 +620,8 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* ── Blocked Slots ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6">
+                {/* ── Blocked Slots (Section 5) ── */}
+                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[20]">
                     <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                         <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
                             <Lock size={24} />
@@ -714,9 +714,9 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* ── Commissions Module (Owner Only) ── */}
+                {/* ── Commissions Module (Section 6) ── */}
                 {userRole === 'owner' && (
-                    <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2">
+                    <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10]">
                         <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                             <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
                                 <Percent size={24} />
@@ -753,7 +753,7 @@ export default function Settings() {
                                             <h4 className="text-white font-medium">Día de Inicio de Semana</h4>
                                             <p className="text-sm text-muted">Afecta el rango de fechas en "Esta Semana" dentro de la Nómina.</p>
                                         </div>
-                                        <div className="relative w-40 sm:w-48">
+                                        <div className="relative w-40 sm:w-48 z-10">
                                             <CustomSelect
                                                 value={String(infoForm.weekStartsOn ?? 1)}
                                                 onChange={async (val: string) => {
@@ -771,8 +771,8 @@ export default function Settings() {
                                                     { value: '5', label: 'Viernes' },
                                                     { value: '6', label: 'Sábado' },
                                                 ]}
-                                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-accent border-accent/30 transition-all cursor-pointer flex items-center justify-between text-sm"
-                                                dropdownClassName="absolute right-0 z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-2xl p-2 text-white focus:outline-none focus:border-accent border-accent/30 transition-all cursor-pointer flex items-center justify-between text-sm"
+                                                dropdownClassName="absolute right-0 z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
                                             />
                                         </div>
                                     </div>
