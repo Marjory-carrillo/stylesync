@@ -82,7 +82,21 @@ export default function Dashboard() {
         const mm = String(target.getMonth() + 1).padStart(2, '0');
         const dd = String(target.getDate()).padStart(2, '0');
         const tStr = `${yyyy}-${mm}-${dd}`;
-        return appointments.filter(a => a.date === tStr && a.status !== 'cancelada');
+        
+        return appointments.filter(a => {
+            if (a.date !== tStr || a.status === 'cancelada') return false;
+            
+            if (!a.bookedAt) return false;
+            
+            const bookedDate = new Date(a.bookedAt);
+            const now = new Date();
+            // Diferencia en milisegundos
+            const diffTime = now.getTime() - bookedDate.getTime();
+            // Convertimos a días
+            const diffDays = diffTime / (1000 * 3600 * 24);
+            
+            return diffDays >= 3;
+        });
     }, [appointments]);
 
     // ── Reports Logic ──
@@ -634,7 +648,7 @@ export default function Dashboard() {
                             <h3 className="font-bold text-lg text-white">{t('dashboard.reminders.title')} ({reminders.length})</h3>
                         </div>
                         <p className="text-sm text-muted mb-6 max-w-2xl">
-                            Estas son todas tus citas programadas para mañana. Se recomienda enviarles un mensaje para confirmar su asistencia.
+                            Estas citas fueron reservadas con anticipación (3+ días). Se recomienda enviar un recordatorio para confirmar asistencia.
                         </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
