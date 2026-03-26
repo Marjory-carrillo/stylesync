@@ -39,6 +39,7 @@ export default function Dashboard() {
     const isLoading = apptsPending || svcsLoading;
 
     const {
+        businessConfig: storeBusinessConfig,
         generateReminderWhatsAppUrl, getServiceById,
         cancellationLog
     } = useStore();
@@ -480,7 +481,7 @@ export default function Dashboard() {
                 </div>
 
             {/* ── Top Stats Grid ── */}
-            {(businessConfig as any).showDashboardMetrics !== false && (
+            {storeBusinessConfig.showDashboardMetrics !== false && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                     <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-500/5 blur-2xl rounded-full group-hover:bg-blue-500/10 transition-all duration-700"></div>
@@ -556,7 +557,7 @@ export default function Dashboard() {
             </div>
             )}
 
-            {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
+            {!isEmployee && storeBusinessConfig.showDashboardMetrics !== false && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* ── Revenue Chart ── */}
                     <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
