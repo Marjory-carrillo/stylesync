@@ -13,6 +13,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
 import AdminBookingModal from '../../components/AdminBookingModal';
+import DatePickerInput from '../../components/DatePickerInput';
 
 
 export default function Appointments() {
@@ -218,29 +219,21 @@ export default function Appointments() {
                         </button>
                     )}
                 </div>
-                <div className="bg-[#1a1f2e]/80 hover:bg-[#1f2536] p-3 rounded-2xl border border-white/5 hover:border-white/10 flex items-center justify-between sm:justify-start gap-4 sm:w-auto relative group transition-all focus-within:ring-2 focus-within:ring-white/20 shadow-inner">
-                    <div className="flex items-center gap-3 pointer-events-none">
-                        <CalendarDays size={18} className="text-accent/80" />
-                        <span className="text-[15px] text-white font-medium">
-                            {dateFilter ? new Date(dateFilter + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'Filtrar Fecha'}
-                        </span>
-                    </div>
-                    <input
-                        type="date"
+                {/* Date Filter with custom picker */}
+                <div className="relative">
+                    <DatePickerInput
                         value={dateFilter}
-                        onChange={(e) => {
-                            setDateFilter(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        className="opacity-0 cursor-pointer absolute inset-0 w-full h-full z-10"
+                        onChange={(val) => { setDateFilter(val); setCurrentPage(1); }}
+                        placeholder="Filtrar Fecha"
+                        className="h-full"
                     />
                     {dateFilter && (
-                        <button onClick={(e) => { e.stopPropagation(); setDateFilter(''); }} className="p-1.5 text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors relative z-10 ml-2">
+                        <button
+                            onClick={() => setDateFilter('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors z-10"
+                        >
                             <X size={14} />
                         </button>
-                    )}
-                    {!dateFilter && (
-                        <ChevronDown size={14} className="text-muted ml-2 relative z-10 pointer-events-none" />
                     )}
                 </div>
             </div>
@@ -466,25 +459,50 @@ export default function Appointments() {
                                     <div className={`grid transition-all duration-300 ease-in-out ${showWaiting ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                                         <div className="overflow-hidden">
                                             <div className="p-3 pt-0 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                                {waitingList.map(client => (
-                                                    <div key={client.id} className="group flex justify-between items-center p-3 rounded-xl bg-black/40 border border-white/5 hover:border-amber-500/30 hover:bg-[#1a1f2e] transition-all">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="text-white font-bold text-sm tracking-tight">{client.name}</span>
-                                                            <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400">
-                                                                <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded text-slate-300"><Phone size={10} /> {client.phone}</span>
-                                                                <span className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider"><CalendarDays size={10} /> {client.date}</span>
+                                                {waitingList.map(client => {
+                                                    const svc = getServiceById(client.serviceId);
+                                                    const waPhone = client.phone.replace(/\D/g, '');
+                                                    const waMsg = encodeURIComponent(`Hola ${client.name}, te contactamos porque se ha liberado un espacio para ${svc?.name ?? 'tu servicio'} el ${new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}. ¿Te gustaría reservar? 📅`);
+                                                    return (
+                                                        <div key={client.id} className="flex flex-col gap-2 p-3 rounded-xl bg-black/40 border border-white/5 hover:border-amber-500/30 hover:bg-[#1a1f2e] transition-all">
+                                                            <div className="flex justify-between items-start">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="text-white font-bold text-sm tracking-tight">{client.name}</span>
+                                                                    {svc && <span className="text-[10px] text-accent font-bold uppercase tracking-widest">{svc.name}</span>}
+                                                                    <span className="text-[10px] text-slate-500 font-medium">
+                                                                        {new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                                                    </span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => removeFromWaitingList(client.id)}
+                                                                    className="p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                                                    title="Eliminar de lista"
+                                                                >
+                                                                    <Trash2 size={13} />
+                                                                </button>
+                                                            </div>
+                                                            {/* Action buttons — always visible */}
+                                                            <div className="flex gap-2">
+                                                                <a
+                                                                    href={`tel:${waPhone}`}
+                                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500 hover:text-white rounded-xl transition-all text-xs font-black"
+                                                                    title="Llamar"
+                                                                >
+                                                                    <Phone size={13} /> Llamar
+                                                                </a>
+                                                                <a
+                                                                    href={`https://wa.me/${waPhone}?text=${waMsg}`}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white rounded-xl transition-all text-xs font-black"
+                                                                    title="WhatsApp"
+                                                                >
+                                                                    <MessageCircle size={13} /> WhatsApp
+                                                                </a>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <a href={`https://wa.me/${client.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="p-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm">
-                                                                <MessageCircle size={16} />
-                                                            </a>
-                                                            <button onClick={() => removeFromWaitingList(client.id)} className="p-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm">
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>
