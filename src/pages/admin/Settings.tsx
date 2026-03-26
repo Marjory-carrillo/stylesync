@@ -544,44 +544,48 @@ export default function Settings() {
                                     </label>
 
                                     {hours.open && (
-                                        <div className="flex flex-col gap-2 flex-1">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="text-xs text-muted w-14 shrink-0">Horario:</span>
-                                                <TimePickerInput
-                                                    value={hours.start}
-                                                    onChange={val => setScheduleForm({
-                                                        ...scheduleForm,
-                                                        [day]: { ...hours, start: val }
-                                                    })}
-                                                />
-                                                <span className="text-muted text-sm">–</span>
-                                                <TimePickerInput
-                                                    value={hours.end}
-                                                    onChange={val => setScheduleForm({
-                                                        ...scheduleForm,
-                                                        [day]: { ...hours, end: val }
-                                                    })}
-                                                />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-tighter">Agenda</span>
+                                                <div className="flex items-center gap-1.5 flex-1">
+                                                    <TimePickerInput
+                                                        value={hours.start}
+                                                        onChange={val => setScheduleForm({
+                                                            ...scheduleForm,
+                                                            [day]: { ...hours, start: val }
+                                                        })}
+                                                    />
+                                                    <span className="text-muted text-xs">—</span>
+                                                    <TimePickerInput
+                                                        value={hours.end}
+                                                        onChange={val => setScheduleForm({
+                                                            ...scheduleForm,
+                                                            [day]: { ...hours, end: val }
+                                                        })}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="text-xs text-muted w-14 shrink-0">Comida:</span>
-                                                <TimePickerInput
-                                                    value={hours.breakStart || ''}
-                                                    onChange={val => setScheduleForm({
-                                                        ...scheduleForm,
-                                                        [day]: { ...hours, breakStart: val }
-                                                    })}
-                                                    placeholder="--:-- ---"
-                                                />
-                                                <span className="text-muted text-sm">–</span>
-                                                <TimePickerInput
-                                                    value={hours.breakEnd || ''}
-                                                    onChange={val => setScheduleForm({
-                                                        ...scheduleForm,
-                                                        [day]: { ...hours, breakEnd: val }
-                                                    })}
-                                                    placeholder="--:-- ---"
-                                                />
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-tighter">Comida</span>
+                                                <div className="flex items-center gap-1.5 flex-1">
+                                                    <TimePickerInput
+                                                        value={hours.breakStart || ''}
+                                                        onChange={val => setScheduleForm({
+                                                            ...scheduleForm,
+                                                            [day]: { ...hours, breakStart: val }
+                                                        })}
+                                                        placeholder="--:-- ---"
+                                                    />
+                                                    <span className="text-muted text-xs">—</span>
+                                                    <TimePickerInput
+                                                        value={hours.breakEnd || ''}
+                                                        onChange={val => setScheduleForm({
+                                                            ...scheduleForm,
+                                                            [day]: { ...hours, breakEnd: val }
+                                                        })}
+                                                        placeholder="--:-- ---"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -702,17 +706,20 @@ export default function Settings() {
                                 </label>
                             </div>
 
-                            <div className={`grid grid-cols-2 gap-3 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-                                <div>
-                                    <label className="block text-sm text-muted mb-1.5">De</label>
+                            <div className={`flex flex-wrap items-center gap-4 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                                <div className="flex-1 min-w-[130px]">
+                                    <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Desde</label>
                                     <TimePickerInput
                                         value={isAllDay ? '00:00' : blockStart}
                                         onChange={val => setBlockStart(val)}
                                         disabled={isAllDay}
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm text-muted mb-1.5">A</label>
+                                <div className="pt-6 hidden sm:block">
+                                    <span className="text-slate-600">—</span>
+                                </div>
+                                <div className="flex-1 min-w-[130px]">
+                                    <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Hasta</label>
                                     <TimePickerInput
                                         value={isAllDay ? '23:59' : blockEnd}
                                         onChange={val => setBlockEnd(val)}

@@ -78,7 +78,7 @@ export default function TimePickerInput({ value, onChange, placeholder = '--:-- 
                 type="button"
                 disabled={disabled}
                 onClick={() => !disabled && setOpen(o => !o)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-sm ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-sm w-[130px] justify-center ${
                     open
                         ? 'bg-accent/10 border-accent/40 text-white'
                         : hasValue
