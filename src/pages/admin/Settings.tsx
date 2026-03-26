@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore, DAY_NAMES, DAY_KEYS } from '../../lib/store';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
@@ -108,6 +108,8 @@ export default function Settings() {
     const { announcements, addAnnouncement, removeAnnouncement } = useAnnouncements();
     const { blockedSlots, addBlockedSlot, removeBlockedSlot } = useBlockedSlots();
     const { stylists, updateStylist } = useStylists();
+    const confirmationRef = useRef<HTMLTextAreaElement>(null);
+    const reminderRef = useRef<HTMLTextAreaElement>(null);
 
     const updateStylistCommissionRate = async (id: number, rate: number) => {
         await updateStylist({ id, data: { commissionRate: rate } });
@@ -118,6 +120,7 @@ export default function Settings() {
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [newAnnouncementType, setNewAnnouncementType] = useState<'info' | 'warning' | 'closed'>('info');
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [lastFocusedField, setLastFocusedField] = useState<'confirmationTemplate' | 'reminderTemplate' | null>(null);
 
     // Blocked slots form
     const [blockDate, setBlockDate] = useState('');
@@ -149,6 +152,39 @@ export default function Settings() {
         e.preventDefault();
         updateBusinessConfig(infoForm);
         showToast('Información del negocio actualizada', 'success');
+    };
+
+    const insertVariable = (variable: string) => {
+        if (!lastFocusedField) {
+            showToast('Selecciona primero dónde quieres insertar la variable', 'info');
+            return;
+        }
+        
+        const ref = lastFocusedField === 'confirmationTemplate' ? confirmationRef : reminderRef;
+        const textarea = ref.current;
+        const currentVal = infoForm[lastFocusedField] || '';
+
+        if (textarea) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const newVal = currentVal.substring(0, start) + variable + currentVal.substring(end);
+            
+            setInfoForm({
+                ...infoForm,
+                [lastFocusedField]: newVal
+            });
+
+            // Re-focus and set cursor after the inserted variable
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + variable.length, start + variable.length);
+            }, 0);
+        } else {
+            setInfoForm({
+                ...infoForm,
+                [lastFocusedField]: currentVal + variable
+            });
+        }
     };
 
     const handleScheduleSubmit = async (e: React.FormEvent) => {
@@ -505,20 +541,35 @@ export default function Settings() {
                     <form onSubmit={handleInfoSubmit} className="space-y-4">
                         <p className="text-sm text-muted">
                             Personaliza los mensajes precargados. Variables disponibles:<br />
-                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[NOMBRE]</span>
-                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[SERVICIO]</span>
-                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[FECHA]</span>
-                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[HORA]</span>
-                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent mr-1">[NEGOCIO]</span>
-                            <span className="text-xs bg-white/10 px-1 py-0.5 rounded text-accent">[DIRECCION]</span>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {[
+                                    { label: '[NOMBRE]', tag: '[NOMBRE]' },
+                                    { label: '[SERVICIO]', tag: '[SERVICIO]' },
+                                    { label: '[FECHA]', tag: '[FECHA]' },
+                                    { label: '[HORA]', tag: '[HORA]' },
+                                    { label: '[NEGOCIO]', tag: '[NEGOCIO]' },
+                                    { label: '[DIRECCION]', tag: '[DIRECCION]' },
+                                ].map(v => (
+                                    <button
+                                        key={v.tag}
+                                        type="button"
+                                        onClick={() => insertVariable(v.tag)}
+                                        className="text-[10px] font-black tracking-widest bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-accent hover:bg-accent/10 hover:border-accent/30 transition-all active:scale-95"
+                                    >
+                                        {v.label}
+                                    </button>
+                                ))}
+                            </div>
                         </p>
 
                         <div>
                             <label className="block text-sm font-medium text-white mb-1">Confirmación de Reserva</label>
                             <textarea
+                                ref={confirmationRef}
                                 className="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all min-h-[100px] text-sm"
                                 placeholder="Ej: Hola [NOMBRE], confirmamos tu cita para [SERVICIO] el [FECHA] a las [HORA] en [NEGOCIO]."
                                 value={infoForm.confirmationTemplate || ''}
+                                onFocus={() => setLastFocusedField('confirmationTemplate')}
                                 onChange={e => setInfoForm({ ...infoForm, confirmationTemplate: e.target.value })}
                             />
                         </div>
@@ -526,9 +577,11 @@ export default function Settings() {
                         <div>
                             <label className="block text-sm font-medium text-white mb-1">Mensaje de Recordatorio</label>
                             <textarea
+                                ref={reminderRef}
                                 className="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all min-h-[100px] text-sm"
                                 placeholder="Ej: Hola [NOMBRE], te recordamos que tienes una cita para [SERVICIO] el [FECHA] a las [HORA]."
                                 value={infoForm.reminderTemplate || ''}
+                                onFocus={() => setLastFocusedField('reminderTemplate')}
                                 onChange={e => setInfoForm({ ...infoForm, reminderTemplate: e.target.value })}
                             />
                         </div>
