@@ -19,7 +19,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { addAppointment, appointments, isAdding } = useAppointments();
     const { services } = useServices();
     const { stylists } = useStylists();
-    const { blockedSlots, blockedPhones, getScheduleForDate } = useStore();
+    const { blockedSlots, blockedPhones, getScheduleForDate, businessConfig } = useStore();
+    const bufferMinutes = businessConfig?.breakBetweenAppointments ? 10 : 0;
 
     // Form state
     const [step, setStep] = useState<Step>('datos');
@@ -105,7 +106,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
                     return { id: a.id, stylistId: '0', start, end };
                 });
-            return getSmartSlots(baseDate, selectedService.duration, dateSchedule.start, dateSchedule.end, appts, blocked, 10);
+            return getSmartSlots(baseDate, selectedService.duration, dateSchedule.start, dateSchedule.end, appts, blocked, bufferMinutes);
         }
 
         const allSlots = new Set<string>();
@@ -118,7 +119,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
                     return { id: a.id, stylistId: String(stylist.id), start, end };
                 });
-            const slots = getSmartSlots(baseDate, selectedService.duration, dateSchedule.start, dateSchedule.end, stylistAppts, blocked, 10);
+            const slots = getSmartSlots(baseDate, selectedService.duration, dateSchedule.start, dateSchedule.end, stylistAppts, blocked, bufferMinutes);
             slots.forEach(s => allSlots.add(s));
         });
         return Array.from(allSlots).sort();

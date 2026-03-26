@@ -156,9 +156,10 @@ export default function Booking() {
         }
 
         const stylistsToCheck = selectedStylist ? [selectedStylist] : stylists;
+        const bufferMinutes = businessConfig.breakBetweenAppointments ? 10 : 0;
         // Fallback: if no stylists exist (MVP), treat as generic resource with ID '0'
         if (stylistsToCheck.length === 0) {
-            const slots = getSmartSlots(baseDate, selectedService.duration, selectedDateSchedule.start, selectedDateSchedule.end, dateAppointments, relevantBlockedSlots, 10);
+            const slots = getSmartSlots(baseDate, selectedService.duration, selectedDateSchedule.start, selectedDateSchedule.end, dateAppointments, relevantBlockedSlots, bufferMinutes);
             slots.forEach(slot => {
                 metadata[slot] = ['0'];
             });
@@ -175,7 +176,7 @@ export default function Booking() {
                     return { id: a.id, stylistId: String(a.stylistId), start, end };
                 });
 
-            const slots = getSmartSlots(baseDate, selectedService.duration, selectedDateSchedule.start, selectedDateSchedule.end, stylistApps, relevantBlockedSlots, 10);
+            const slots = getSmartSlots(baseDate, selectedService.duration, selectedDateSchedule.start, selectedDateSchedule.end, stylistApps, relevantBlockedSlots, bufferMinutes);
 
             slots.forEach(slot => {
                 if (!metadata[slot]) metadata[slot] = [];

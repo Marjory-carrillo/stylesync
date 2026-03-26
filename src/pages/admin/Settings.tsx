@@ -404,11 +404,37 @@ export default function Settings() {
                             />
                         </div>
 
+                        {/* Break Between Appointments toggle */}
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5">
+                            <div>
+                                <h4 className="text-white font-medium flex items-center gap-2">
+                                    <Clock size={16} className="text-accent" />
+                                    Descanso entre citas (10 min)
+                                </h4>
+                                <p className="text-sm text-muted mt-0.5">Al activarlo, se agrega un buffer de 10 minutos después de cada cita para que el profesional descanse o prepare el espacio.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={infoForm.breakBetweenAppointments ?? false}
+                                    onChange={async (e) => {
+                                        const val = e.target.checked;
+                                        setInfoForm({ ...infoForm, breakBetweenAppointments: val });
+                                        await updateBusinessConfig({ breakBetweenAppointments: val });
+                                        showToast(val ? 'Descanso entre citas activado (10 min)' : 'Descanso entre citas desactivado', 'success');
+                                    }}
+                                />
+                                <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                            </label>
+                        </div>
+
                         <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-2 flex justify-center items-center gap-2">
                             <Save size={18} /> Guardar Cambios
                         </button>
                     </form>
                 </section>
+
 
                 {/* ── WhatsApp Templates (Section 2) ── */}
                 <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[50]">
