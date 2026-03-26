@@ -20,7 +20,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { services } = useServices();
     const { stylists } = useStylists();
     const { blockedSlots, blockedPhones, getScheduleForDate, businessConfig } = useStore();
-    const bufferMinutes = businessConfig?.breakBetweenAppointments ? 10 : 0;
+    const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
 
     // Form state
     const [step, setStep] = useState<Step>('datos');

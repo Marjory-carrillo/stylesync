@@ -11,6 +11,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
 import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent } from 'lucide-react';
 import { CustomSelect } from '../../components/CustomSelect';
+import TimePickerInput from '../../components/TimePickerInput';
 
 // Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -404,29 +405,57 @@ export default function Settings() {
                             />
                         </div>
 
-                        {/* Break Between Appointments toggle */}
-                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5">
-                            <div>
-                                <h4 className="text-white font-medium flex items-center gap-2">
-                                    <Clock size={16} className="text-accent" />
-                                    Descanso entre citas (10 min)
-                                </h4>
-                                <p className="text-sm text-muted mt-0.5">Al activarlo, se agrega un buffer de 10 minutos después de cada cita para que el profesional descanse o prepare el espacio.</p>
+                        {/* Break Between Appointments */}
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-white font-medium flex items-center gap-2">
+                                        <Clock size={16} className="text-accent" />
+                                        Descanso entre citas
+                                    </h4>
+                                    <p className="text-sm text-muted mt-0.5">Buffer de tiempo entre citas para que el profesional prepare el espacio.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={(infoForm.breakBetweenAppointments ?? 0) > 0}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked ? 10 : 0;
+                                            setInfoForm({ ...infoForm, breakBetweenAppointments: val });
+                                            await updateBusinessConfig({ breakBetweenAppointments: val });
+                                            showToast(val > 0 ? `Descanso activado: ${val} min` : 'Descanso desactivado', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={infoForm.breakBetweenAppointments ?? false}
-                                    onChange={async (e) => {
-                                        const val = e.target.checked;
-                                        setInfoForm({ ...infoForm, breakBetweenAppointments: val });
-                                        await updateBusinessConfig({ breakBetweenAppointments: val });
-                                        showToast(val ? 'Descanso entre citas activado (10 min)' : 'Descanso entre citas desactivado', 'success');
-                                    }}
-                                />
-                                <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                            </label>
+                            {/* Duration selector — only when enabled */}
+                            {(infoForm.breakBetweenAppointments ?? 0) > 0 && (
+                                <div className="flex items-center gap-3 pt-2 border-t border-white/5">
+                                    <span className="text-sm text-muted shrink-0">Duración:</span>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {[5, 10, 15, 20, 30].map(mins => (
+                                            <button
+                                                key={mins}
+                                                type="button"
+                                                onClick={async () => {
+                                                    setInfoForm({ ...infoForm, breakBetweenAppointments: mins });
+                                                    await updateBusinessConfig({ breakBetweenAppointments: mins });
+                                                    showToast(`Descanso: ${mins} min`, 'success');
+                                                }}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${
+                                                    infoForm.breakBetweenAppointments === mins
+                                                        ? 'bg-accent border-accent/50 text-white shadow-lg shadow-accent/20'
+                                                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-accent/30 hover:text-white'
+                                                }`}
+                                            >
+                                                {mins} min
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-2 flex justify-center items-center gap-2">
@@ -516,48 +545,42 @@ export default function Settings() {
 
                                     {hours.open && (
                                         <div className="flex flex-col gap-2 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted w-12">Horario:</span>
-                                                <input
-                                                    type="time"
-                                                    className="glass-card bg-transparent border border-white/10 rounded px-3 py-1 text-white text-sm focus:border-accent focus:outline-none"
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-xs text-muted w-14 shrink-0">Horario:</span>
+                                                <TimePickerInput
                                                     value={hours.start}
-                                                    onChange={e => setScheduleForm({
+                                                    onChange={val => setScheduleForm({
                                                         ...scheduleForm,
-                                                        [day]: { ...hours, start: e.target.value }
+                                                        [day]: { ...hours, start: val }
                                                     })}
                                                 />
-                                                <span className="text-muted text-sm">-</span>
-                                                <input
-                                                    type="time"
-                                                    className="glass-card bg-transparent border border-white/10 rounded px-3 py-1 text-white text-sm focus:border-accent focus:outline-none"
+                                                <span className="text-muted text-sm">–</span>
+                                                <TimePickerInput
                                                     value={hours.end}
-                                                    onChange={e => setScheduleForm({
+                                                    onChange={val => setScheduleForm({
                                                         ...scheduleForm,
-                                                        [day]: { ...hours, end: e.target.value }
+                                                        [day]: { ...hours, end: val }
                                                     })}
                                                 />
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted w-12">Comida:</span>
-                                                <input
-                                                    type="time"
-                                                    className="glass-card bg-transparent border border-white/10 rounded px-3 py-1 text-white text-sm focus:border-accent focus:outline-none opacity-80"
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-xs text-muted w-14 shrink-0">Comida:</span>
+                                                <TimePickerInput
                                                     value={hours.breakStart || ''}
-                                                    onChange={e => setScheduleForm({
+                                                    onChange={val => setScheduleForm({
                                                         ...scheduleForm,
-                                                        [day]: { ...hours, breakStart: e.target.value }
+                                                        [day]: { ...hours, breakStart: val }
                                                     })}
+                                                    placeholder="--:-- ---"
                                                 />
-                                                <span className="text-muted text-sm">-</span>
-                                                <input
-                                                    type="time"
-                                                    className="glass-card bg-transparent border border-white/10 rounded px-3 py-1 text-white text-sm focus:border-accent focus:outline-none opacity-80"
+                                                <span className="text-muted text-sm">–</span>
+                                                <TimePickerInput
                                                     value={hours.breakEnd || ''}
-                                                    onChange={e => setScheduleForm({
+                                                    onChange={val => setScheduleForm({
                                                         ...scheduleForm,
-                                                        [day]: { ...hours, breakEnd: e.target.value }
+                                                        [day]: { ...hours, breakEnd: val }
                                                     })}
+                                                    placeholder="--:-- ---"
                                                 />
                                             </div>
                                         </div>
@@ -679,25 +702,21 @@ export default function Settings() {
                                 </label>
                             </div>
 
-                            <div className={`grid grid-cols-2 gap-2 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                            <div className={`grid grid-cols-2 gap-3 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                                 <div>
-                                    <label className="block text-sm text-muted mb-1">De</label>
-                                    <input
-                                        type="time"
-                                        className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all dark:[color-scheme:dark]"
+                                    <label className="block text-sm text-muted mb-1.5">De</label>
+                                    <TimePickerInput
                                         value={isAllDay ? '00:00' : blockStart}
-                                        onChange={e => setBlockStart(e.target.value)}
-                                        required={!isAllDay}
+                                        onChange={val => setBlockStart(val)}
+                                        disabled={isAllDay}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-muted mb-1">A</label>
-                                    <input
-                                        type="time"
-                                        className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all dark:[color-scheme:dark]"
+                                    <label className="block text-sm text-muted mb-1.5">A</label>
+                                    <TimePickerInput
                                         value={isAllDay ? '23:59' : blockEnd}
-                                        onChange={e => setBlockEnd(e.target.value)}
-                                        required={!isAllDay}
+                                        onChange={val => setBlockEnd(val)}
+                                        disabled={isAllDay}
                                     />
                                 </div>
                             </div>
