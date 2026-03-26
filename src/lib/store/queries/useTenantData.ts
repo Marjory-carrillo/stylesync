@@ -38,7 +38,8 @@ export const useTenantData = () => {
                 bookingDaysAhead: data.booking_days_ahead,
                 commissionsEnabled: data.commissions_enabled || false,
                 confirmationTemplate: data.confirmation_template || '',
-                reminderTemplate: data.reminder_template || ''
+                reminderTemplate: data.reminder_template || '',
+                showDashboardMetrics: data.show_dashboard_metrics ?? true
             };
         },
         enabled: !!tenantId,
@@ -63,7 +64,8 @@ export const useTenantData = () => {
             if (newData.bookingDaysAhead !== undefined) payload.booking_days_ahead = newData.bookingDaysAhead;
             if (newData.commissionsEnabled !== undefined) payload.commissions_enabled = newData.commissionsEnabled;
             if (newData.confirmationTemplate !== undefined) payload.confirmation_template = newData.confirmationTemplate;
-            if (newData.reminderTemplate !== undefined) payload.reminderTemplate = newData.reminderTemplate;
+            if (newData.reminderTemplate !== undefined) payload.reminder_template = newData.reminderTemplate;
+            if (newData.showDashboardMetrics !== undefined) payload.show_dashboard_metrics = newData.showDashboardMetrics;
 
             const { error } = await supabase
                 .from('tenants')
