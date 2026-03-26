@@ -98,6 +98,7 @@ export interface BusinessConfig {
     accentColor?: string;
     sms_enabled?: boolean;
     breakBetweenAppointments?: number; // 0 = off, positive = minutes of buffer
+    showDashboardMetrics?: boolean;
 }
 
 export interface Tenant extends BusinessConfig {

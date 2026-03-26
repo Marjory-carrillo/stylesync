@@ -9,7 +9,7 @@ import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
-import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent } from 'lucide-react';
+import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent, BarChart2 } from 'lucide-react';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
 import DatePickerInput from '../../components/DatePickerInput';
@@ -457,6 +457,33 @@ export default function Settings() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Dashboard Metrics Toggle */}
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-white font-medium flex items-center gap-2">
+                                        <BarChart2 size={16} className="text-accent" />
+                                        Métricas en Dashboard
+                                    </h4>
+                                    <p className="text-sm text-muted mt-0.5">Muestra estadísticas de ingresos y citas recientes en la pantalla principal.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.showDashboardMetrics ?? true}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, showDashboardMetrics: val });
+                                            await updateBusinessConfig({ showDashboardMetrics: val });
+                                            showToast(val ? 'Métricas activadas' : 'Métricas desactivadas', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
                         </div>
 
                         <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-2 flex justify-center items-center gap-2">

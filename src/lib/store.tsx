@@ -436,7 +436,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     bookingDaysAhead: tData.booking_days_ahead,
                     commissionsEnabled: tData.commissions_enabled || false,
                     confirmationTemplate: tData.confirmation_template || '',
-                    reminderTemplate: tData.reminder_template || ''
+                    reminderTemplate: tData.reminder_template || '',
+                    showDashboardMetrics: tData.show_dashboard_metrics ?? true
                 });
             }
 
@@ -963,6 +964,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (data.commissionsEnabled !== undefined) updatePayload.commissions_enabled = data.commissionsEnabled;
         if (data.confirmationTemplate !== undefined) updatePayload.confirmation_template = data.confirmationTemplate;
         if (data.reminderTemplate !== undefined) updatePayload.reminder_template = data.reminderTemplate;
+        if (data.showDashboardMetrics !== undefined) updatePayload.show_dashboard_metrics = data.showDashboardMetrics;
 
         const { error } = await supabase.from('tenants').update(updatePayload).eq('id', tenantId);
 
