@@ -50,7 +50,7 @@ export default function Appointments() {
         return allAppointments;
     }, [allAppointments, userRole, userStylistId]);
 
-    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'espera'>('list');
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState('');
@@ -169,6 +169,19 @@ export default function Appointments() {
                         >
                             <Grid3X3 size={18} />
                         </button>
+                        {/* Lista de Espera tab with live badge */}
+                        <button
+                            onClick={() => setViewMode('espera')}
+                            className={`relative p-1.5 rounded-lg transition-colors ${viewMode === 'espera' ? 'bg-amber-500/20 text-amber-400' : 'text-muted hover:text-amber-400'}`}
+                            title="Lista de Espera"
+                        >
+                            <Users size={18} />
+                            {waitingList.length > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                                    {waitingList.length > 9 ? '9+' : waitingList.length}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
                     {/* Filters (Compact) */}
@@ -225,6 +238,7 @@ export default function Appointments() {
                         value={dateFilter}
                         onChange={(val) => { setDateFilter(val); setCurrentPage(1); }}
                         placeholder="Filtrar Fecha"
+                        align="right"
                         className="h-full"
                     />
                     {dateFilter && (
@@ -259,7 +273,91 @@ export default function Appointments() {
             {/* Main Content */}
             <div className="flex-1 min-h-0 flex flex-col items-center justify-start">
                 <div className="w-full max-w-5xl bg-black/20 rounded-3xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col shadow-2xl h-full">
-                    {viewMode === 'calendar' ? (
+                    {/* ── Lista de Espera View ── */}
+                    {viewMode === 'espera' ? (
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                            <div className="max-w-2xl mx-auto space-y-4">
+                                {/* Header */}
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                                        <Users size={20} className="text-amber-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-black text-lg">Lista de Espera</h3>
+                                        <p className="text-xs text-slate-500">Clientes esperando un espacio disponible</p>
+                                    </div>
+                                    {waitingList.length > 0 && (
+                                        <span className="ml-auto px-3 py-1 bg-amber-500 text-white text-xs font-black rounded-full">
+                                            {waitingList.length} pendiente{waitingList.length !== 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {waitingList.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
+                                        <Users size={48} className="text-white/10 mb-4" />
+                                        <h4 className="text-white font-bold mb-1">Sin clientes en espera</h4>
+                                        <p className="text-sm text-muted">Los clientes que soliciten un lugar aparecerán aquí.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {waitingList.map(client => {
+                                            const svc = getServiceById(client.serviceId);
+                                            const waPhone = client.phone.replace(/\D/g, '');
+                                            const waMsg = encodeURIComponent(`Hola ${client.name}, te contactamos porque se ha liberado un espacio para ${svc?.name ?? 'tu servicio'} el ${new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}. ¿Te gustaría reservar? 📅`);
+                                            return (
+                                                <div key={client.id} className="p-4 rounded-2xl bg-black/30 border border-amber-500/10 hover:border-amber-500/30 transition-all">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-white font-black text-base">{client.name}</span>
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                {svc && (
+                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-lg">
+                                                                        <Scissors size={9} /> {svc.name}
+                                                                    </span>
+                                                                )}
+                                                                <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg">
+                                                                    <CalendarDays size={9} />
+                                                                    {new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                                                </span>
+                                                                <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg">
+                                                                    <Phone size={9} /> {client.phone}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => removeFromWaitingList(client.id)}
+                                                            className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </div>
+                                                    {/* Contact actions */}
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <a
+                                                            href={`tel:${waPhone}`}
+                                                            className="flex items-center justify-center gap-2 py-2.5 bg-sky-500/10 text-sky-400 border border-sky-500/15 hover:bg-sky-500 hover:text-white rounded-xl transition-all text-sm font-black"
+                                                        >
+                                                            <Phone size={15} /> Llamar
+                                                        </a>
+                                                        <a
+                                                            href={`https://wa.me/${waPhone}?text=${waMsg}`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="flex items-center justify-center gap-2 py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 hover:bg-emerald-500 hover:text-white rounded-xl transition-all text-sm font-black"
+                                                        >
+                                                            <MessageCircle size={15} /> WhatsApp
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : viewMode === 'calendar' ? (
                         <div className="flex-1 min-h-0 p-2 overflow-hidden">
                             <WeekCalendar
                                 appointments={filteredAppointments}
@@ -433,8 +531,8 @@ export default function Appointments() {
                         </div>
                     )}
 
-                    {/* Waiting List & Logs (Persistent across views) */}
-                    {(waitingList.length > 0 || cancellationLog.length > 0) && (
+                    {/* Waiting List & Logs (Persistent — hidden when in espera tab) */}
+                    {viewMode !== 'espera' && (waitingList.length > 0 || cancellationLog.length > 0) && (
                         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row gap-4 flex-none bg-black/20">
                             {waitingList.length > 0 && (
                                 <div className="flex-1 rounded-2xl bg-[#161b2a]/95 backdrop-blur-md border border-amber-500/20 shadow-lg shadow-amber-500/5 overflow-hidden transition-all duration-300">
