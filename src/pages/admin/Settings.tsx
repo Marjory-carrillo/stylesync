@@ -12,6 +12,7 @@ import ColorThief from 'colorthief';
 import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent } from 'lucide-react';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
+import DatePickerInput from '../../components/DatePickerInput';
 
 // Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -670,26 +671,34 @@ export default function Settings() {
 
                     <form onSubmit={handleAddBlockedSlot} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-3">
                                 <div>
-                                    <label className="block text-sm text-muted mb-1">Fecha</label>
-                                    <input
-                                        type="date"
-                                        className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all dark:[color-scheme:dark]"
+                                    <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Fecha</label>
+                                    <DatePickerInput
                                         value={blockDate}
-                                        onChange={e => setBlockDate(e.target.value)}
-                                        required
+                                        onChange={val => setBlockDate(val)}
                                     />
                                 </div>
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <input
-                                        type="checkbox"
-                                        className="w-4 h-4 rounded border-white/10 bg-white/5 text-accent focus:ring-accent"
-                                        checked={isAllDay}
-                                        onChange={e => setIsAllDay(e.target.checked)}
-                                    />
-                                    <span className="text-sm text-white group-hover:text-accent transition-colors">Todo el día</span>
-                                </label>
+                                {/* Todo el día — pill toggle */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAllDay(v => !v)}
+                                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all w-fit ${
+                                        isAllDay
+                                            ? 'bg-accent/15 border-accent/40 text-white'
+                                            : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                                    }`}
+                                >
+                                    {/* mini toggle pill */}
+                                    <div className={`w-8 h-4 rounded-full transition-all relative ${
+                                        isAllDay ? 'bg-accent' : 'bg-slate-700'
+                                    }`}>
+                                        <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${
+                                            isAllDay ? 'left-4.5' : 'left-0.5'
+                                        }`} />
+                                    </div>
+                                    <span className="text-sm font-bold">Todo el día</span>
+                                </button>
                             </div>
 
                             <div className={`flex flex-wrap items-center gap-4 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
