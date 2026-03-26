@@ -401,9 +401,8 @@ export default function Dashboard() {
                 )
             }
 
-            {/* ── General Waiting List Header (Always visible if there's someone waiting) ── */}
-            {waitingList.length > 0 && (
-                <div className="glass-panel p-6 rounded-2xl border border-white/5 mb-8">
+            {/* ── General Waiting List Header ── */}
+            <div id="waiting-list-section" className="glass-panel p-6 rounded-2xl border border-white/5 mb-8">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                         <div>
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -437,42 +436,48 @@ export default function Dashboard() {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {waitingList.map(item => {
-                            const svc = getServiceById(item.serviceId);
-                            return (
-                                <div key={item.id} className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 flex flex-col justify-between group hover:border-accent/30 transition-all duration-500 relative overflow-hidden">
-                                    <div className="absolute -right-4 -top-4 w-12 h-12 bg-accent/5 blur-xl rounded-full"></div>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <span className="text-white font-black text-base block tracking-tight leading-none mb-1">{item.name.toUpperCase()}</span>
-                                            <span className="text-[10px] text-slate-500 font-mono">{item.phone}</span>
+                    {waitingList.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
+                            <Users size={32} className="mb-2 text-slate-500" />
+                            <p className="text-sm font-medium">No hay nadie en la lista de espera actualmente.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {waitingList.map(item => {
+                                const svc = getServiceById(item.serviceId);
+                                return (
+                                    <div key={item.id} className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 flex flex-col justify-between group hover:border-accent/30 transition-all duration-500 relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 w-12 h-12 bg-accent/5 blur-xl rounded-full"></div>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <span className="text-white font-black text-base block tracking-tight leading-none mb-1">{item.name.toUpperCase()}</span>
+                                                <span className="text-[10px] text-slate-500 font-mono">{item.phone}</span>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-[9px] font-black uppercase text-accent/60 tracking-widest block mb-0.5">Esperando</span>
+                                                <span className="text-[10px] text-white font-bold bg-white/5 px-2 py-0.5 rounded-md">{item.date}</span>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="text-[9px] font-black uppercase text-accent/60 tracking-widest block mb-0.5">Esperando</span>
-                                            <span className="text-[10px] text-white font-bold bg-white/5 px-2 py-0.5 rounded-md">{item.date}</span>
+
+                                        <div className="flex items-center gap-2 text-xs text-muted mb-4">
+                                            <Scissors size={12} className="opacity-40" />
+                                            <span>{svc?.name || 'Cualquier servicio'}</span>
                                         </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-2 text-xs text-muted mb-4">
-                                        <Scissors size={12} className="opacity-40" />
-                                        <span>{svc?.name || 'Cualquier servicio'}</span>
+                                        <a
+                                            href={`https://wa.me/${item.phone.replace(/\D/g, '')}?text=Hola ${item.name}, te contactamos de ${(businessConfig as any)?.name}. Vimos que estabas en nuestra lista de espera para el ${item.date}. ¿Aún estás interesado en agendar una cita?`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn btn-sm bg-accent/20 text-accent hover:bg-accent hover:text-white w-full py-2 rounded-lg border border-accent/20 transition-all font-bold text-xs flex items-center justify-center gap-2"
+                                        >
+                                            <MessageCircle size={14} /> Contactar por WhatsApp
+                                        </a>
                                     </div>
-
-                                    <a
-                                        href={`https://wa.me/${item.phone.replace(/\D/g, '')}?text=Hola ${item.name}, te contactamos de ${(businessConfig as any)?.name}. Vimos que estabas en nuestra lista de espera para el ${item.date}. ¿Aún estás interesado en agendar una cita?`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="btn btn-sm bg-accent/20 text-accent hover:bg-accent hover:text-white w-full py-2 rounded-lg border border-accent/20 transition-all font-bold text-xs flex items-center justify-center gap-2"
-                                    >
-                                        <MessageCircle size={14} /> Contactar por WhatsApp
-                                    </a>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
@@ -699,12 +704,28 @@ export default function Dashboard() {
                     <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
                     {!isEmployee && (
                         <div className="flex items-center gap-2">
-                            <User size={14} className="text-accent hidden sm:block" />
+                            {/* Short link to waiting list section */}
+                            <button
+                                onClick={() => {
+                                    const el = document.getElementById('waiting-list-section');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-all font-black text-[10px] uppercase tracking-wider"
+                            >
+                                <Users size={14} />
+                                Lista de Espera
+                                {waitingList.length > 0 && (
+                                    <span className="bg-amber-500 text-white px-1.5 py-0.5 rounded-full text-[9px] min-w-[16px] h-4 flex items-center justify-center">
+                                        {waitingList.length}
+                                    </span>
+                                )}
+                            </button>
+                            <User size={14} className="text-accent hidden sm:block ml-2" />
                             <CustomSelect
                                 value={String(dashboardStylistId)}
                                 onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
                                 options={[
-                                    { value: 'all', label: 'Todos los barberos' },
+                                    { value: 'all', label: 'Todos los integrantes' },
                                     ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
                                 ]}
                                 buttonClassName="bg-slate-900/50 border border-white/10 text-white rounded-2xl px-4 py-1.5 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[160px]"
