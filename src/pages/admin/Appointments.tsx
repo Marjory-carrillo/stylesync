@@ -8,10 +8,11 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3 } from 'lucide-react';
+import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
+import AdminBookingModal from '../../components/AdminBookingModal';
 
 
 export default function Appointments() {
@@ -56,6 +57,7 @@ export default function Appointments() {
     const [showWaiting, setShowWaiting] = useState(false);
     const [showLog, setShowLog] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; appt: any | null }>({ open: false, appt: null });
+    const [showBookingModal, setShowBookingModal] = useState(false);
 
     const PAGE_SIZE = 20;
 
@@ -138,6 +140,15 @@ export default function Appointments() {
                     <h2 className="text-3xl font-bold text-white tracking-tight">{t('appointments.title')}</h2>
                     <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
                 </div>
+
+                {/* Nueva Cita button */}
+                <button
+                    onClick={() => setShowBookingModal(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-accent/20 text-sm shrink-0"
+                >
+                    <Plus size={16} />
+                    Nueva Cita
+                </button>
 
                 {/* Controls Container */}
                 <div className="flex items-center gap-3 bg-black/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md overflow-x-auto">
@@ -537,6 +548,11 @@ export default function Appointments() {
                 onConfirm={confirmCancel}
                 onCancel={() => setConfirmModal({ open: false, appt: null })}
                 danger
+            />
+
+            <AdminBookingModal
+                isOpen={showBookingModal}
+                onClose={() => setShowBookingModal(false)}
             />
         </div>
     );
