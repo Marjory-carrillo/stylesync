@@ -544,48 +544,34 @@ export default function Settings() {
                                     </label>
 
                                     {hours.open && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[10px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-tighter">Agenda</span>
-                                                <div className="flex items-center gap-1.5 flex-1">
-                                                    <TimePickerInput
-                                                        value={hours.start}
-                                                        onChange={val => setScheduleForm({
-                                                            ...scheduleForm,
-                                                            [day]: { ...hours, start: val }
-                                                        })}
-                                                    />
-                                                    <span className="text-muted text-xs">—</span>
-                                                    <TimePickerInput
-                                                        value={hours.end}
-                                                        onChange={val => setScheduleForm({
-                                                            ...scheduleForm,
-                                                            [day]: { ...hours, end: val }
-                                                        })}
-                                                    />
-                                                </div>
+                                        <div className="flex flex-col gap-2 flex-1">
+                                            {/* Agenda row */}
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[9px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-widest">Agenda</span>
+                                                <TimePickerInput
+                                                    value={hours.start}
+                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, start: val } })}
+                                                />
+                                                <span className="text-slate-600 text-xs">—</span>
+                                                <TimePickerInput
+                                                    value={hours.end}
+                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, end: val } })}
+                                                />
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[10px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-tighter">Comida</span>
-                                                <div className="flex items-center gap-1.5 flex-1">
-                                                    <TimePickerInput
-                                                        value={hours.breakStart || ''}
-                                                        onChange={val => setScheduleForm({
-                                                            ...scheduleForm,
-                                                            [day]: { ...hours, breakStart: val }
-                                                        })}
-                                                        placeholder="--:-- ---"
-                                                    />
-                                                    <span className="text-muted text-xs">—</span>
-                                                    <TimePickerInput
-                                                        value={hours.breakEnd || ''}
-                                                        onChange={val => setScheduleForm({
-                                                            ...scheduleForm,
-                                                            [day]: { ...hours, breakEnd: val }
-                                                        })}
-                                                        placeholder="--:-- ---"
-                                                    />
-                                                </div>
+                                            {/* Comida row */}
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[9px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-widest">Comida</span>
+                                                <TimePickerInput
+                                                    value={hours.breakStart || ''}
+                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakStart: val } })}
+                                                    placeholder="--:-- ---"
+                                                />
+                                                <span className="text-slate-600 text-xs">—</span>
+                                                <TimePickerInput
+                                                    value={hours.breakEnd || ''}
+                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakEnd: val } })}
+                                                    placeholder="--:-- ---"
+                                                />
                                             </div>
                                         </div>
                                     )}
