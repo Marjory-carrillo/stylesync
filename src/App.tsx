@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { StoreProvider } from './lib/store';
+
 import { useAuthStore } from './lib/store/authStore';
 import AdminLayout from './layouts/AdminLayout';
 import ClientLayout from './layouts/ClientLayout';
@@ -148,7 +148,6 @@ function App() {
   }, [fetchGlobalConfig]);
 
   return (
-    <StoreProvider>
       <ErrorBoundary>
         <Router>
           <BrandingManager />
@@ -202,7 +201,6 @@ function App() {
           </Suspense>
         </Router>
       </ErrorBoundary>
-    </StoreProvider >
   );
 }
 

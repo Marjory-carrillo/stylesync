@@ -1,4 +1,4 @@
-import type { Service, Stylist, WeekSchedule } from './store';
+import type { Service, Stylist, WeekSchedule } from './types/store.types';
 
 // ─── Default Schedules ───
 const STANDARD_SCHEDULE: WeekSchedule = {

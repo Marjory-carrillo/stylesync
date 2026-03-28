@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useStore } from '../../lib/store';
+import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, TrendingUp, DollarSign, Plus, X, BarChart3,
@@ -49,7 +49,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => 
 };
 
 export default function SuperAdminPanel() {
-    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant } = useStore();
+    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant } = useSuperAdmin();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

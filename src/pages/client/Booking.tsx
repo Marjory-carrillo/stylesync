@@ -1,9 +1,27 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useStore, DAY_NAMES, type Announcement, type Service, type Stylist } from '../../lib/store';
+import { type Announcement, type Service, type Stylist } from '../../lib/types/store.types';
 import { appointmentSchema } from '../../lib/schemas';
+import { useTenantBySlug } from '../../lib/store/queries/useTenantBySlug';
+import { useServices } from '../../lib/store/queries/useServices';
+import { useStylists } from '../../lib/store/queries/useStylists';
+import { useAppointments } from '../../lib/store/queries/useAppointments';
+import { useSchedule } from '../../lib/store/queries/useSchedule';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
+import { useBlockedPhones } from '../../lib/store/queries/useBlockedPhones';
+import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
+import { useWaitingList } from '../../lib/store/queries/useWaitingList';
+
+export const DAY_NAMES: Record<string, string> = {
+    monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
+    thursday: 'Jueves', friday: 'Viernes', saturday: 'Sábado', sunday: 'Domingo',
+};
+
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, Download } from 'lucide-react';
@@ -12,21 +30,38 @@ import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Booking() {
     const { slug } = useParams();
-    const {
-        services, stylists, appointments,
-        addAppointment, cancelAppointment, updateAppointmentTime,
-        isPhoneBlocked, hasActiveAppointment, getActiveAppointmentByPhone,
-        getServiceById,
-        businessConfig, getTodaySchedule, getActiveAnnouncements, getScheduleForDate,
-        addToWaitingList, blockedSlots, loadTenantBySlug, tenantId, loading,
-        sendSMS
-    } = useStore();
+    const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
+    const { services } = useServices();
+    const { stylists } = useStylists();
+    const { appointments, addAppointment, cancelAppointment, updateAppointmentTime } = useAppointments();
+    const { schedule } = useSchedule();
+    const { data: businessConfig, isLoading: configLoading } = useTenantData();
+    const { blockedSlots } = useBlockedSlots();
+    const { blockedPhones } = useBlockedPhones();
+    const { announcements } = useAnnouncements();
+    const { addToWaitingListMutation } = useWaitingList();
 
-    useEffect(() => {
-        if (slug && !tenantId) {
-            loadTenantBySlug(slug);
-        }
-    }, [slug, tenantId, loadTenantBySlug]);
+    const addToWaitingList = addToWaitingListMutation.mutateAsync;
+    
+    const isPhoneBlocked = (phone: string) => blockedPhones.includes(phone);
+    const hasActiveAppointment = (phone: string) => appointments.some(a => a.clientPhone === phone && a.status === 'confirmada');
+    const getActiveAppointmentByPhone = (phone: string) => appointments.find(a => a.clientPhone === phone && a.status === 'confirmada');
+    const getServiceById = (id: number) => services.find(s => s.id === id);
+    const getTodaySchedule = () => schedule[DAY_KEYS[new Date().getDay()] as keyof typeof schedule];
+    const getScheduleForDate = (dateStr: string) => {
+        const d = new Date(dateStr + 'T00:00:00');
+        return schedule[DAY_KEYS[d.getDay()] as keyof typeof schedule];
+    };
+    const getActiveAnnouncements = () => announcements.filter(a => a.active);
+
+    const sendSMS = async (phone: string, message: string) => {
+        // En un futuro se implementará con Supabase Edge Functions. Por el momento retornamos success:
+        console.log(`[SMS MOCK] To: ${phone} - Message: ${message}`);
+        return { success: true };
+    };
+
+    const loading = tenantLoading || (tenantId && configLoading);
+
 
     if (loading) {
         return <SplashScreen />;
@@ -36,8 +71,7 @@ export default function Booking() {
     const activeAnnouncements = getActiveAnnouncements();
     const hasClosedAnnouncement = activeAnnouncements.some((a: Announcement) => a.type === 'closed');
 
-    // Terminology Adapter
-    const category = businessConfig.category || 'barbershop';
+    const category = businessConfig?.category || 'barbershop';
 
     const professionalLabelMap: Record<string, string> = {
         barbershop: 'Barbero',
@@ -85,7 +119,7 @@ export default function Booking() {
 
         const now = new Date();
         const nowTime = format(now, 'HH:mm');
-        const daysAheadConfig = businessConfig.bookingDaysAhead || 14;
+        const daysAheadConfig = businessConfig?.bookingDaysAhead || 14;
 
         for (let i = 0; i < daysAheadConfig * 2; i++) {
             const d = addDays(new Date(), i);
@@ -167,7 +201,7 @@ export default function Booking() {
         }
 
         const stylistsToCheck = selectedStylist ? [selectedStylist] : stylists;
-        const bufferMinutes = businessConfig.breakBetweenAppointments ?? 0;
+        const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
         // Fallback: if no stylists exist (MVP), treat as generic resource with ID '0'
         if (stylistsToCheck.length === 0) {
             const slots = getSmartSlots(baseDate, selectedService.duration, selectedDateSchedule.start, selectedDateSchedule.end, dateAppointments, relevantBlockedSlots, bufferMinutes);
@@ -250,7 +284,7 @@ export default function Booking() {
             setOtpCode('');
 
             // Send "Professional" SMS using the central function
-            const message = `Tu código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
+            const message = `Tu código para ${businessConfig?.name || 'nuestro servicio'} es: ${code}. (Vía CitaLink)`;
             const smsRes = await sendSMS(cleanPhone, message);
 
             if (smsRes.success) {
@@ -288,7 +322,7 @@ export default function Booking() {
             setGeneratedOtp(code);
             setOtpAttempts(0);
 
-            const message = `Tu nuevo código para ${businessConfig.name} es: ${code}. (Vía CitaLink)`;
+            const message = `Tu nuevo código para ${businessConfig?.name || 'nuestro servicio'} es: ${code}. (Vía CitaLink)`;
             await sendSMS(clientPhone, message);
         } finally {
             setIsSendingSms(false);
@@ -313,7 +347,7 @@ export default function Booking() {
 
     const handleUpdateTime = async (time: string) => {
         if (updatingAppointmentId) {
-            await updateAppointmentTime(updatingAppointmentId, time);
+            await updateAppointmentTime({ id: updatingAppointmentId, newTime: time });
             setSelectedTime(time);
             setStep(12);
         }
@@ -381,7 +415,7 @@ export default function Booking() {
         <div className="container animate-fade-in" style={{ maxWidth: '520px', paddingTop: 'var(--space-xl)', paddingBottom: '3rem' }}>
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
-                    {businessConfig.logoUrl && (
+                    {businessConfig?.logoUrl && (
                         <div className="relative w-24 h-24 mx-auto mb-5 group">
                             {/* Glow ring */}
                             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-accent/40 to-orange-500/40 blur-xl scale-110 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -391,7 +425,7 @@ export default function Booking() {
                         </div>
                     )}
                     <h2 className="text-2xl font-black text-white tracking-tight">
-                        {step === 10 ? 'Tu Cita' : businessConfig.name}
+                        {step === 10 ? 'Tu Cita' : (businessConfig?.name || 'Reserva online')}
                     </h2>
                 </div>
             )}
@@ -564,7 +598,7 @@ export default function Booking() {
                                 </div>
                                 <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
                                     <MapPin size={18} className="text-muted" />
-                                    <span className="text-sm text-muted">{businessConfig.address}</span>
+                                    <span className="text-sm text-muted">{businessConfig?.address || 'Nuestra sucursal'}</span>
                                 </div>
                             </div>
                         </div>
@@ -589,7 +623,7 @@ export default function Booking() {
                                             <p className="font-bold mb-1">Cita muy próxima</p>
                                             <p>Falta menos de 1 hora. Debes llamar directamente para cancelar.</p>
                                             <a
-                                                href={`tel:${businessConfig.phone.replace(/\D/g, '')}`}
+                                                href={`tel:${businessConfig?.phone?.replace(/\D/g, '') || ''}`}
                                                 className="btn btn-primary w-full mt-3 flex items-center justify-center gap-2"
                                             >
                                                 <Phone size={18} /> Llamar ahora
@@ -607,7 +641,7 @@ export default function Booking() {
                                                 <p>Faltan menos de 5 horas. Por favor, avísale al dueño por WhatsApp.</p>
                                             </div>
                                             <a
-                                                href={`https://wa.me/${businessConfig.phone.replace(/\D/g, '')}?text=${message}`}
+                                                href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '')}?text=${message}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="btn btn-secondary w-full py-4 text-accent border-accent/20 flex items-center justify-center gap-2"
@@ -1121,7 +1155,7 @@ export default function Booking() {
                             {/* Quick Actions Grid */}
                             <div className="w-full grid grid-cols-2 gap-3 mb-4">
                                 <a
-                                    href={businessConfig.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessConfig.address)}`}
+                                    href={businessConfig?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessConfig?.address || '')}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex flex-col items-center justify-center py-4 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
@@ -1130,7 +1164,7 @@ export default function Booking() {
                                     <span className="text-[9px] font-black uppercase tracking-widest">Ubicación</span>
                                 </a>
                                 <a
-                                    href={`tel:${businessConfig.phone.replace(/\D/g, '')}`}
+                                    href={`tel:${businessConfig?.phone?.replace(/\D/g, '') || ''}`}
                                     className="flex flex-col items-center justify-center py-4 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
                                 >
                                     <Phone size={20} className="mb-2" />
@@ -1141,9 +1175,9 @@ export default function Booking() {
                             {/* Add to Calendar Section */}
                             {selectedService && selectedTime && selectedDate && (() => {
                                 const calEvent = {
-                                    title: `Cita: ${selectedService.name} en ${businessConfig.name}`,
+                                    title: `Cita: ${selectedService.name} en ${businessConfig?.name || 'Local'}`,
                                     description: `Servicio: ${selectedService.name}\nDuración: ${selectedService.duration} min\nPrecio: $${selectedService.price}\nProfesional: ${selectedStylist?.name ?? 'Cualquiera'}\n\nReservado vía CitaLink`,
-                                    location: businessConfig.address || '',
+                                    location: businessConfig?.address || '',
                                     startDate: selectedDate,
                                     startTime: selectedTime,
                                     durationMinutes: selectedService.duration,
@@ -1183,7 +1217,7 @@ export default function Booking() {
                             </a>
                         </div>
 
-                        <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.2em] mb-8">Gracias por confiar en {businessConfig.name}</p>
+                        <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.2em] mb-8">Gracias por confiar en {businessConfig?.name || 'nosotros'}</p>
                     </div>
                 )}
 

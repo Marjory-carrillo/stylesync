@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
-import { DAY_NAMES, DAY_KEYS } from '../../lib/store';
+import { DAY_NAMES, DAY_KEYS } from '../../lib/constants';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useSchedule } from '../../lib/store/queries/useSchedule';
 import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
@@ -11,6 +11,7 @@ import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
 import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent, BarChart2 } from 'lucide-react';
+import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
 import DatePickerInput from '../../components/DatePickerInput';
@@ -129,6 +130,7 @@ export default function Settings() {
     const [blockEnd, setBlockEnd] = useState('');
     const [blockReason, setBlockReason] = useState('');
     const [isAllDay, setIsAllDay] = useState(false);
+    const [infoError, setInfoError] = useState('');
 
     // Formatter for 12h time
     const format12h = (timeStr: string) => {
@@ -151,6 +153,14 @@ export default function Settings() {
 
     const handleInfoSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setInfoError('');
+
+        const validation = businessConfigSchema.safeParse(infoForm);
+        if (!validation.success) {
+            setInfoError(validation.error.issues[0].message);
+            return;
+        }
+
         updateBusinessConfig(infoForm);
         showToast('Información del negocio actualizada', 'success');
     };
@@ -523,7 +533,14 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-2 flex justify-center items-center gap-2">
+                        {infoError && (
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2 animate-shake">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                                {infoError}
+                            </div>
+                        )}
+
+                        <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-4 flex justify-center items-center gap-2">
                             <Save size={18} /> Guardar Cambios
                         </button>
                     </form>

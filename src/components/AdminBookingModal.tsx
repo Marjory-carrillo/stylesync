@@ -5,8 +5,16 @@ import { X, User, Phone, Scissors, Calendar, Clock, ChevronLeft, CheckCircle, Al
 import { useAppointments } from '../lib/store/queries/useAppointments';
 import { useServices } from '../lib/store/queries/useServices';
 import { useStylists } from '../lib/store/queries/useStylists';
-import { useStore, DAY_NAMES } from '../lib/store';
+import { useBlockedSlots } from '../lib/store/queries/useBlockedSlots';
+import { useBlockedPhones } from '../lib/store/queries/useBlockedPhones';
+import { useSchedule } from '../lib/store/queries/useSchedule';
+import { useTenantData } from '../lib/store/queries/useTenantData';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
+
+export const DAY_NAMES: Record<string, string> = {
+    monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
+    thursday: 'Jueves', friday: 'Viernes', saturday: 'Sábado', sunday: 'Domingo',
+};
 
 interface Props {
     isOpen: boolean;
@@ -19,7 +27,18 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { addAppointment, appointments, isAdding } = useAppointments();
     const { services } = useServices();
     const { stylists } = useStylists();
-    const { blockedSlots, blockedPhones, getScheduleForDate, businessConfig } = useStore();
+    const { blockedSlots } = useBlockedSlots();
+    const { blockedPhones } = useBlockedPhones();
+    const { schedule } = useSchedule();
+    const { data: businessConfig } = useTenantData();
+    
+    // Función auxiliar local
+    const getScheduleForDate = (dateStr: string) => {
+        const d = new Date(dateStr + 'T00:00:00');
+        const dayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][d.getDay()];
+        return schedule[dayKey];
+    };
+
     const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
 
     // Form state

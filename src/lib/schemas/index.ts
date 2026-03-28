@@ -60,3 +60,30 @@ export const stylistSchema = z.object({
 });
 
 export type StylistInput = z.infer<typeof stylistSchema>;
+
+// Esquema para validar la creación de un nuevo Negocio (Tenant)
+export const createTenantSchema = z.object({
+    name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres').max(100, 'El nombre es demasiado largo'),
+    slug: z.string()
+        .min(3, 'El link debe tener al menos 3 caracteres')
+        .max(50, 'El link es demasiado largo')
+        .regex(/^[a-z0-9-]+$/, 'El Link solo puede contener letras minúsculas, números y guiones.'),
+    address: z.string().max(200, 'La dirección es demasiado larga').optional(),
+    category: z.string().min(1, 'Por favor selecciona el tipo de negocio.'),
+});
+
+// Esquema para la configuración del negocio (Settings)
+export const businessConfigSchema = z.object({
+    name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres').max(100),
+    phone: z.string()
+        .regex(/^\+?[0-9\s-]{8,15}$/, 'Número de teléfono inválido')
+        .optional()
+        .or(z.literal('')),
+    address: z.string().max(200).optional(),
+    googleMapsUrl: z.string()
+        .url('Debe ser una URL válida (ej. https://maps.app.goo.gl/...)')
+        .optional()
+        .or(z.literal('')),
+    category: z.string().optional(),
+    sms_enabled: z.boolean().optional(),
+});

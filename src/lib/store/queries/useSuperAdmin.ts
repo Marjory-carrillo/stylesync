@@ -1,0 +1,114 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../supabaseClient';
+import { useAuthStore } from '../authStore';
+import { CATEGORY_DEFAULTS } from '../../categoryDefaults';
+
+export function useSuperAdmin() {
+    const queryClient = useQueryClient();
+    const user = useAuthStore(s => s.user);
+    const isSuperAdmin = useAuthStore(s => s.isSuperAdmin);
+
+    const queryKey = ['superadmin_tenants'];
+
+    const query = useQuery({
+        queryKey,
+        queryFn: async () => {
+            if (!isSuperAdmin) return [];
+            const { data, error } = await supabase
+                .from('tenants')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!isSuperAdmin,
+    });
+
+    const createTenantMutation = useMutation({
+        mutationFn: async ({ name, slug, address, category }: { name: string, slug: string, address: string, category: string }) => {
+            if (!user) throw new Error('No user logged in');
+
+            // 1. Check if slug exists
+            const { data: existing } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+            if (existing) throw new Error('Este link ya ha sido ocupado.');
+
+            // 2. Create Tenant
+            const { data, error } = await supabase.from('tenants').insert([{
+                name,
+                slug,
+                address,
+                category,
+                owner_id: user.id,
+            }]).select().single();
+
+            if (error || !data) throw new Error(error?.message || 'Error al crear negocio');
+
+            // 3. Inject Category Defaults (Seed Data)
+            // @ts-ignore CATEGORY_DEFAULTS type
+            const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS['other'] || CATEGORY_DEFAULTS['barbershop'];
+
+            // A. Schedule
+            await supabase.from('schedule_config').insert({ tenant_id: data.id, schedule: defaults.schedule });
+
+            // B. Services
+            if (defaults.services && defaults.services.length > 0) {
+                const svl = defaults.services.map((s: any) => ({ ...s, tenant_id: data.id }));
+                await supabase.from('services').insert(svl);
+            }
+
+            // C. Stylists
+            if (defaults.stylists && defaults.stylists.length > 0) {
+                const stl = defaults.stylists.map((s: any) => ({ ...s, tenant_id: data.id }));
+                await supabase.from('stylists').insert(stl);
+            }
+
+            return { success: true, data };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    });
+
+    const deleteTenantMutation = useMutation({
+        mutationFn: async (id: string) => {
+            if (!isSuperAdmin) throw new Error('No autorizado');
+            const { error } = await supabase.from('tenants').delete().eq('id', id);
+            if (error) throw new Error(error.message);
+            return id;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    });
+
+    const switchTenant = async (id: string, callback?: () => void) => {
+        if (!isSuperAdmin) return;
+        localStorage.setItem('citalink_tenant_id', id);
+        // Force a page reload or callback if provided
+        if (callback) callback();
+        else window.location.href = '/admin'; // reload to init tenant properly
+    };
+
+    return {
+        allTenants: query.data || [],
+        isLoading: query.isLoading,
+        fetchAllTenants: () => queryClient.invalidateQueries({ queryKey }),
+        createTenant: async (name: string, slug: string, address: string, category: string): Promise<{ success: boolean; data?: any; error?: string }> => {
+            try {
+                const res = await createTenantMutation.mutateAsync({ name, slug, address, category });
+                return { success: true, data: res.data };
+            } catch (err: any) {
+                return { success: false, error: err.message };
+            }
+        },
+        deleteTenant: async (id: string) => {
+            try {
+                await deleteTenantMutation.mutateAsync(id);
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err.message };
+            }
+        },
+        switchTenant
+    };
+}

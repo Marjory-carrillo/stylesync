@@ -2,13 +2,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2, LogOut } from 'lucide-react';
-import { useStore } from '../../lib/store';
+import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import { useAuthStore } from '../../lib/store/authStore';
 import { supabase } from '../../lib/supabaseClient';
 import SplashScreen from '../../components/SplashScreen';
+import { createTenantSchema } from '../../lib/schemas';
 
 export default function CreateBusiness() {
-    const { createTenant } = useStore();
+    const { createTenant } = useSuperAdmin();
     const { user } = useAuthStore();
     const navigate = useNavigate();
 
@@ -34,14 +35,10 @@ export default function CreateBusiness() {
         setLoading(true);
         setError('');
 
-        if (!slug.match(/^[a-z0-9-]+$/)) {
-            setError('El Link solo puede contener letras minúsculas, números y guiones.');
-            setLoading(false);
-            return;
-        }
-
-        if (!category) {
-            setError('Por favor selecciona el tipo de negocio.');
+        const validationResult = createTenantSchema.safeParse({ name, slug, address, category });
+        
+        if (!validationResult.success) {
+            setError(validationResult.error.issues[0].message);
             setLoading(false);
             return;
         }
