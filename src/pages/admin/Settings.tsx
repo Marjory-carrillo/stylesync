@@ -1,8 +1,9 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { useStore, DAY_NAMES, DAY_KEYS } from '../../lib/store';
+import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
+import { DAY_NAMES, DAY_KEYS } from '../../lib/store';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useSchedule } from '../../lib/store/queries/useSchedule';
 import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
@@ -96,7 +97,7 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
 
 
 export default function Settings() {
-    const { uploadLogo } = useStore();
+    const { uploadLogo } = useImageUpload();
     const { userRole } = useAuthStore();
     const { showToast } = useUIStore();
 
