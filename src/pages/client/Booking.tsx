@@ -24,7 +24,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, Download } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, Download, MessageSquare } from 'lucide-react';
 import { generateGoogleCalendarUrl, downloadICSFile } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -55,7 +55,6 @@ export default function Booking() {
     const sendSMS = async (phone: string, message: string) => {
         // En un futuro se implementará con Supabase Edge Functions. Por el momento retornamos success:
         console.log(`[SMS MOCK] To: ${phone} - Message: ${message}`);
-        alert(message);
         return { success: true };
     };
 
@@ -674,6 +673,27 @@ export default function Booking() {
                         <p className="text-muted mb-6">
                             Hemos enviado un código a <strong>{clientPhone}</strong>. Ingrésalo para continuar.
                         </p>
+
+                        {/* MOCK SMS CARD (Development only) */}
+                        {generatedOtp && !isSendingSms && (
+                            <div className="bg-slate-900/80 border border-emerald-500/30 p-4 rounded-xl mb-6 relative overflow-hidden group shadow-lg shadow-emerald-500/5 transition-all w-full max-w-sm mx-auto text-left">
+                                <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl flex-shrink-0 group-hover:bg-emerald-500/20 transition-all duration-500"></div>
+                                <div className="flex items-start gap-4 relative z-10">
+                                    <div className="bg-emerald-500/20 text-emerald-400 p-2.5 rounded-[14px] shrink-0 border border-emerald-500/20">
+                                        <MessageSquare size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block">SMS Simulado</span>
+                                            <span className="text-[10px] text-slate-500 font-medium">Ahora mismo</span>
+                                        </div>
+                                        <p className="text-sm text-slate-300 leading-relaxed mt-1.5">
+                                            Tu código para <span className="font-semibold text-white">{businessConfig?.name || 'nuestro servicio'}</span> es: <span className="font-mono bg-black/60 px-2 py-1 rounded-md text-emerald-300 font-bold tracking-wider">{generatedOtp}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="glass-panel p-6 rounded-2xl space-y-4">
                             <input
