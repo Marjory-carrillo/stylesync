@@ -604,9 +604,9 @@ export default function Landing() {
                             </a>
                         </div>
                         {/* Correo */}
-                        <a href="mailto:hola@citalink.app" className="flex items-center gap-2 text-sm text-slate-400 hover:text-violet-400 transition-colors group">
+                        <a href="mailto:citalink.soporte@gmail.com" className="flex items-center gap-2 text-sm text-slate-400 hover:text-violet-400 transition-colors group">
                             <span className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center group-hover:bg-violet-500/20 transition-colors">✉</span>
-                            hola@citalink.app
+                            citalink.soporte@gmail.com
                         </a>
                     </div>
                     <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-600">
@@ -614,7 +614,7 @@ export default function Landing() {
                         <div className="flex gap-6">
                             <a href="#" className="hover:text-slate-400 transition-colors">Términos</a>
                             <a href="#" className="hover:text-slate-400 transition-colors">Privacidad</a>
-                            <a href="mailto:hola@citalink.app" className="hover:text-slate-400 transition-colors">Contacto</a>
+                            <a href="mailto:citalink.soporte@gmail.com" className="hover:text-slate-400 transition-colors">Contacto</a>
                         </div>
                     </div>
                 </div>
