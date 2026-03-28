@@ -60,11 +60,6 @@ export default function Booking() {
 
     const loading = tenantLoading || (tenantId && configLoading);
 
-
-    if (loading) {
-        return <SplashScreen />;
-    }
-
     const todaySchedule = getTodaySchedule();
     const activeAnnouncements = getActiveAnnouncements();
     const hasClosedAnnouncement = activeAnnouncements.some((a: Announcement) => a.type === 'closed');
@@ -411,6 +406,10 @@ export default function Booking() {
         warning: { bg: 'hsla(40, 90%, 50%, 0.12)', color: 'hsl(40, 90%, 50%)', icon: AlertTriangle },
         closed: { bg: 'hsla(0, 70%, 50%, 0.12)', color: 'var(--color-danger)', icon: AlertOctagon },
     };
+
+    if (loading) {
+        return <SplashScreen />;
+    }
 
     return (
         <div className="container animate-fade-in" style={{ maxWidth: '520px', paddingTop: 'var(--space-xl)', paddingBottom: '3rem' }}>
