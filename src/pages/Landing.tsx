@@ -587,21 +587,39 @@ export default function Landing() {
                             <InfinityIcon className="w-7 h-7 text-violet-400" strokeWidth={2.5} />
                             <span className="text-xl font-black">Cita<span className="text-violet-400">Link</span></span>
                         </div>
-                        <div className="flex gap-4">
-                            <a href="#" className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all"><Instagram className="w-4 h-4" /></a>
-                            <a href="#" className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all"><Facebook className="w-4 h-4" /></a>
+                        {/* Redes sociales */}
+                        <div className="flex gap-3">
+                            <a href="https://instagram.com/citalink.app" target="_blank" rel="noopener noreferrer"
+                               className="group w-10 h-10 rounded-full bg-white/5 hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
+                                <Instagram className="w-4 h-4" />
+                            </a>
+                            <a href="https://facebook.com/citalinkapp" target="_blank" rel="noopener noreferrer"
+                               className="group w-10 h-10 rounded-full bg-white/5 hover:bg-blue-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
+                                <Facebook className="w-4 h-4" />
+                            </a>
+                            <a href="https://wa.me/5218100000000?text=Hola%2C%20quiero%20saber%20más%20sobre%20CitaLink"
+                               target="_blank" rel="noopener noreferrer"
+                               className="group w-10 h-10 rounded-full bg-white/5 hover:bg-emerald-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
+                                <MessageCircle className="w-4 h-4" />
+                            </a>
                         </div>
+                        {/* Correo */}
+                        <a href="mailto:hola@citalink.app" className="flex items-center gap-2 text-sm text-slate-400 hover:text-violet-400 transition-colors group">
+                            <span className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center group-hover:bg-violet-500/20 transition-colors">✉</span>
+                            hola@citalink.app
+                        </a>
                     </div>
                     <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-600">
                         <p>© {new Date().getFullYear()} CitaLink. Todos los derechos reservados.</p>
                         <div className="flex gap-6">
                             <a href="#" className="hover:text-slate-400 transition-colors">Términos</a>
                             <a href="#" className="hover:text-slate-400 transition-colors">Privacidad</a>
-                            <a href="#" className="hover:text-slate-400 transition-colors">Contacto</a>
+                            <a href="mailto:hola@citalink.app" className="hover:text-slate-400 transition-colors">Contacto</a>
                         </div>
                     </div>
                 </div>
             </footer>
+
 
             {/* ═══════════ LEAD MODAL ═══════════ */}
             {isModalOpen && (
