@@ -55,6 +55,7 @@ export default function Booking() {
     const sendSMS = async (phone: string, message: string) => {
         // En un futuro se implementará con Supabase Edge Functions. Por el momento retornamos success:
         console.log(`[SMS MOCK] To: ${phone} - Message: ${message}`);
+        alert(message);
         return { success: true };
     };
 
