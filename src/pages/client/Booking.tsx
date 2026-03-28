@@ -367,64 +367,48 @@ export default function Booking() {
     };
 
     return (
-        <div className="container animate-fade-in" style={{ maxWidth: '600px', paddingTop: 'var(--space-xl)' }}>
+        <div className="container animate-fade-in" style={{ maxWidth: '520px', paddingTop: 'var(--space-xl)', paddingBottom: '3rem' }}>
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
                     {businessConfig.logoUrl && (
-                        <div className="w-28 h-28 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-white/5 to-white/10 p-1.5 border border-white/10 shadow-[0_0_50px_rgba(34,211,238,0.2)] relative group rotate-2 hover:rotate-0 transition-all duration-500">
-                            <div className="absolute inset-0 rounded-3xl bg-cyan-400/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                            <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-[1.25rem] relative z-10 bg-slate-950" />
+                        <div className="relative w-24 h-24 mx-auto mb-5 group">
+                            {/* Glow ring */}
+                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-accent/40 to-orange-500/40 blur-xl scale-110 opacity-0 group-hover:opacity-100 transition-all duration-700" />
+                            <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl bg-slate-950">
+                                <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                            </div>
                         </div>
                     )}
-                    <h2 className="text-2xl font-bold text-center">
-                        {step === 10 ? 'Tu Cita' : (businessConfig.logoUrl ? businessConfig.name : `Reserva tu Cita en ${businessConfig.name} `)}
+                    <h2 className="text-2xl font-black text-white tracking-tight">
+                        {step === 10 ? 'Tu Cita' : businessConfig.name}
                     </h2>
                 </div>
             )}
 
             {/* Step Titles for internal steps */}
-            {step === 2 && <h2 className="text-2xl font-bold text-center mb-6">Elige un Servicio</h2>}
-            {step === 22 && <h2 className="text-2xl font-bold text-center mb-6">Elige tu {professionalLabel}</h2>}
-            {step === 25 && <h2 className="text-2xl font-bold text-center mb-6">Selecciona Fecha</h2>}
-            {step === 3 && <h2 className="text-2xl font-bold text-center mb-6">Selecciona Hora</h2>}
-            {step === 4 && <h2 className="text-2xl font-bold text-center mb-6">Confirma tu Reserva</h2>}
+            {step === 2 && <h2 className="text-xl font-black text-white text-center mb-6">Elige un Servicio</h2>}
+            {step === 22 && <h2 className="text-xl font-black text-white text-center mb-6">Elige tu {professionalLabel}</h2>}
+            {step === 25 && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Fecha</h2>}
+            {step === 3 && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Hora</h2>}
+            {step === 4 && <h2 className="text-xl font-black text-white text-center mb-6">Confirma tu Reserva</h2>}
 
-            {/* ── Announcements ── */}
-            {activeAnnouncements.length > 0 && step !== 5 && (
-                <div className="flex flex-col gap-sm" style={{ marginBottom: 'var(--space-lg)' }}>
-                    {activeAnnouncements.map((ann: Announcement) => {
-                        const ac = annColors[ann.type]; const AnnIcon = ac.icon;
-                        return (
-                            <div key={ann.id} className="flex items-center gap-sm" style={{
-                                padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
-                                background: ac.bg, border: `1px solid ${ac.color} 33`,
-                            }}>
-                                <AnnIcon size={18} style={{ color: ac.color, flexShrink: 0 }} />
-                                <span style={{ color: ac.color, fontWeight: 600, fontSize: '0.9rem' }}>{ann.message}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-
-
-            {/* Progress Bar (Segmented & Clean) */}
+            {/* Progress Bar */}
             {step >= 1 && step <= 25 && step !== 5 && (
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <div className="flex gap-1.5 h-1.5 mb-2">
+                    <div className="flex gap-1.5 h-1 mb-3">
                         {[1, 2, 3, 4, 5].map(s => (
                             <div key={s} className="flex-1 rounded-full transition-all duration-500"
                                 style={{
-                                    background: currentProgress >= s ? 'var(--color-accent)' : 'rgba(255,255,255,0.1)',
-                                    opacity: currentProgress >= s ? 1 : 1
+                                    background: currentProgress >= s
+                                        ? 'linear-gradient(90deg, var(--color-accent), #f97316)'
+                                        : 'rgba(255,255,255,0.08)'
                                 }}
                             />
                         ))}
                     </div>
-                    <div className="flex justify-between text-xs font-medium text-muted uppercase tracking-wider">
-                        <span>Datos</span>
-                        <span>Confirmar</span>
+                    <div className="flex justify-between text-[10px] font-bold text-muted uppercase tracking-widest px-0.5">
+                        <span className={currentProgress >= 1 ? 'text-accent' : ''}>Datos</span>
+                        <span className={currentProgress >= 5 ? 'text-accent' : ''}>Confirmar</span>
                     </div>
                 </div>
             )}
@@ -433,61 +417,75 @@ export default function Booking() {
 
                 {/* ══ STEP 1: Client Data ══ */}
                 {step === 1 && (
-                    <div className="animate-fade-in max-w-md mx-auto">
+                    <div className="animate-fade-in">
                         <div className="text-center mb-8">
-                            <h3 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white mb-2">
+                            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-orange-500/20 border border-accent/20 mb-4">
+                                <User size={28} className="text-accent" />
+                            </div>
+                            <h3 className="text-2xl font-black text-white mb-1">
                                 ¡Bienvenido!
                             </h3>
-                            <p className="text-muted">
+                            <p className="text-sm text-muted">
                                 Ingresa tus datos para comenzar.
                             </p>
                         </div>
 
-                        <div className="glass-panel p-6 rounded-2xl space-y-4">
-                            <div>
-                                <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1 ml-1">Nombre</label>
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
+                                    <User size={18} />
+                                </div>
                                 <input
                                     type="text"
                                     value={clientName}
                                     onChange={e => { setClientName(e.target.value); setClientError(null); }}
-                                    placeholder="Ej: Ana García"
-                                    className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl p-5 text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 transition-all outline-none text-lg"
+                                    placeholder="Tu nombre completo"
+                                    className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
                                     onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold uppercase tracking-wider text-muted mb-1 ml-1">Teléfono</label>
+                            <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
+                                    <Phone size={18} />
+                                </div>
                                 <input
                                     type="tel"
                                     value={clientPhone}
                                     onChange={e => { setClientPhone(e.target.value); setClientError(null); }}
-                                    placeholder="Ej: 55 1234 5678"
-                                    className="w-full glass-card bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-accent focus:ring-1 focus:ring-accent transition-all outline-none"
+                                    placeholder="Número de teléfono (10 dígitos)"
+                                    className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
                                     onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
                             </div>
 
+                            {/* Security Badge */}
+                            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                <Shield size={15} className="text-accent shrink-0" />
+                                <p className="text-[11px] text-slate-400">
+                                    Verificación por SMS · Solo 1 cita por número de teléfono
+                                </p>
+                            </div>
+
                             {clientError && (
-                                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm animate-pulse-soft">
-                                    <AlertTriangle size={18} /><span>{clientError}</span>
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                                    <AlertTriangle size={16} /><span>{clientError}</span>
                                 </div>
                             )}
 
                             <button
-                                className="btn btn-primary w-full py-4 text-lg shadow-glow mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="btn btn-primary w-full py-4 text-base font-bold shadow-glow mt-2 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                                 onClick={handleClientSubmit}
                                 disabled={isSendingSms || !clientName || !clientPhone}
                             >
                                 {isSendingSms ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                        <RefreshCw className="animate-spin" size={20} />
-                                        Enviando...
-                                    </div>
-                                ) : 'Continuar'}
+                                    <><RefreshCw className="animate-spin" size={18} /> Enviando...</>
+                                ) : (
+                                    <><span>Continuar</span><ChevronRight size={18} /></>
+                                )}
                             </button>
 
                             {isSendingSms && (
-                                <p className="text-[10px] text-accent/70 text-center mt-3 animate-pulse-soft font-medium">
+                                <p className="text-[10px] text-accent/70 text-center mt-2 animate-pulse-soft font-medium">
                                     El código puede tardar unos 10 segundos en llegar...
                                 </p>
                             )}
