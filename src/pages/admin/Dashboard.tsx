@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStore } from '../../lib/store';
+import { useCancellationLog } from '../../lib/store/queries/useCancellationLog';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useAppointments } from '../../lib/store/queries/useAppointments';
@@ -38,11 +38,25 @@ export default function Dashboard() {
 
     const isLoading = apptsPending || svcsLoading;
 
-    const {
-        businessConfig: storeBusinessConfig,
-        generateReminderWhatsAppUrl, getServiceById,
-        cancellationLog
-    } = useStore();
+    const { cancellationLog } = useCancellationLog();
+    const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
+    const generateReminderWhatsAppUrl = useCallback((apt: any) => {
+        const svc = services.find((s: any) => s.id === apt.serviceId);
+        const biz = tenantConfig || { name: 'CitaLink', address: '', googleMapsUrl: '', reminderTemplate: '' };
+        let msg = '';
+        if ((biz as any).reminderTemplate) {
+            msg = (biz as any).reminderTemplate
+                .replace(/\[NOMBRE\]/g, apt.clientName || '')
+                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
+                .replace(/\[FECHA\]/g, apt.date || '')
+                .replace(/\[HORA\]/g, apt.time || '')
+                .replace(/\[NEGOCIO\]/g, (biz as any).name || '')
+                .replace(/\[DIRECCION\]/g, (biz as any).address || '');
+        } else {
+            msg = `Hola *${apt.clientName}*, te recordamos tu cita manana en *${(biz as any).name}*: ${svc?.name ?? ''} a las ${apt.time}. ${(biz as any).address || ''}`;
+        }
+        return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+    }, [services, tenantConfig]);
 
     const appointments = useMemo(() => {
         if (userRole === 'employee' && userStylistId) {
@@ -481,7 +495,7 @@ export default function Dashboard() {
                 </div>
 
             {/* ── Top Stats Grid ── */}
-            {storeBusinessConfig.showDashboardMetrics !== false && (
+            {(businessConfig as any).showDashboardMetrics !== false && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                     <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-500/5 blur-2xl rounded-full group-hover:bg-blue-500/10 transition-all duration-700"></div>
@@ -557,7 +571,7 @@ export default function Dashboard() {
             </div>
             )}
 
-            {!isEmployee && storeBusinessConfig.showDashboardMetrics !== false && (
+            {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* ── Revenue Chart ── */}
                     <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
