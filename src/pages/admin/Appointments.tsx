@@ -8,7 +8,7 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus } from 'lucide-react';
+import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
@@ -61,6 +61,48 @@ export default function Appointments() {
     const [showBookingModal, setShowBookingModal] = useState(false);
 
     const PAGE_SIZE = 20;
+
+    // ── CSV Export ──
+    const exportCSV = () => {
+        const headers = ['Fecha', 'Hora', 'Cliente', 'Teléfono', 'Servicio', 'Precio', 'Profesional', 'Estado'];
+        const rows = filteredAppointments.map(apt => {
+            const service = getServiceById(apt.serviceId);
+            const stylist = getStylistById(apt.stylistId);
+            let status = apt.status;
+            if (status !== 'cancelada' && status !== 'completada') {
+                const end = new Date(`${apt.date}T${apt.time}`);
+                end.setMinutes(end.getMinutes() + (service?.duration || 0));
+                if (new Date() >= end) status = 'completada';
+            }
+            return [
+                apt.date,
+                apt.time,
+                apt.clientName,
+                apt.clientPhone,
+                service?.name || '',
+                `$${service?.price || 0}`,
+                stylist?.name || 'Cualquiera',
+                status
+            ];
+        });
+
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            .join('\n');
+
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dateLabel = dateFilter || new Date().toLocaleDateString('en-CA');
+        link.href = url;
+        link.download = `citas-${filter}-${dateLabel}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast('CSV descargado', 'success');
+    };
 
 
     // ── Filter Logic ──
@@ -143,13 +185,24 @@ export default function Appointments() {
                 </div>
 
                 {/* Nueva Cita button */}
-                <button
-                    onClick={() => setShowBookingModal(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-accent/20 text-sm shrink-0"
-                >
-                    <Plus size={16} />
-                    Nueva Cita
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={exportCSV}
+                        disabled={filteredAppointments.length === 0}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white/5 text-slate-300 hover:text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Exportar CSV"
+                    >
+                        <Download size={16} />
+                        <span className="hidden sm:inline">CSV</span>
+                    </button>
+                    <button
+                        onClick={() => setShowBookingModal(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-accent/20 text-sm shrink-0"
+                    >
+                        <Plus size={16} />
+                        Nueva Cita
+                    </button>
+                </div>
 
                 {/* Controls Container */}
                 <div className="flex items-center gap-3 bg-black/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md overflow-x-auto">
