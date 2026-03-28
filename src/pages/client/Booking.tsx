@@ -6,7 +6,8 @@ import { useStore, DAY_NAMES, type Announcement, type Service, type Stylist } fr
 import { appointmentSchema } from '../../lib/schemas';
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, Download } from 'lucide-react';
+import { generateGoogleCalendarUrl, downloadICSFile } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Booking() {
@@ -1118,7 +1119,7 @@ export default function Booking() {
                             </div>
 
                             {/* Quick Actions Grid */}
-                            <div className="w-full grid grid-cols-2 gap-3 mb-6">
+                            <div className="w-full grid grid-cols-2 gap-3 mb-4">
                                 <a
                                     href={businessConfig.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessConfig.address)}`}
                                     target="_blank"
@@ -1136,6 +1137,41 @@ export default function Booking() {
                                     <span className="text-[9px] font-black uppercase tracking-widest">Llamada</span>
                                 </a>
                             </div>
+
+                            {/* Add to Calendar Section */}
+                            {selectedService && selectedTime && selectedDate && (() => {
+                                const calEvent = {
+                                    title: `Cita: ${selectedService.name} en ${businessConfig.name}`,
+                                    description: `Servicio: ${selectedService.name}\nDuración: ${selectedService.duration} min\nPrecio: $${selectedService.price}\nProfesional: ${selectedStylist?.name ?? 'Cualquiera'}\n\nReservado vía CitaLink`,
+                                    location: businessConfig.address || '',
+                                    startDate: selectedDate,
+                                    startTime: selectedTime,
+                                    durationMinutes: selectedService.duration,
+                                };
+                                return (
+                                    <div className="w-full mb-6">
+                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] text-center mb-3">Añadir al Calendario</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <a
+                                                href={generateGoogleCalendarUrl(calEvent)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex flex-col items-center justify-center py-4 rounded-3xl bg-gradient-to-b from-blue-500/10 to-blue-600/5 border border-blue-500/20 hover:border-blue-400/40 hover:bg-blue-500/15 transition-all text-blue-400 hover:text-blue-300 group"
+                                            >
+                                                <CalendarPlus size={20} className="mb-2 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[9px] font-black uppercase tracking-widest">Google</span>
+                                            </a>
+                                            <button
+                                                onClick={() => downloadICSFile(calEvent)}
+                                                className="flex flex-col items-center justify-center py-4 rounded-3xl bg-gradient-to-b from-purple-500/10 to-purple-600/5 border border-purple-500/20 hover:border-purple-400/40 hover:bg-purple-500/15 transition-all text-purple-400 hover:text-purple-300 group"
+                                            >
+                                                <Download size={20} className="mb-2 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[9px] font-black uppercase tracking-widest">Apple / Otro</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
                             <a

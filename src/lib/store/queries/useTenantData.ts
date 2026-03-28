@@ -39,7 +39,8 @@ export const useTenantData = () => {
                 commissionsEnabled: data.commissions_enabled || false,
                 confirmationTemplate: data.confirmation_template || '',
                 reminderTemplate: data.reminder_template || '',
-                showDashboardMetrics: data.show_dashboard_metrics ?? true
+                showDashboardMetrics: data.show_dashboard_metrics ?? true,
+                breakBetweenAppointments: data.break_between_appointments || 0
             };
         },
         enabled: !!tenantId,
@@ -66,6 +67,7 @@ export const useTenantData = () => {
             if (newData.confirmationTemplate !== undefined) payload.confirmation_template = newData.confirmationTemplate;
             if (newData.reminderTemplate !== undefined) payload.reminder_template = newData.reminderTemplate;
             if (newData.showDashboardMetrics !== undefined) payload.show_dashboard_metrics = newData.showDashboardMetrics;
+            if (newData.breakBetweenAppointments !== undefined) payload.break_between_appointments = newData.breakBetweenAppointments;
 
             const { error } = await supabase
                 .from('tenants')
