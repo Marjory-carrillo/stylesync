@@ -1,12 +1,12 @@
 
 import { useState } from 'react';
-import { useStore } from '../../lib/store';
+import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
 
 export default function Staff() {
-    const { uploadStylistPhoto } = useStore();
+    const { uploadStylistPhoto } = useImageUpload();
     const { stylists, addStylist, removeStylist, updateStylist, isLoading } = useStylists();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStore } from '../../lib/store';
+import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useServices } from '../../lib/store/queries/useServices';
 import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -10,7 +10,7 @@ import { serviceSchema } from '../../lib/schemas';
 
 export default function Services() {
     const { t } = useTranslation();
-    const { uploadServiceImage } = useStore();
+    const { uploadServiceImage } = useImageUpload();
     const { services, addService, removeService, updateService, isLoading } = useServices();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);

@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStore } from '../../lib/store';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { useCancellationLog } from '../../lib/store/queries/useCancellationLog';
+import { useBlockedPhones } from '../../lib/store/queries/useBlockedPhones';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useAppointments } from '../../lib/store/queries/useAppointments';
@@ -34,14 +36,51 @@ export default function Appointments() {
     const { waitingList, removeFromWaitingList } = useWaitingList();
 
     const isLoading = apptsPending || servicesPending || stylistsPending;
-    const {
-        cancellationLog,
-        getServiceById,
-        getStylistById,
-        isPhoneBlocked,
-        generateWhatsAppUrl,
-        generateReminderWhatsAppUrl,
-    } = useStore();
+    const { data: tenantConfig } = useTenantData();
+    const { cancellationLog } = useCancellationLog();
+    const { isPhoneBlocked } = useBlockedPhones();
+
+    // Helpers locales (ya tenemos services y stylists cargados arriba)
+    const getServiceById = useCallback((id: number) =>
+        services.find(s => s.id === id), [services]);
+    const getStylistById = useCallback((id: number) =>
+        stylists.find(s => s.id === id), [stylists]);
+
+    const generateWhatsAppUrl = useCallback((apt: any) => {
+        const svc = services.find(s => s.id === apt.serviceId);
+        const biz = tenantConfig as any;
+        let msg = '';
+        if (biz?.confirmationTemplate) {
+            msg = biz.confirmationTemplate
+                .replace(/\[NOMBRE\]/g, apt.clientName || '')
+                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
+                .replace(/\[FECHA\]/g, apt.date || '')
+                .replace(/\[HORA\]/g, apt.time || '')
+                .replace(/\[NEGOCIO\]/g, biz?.name || '')
+                .replace(/\[DIRECCION\]/g, biz?.address || '');
+        } else {
+            msg = `Hola *${apt.clientName}*, tu cita en *${biz?.name ?? 'el negocio'}* ha sido confirmada para el ${apt.date} a las ${apt.time}. Servicio: ${svc?.name ?? 'N/A'}. Direccion: ${biz?.address ?? ''}. ${biz?.googleMapsUrl ?? ''}`;
+        }
+        return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+    }, [services, tenantConfig]);
+
+    const generateReminderWhatsAppUrl = useCallback((apt: any) => {
+        const svc = services.find(s => s.id === apt.serviceId);
+        const biz = tenantConfig as any;
+        let msg = '';
+        if (biz?.reminderTemplate) {
+            msg = biz.reminderTemplate
+                .replace(/\[NOMBRE\]/g, apt.clientName || '')
+                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
+                .replace(/\[FECHA\]/g, apt.date || '')
+                .replace(/\[HORA\]/g, apt.time || '')
+                .replace(/\[NEGOCIO\]/g, biz?.name || '')
+                .replace(/\[DIRECCION\]/g, biz?.address || '');
+        } else {
+            msg = `Hola *${apt.clientName}*, te recordamos tu cita manana en *${biz?.name ?? 'el negocio'}*: ${svc?.name ?? ''} a las ${apt.time}. ${biz?.address ?? ''}`;
+        }
+        return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+    }, [services, tenantConfig]);
 
     const appointments = useMemo(() => {
         if (userRole === 'employee' && userStylistId) {
@@ -67,7 +106,7 @@ export default function Appointments() {
         const headers = ['Fecha', 'Hora', 'Cliente', 'Teléfono', 'Servicio', 'Precio', 'Profesional', 'Estado'];
         const rows = filteredAppointments.map(apt => {
             const service = getServiceById(apt.serviceId);
-            const stylist = getStylistById(apt.stylistId);
+            const stylist = apt.stylistId != null ? getStylistById(apt.stylistId) : undefined;
             let status = apt.status;
             if (status !== 'cancelada' && status !== 'completada') {
                 const end = new Date(`${apt.date}T${apt.time}`);
