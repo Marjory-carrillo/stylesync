@@ -39,9 +39,7 @@ export default function Booking() {
     const { blockedSlots } = useBlockedSlots();
     const { blockedPhones } = useBlockedPhones();
     const { announcements } = useAnnouncements();
-    const { addToWaitingListMutation } = useWaitingList();
-
-    const addToWaitingList = addToWaitingListMutation.mutateAsync;
+    const { addToWaitingList } = useWaitingList();
     
     const isPhoneBlocked = (phone: string) => blockedPhones.includes(phone);
     const hasActiveAppointment = (phone: string) => appointments.some(a => a.clientPhone === phone && a.status === 'confirmada');
@@ -331,9 +329,12 @@ export default function Booking() {
 
     // ── Manage existing ───
     const handleClientCancel = async (appointmentId: string) => {
-        const result = await cancelAppointment(appointmentId, true);
-        if (result.success) { setStep(11); }
-        else { console.error(result.error ?? 'Error al cancelar.'); }
+        try {
+            await cancelAppointment({ id: appointmentId });
+            setStep(11);
+        } catch (error) {
+            console.error('Error al cancelar:', error);
+        }
     };
 
     const handleStartUpdate = (appointmentId: string, serviceId: number) => {
