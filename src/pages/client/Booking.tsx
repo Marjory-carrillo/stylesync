@@ -82,14 +82,24 @@ export default function Booking() {
         const dates: { dateStr: string; label: string; dayName: string; isToday: boolean }[] = [];
         const todayStr = format(new Date(), 'yyyy-MM-dd');
 
+        const now = new Date();
+        const nowTime = format(now, 'HH:mm');
         const daysAheadConfig = businessConfig.bookingDaysAhead || 14;
 
-        for (let i = 0; i < daysAheadConfig * 2; i++) { // Check enough days to find valid ones
+        for (let i = 0; i < daysAheadConfig * 2; i++) {
             const d = addDays(new Date(), i);
             const dateStr = format(d, 'yyyy-MM-dd');
 
             // Skip past dates (safety guard)
             if (dateStr < todayStr) continue;
+
+            // NEW: If today, check if business hours have already ended
+            if (i === 0) {
+                const schedule = getScheduleForDate(dateStr);
+                if (!schedule.open || nowTime >= schedule.end) {
+                    continue; // Skip today if closed or past closing time
+                }
+            }
 
             if (dates.length >= daysAheadConfig) break;
 
@@ -857,26 +867,38 @@ export default function Booking() {
                                             : 'Parece que el día está completamente reservado para este servicio.')}
                                 </p>
 
-                                {!isDayBlockedManually && (
-                                    <button
-                                        className="btn btn-primary w-full py-3 mb-3 text-accent border-accent/20"
-                                        onClick={() => {
-                                            if (!clientName || !clientPhone) {
-                                                setStep(27);
-                                            } else {
-                                                addToWaitingList({
-                                                    name: clientName,
-                                                    phone: clientPhone,
-                                                    serviceId: selectedService.id,
-                                                    date: selectedDate,
-                                                });
-                                                setStep(26);
-                                            }
-                                        }}
-                                    >
-                                        ⏳ Avísame si se libera un lugar
-                                    </button>
-                                )}
+                                {(() => {
+                                    const now = new Date();
+                                    const nowTime = format(now, 'HH:mm');
+                                    const todayStr = format(now, 'yyyy-MM-dd');
+                                    const isToday = selectedDate === todayStr;
+                                    const daySched = getScheduleForDate(selectedDate);
+                                    const isPastClosing = isToday && nowTime >= daySched.end;
+
+                                    if (isDayBlockedManually || isPastClosing) return null;
+
+                                    return (
+                                        <button
+                                            className="btn btn-primary w-full py-4 mb-3 text-accent border-accent/20 flex items-center justify-center gap-2 group"
+                                            onClick={() => {
+                                                if (!clientName || !clientPhone) {
+                                                    setStep(27);
+                                                } else {
+                                                    addToWaitingList({
+                                                        name: clientName,
+                                                        phone: clientPhone,
+                                                        serviceId: selectedService.id,
+                                                        date: selectedDate,
+                                                    });
+                                                    setStep(26);
+                                                }
+                                            }}
+                                        >
+                                            <span className="group-hover:scale-110 transition-transform">⏳</span>
+                                            Avísame si se libera un lugar
+                                        </button>
+                                    );
+                                })()}
                                 <button className="btn btn-ghost text-sm w-full" onClick={() => setStep(25)}>
                                     Ver otra fecha
                                 </button>
