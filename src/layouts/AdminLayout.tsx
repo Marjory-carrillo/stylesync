@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
-import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent } from 'lucide-react';
+import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus } from 'lucide-react';
+import AdminBookingModal from '../components/AdminBookingModal';
 
 export default function AdminLayout() {
     const { t, i18n } = useTranslation();
@@ -16,6 +17,7 @@ export default function AdminLayout() {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'es' ? 'en' : 'es';
@@ -56,13 +58,23 @@ export default function AdminLayout() {
                     <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
                 </div>
                 <span className="font-bold text-white tracking-tight">Cita<span className="text-violet-500">Link</span> Admin</span>
-                <button
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-accent transition-all active:scale-90"
-                    aria-label="Menu"
-                >
-                    <Menu size={24} />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setIsNewApptModalOpen(true)}
+                        className="p-2.5 bg-accent/10 hover:bg-accent/20 rounded-xl text-accent transition-all active:scale-90 border border-accent/20"
+                        aria-label="Nueva Cita"
+                        title="Nueva Cita"
+                    >
+                        <CalendarPlus size={22} />
+                    </button>
+                    <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-accent transition-all active:scale-90"
+                        aria-label="Menu"
+                    >
+                        <Menu size={24} />
+                    </button>
+                </div>
             </header>
 
             {/* Overlay for mobile menu */}
@@ -226,6 +238,9 @@ export default function AdminLayout() {
                         </div>
                     </div>
                 </div>
+            )}
+            {isNewApptModalOpen && (
+                <AdminBookingModal isOpen={true} onClose={() => setIsNewApptModalOpen(false)} />
             )}
         </div>
     );

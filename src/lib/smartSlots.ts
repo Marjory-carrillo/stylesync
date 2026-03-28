@@ -32,7 +32,7 @@ export function getSmartSlots(
     bufferMinutes: number = 10 // New parameter with default
 ): string[] {
     const slots: string[] = [];
-    const interval = 15; // Granularity of 15 minutes
+    const interval = 30; // 30-minute grid: shows only 9:00, 9:30, 10:00...
     const potentialStarts: Date[] = [];
 
     let scanTime = parse(workStart, 'HH:mm', date);
