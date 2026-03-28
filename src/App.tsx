@@ -171,7 +171,26 @@ function App() {
         return;
       }
 
-      // Normal user (owner/employee)
+      // Primero verificamos si el usuario es DUEÑO (Owner) de un negocio
+      const { data: ownerTenant } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (ownerTenant) {
+        if (mounted) {
+          setAuth({ user, session, loadingAuth: false });
+          setTenantData({
+            tenantId: ownerTenant.id,
+            userRole: 'owner',
+            userStylistId: null
+          });
+        }
+        return;
+      }
+
+      // Si no es dueño, verificamos si es EMPLEADO (en tabla users)
       const { data: userData } = await supabase
         .from('users')
         .select('tenant_id, role, stylist_id')
