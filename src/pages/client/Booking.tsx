@@ -360,7 +360,7 @@ export default function Booking() {
     const stepMap: Record<number, number> = { 1: 1, 2: 2, 22: 2, 25: 3, 3: 4, 4: 5 };
     const currentProgress = stepMap[step] ?? 0;
 
-    const annColors: Record<string, { bg: string; color: string; icon: typeof Info }> = {
+    const annColors: Record<string, { bg: string; color: string; icon: React.ElementType }> = {
         info: { bg: 'hsla(210, 80%, 55%, 0.12)', color: 'hsl(210, 80%, 55%)', icon: Info },
         warning: { bg: 'hsla(40, 90%, 50%, 0.12)', color: 'hsl(40, 90%, 50%)', icon: AlertTriangle },
         closed: { bg: 'hsla(0, 70%, 50%, 0.12)', color: 'var(--color-danger)', icon: AlertOctagon },
@@ -410,6 +410,24 @@ export default function Booking() {
                         <span className={currentProgress >= 1 ? 'text-accent' : ''}>Datos</span>
                         <span className={currentProgress >= 5 ? 'text-accent' : ''}>Confirmar</span>
                     </div>
+                </div>
+            )}
+
+            {/* ── Announcements ── */}
+            {activeAnnouncements.length > 0 && step !== 5 && (
+                <div className="flex flex-col gap-2 mb-5">
+                    {activeAnnouncements.map((ann: Announcement) => {
+                        const ac = annColors[ann.type];
+                        const AnnIcon = ac.icon;
+                        return (
+                            <div key={ann.id} className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                                style={{ background: ac.bg, border: `1px solid ${ac.color}33` }}
+                            >
+                                <AnnIcon size={16} style={{ color: ac.color, flexShrink: 0 }} />
+                                <span style={{ color: ac.color, fontWeight: 600, fontSize: '0.85rem' }}>{ann.message}</span>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
