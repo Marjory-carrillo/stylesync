@@ -8,9 +8,8 @@ export const useBlockedSlots = () => {
     const { tenantId } = useAuthStore();
     const { showToast } = useUIStore();
     const queryClient = useQueryClient();
-    const queryKey = ['blockedSlots', tenantId];
+    const queryKey = ['blocked_slots', tenantId];
 
-    // GET Blocked Slots
     const query = useQuery({
         queryKey,
         queryFn: async (): Promise<BlockedSlot[]> => {
@@ -20,42 +19,38 @@ export const useBlockedSlots = () => {
                 .select('*')
                 .eq('tenant_id', tenantId);
             if (error) throw error;
-
             return data.map((b: any) => ({
                 ...b,
                 startTime: b.start_time,
-                endTime: b.end_time
+                endTime: b.end_time,
             })) as BlockedSlot[];
         },
         enabled: !!tenantId,
     });
 
-    // ADD Blocked Slot
     const addMutation = useMutation({
         mutationFn: async (slot: Omit<BlockedSlot, 'id'>) => {
-            if (!tenantId) throw new Error("No tenant info");
+            if (!tenantId) throw new Error('Sin tenant');
             const { error } = await supabase.from('blocked_slots').insert([{
                 tenant_id: tenantId,
                 date: slot.date,
                 start_time: slot.startTime,
                 end_time: slot.endTime,
-                reason: slot.reason
+                reason: slot.reason,
             }]);
             if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
-            showToast('Horario bloqueado exitosamente', 'success');
+            showToast('Bloque de horario agregado', 'success');
         },
-        onError: (err: any) => showToast(`Error al bloquear horario: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error: ${err.message}`, 'error')
     });
 
-    // REMOVE Blocked Slot
     const removeMutation = useMutation({
         mutationFn: async (id: string) => {
-            if (!tenantId) throw new Error("No tenant info");
-            const { error } = await supabase
-                .from('blocked_slots')
+            if (!tenantId) throw new Error('Sin tenant');
+            const { error } = await supabase.from('blocked_slots')
                 .delete()
                 .eq('id', id)
                 .eq('tenant_id', tenantId);
@@ -63,17 +58,18 @@ export const useBlockedSlots = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
-            showToast('Bloqueo removido', 'success');
+            showToast('Bloque eliminado', 'success');
         },
-        onError: (err: any) => showToast(`Error al remover bloqueo: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error: ${err.message}`, 'error')
     });
+
+    const blockedSlots = query.data || [];
 
     return {
         ...query,
-        blockedSlots: query.data || [],
+        blockedSlots,
+        getBlockedSlotsForDate: (date: string) => blockedSlots.filter(b => b.date === date),
         addBlockedSlot: addMutation.mutateAsync,
         removeBlockedSlot: removeMutation.mutateAsync,
-        isAdding: addMutation.isPending,
-        isRemoving: removeMutation.isPending
     };
 };

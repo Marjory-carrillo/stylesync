@@ -10,7 +10,6 @@ export const useAnnouncements = () => {
     const queryClient = useQueryClient();
     const queryKey = ['announcements', tenantId];
 
-    // GET Announcements
     const query = useQuery({
         queryKey,
         queryFn: async (): Promise<Announcement[]> => {
@@ -21,57 +20,36 @@ export const useAnnouncements = () => {
                 .eq('tenant_id', tenantId)
                 .order('created_at', { ascending: false });
             if (error) throw error;
-
             return data.map((a: any) => ({
                 ...a,
-                createdAt: a.created_at
+                createdAt: a.created_at,
             })) as Announcement[];
         },
         enabled: !!tenantId,
     });
 
-    // ADD Announcement
     const addMutation = useMutation({
-        mutationFn: async ({ message, type }: { message: string, type: Announcement['type'] }) => {
-            if (!tenantId) throw new Error("No tenant info");
+        mutationFn: async ({ message, type }: { message: string; type: Announcement['type'] }) => {
+            if (!tenantId) throw new Error('Sin tenant');
             const { error } = await supabase.from('announcements').insert([{
                 tenant_id: tenantId,
                 message,
                 type,
-                active: true
+                active: true,
             }]);
             if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
-            showToast('Aviso creado', 'success');
+            showToast('Anuncio publicado', 'success');
         },
-        onError: (err: any) => showToast(`Error al crear aviso: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error: ${err.message}`, 'error')
     });
 
-    // TOGGLE Active Status
-    const toggleMutation = useMutation({
-        mutationFn: async ({ id, active }: { id: string, active: boolean }) => {
-            if (!tenantId) throw new Error("No tenant info");
-            const { error } = await supabase
-                .from('announcements')
-                .update({ active: !active })
-                .eq('id', id)
-                .eq('tenant_id', tenantId);
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey });
-        },
-        onError: (err: any) => showToast(`Error al alternar aviso: ${err.message}`, 'error')
-    });
-
-    // REMOVE Announcement
     const removeMutation = useMutation({
         mutationFn: async (id: string) => {
-            if (!tenantId) throw new Error("No tenant info");
-            const { error } = await supabase
-                .from('announcements')
+            if (!tenantId) throw new Error('Sin tenant');
+            const { error } = await supabase.from('announcements')
                 .delete()
                 .eq('id', id)
                 .eq('tenant_id', tenantId);
@@ -79,17 +57,34 @@ export const useAnnouncements = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
-            showToast('Aviso eliminado', 'success');
+            showToast('Anuncio eliminado', 'success');
         },
-        onError: (err: any) => showToast(`Error al eliminar: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error: ${err.message}`, 'error')
     });
+
+    const toggleMutation = useMutation({
+        mutationFn: async (id: string) => {
+            if (!tenantId) throw new Error('Sin tenant');
+            const ann = query.data?.find(a => a.id === id);
+            if (!ann) throw new Error('Anuncio no encontrado');
+            const { error } = await supabase.from('announcements')
+                .update({ active: !ann.active })
+                .eq('id', id)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+        onError: (err: any) => showToast(`Error: ${err.message}`, 'error')
+    });
+
+    const announcements = query.data || [];
 
     return {
         ...query,
-        announcements: query.data || [],
+        announcements,
+        getActiveAnnouncements: () => announcements.filter(a => a.active),
         addAnnouncement: addMutation.mutateAsync,
-        toggleAnnouncement: toggleMutation.mutateAsync,
         removeAnnouncement: removeMutation.mutateAsync,
-        isAdding: addMutation.isPending,
+        toggleAnnouncement: toggleMutation.mutateAsync,
     };
 };
