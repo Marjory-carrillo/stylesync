@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 
 import { useAuthStore } from './lib/store/authStore';
+import { supabase } from './lib/supabaseClient';
 import AdminLayout from './layouts/AdminLayout';
 import ClientLayout from './layouts/ClientLayout';
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -140,12 +141,68 @@ const OnboardingRoute = () => {
 
 
 function App() {
-  const { userRole } = useAuthStore();
+  const { userRole, setAuth, setTenantData } = useAuthStore();
   const fetchGlobalConfig = useGlobalStore(s => s.fetchGlobalConfig);
 
   useEffect(() => {
     fetchGlobalConfig();
   }, [fetchGlobalConfig]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadUserContext = async (session: any) => {
+      if (!session?.user) {
+        if (mounted) {
+          setAuth({ user: null, session: null, loadingAuth: false });
+          setTenantData({ tenantId: null, userRole: null, userStylistId: null });
+        }
+        return;
+      }
+
+      const user = session.user;
+      const isSuperAdmin = user.user_metadata?.is_super_admin === true;
+
+      if (isSuperAdmin) {
+        if (mounted) {
+          setAuth({ user, session, loadingAuth: false });
+          setTenantData({ tenantId: null, userRole: 'admin', userStylistId: null });
+        }
+        return;
+      }
+
+      // Normal user (owner/employee)
+      const { data: userData } = await supabase
+        .from('users')
+        .select('tenant_id, role, stylist_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (mounted) {
+        setAuth({ user, session, loadingAuth: false });
+        setTenantData({
+          tenantId: userData?.tenant_id || null,
+          userRole: userData?.role || null,
+          userStylistId: userData?.stylist_id || null
+        });
+      }
+    };
+
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await loadUserContext(session);
+    };
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      loadUserContext(session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [setAuth, setTenantData]);
 
   return (
       <ErrorBoundary>
