@@ -16,48 +16,52 @@ serve(async (req: Request) => {
     }
 
     try {
-        const { to, message, tenant_id } = await req.json();
+        const body = await req.json();
+        const { to, message, tenant_id, provider: requestedProvider } = body;
 
-        if (!to || !message || !tenant_id) {
+        console.log('[send-sms] Request:', { to, tenant_id, provider: requestedProvider });
+
+        if (!to || !message) {
             return new Response(
-                JSON.stringify({ success: false, error: 'Faltan campos requeridos: to, message, tenant_id' }),
+                JSON.stringify({ success: false, error: 'Faltan campos: to, message' }),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
 
-        // Cliente Supabase con service role para saltarse RLS
-        const supabase = createClient(
-            Deno.env.get('SUPABASE_URL')!,
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-        );
+        // Usar provider del request (enviado por frontend) o 'demo' como fallback
+        let provider = requestedProvider ?? 'demo';
 
-        // Obtener configuración del tenant
-        const { data: tenant, error: tenantError } = await supabase
-            .from('tenants')
-            .select('sms_provider, name')
-            .eq('id', tenant_id)
-            .single();
-
-        if (tenantError || !tenant) {
-            return new Response(
-                JSON.stringify({ success: false, error: 'Tenant no encontrado' }),
-                { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+        // Si no vino provider pero sí tenant_id, consultamos la BD
+        if (!requestedProvider && tenant_id) {
+            try {
+                const supabase = createClient(
+                    Deno.env.get('SUPABASE_URL')!,
+                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+                );
+                const { data: tenant } = await supabase
+                    .from('tenants')
+                    .select('sms_provider')
+                    .eq('id', tenant_id)
+                    .single();
+                if (tenant?.sms_provider) {
+                    provider = tenant.sms_provider;
+                }
+            } catch (e) {
+                console.warn('[send-sms] Could not fetch tenant, using demo:', e);
+            }
         }
 
-        const provider = tenant.sms_provider ?? 'demo';
+        console.log('[send-sms] Using provider:', provider);
+
         let messageSid: string | null = null;
-        let status = 'demo';
 
         if (provider === 'whatsapp') {
-            // Normalizar número de teléfono para WhatsApp
-            // El teléfono ya viene como +52XXXXXXXXXX desde el frontend
             const digits = to.replace(/\D/g, '');
-            const waTo = digits.startsWith('52')
-                ? `whatsapp:+${digits}`
-                : `whatsapp:+52${digits.slice(-10)}`;
+            const e164 = digits.startsWith('52') ? `+${digits}` : `+52${digits.slice(-10)}`;
+            const waTo = `whatsapp:${e164}`;
 
-            // Llamar a la API de Twilio
+            console.log('[send-sms] Sending WA to:', waTo);
+
             const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
             const formData = new URLSearchParams({
                 To:   waTo,
@@ -78,34 +82,37 @@ serve(async (req: Request) => {
             );
 
             const twilioData = await twilioRes.json();
+            console.log('[send-sms] Twilio status:', twilioRes.status, 'SID:', twilioData.sid, 'Error:', twilioData.message);
 
             if (!twilioRes.ok) {
-                // Registrar intento fallido
-                await supabase.from('sms_logs').insert({
-                    tenant_id, phone: to, message,
-                    provider: 'whatsapp', status: 'failed',
-                    error: twilioData.message ?? 'Error de Twilio',
-                });
-
+                // Log fallo en BD (best effort, no lanzar error si falla)
+                if (tenant_id) {
+                    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+                    await supabase.from('sms_logs').insert({
+                        tenant_id, phone_to: to, provider: 'whatsapp',
+                        status: 'failed', error_message: twilioData.message ?? 'Twilio error',
+                    }).catch(() => {});
+                }
                 return new Response(
-                    JSON.stringify({ success: false, error: twilioData.message, provider }),
-                    { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                    JSON.stringify({ success: false, error: twilioData.message, provider, twilioCode: twilioData.code }),
+                    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
 
             messageSid = twilioData.sid;
-            status = 'sent';
         }
 
-        // Registrar en sms_logs
-        await supabase.from('sms_logs').insert({
-            tenant_id,
-            phone: to,
-            message,
-            provider,
-            status,
-            twilio_sid: messageSid,
-        });
+        // Log a BD (best effort)
+        if (tenant_id) {
+            try {
+                const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+                await supabase.from('sms_logs').insert({
+                    tenant_id, phone_to: to, provider,
+                    status: provider === 'whatsapp' ? 'sent' : 'demo',
+                    ...(messageSid && { provider_sid: messageSid }),
+                }).catch(() => {});
+            } catch (_) {}
+        }
 
         return new Response(
             JSON.stringify({ success: true, provider, sid: messageSid }),
@@ -113,6 +120,7 @@ serve(async (req: Request) => {
         );
 
     } catch (err: any) {
+        console.error('[send-sms] Fatal error:', err.message);
         return new Response(
             JSON.stringify({ success: false, error: err.message }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

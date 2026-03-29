@@ -54,22 +54,27 @@ export default function Booking() {
     const getActiveAnnouncements = () => announcements.filter(a => a.active);
 
     const sendSMS = async (phone: string, message: string): Promise<{ success: boolean; provider?: string; error?: string }> => {
+        const currentProvider = businessConfig?.smsProvider ?? 'demo';
+
         if (!tenantId) {
-            console.log(`[SMS DEMO fallback] To: ${phone} - Message: ${message}`);
+            console.log(`[SMS DEMO fallback - no tenantId] To: ${phone}`);
             return { success: true, provider: 'demo' };
         }
         try {
             const { data, error } = await supabase.functions.invoke('send-sms', {
-                body: { to: phone, message, tenant_id: tenantId },
+                body: { to: phone, message, tenant_id: tenantId, provider: currentProvider },
             });
             if (error) {
                 console.warn('[SMS] Edge function error:', error);
-                return { success: false, error: error.message };
+                return { success: false, error: `[DEBUG] Error en Edge Function: ${error.message}` };
+            }
+            if (!data?.success) {
+                return { success: false, error: `[DEBUG] Twilio error (código ${data?.twilioCode}): ${data?.error}` };
             }
             return { success: true, provider: data?.provider ?? 'demo' };
         } catch (err: any) {
             console.warn('[SMS] Unexpected error:', err);
-            return { success: false, error: err.message };
+            return { success: false, error: `[DEBUG] Error inesperado: ${err.message}` };
         }
     };
 
@@ -257,6 +262,7 @@ export default function Booking() {
     const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
     const [otpAttempts, setOtpAttempts] = useState(0);
     const [smsProvider, setSmsProvider] = useState<'demo' | 'whatsapp'>('demo');
+    const [smsDebugError, setSmsDebugError] = useState<string | null>(null);
 
     // ── Step 1: Validate & Init OTP ───
     const handleClientSubmit = async () => {
@@ -285,6 +291,7 @@ export default function Booking() {
         }
 
         setIsSendingSms(true);
+        setSmsDebugError(null);
         try {
             // Generate OTP
             const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -299,6 +306,9 @@ export default function Booking() {
             if (smsRes.success) {
                 setSmsProvider((smsRes.provider as 'demo' | 'whatsapp') ?? 'demo');
                 setStep(16); // Go to OTP verification
+            } else {
+                // Mostrar error detallado para debug
+                setSmsDebugError(smsRes.error ?? 'Error desconocido al enviar el código');
             }
         } finally {
             setIsSendingSms(false);
@@ -568,6 +578,13 @@ export default function Booking() {
                                 <p className="text-[10px] text-accent/70 text-center mt-2 animate-pulse-soft font-medium">
                                     El código puede tardar unos 10 segundos en llegar...
                                 </p>
+                            )}
+
+                            {/* DEBUG: error de WhatsApp — quitar cuando funcione */}
+                            {smsDebugError && !isSendingSms && (
+                                <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-mono break-all">
+                                    <span className="font-bold text-red-400">⚠ DEBUG:</span> {smsDebugError}
+                                </div>
                             )}
                         </div>
                     </div>
