@@ -57,7 +57,18 @@ serve(async (req: Request) => {
 
         if (provider === 'whatsapp') {
             const digits = to.replace(/\D/g, '');
-            const e164 = digits.startsWith('52') ? `+${digits}` : `+52${digits.slice(-10)}`;
+            // Mexico WhatsApp: numeros moviles se registran como +521XXXXXXXXXX (13 digitos)
+            // Si ya tiene 13 digitos empezando en 521, usarlo directo
+            // Si tiene 12 digitos empezando en 52, agregar el 1 movil
+            // Si tiene 10 digitos (sin codigo pais), agregar +521
+            let e164: string;
+            if (digits.startsWith('521') && digits.length === 13) {
+                e164 = `+${digits}`;           // ya correcto: +5218681239154
+            } else if (digits.startsWith('52') && digits.length === 12) {
+                e164 = `+521${digits.slice(2)}`; // +528681239154 → +5218681239154
+            } else {
+                e164 = `+521${digits.slice(-10)}`; // 8681239154 → +5218681239154
+            }
             const waTo = `whatsapp:${e164}`;
 
             console.log('[send-sms] Sending WA to:', waTo);
