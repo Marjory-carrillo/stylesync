@@ -4,7 +4,7 @@ import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
-    Scissors, Sparkles, Flower2, Briefcase, Waves, MoreHorizontal
+    Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
