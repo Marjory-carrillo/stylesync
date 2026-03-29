@@ -190,11 +190,11 @@ function App() {
         return;
       }
 
-      // Si no es dueño, verificamos si es EMPLEADO (en tabla users)
+      // Si no es dueño, verificamos si es EMPLEADO (en tabla tenant_users)
       const { data: userData } = await supabase
-        .from('users')
+        .from('tenant_users')
         .select('tenant_id, role, stylist_id')
-        .eq('id', user.id)
+        .eq('email', user.email)
         .maybeSingle();
 
       if (mounted) {
