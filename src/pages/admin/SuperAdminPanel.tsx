@@ -356,32 +356,48 @@ export default function SuperAdminPanel() {
                                         </button>
                                     </div>
 
-                                    {/* SMS Control Toggle */}
+                                    {/* SMS / WhatsApp Provider Selector */}
                                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Servicio SMS</span>
-                                            <span className={`text-[10px] font-bold ${tenant.sms_enabled ? 'text-accent' : 'text-amber-500/70'}`}>
-                                                {tenant.sms_enabled ? 'ACTIVO' : 'DEMO'}
+                                        <div className="flex flex-col items-start mr-1">
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Mensajería</span>
+                                            <span className={`text-[10px] font-bold ${
+                                                tenant.sms_provider === 'whatsapp' ? 'text-emerald-400' : 'text-amber-500/70'
+                                            }`}>
+                                                {tenant.sms_provider === 'whatsapp' ? 'WHATSAPP' : 'DEMO'}
                                             </span>
                                         </div>
-                                        <button
-                                            onClick={async () => {
-                                                const newState = !tenant.sms_enabled;
-                                                const { error } = await supabase.from('tenants').update({ sms_enabled: newState }).eq('id', tenant.id);
-                                                if (error) {
-                                                    showToast("Error al actualizar SMS: " + error.message, 'error');
-                                                } else {
-                                                    fetchAllTenants();
-                                                    showToast(`Servicio SMS ${newState ? 'activado' : 'desactivado'} para ${tenant.name}`, 'info');
-                                                }
-                                            }}
-                                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${tenant.sms_enabled ? 'bg-accent' : 'bg-slate-700'}`}
-                                        >
-                                            <span
-                                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${tenant.sms_enabled ? 'translate-x-5' : 'translate-x-0'}`}
-                                            />
-                                        </button>
+                                        <div className="flex gap-1">
+                                            {(['demo', 'whatsapp'] as const).map((p) => (
+                                                <button
+                                                    key={p}
+                                                    onClick={async () => {
+                                                        if (tenant.sms_provider === p) return;
+                                                        const { error } = await supabase
+                                                            .from('tenants')
+                                                            .update({ sms_provider: p })
+                                                            .eq('id', tenant.id);
+                                                        if (error) {
+                                                            showToast("Error: " + error.message, 'error');
+                                                        } else {
+                                                            fetchAllTenants();
+                                                            const labels = { demo: 'DEMO', whatsapp: '💬 WhatsApp' };
+                                                            showToast(`Mensajería → ${labels[p]} para ${tenant.name}`, 'info');
+                                                        }
+                                                    }}
+                                                    className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all ${
+                                                        tenant.sms_provider === p
+                                                            ? p === 'whatsapp'
+                                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                                                : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                                            : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
+                                                    }`}
+                                                >
+                                                    {p === 'demo' ? '🔵 Demo' : '💬 WA'}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
+
                                 </div>
                             </div>
                         ))}

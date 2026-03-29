@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { type Announcement, type Service, type Stylist } from '../../lib/types/store.types';
@@ -52,10 +53,24 @@ export default function Booking() {
     };
     const getActiveAnnouncements = () => announcements.filter(a => a.active);
 
-    const sendSMS = async (phone: string, message: string) => {
-        // En un futuro se implementará con Supabase Edge Functions. Por el momento retornamos success:
-        console.log(`[SMS MOCK] To: ${phone} - Message: ${message}`);
-        return { success: true };
+    const sendSMS = async (phone: string, message: string): Promise<{ success: boolean; provider?: string; error?: string }> => {
+        if (!tenantId) {
+            console.log(`[SMS DEMO fallback] To: ${phone} - Message: ${message}`);
+            return { success: true, provider: 'demo' };
+        }
+        try {
+            const { data, error } = await supabase.functions.invoke('send-sms', {
+                body: { to: phone, message, tenant_id: tenantId },
+            });
+            if (error) {
+                console.warn('[SMS] Edge function error:', error);
+                return { success: false, error: error.message };
+            }
+            return { success: true, provider: data?.provider ?? 'demo' };
+        } catch (err: any) {
+            console.warn('[SMS] Unexpected error:', err);
+            return { success: false, error: err.message };
+        }
     };
 
     const loading = tenantLoading || (tenantId && configLoading);
@@ -241,6 +256,7 @@ export default function Booking() {
     const [otpCode, setOtpCode] = useState('');
     const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
     const [otpAttempts, setOtpAttempts] = useState(0);
+    const [smsProvider, setSmsProvider] = useState<'demo' | 'whatsapp'>('demo');
 
     // ── Step 1: Validate & Init OTP ───
     const handleClientSubmit = async () => {
@@ -276,11 +292,12 @@ export default function Booking() {
             setOtpAttempts(0);
             setOtpCode('');
 
-            // Send "Professional" SMS using the central function
-            const message = `Tu código para ${businessConfig?.name || 'nuestro servicio'} es: ${code}. (Vía CitaLink)`;
+            // Enviar código vía Edge Function (WhatsApp o DEMO según configuración del negocio)
+            const message = `Tu código para ${businessConfig?.name || 'nuestro servicio'} es: *${code}*. Válido por 10 minutos. (Vía CitaLink)`;
             const smsRes = await sendSMS(cleanPhone, message);
 
             if (smsRes.success) {
+                setSmsProvider((smsRes.provider as 'demo' | 'whatsapp') ?? 'demo');
                 setStep(16); // Go to OTP verification
             }
         } finally {
@@ -674,8 +691,8 @@ export default function Booking() {
                             Hemos enviado un código a <strong>{clientPhone}</strong>. Ingrésalo para continuar.
                         </p>
 
-                        {/* MOCK SMS CARD (Development only) */}
-                        {generatedOtp && !isSendingSms && (
+                        {/* MOCK SMS CARD — solo visible en modo DEMO */}
+                        {generatedOtp && !isSendingSms && smsProvider === 'demo' && (
                             <div className="bg-slate-900/80 border border-emerald-500/30 p-4 rounded-xl mb-6 relative overflow-hidden group shadow-lg shadow-emerald-500/5 transition-all w-full max-w-sm mx-auto text-left">
                                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl flex-shrink-0 group-hover:bg-emerald-500/20 transition-all duration-500"></div>
                                 <div className="flex items-start gap-4 relative z-10">

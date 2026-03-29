@@ -40,7 +40,8 @@ export const useTenantData = () => {
                 confirmationTemplate: data.confirmation_template || '',
                 reminderTemplate: data.reminder_template || '',
                 showDashboardMetrics: data.show_dashboard_metrics ?? true,
-                breakBetweenAppointments: data.break_between_appointments || 0
+                breakBetweenAppointments: data.break_between_appointments || 0,
+                smsProvider: (data.sms_provider as 'demo' | 'whatsapp') || 'demo',
             };
         },
         enabled: !!tenantId,
