@@ -4,7 +4,7 @@ import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
-    Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal
+    Scissors, Sparkles, Flower2, Briefcase, Waves, MoreHorizontal
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -469,20 +469,20 @@ export default function SuperAdminPanel() {
                                     <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Categoría</label>
                                     <div className="grid grid-cols-3 gap-2">
                                         {[
-                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={18}/>, color: 'amber' },
-                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={18}/>, color: 'pink' },
-                                            { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={18}/>, color: 'rose' },
-                                            { id: 'spa', label: 'Spa', icon: <Flower2 size={18}/>, color: 'emerald' },
-                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={18}/>, color: 'blue' },
-                                            { id: 'other', label: 'Otro', icon: <MoreHorizontal size={18}/>, color: 'slate' },
+                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={18} />, color: 'amber' },
+                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={18} />, color: 'pink' },
+                                            { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={18} />, color: 'rose' },
+                                            { id: 'spa', label: 'Spa', icon: <Flower2 size={18} />, color: 'emerald' },
+                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={18} />, color: 'blue' },
+                                            { id: 'other', label: 'Otro', icon: <MoreHorizontal size={18} />, color: 'slate' },
                                         ].map(cat => {
                                             const isSelected = newBusiness.category === cat.id;
                                             const colorMap: Record<string, string> = {
                                                 amber: isSelected ? 'border-amber-400/60 bg-amber-400/10 text-amber-400' : 'border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-amber-400',
-                                                pink:  isSelected ? 'border-pink-400/60 bg-pink-400/10 text-pink-400'   : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
-                                                rose:  isSelected ? 'border-rose-400/60 bg-rose-400/10 text-rose-400'   : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
+                                                pink: isSelected ? 'border-pink-400/60 bg-pink-400/10 text-pink-400' : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
+                                                rose: isSelected ? 'border-rose-400/60 bg-rose-400/10 text-rose-400' : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
                                                 emerald: isSelected ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-400' : 'border-white/5 text-slate-500 hover:border-emerald-400/30 hover:text-emerald-400',
-                                                blue:  isSelected ? 'border-blue-400/60 bg-blue-400/10 text-blue-400'   : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
+                                                blue: isSelected ? 'border-blue-400/60 bg-blue-400/10 text-blue-400' : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
                                                 slate: isSelected ? 'border-slate-400/60 bg-slate-400/10 text-slate-300' : 'border-white/5 text-slate-500 hover:border-slate-400/30 hover:text-slate-400',
                                             };
                                             return (
@@ -522,7 +522,7 @@ export default function SuperAdminPanel() {
                                 className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-accent/20 disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {isCreating ? (
-                                    <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> Creando...</>                                ) : (
+                                    <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> Creando...</>) : (
                                     'Iniciar Instancia de Negocio'
                                 )}
                             </button>
