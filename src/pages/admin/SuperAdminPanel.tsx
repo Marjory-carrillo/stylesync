@@ -2,16 +2,11 @@ import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import {
     Building2, Trash2, Search, ChevronRight,
-    LayoutDashboard, TrendingUp, DollarSign, Plus, X, BarChart3,
-    ArrowUpRight, Globe, Zap, AlertTriangle
+    LayoutDashboard, Plus, X, BarChart3,
+    Zap, AlertTriangle, Calendar, Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import {
-    ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
-    CartesianGrid, Tooltip
-} from 'recharts';
-import { format, subMonths, isAfter } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { subMonths, isAfter } from 'date-fns';
 import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 
@@ -57,14 +52,16 @@ export default function SuperAdminPanel() {
     const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', address: '' });
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, number>>({});
+    const [appointmentsLast30, setAppointmentsLast30] = useState<number | null>(null);
+    const [uniqueClients, setUniqueClients] = useState<number | null>(null);
     const showToast = useUIStore(s => s.showToast);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchAllTenants();
         fetchSmsMetrics();
+        fetchAppointmentMetrics();
 
-        // Suscripción en tiempo real para SMS
         const channel = supabase
             .channel('public:sms_logs')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_logs' }, () => {
@@ -102,6 +99,28 @@ export default function SuperAdminPanel() {
         }
     };
 
+    const fetchAppointmentMetrics = async () => {
+        try {
+            const since = subMonths(new Date(), 1).toISOString();
+
+            // Citas en los últimos 30 días
+            const { count: apptCount } = await supabase
+                .from('appointments')
+                .select('*', { count: 'exact', head: true })
+                .gte('date', since.split('T')[0]);
+            setAppointmentsLast30(apptCount || 0);
+
+            // Total clientes únicos (por número de teléfono)
+            const { data: phones } = await supabase
+                .from('appointments')
+                .select('client_phone');
+            const unique = new Set((phones || []).map((r: any) => r.client_phone).filter(Boolean));
+            setUniqueClients(unique.size);
+        } catch (err) {
+            console.error('Error fetching appointment metrics:', err);
+        }
+    };
+
     const filteredTenants = useMemo(() => {
         return allTenants.filter(t =>
             t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,22 +129,8 @@ export default function SuperAdminPanel() {
         );
     }, [allTenants, searchTerm]);
 
-    // Metrics calculation
-    const mrr = allTenants.length * 29.99;
-    const activeLast30Days = allTenants.filter(t => isAfter(new Date(t.created_at || ''), subMonths(new Date(), 1))).length;
+    const newThisMonth = allTenants.filter(t => isAfter(new Date(t.created_at || ''), subMonths(new Date(), 1))).length;
 
-    // Chart data preparation
-    const chartData = useMemo(() => {
-        const months = Array.from({ length: 6 }).map((_, i) => {
-            const date = subMonths(new Date(), 5 - i);
-            return {
-                name: format(date, 'MMM', { locale: es }).toUpperCase(),
-                count: allTenants.filter(t => isAfter(new Date(t.created_at || ''), subMonths(date, 1))).length,
-                month: format(date, 'yyyy-MM')
-            };
-        });
-        return months;
-    }, [allTenants]);
 
     const handleCreateBusiness = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -187,174 +192,78 @@ export default function SuperAdminPanel() {
             </header>
 
             {/* Core Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     icon={<Building2 size={24} />}
                     title="Negocios Totales"
                     value={allTenants.length}
                     color="text-blue-400"
-                    trend="+1"
+                    sub={`${newThisMonth} nuevos este mes`}
                     delay="0"
                 />
                 <StatCard
-                    icon={<DollarSign size={24} />}
-                    title="MRR Estimado"
-                    value={`$${mrr.toFixed(2)}`}
+                    icon={<Calendar size={24} />}
+                    title="Citas (últimos 30d)"
+                    value={appointmentsLast30 !== null ? appointmentsLast30 : '...'}
                     color="text-emerald-400"
-                    trend="+14%"
+                    sub="En toda la plataforma"
                     delay="1"
                 />
                 <StatCard
-                    icon={<Zap size={24} />}
-                    title="Nuevos (30d)"
-                    value={activeLast30Days}
+                    icon={<Users size={24} />}
+                    title="Clientes Únicos"
+                    value={uniqueClients !== null ? uniqueClients : '...'}
                     color="text-violet-400"
-                    trend="Activo"
+                    sub="Por teléfono registrado"
                     delay="2"
                 />
                 <StatCard
-                    icon={<Globe size={24} />}
-                    title="Salud Plataforma"
-                    value="99.9%"
-                    color="text-accent"
-                    trend="Óptima"
-                    delay="3"
-                />
-                <StatCard
                     icon={<Zap size={24} />}
-                    title="SMS Totales (Log)"
+                    title="SMS Totales"
                     value={totalSmsCount !== null ? totalSmsCount : '...'}
                     color="text-amber-400"
-                    trend="Plataforma"
-                    delay="4"
+                    sub="Mensajes enviados"
+                    delay="3"
                 />
             </div>
 
-            {/* Platform Insights & Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 glass-panel p-6 border border-white/5 relative overflow-hidden flex flex-col min-h-[400px]">
-                    <div className="flex items-center justify-between mb-8 relative z-10">
-                        <div>
-                            <h3 className="text-white font-black text-xl flex items-center gap-2 uppercase tracking-tight">
-                                <TrendingUp className="text-accent" size={20} />
-                                Crecimiento de Negocios
-                            </h3>
-                            <p className="text-slate-500 text-xs mt-1">Registros mensuales consolidados de la red CitaLink</p>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-[10px] font-black text-accent border border-accent/30 px-2 py-1 rounded bg-accent/5 uppercase">Tiempo Real</span>
-                        </div>
-                    </div>
+            {/* Distribución por Categoría */}
+            <div className="glass-panel p-6 border border-white/5">
+                <h3 className="text-white font-black text-xl mb-6 flex items-center gap-2 uppercase tracking-tight">
+                    <BarChart3 className="text-violet-400" size={20} />
+                    Distribución por Categoría
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {(() => {
+                        const categories = [
+                            { id: 'barbershop', label: 'Barberías', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+                            { id: 'beauty_salon', label: 'Salones', color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
+                            { id: 'nail_bar', label: "Nail's", color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+                            { id: 'spa', label: 'Spas', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+                            { id: 'consulting', label: 'Clínicas', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+                            { id: 'other', label: 'Otros', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' }
+                        ];
+                        const legacyMap: Record<string, string> = { 'salon': 'beauty_salon', 'clinic': 'consulting', 'barber': 'barbershop' };
+                        const mainIds = categories.filter(c => c.id !== 'other').map(c => c.id);
 
-                    <div className="flex-1 min-h-[250px] relative z-10">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
-                                />
-                                <YAxis
-                                    hide
-                                />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    itemStyle={{ color: 'var(--color-accent)', fontWeight: 'bold' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="count"
-                                    stroke="var(--color-accent)"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorCount)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="glass-panel p-6 border border-white/5 flex flex-col">
-                    <h3 className="text-white font-black text-xl mb-6 flex items-center gap-2 uppercase tracking-tight">
-                        <BarChart3 className="text-violet-400" size={20} />
-                        Distribución
-                    </h3>
-                    <div className="space-y-6">
-                        {(() => {
-                            const categories = [
-                                { id: 'barbershop', label: 'Barberías' },
-                                { id: 'beauty_salon', label: 'Salones' },
-                                { id: 'nail_bar', label: "Nail's" },
-                                { id: 'spa', label: 'Spas' },
-                                { id: 'consulting', label: 'Clínicas' },
-                                { id: 'other', label: 'Otros' }
-                            ];
-
-                            return categories.map((cat, i) => {
-                                let count = 0;
-                                const legacyMap: Record<string, string> = {
-                                    'salon': 'beauty_salon',
-                                    'clinic': 'consulting',
-                                    'barber': 'barbershop'
-                                };
-
-                                if (cat.id === 'other') {
-                                    // Count anything not in the main list AND not in legacy mappings
-                                    const mainIds = categories.filter(c => c.id !== 'other').map(c => c.id);
-                                    count = allTenants.filter(t => {
-                                        const catId = t.category || '';
-                                        const normalizedId = legacyMap[catId] || catId;
-                                        return !mainIds.includes(normalizedId);
-                                    }).length;
-                                } else {
-                                    count = allTenants.filter(t =>
-                                        t.category === cat.id ||
-                                        (legacyMap[t.category || ''] === cat.id)
-                                    ).length;
-                                }
-
-                                const percentage = allTenants.length ? Math.round((count / allTenants.length) * 100) : 0;
-
-                                return (
-                                    <div key={cat.id} className="space-y-2">
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="text-slate-400 font-bold uppercase tracking-widest">{cat.label}</span>
-                                            <span className="text-white font-black">{percentage}%</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-violet-500 to-accent transition-all duration-1000"
-                                                style={{ width: `${percentage}%`, transitionDelay: `${i * 0.1}s` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                );
-                            });
-                        })()}
-                    </div>
-                    <div className="mt-auto pt-6 border-t border-white/5">
-                        <button
-                            onClick={() => document.getElementById('tenants-table')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="w-full p-4 bg-white/2 rounded-xl border border-white/5 flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
-                                    <ArrowUpRight size={18} />
+                        return categories.map(cat => {
+                            let count = 0;
+                            if (cat.id === 'other') {
+                                count = allTenants.filter(t => { const n = legacyMap[t.category || ''] || t.category || ''; return !mainIds.includes(n); }).length;
+                            } else {
+                                count = allTenants.filter(t => t.category === cat.id || legacyMap[t.category || ''] === cat.id).length;
+                            }
+                            return (
+                                <div key={cat.id} className={`p-4 rounded-2xl ${cat.bg} border ${cat.border} flex flex-col items-center gap-1 text-center`}>
+                                    <span className={`text-3xl font-black ${cat.color}`}>{count}</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{cat.label}</span>
                                 </div>
-                                <span className="text-sm font-bold text-slate-300">Ver reporte completo</span>
-                            </div>
-                        </button>
-                    </div>
+                            );
+                        });
+                    })()}
                 </div>
             </div>
+
 
             {/* Tenant Management Table */}
             <div id="tenants-table" className="glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl">
@@ -560,26 +469,19 @@ export default function SuperAdminPanel() {
     );
 }
 
-function StatCard({ icon, title, value, color, trend, delay }: { icon: any, title: string, value: any, color: string, trend: string, delay: string }) {
+function StatCard({ icon, title, value, color, sub, delay }: { icon: any, title: string, value: any, color: string, sub: string, delay: string }) {
     return (
         <div
             className="animate-scale-in glass-card p-6 border border-white/5 flex flex-col gap-4 group hover:bg-white/[0.04]"
             style={{ animationDelay: `0.${delay}s` }}
         >
-            <div className="flex justify-between items-start">
-                <div className={`p-3 rounded-2xl bg-white/5 border border-white/5 shadow-inner ${color}`}>
-                    {icon}
-                </div>
-                <div className="flex flex-col items-end">
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${trend.includes('+') ? 'bg-emerald-500/20 text-emerald-400' : 'bg-accent/20 text-accent'} border border-current opacity-70 group-hover:opacity-100 transition-opacity`}>
-                        {trend}
-                    </span>
-                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter mt-1">Tendencia</span>
-                </div>
+            <div className={`p-3 rounded-2xl bg-white/5 border border-white/5 shadow-inner w-fit ${color}`}>
+                {icon}
             </div>
             <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 mb-0.5">{title}</div>
-                <div className="text-2xl font-black text-white tracking-tight">{value}</div>
+                <div className="text-3xl font-black text-white tracking-tight">{value}</div>
+                <div className="text-[10px] text-slate-600 font-medium mt-1">{sub}</div>
             </div>
         </div>
     );
