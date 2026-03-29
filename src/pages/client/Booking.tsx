@@ -751,33 +751,45 @@ export default function Booking() {
                             </h3>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
                             {services.map((service: Service) => (
                                 <div
                                     key={service.id}
-                                    className={`glass-card p-5 group cursor-pointer transition-all duration-500 relative overflow-hidden !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
+                                    className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
                                     onClick={() => {
                                         setSelectedService(service);
                                         setStep(22);
                                     }}
                                 >
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
+                                    <div className="flex items-center gap-3 p-3">
+                                        {/* Imagen compacta: 56px en móvil */}
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
                                             {service.image ? (
                                                 <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                    <Calendar size={32} />
+                                                    <Calendar size={24} />
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-white text-lg mb-1 group-hover:text-cyan-400 transition-colors">{service.name}</h4>
-                                            <div className="flex items-center gap-3 text-sm">
+                                        {/* Texto sin truncar */}
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
+                                                {service.name}
+                                            </h4>
+                                            <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
                                                 <span className="text-cyan-400 font-bold">${service.price}</span>
-                                                <span className="text-muted flex items-center gap-1"><Clock size={14} /> {service.duration} min</span>
+                                                <span className="text-muted flex items-center gap-1">
+                                                    <Clock size={12} /> {service.duration} min
+                                                </span>
                                             </div>
                                         </div>
+                                        {/* Indicador de seleccionado */}
+                                        {selectedService?.id === service.id && (
+                                            <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
+                                                <CheckCircle size={14} className="text-slate-900" />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
