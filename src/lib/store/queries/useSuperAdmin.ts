@@ -25,7 +25,7 @@ export function useSuperAdmin() {
     });
 
     const createTenantMutation = useMutation({
-        mutationFn: async ({ name, slug, address, category }: { name: string, slug: string, address: string, category: string }) => {
+        mutationFn: async ({ name, slug, address, category, ownerEmail }: { name: string, slug: string, address: string, category: string, ownerEmail: string }) => {
             if (!user) throw new Error('No user logged in');
 
             // 1. Check if slug exists
@@ -38,31 +38,52 @@ export function useSuperAdmin() {
                 slug,
                 address,
                 category,
-                owner_id: user.id,
+                owner_id: user.id, // SuperAdmin es el creador técnico
             }]).select().single();
 
             if (error || !data) throw new Error(error?.message || 'Error al crear negocio');
 
-            // 3. Inject Category Defaults (Seed Data)
+            // 3. Registrar el correo del dueño en tenant_users con rol 'owner'
+            const { error: tuError } = await supabase.from('tenant_users').insert({
+                tenant_id: data.id,
+                email: ownerEmail,
+                role: 'owner',
+                stylist_id: null
+            });
+            if (tuError) {
+                console.warn('No se pudo registrar el dueño en tenant_users:', tuError.message);
+            }
+
+            // 4. Inyectar datos por defecto según la categoría
             // @ts-ignore CATEGORY_DEFAULTS type
             const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS['other'] || CATEGORY_DEFAULTS['barbershop'];
 
-            // A. Schedule
             await supabase.from('schedule_config').insert({ tenant_id: data.id, schedule: defaults.schedule });
 
-            // B. Services
             if (defaults.services && defaults.services.length > 0) {
                 const svl = defaults.services.map((s: any) => ({ ...s, tenant_id: data.id }));
                 await supabase.from('services').insert(svl);
             }
 
-            // C. Stylists
             if (defaults.stylists && defaults.stylists.length > 0) {
                 const stl = defaults.stylists.map((s: any) => ({ ...s, tenant_id: data.id }));
                 await supabase.from('stylists').insert(stl);
             }
 
-            return { success: true, data };
+            // 5. Enviar invitación por Magic Link (el dueño hace clic y crea su contraseña)
+            let inviteSent = false;
+            try {
+                const { error: otpError } = await supabase.auth.signInWithOtp({
+                    email: ownerEmail,
+                    options: { shouldCreateUser: true }
+                });
+                inviteSent = !otpError;
+                if (otpError) console.warn('OTP no enviado:', otpError.message);
+            } catch (err) {
+                console.warn('No se pudo enviar el Magic Link:', err);
+            }
+
+            return { success: true, data, inviteSent };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
@@ -93,10 +114,10 @@ export function useSuperAdmin() {
         allTenants: query.data || [],
         isLoading: query.isLoading,
         fetchAllTenants: () => queryClient.invalidateQueries({ queryKey }),
-        createTenant: async (name: string, slug: string, address: string, category: string): Promise<{ success: boolean; data?: any; error?: string }> => {
+        createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string): Promise<{ success: boolean; data?: any; error?: string; inviteSent?: boolean }> => {
             try {
-                const res = await createTenantMutation.mutateAsync({ name, slug, address, category });
-                return { success: true, data: res.data };
+                const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail });
+                return { success: true, data: res.data, inviteSent: res.inviteSent };
             } catch (err: any) {
                 return { success: false, error: err.message };
             }

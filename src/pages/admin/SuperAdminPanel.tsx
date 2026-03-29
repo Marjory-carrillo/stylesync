@@ -49,7 +49,8 @@ export default function SuperAdminPanel() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', address: '' });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', address: '', ownerEmail: '' });
+    const [isCreating, setIsCreating] = useState(false);
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, number>>({});
     const [appointmentsLast30, setAppointmentsLast30] = useState<number | null>(null);
@@ -134,11 +135,18 @@ export default function SuperAdminPanel() {
 
     const handleCreateBusiness = async (e: React.FormEvent) => {
         e.preventDefault();
-        const res = await createTenant(newBusiness.name, newBusiness.slug, newBusiness.address, newBusiness.category);
+        setIsCreating(true);
+        const res = await createTenant(newBusiness.name, newBusiness.slug, newBusiness.address, newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase());
+        setIsCreating(false);
         if (res.success) {
             setIsCreateModalOpen(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', address: '' });
-            showToast('Negocio creado correctamente', 'success');
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', address: '', ownerEmail: '' });
+            showToast(
+                res.inviteSent
+                    ? `Negocio creado. Invitación enviada a ${newBusiness.ownerEmail}`
+                    : 'Negocio creado. El dueño puede registrarse con ese correo.',
+                'success'
+            );
             fetchAllTenants();
         } else {
             showToast(res.error || 'Error al crear negocio', 'error');
@@ -414,6 +422,23 @@ export default function SuperAdminPanel() {
                                         onChange={e => setNewBusiness({ ...newBusiness, name: e.target.value })}
                                     />
                                 </div>
+
+                                {/* Correo del Dueño — nuevo campo */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Correo del Dueño</label>
+                                    <div className="relative">
+                                        <input
+                                            required
+                                            type="email"
+                                            className="w-full bg-black/40 border border-accent/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                                            placeholder="dueno@correo.com"
+                                            value={newBusiness.ownerEmail}
+                                            onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 ml-1">Se enviará un link de invitación a este correo para que el dueño cree su contraseña.</p>
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Slug / URL Amigable</label>
                                     <div className="flex">
@@ -458,8 +483,15 @@ export default function SuperAdminPanel() {
                                     ></textarea>
                                 </div>
                             </div>
-                            <button type="submit" className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-accent/20">
-                                Iniciar Instancia de Negocio
+                            <button
+                                type="submit"
+                                disabled={isCreating}
+                                className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-accent/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {isCreating ? (
+                                    <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> Creando...</>                                ) : (
+                                    'Iniciar Instancia de Negocio'
+                                )}
                             </button>
                         </form>
                     </div>
