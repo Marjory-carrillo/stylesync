@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2, LogOut } from 'lucide-react';
+import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2, LogOut, Mail } from 'lucide-react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import { useAuthStore } from '../../lib/store/authStore';
 import { supabase } from '../../lib/supabaseClient';
@@ -17,6 +17,7 @@ export default function CreateBusiness() {
     const [slug, setSlug] = useState('');
     const [address, setAddress] = useState('');
     const [category, setCategory] = useState('');
+    const [ownerEmail, setOwnerEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -35,7 +36,7 @@ export default function CreateBusiness() {
         setLoading(true);
         setError('');
 
-        const validationResult = createTenantSchema.safeParse({ name, slug, address, category });
+        const validationResult = createTenantSchema.safeParse({ name, slug, address, category, ownerEmail });
         
         if (!validationResult.success) {
             setError(validationResult.error.issues[0].message);
@@ -43,7 +44,7 @@ export default function CreateBusiness() {
             return;
         }
 
-        const res = await createTenant(name, slug, address, category, user?.email ?? '');
+        const res = await createTenant(name, slug, address, category, ownerEmail);
 
         if (res.success) {
             // Optional: Add a small delay for "success" animation
@@ -190,6 +191,28 @@ export default function CreateBusiness() {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Owner Email Input */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300 ml-1">
+                                Email del Dueño
+                                <span className="ml-2 text-xs text-blue-400 font-normal">← Recibirá el Magic Link de acceso</span>
+                            </label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                                    <Mail size={18} />
+                                </div>
+                                <input
+                                    type="email"
+                                    value={ownerEmail}
+                                    onChange={(e) => setOwnerEmail(e.target.value)}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                                    placeholder="dueno@sunegocio.com"
+                                    required
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500 ml-1">Le llegará un correo para acceder a su panel sin contraseña.</p>
                         </div>
 
                         {/* Address Input */}

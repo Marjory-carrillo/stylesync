@@ -70,6 +70,7 @@ export const createTenantSchema = z.object({
         .regex(/^[a-z0-9-]+$/, 'El Link solo puede contener letras minúsculas, números y guiones.'),
     address: z.string().max(200, 'La dirección es demasiado larga').optional(),
     category: z.string().min(1, 'Por favor selecciona el tipo de negocio.'),
+    ownerEmail: z.string().email('El correo del dueño no es válido').min(1, 'El correo del dueño es requerido'),
 });
 
 // Esquema para la configuración del negocio (Settings)
