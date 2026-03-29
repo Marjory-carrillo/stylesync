@@ -3,7 +3,8 @@ import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
-    Zap, AlertTriangle, Calendar, Users
+    Zap, AlertTriangle, Calendar, Users,
+    Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -49,7 +50,7 @@ export default function SuperAdminPanel() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', address: '', ownerEmail: '' });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', monthlyPrice: '29.99' });
     const [isCreating, setIsCreating] = useState(false);
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, number>>({});
@@ -136,11 +137,11 @@ export default function SuperAdminPanel() {
     const handleCreateBusiness = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsCreating(true);
-        const res = await createTenant(newBusiness.name, newBusiness.slug, newBusiness.address, newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase());
+        const res = await createTenant(newBusiness.name, newBusiness.slug, '', newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase());
         setIsCreating(false);
         if (res.success) {
             setIsCreateModalOpen(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', address: '', ownerEmail: '' });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', monthlyPrice: '29.99' });
             showToast(
                 res.inviteSent
                     ? `Negocio creado. Invitación enviada a ${newBusiness.ownerEmail}`
@@ -419,68 +420,100 @@ export default function SuperAdminPanel() {
                                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
                                         placeholder="Ej. Barbería El Rey"
                                         value={newBusiness.name}
-                                        onChange={e => setNewBusiness({ ...newBusiness, name: e.target.value })}
+                                        onChange={e => {
+                                            const name = e.target.value;
+                                            const autoSlug = name
+                                                .toLowerCase()
+                                                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos
+                                                .replace(/[^\w\s-]/g, '')
+                                                .trim()
+                                                .replace(/\s+/g, '-')
+                                                .replace(/-+/g, '-');
+                                            setNewBusiness({ ...newBusiness, name, slug: autoSlug });
+                                        }}
                                     />
                                 </div>
 
-                                {/* Correo del Dueño — nuevo campo */}
+                                {/* Correo del Dueño */}
                                 <div className="space-y-2">
                                     <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Correo del Dueño</label>
-                                    <div className="relative">
-                                        <input
-                                            required
-                                            type="email"
-                                            className="w-full bg-black/40 border border-accent/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
-                                            placeholder="dueno@correo.com"
-                                            value={newBusiness.ownerEmail}
-                                            onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
-                                        />
-                                    </div>
+                                    <input
+                                        required
+                                        type="email"
+                                        className="w-full bg-black/40 border border-accent/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                                        placeholder="dueno@correo.com"
+                                        value={newBusiness.ownerEmail}
+                                        onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
+                                    />
                                     <p className="text-[10px] text-slate-500 ml-1">Se enviará un link de invitación a este correo para que el dueño cree su contraseña.</p>
                                 </div>
 
+                                {/* Slug — editable manualmente si se necesita ajustar */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Slug / URL Amigable</label>
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Slug / URL <span className="normal-case font-normal text-slate-600">(auto-generado)</span></label>
                                     <div className="flex">
-                                        <div className="bg-white/5 border border-white/10 rounded-l-xl px-4 py-3 text-slate-500 text-sm border-r-0">citalink.app/</div>
+                                        <div className="bg-white/5 border border-white/10 rounded-l-xl px-4 py-3 text-slate-500 text-sm border-r-0 shrink-0">citalink.app/</div>
                                         <input
                                             required
                                             type="text"
-                                            className="flex-1 bg-black/40 border border-white/10 rounded-r-xl px-3 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none font-mono"
-                                            placeholder="el-rey"
+                                            className="flex-1 bg-black/40 border border-white/10 rounded-r-xl px-3 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none font-mono text-sm"
+                                            placeholder="mi-negocio"
                                             value={newBusiness.slug}
-                                            onChange={e => setNewBusiness({ ...newBusiness, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                                            onChange={e => setNewBusiness({ ...newBusiness, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
                                         />
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Categoría</label>
-                                        <select
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent transition-all outline-none appearance-none cursor-pointer"
-                                            value={newBusiness.category}
-                                            onChange={e => setNewBusiness({ ...newBusiness, category: e.target.value })}
-                                        >
-                                            <option value="barbershop">Barbería</option>
-                                            <option value="beauty_salon">Salón</option>
-                                            <option value="nail_bar">Nail's</option>
-                                            <option value="spa">Spa</option>
-                                            <option value="consulting">Clínica</option>
-                                            <option value="other">Otro</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Costo Mensual</label>
-                                        <div className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-accent font-black text-center">$29.99</div>
+
+                                {/* Categoría — picker visual */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Categoría</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={18}/>, color: 'amber' },
+                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={18}/>, color: 'pink' },
+                                            { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={18}/>, color: 'rose' },
+                                            { id: 'spa', label: 'Spa', icon: <Flower2 size={18}/>, color: 'emerald' },
+                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={18}/>, color: 'blue' },
+                                            { id: 'other', label: 'Otro', icon: <MoreHorizontal size={18}/>, color: 'slate' },
+                                        ].map(cat => {
+                                            const isSelected = newBusiness.category === cat.id;
+                                            const colorMap: Record<string, string> = {
+                                                amber: isSelected ? 'border-amber-400/60 bg-amber-400/10 text-amber-400' : 'border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-amber-400',
+                                                pink:  isSelected ? 'border-pink-400/60 bg-pink-400/10 text-pink-400'   : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
+                                                rose:  isSelected ? 'border-rose-400/60 bg-rose-400/10 text-rose-400'   : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
+                                                emerald: isSelected ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-400' : 'border-white/5 text-slate-500 hover:border-emerald-400/30 hover:text-emerald-400',
+                                                blue:  isSelected ? 'border-blue-400/60 bg-blue-400/10 text-blue-400'   : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
+                                                slate: isSelected ? 'border-slate-400/60 bg-slate-400/10 text-slate-300' : 'border-white/5 text-slate-500 hover:border-slate-400/30 hover:text-slate-400',
+                                            };
+                                            return (
+                                                <button
+                                                    key={cat.id}
+                                                    type="button"
+                                                    onClick={() => setNewBusiness({ ...newBusiness, category: cat.id })}
+                                                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-200 cursor-pointer bg-black/30 ${colorMap[cat.color]}`}
+                                                >
+                                                    {cat.icon}
+                                                    <span className="text-[10px] font-bold uppercase tracking-wide leading-none">{cat.label}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
+
+                                {/* Costo Mensual */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Dirección (Opcional)</label>
-                                    <textarea
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent transition-all outline-none h-20"
-                                        value={newBusiness.address}
-                                        onChange={e => setNewBusiness({ ...newBusiness, address: e.target.value })}
-                                    ></textarea>
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Costo Mensual ($)</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-accent font-black text-sm pointer-events-none">$</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-accent font-black focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                                            value={newBusiness.monthlyPrice}
+                                            onChange={e => setNewBusiness({ ...newBusiness, monthlyPrice: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <button
