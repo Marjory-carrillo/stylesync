@@ -704,9 +704,39 @@ export default function Booking() {
                             <Shield size={32} />
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">Verificación de Seguridad</h3>
-                        <p className="text-muted mb-6">
-                            Hemos enviado un código a <strong>{clientPhone}</strong>. Ingrésalo para continuar.
-                        </p>
+
+                        {/* WhatsApp notification banner */}
+                        {smsProvider === 'whatsapp' ? (
+                            <div className="mb-6">
+                                <div className="relative bg-[#0a2618] border border-[#25D366]/30 rounded-2xl p-4 overflow-hidden shadow-lg shadow-[#25D366]/10">
+                                    {/* glow top-right */}
+                                    <div className="absolute -top-8 -right-8 w-28 h-28 bg-[#25D366]/15 rounded-full blur-2xl pointer-events-none" />
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        {/* WhatsApp icon */}
+                                        <div className="w-11 h-11 rounded-xl bg-[#25D366]/20 border border-[#25D366]/30 flex items-center justify-center shrink-0">
+                                            <svg viewBox="0 0 32 32" fill="none" className="w-6 h-6"><path d="M16 3C8.82 3 3 8.82 3 16c0 2.35.63 4.55 1.73 6.45L3 29l6.72-1.7A12.93 12.93 0 0016 29c7.18 0 13-5.82 13-13S23.18 3 16 3z" fill="#25D366"/><path d="M22.1 19.6c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.96-.95 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.68-1.63-.93-2.23-.24-.59-.49-.5-.68-.51h-.58c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47s1.06 2.87 1.21 3.07c.15.2 2.08 3.17 5.04 4.45.7.3 1.25.48 1.68.62.7.22 1.34.19 1.84.11.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="#fff"/></svg>
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="text-[#25D366] text-xs font-bold uppercase tracking-widest">WhatsApp</span>
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#25D366]"></span>
+                                                </span>
+                                            </div>
+                                            <p className="text-white text-sm font-medium">
+                                                ¡Código enviado a <span className="text-[#25D366] font-bold">{clientPhone}</span>!
+                                            </p>
+                                            <p className="text-white/50 text-xs mt-0.5">Revisa tu WhatsApp e ingresa el código.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-muted mb-6">
+                                Hemos enviado un código a <strong>{clientPhone}</strong>. Ingrésalo para continuar.
+                            </p>
+                        )}
 
                         {/* MOCK SMS CARD — solo visible en modo DEMO */}
                         {generatedOtp && !isSendingSms && smsProvider === 'demo' && (
