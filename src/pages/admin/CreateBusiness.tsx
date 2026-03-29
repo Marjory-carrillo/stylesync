@@ -43,7 +43,7 @@ export default function CreateBusiness() {
             return;
         }
 
-        const res = await createTenant(name, slug, address, category);
+        const res = await createTenant(name, slug, address, category, user?.email ?? '');
 
         if (res.success) {
             // Optional: Add a small delay for "success" animation
