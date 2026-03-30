@@ -3,12 +3,11 @@ import { supabase } from '../../supabaseClient';
 import type { Appointment } from '../../types/store.types';
 import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
-import { useServices } from './useServices';
+
 
 export const useAppointments = (options?: { startDate?: string }) => {
     const { tenantId } = useAuthStore();
     const { showToast, setDeviceHasPending, getDevicePendingId, clearDevicePending } = useUIStore();
-    const { services } = useServices(); // Needed for some logic
     const queryClient = useQueryClient();
     const queryKey = ['appointments', tenantId, options?.startDate];
 
@@ -76,31 +75,13 @@ export const useAppointments = (options?: { startDate?: string }) => {
         mutationFn: async ({ id }: { id: string }) => {
             if (!tenantId) throw new Error("No tenant info");
 
-            const apt = query.data?.find(a => a.id === id);
-            if (!apt) throw new Error('Cita no encontrada');
-
-            // TODO: Week cancellation limit logic here if needed (byClient)
-
-            const svc = services.find(s => s.id === apt.serviceId);
-
-            // Log it
-            await supabase.from('cancellation_log').insert([{
-                appointment_id: apt.id,
-                client_name: apt.clientName,
-                client_phone: apt.clientPhone,
-                service_name: svc?.name ?? 'Desconocido',
-                date: apt.date,
-                time: apt.time,
-                tenant_id: tenantId
-            }]);
-
-            // Cancel it
-            const { error } = await supabase.from('appointments')
-                .update({ status: 'cancelada' })
-                .eq('id', id)
-                .eq('tenant_id', tenantId);
+            const { data, error } = await supabase.rpc('cancel_appointment_by_client', {
+                p_appointment_id: id,
+                p_tenant_id: tenantId,
+            });
 
             if (error) throw error;
+            if (!data?.success) throw new Error(data?.error || 'Error al cancelar');
             return id;
         },
         onSuccess: (id) => {
@@ -134,11 +115,15 @@ export const useAppointments = (options?: { startDate?: string }) => {
     const updateTimeMutation = useMutation({
         mutationFn: async ({ id, newTime }: { id: string, newTime: string }) => {
             if (!tenantId) throw new Error("No tenant info");
-            const { error } = await supabase.from('appointments')
-                .update({ time: newTime })
-                .eq('id', id)
-                .eq('tenant_id', tenantId);
+
+            const { data, error } = await supabase.rpc('update_appointment_time_by_client', {
+                p_appointment_id: id,
+                p_tenant_id: tenantId,
+                p_new_time: newTime,
+            });
+
             if (error) throw error;
+            if (!data?.success) throw new Error(data?.error || 'Error al actualizar');
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
