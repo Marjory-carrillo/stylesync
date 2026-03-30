@@ -4,6 +4,16 @@ import type { Appointment } from '../../types/store.types';
 import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
 
+// Helper: notify barber via WhatsApp (fire-and-forget)
+async function notifyAdmin(tenantId: string, eventType: 'new' | 'reschedule' | 'cancel', appointment: {
+    client_name: string; client_phone: string; service_name?: string; date: string; time: string;
+}) {
+    try {
+        await supabase.functions.invoke('notify-admin', {
+            body: { tenant_id: tenantId, event_type: eventType, appointment },
+        });
+    } catch (_) { /* fire-and-forget */ }
+}
 
 export const useAppointments = (options?: { startDate?: string }) => {
     const { tenantId } = useAuthStore();
@@ -16,19 +26,10 @@ export const useAppointments = (options?: { startDate?: string }) => {
         queryKey,
         queryFn: async (): Promise<Appointment[]> => {
             if (!tenantId) return [];
-
-            let queryBuilder = supabase
-                .from('appointments')
-                .select('*')
-                .eq('tenant_id', tenantId);
-
-            if (options?.startDate) {
-                queryBuilder = queryBuilder.gte('date', options.startDate);
-            }
-
+            let queryBuilder = supabase.from('appointments').select('*').eq('tenant_id', tenantId);
+            if (options?.startDate) queryBuilder = queryBuilder.gte('date', options.startDate);
             const { data, error } = await queryBuilder;
             if (error) throw error;
-
             return data.map((a: any) => ({
                 ...a,
                 clientName: a.client_name,
@@ -44,9 +45,7 @@ export const useAppointments = (options?: { startDate?: string }) => {
     // ADD Appointment
     const addMutation = useMutation({
         mutationFn: async (appt: Omit<Appointment, 'id' | 'status' | 'bookedAt'>) => {
-            if (!tenantId) throw new Error("No tenant info");
-
-            // RPC call for atomic booking
+            if (!tenantId) throw new Error('No tenant info');
             const { data: rpcResult, error: rpcError } = await supabase.rpc('create_appointment_v3', {
                 p_tenant_id: tenantId,
                 p_client_name: appt.clientName,
@@ -54,48 +53,61 @@ export const useAppointments = (options?: { startDate?: string }) => {
                 p_service_id: appt.serviceId,
                 p_stylist_id: appt.stylistId,
                 p_date: appt.date,
-                p_time: appt.time
+                p_time: appt.time,
             });
-
             if (rpcError) throw rpcError;
             if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Error desconocido al reservar');
-
-            return rpcResult;
+            return { ...rpcResult, _appt: appt };
         },
         onSuccess: (data) => {
             if (data.id) setDeviceHasPending(data.id);
             queryClient.invalidateQueries({ queryKey });
             showToast('Cita reservada con éxito', 'success');
+            if (tenantId && data._appt) {
+                notifyAdmin(tenantId, 'new', {
+                    client_name: data._appt.clientName,
+                    client_phone: data._appt.clientPhone,
+                    date: data._appt.date,
+                    time: data._appt.time,
+                });
+            }
         },
-        onError: (err: any) => showToast(`Error al reservar: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error al reservar: ${err.message}`, 'error'),
     });
 
     // CANCEL Appointment
     const cancelMutation = useMutation({
         mutationFn: async ({ id }: { id: string }) => {
-            if (!tenantId) throw new Error("No tenant info");
-
+            if (!tenantId) throw new Error('No tenant info');
+            const apt = query.data?.find(a => a.id === id);
             const { data, error } = await supabase.rpc('cancel_appointment_by_client', {
                 p_appointment_id: id,
                 p_tenant_id: tenantId,
             });
-
             if (error) throw error;
             if (!data?.success) throw new Error(data?.error || 'Error al cancelar');
-            return id;
+            return { id, apt };
         },
-        onSuccess: (id) => {
+        onSuccess: ({ id, apt }) => {
             if (getDevicePendingId() === id) clearDevicePending();
             queryClient.invalidateQueries({ queryKey });
             showToast('Cita cancelada', 'success');
+            if (tenantId && apt) {
+                notifyAdmin(tenantId, 'cancel', {
+                    client_name: apt.clientName,
+                    client_phone: apt.clientPhone,
+                    date: apt.date,
+                    time: apt.time,
+                });
+            }
         },
-        onError: (err: any) => showToast(`Error al cancelar: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error al cancelar: ${err.message}`, 'error'),
     });
 
     // COMPLETE Appointment
     const completeMutation = useMutation({
         mutationFn: async (id: string) => {
-            if (!tenantId) throw new Error("No tenant info");
+            if (!tenantId) throw new Error('No tenant info');
             const { error } = await supabase.from('appointments')
                 .update({ status: 'completada' })
                 .eq('id', id)
@@ -108,29 +120,37 @@ export const useAppointments = (options?: { startDate?: string }) => {
             queryClient.invalidateQueries({ queryKey });
             showToast('Cita completada', 'success');
         },
-        onError: (err: any) => showToast(`Error al completar: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error al completar: ${err.message}`, 'error'),
     });
 
-    // UPDATE TIME
+    // UPDATE TIME + DATE
     const updateTimeMutation = useMutation({
-        mutationFn: async ({ id, newTime, newDate }: { id: string, newTime: string, newDate?: string }) => {
-            if (!tenantId) throw new Error("No tenant info");
-
+        mutationFn: async ({ id, newTime, newDate }: { id: string; newTime: string; newDate?: string }) => {
+            if (!tenantId) throw new Error('No tenant info');
+            const apt = query.data?.find(a => a.id === id);
             const { data, error } = await supabase.rpc('update_appointment_time_by_client', {
                 p_appointment_id: id,
                 p_tenant_id: tenantId,
                 p_new_time: newTime,
                 p_new_date: newDate ?? null,
             });
-
             if (error) throw error;
             if (!data?.success) throw new Error(data?.error || 'Error al actualizar');
+            return { apt, newTime, newDate };
         },
-        onSuccess: () => {
+        onSuccess: ({ apt, newTime, newDate }) => {
             queryClient.invalidateQueries({ queryKey });
             showToast('Hora actualizada', 'success');
+            if (tenantId && apt) {
+                notifyAdmin(tenantId, 'reschedule', {
+                    client_name: apt.clientName,
+                    client_phone: apt.clientPhone,
+                    date: newDate ?? apt.date,
+                    time: newTime,
+                });
+            }
         },
-        onError: (err: any) => showToast(`Error al actualizar hora: ${err.message}`, 'error')
+        onError: (err: any) => showToast(`Error al actualizar hora: ${err.message}`, 'error'),
     });
 
     return {
@@ -142,6 +162,6 @@ export const useAppointments = (options?: { startDate?: string }) => {
         updateAppointmentTime: updateTimeMutation.mutateAsync,
         isAdding: addMutation.isPending,
         isCancelling: cancelMutation.isPending,
-        isCompleting: completeMutation.isPending
+        isCompleting: completeMutation.isPending,
     };
 };
