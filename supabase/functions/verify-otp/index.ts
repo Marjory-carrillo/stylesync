@@ -1,10 +1,8 @@
 // @ts-nocheck — Deno runtime (Supabase Edge Functions)
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
-// Número SMS de Twilio (sin prefijo whatsapp:)
 const TWILIO_FROM_SMS    = (Deno.env.get('TWILIO_WA_FROM') ?? '').replace('whatsapp:', '');
 
 const SUPABASE_URL       = Deno.env.get('SUPABASE_URL')!;
@@ -26,28 +24,46 @@ function generateCode(): string {
     return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
+// Helper: Supabase REST request with service role
+async function sbRest(path: string, method: string, body?: unknown) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        method,
+        headers: {
+            'apikey':        SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type':  'application/json',
+            'Prefer':        method === 'POST' ? 'resolution=merge-duplicates,return=minimal' : 'return=representation',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    return { ok: res.ok, status: res.status, body: text ? JSON.parse(text) : null };
+}
+
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
         const { action, phone, code } = await req.json();
         const e164 = normalizeE164(phone);
-        const db   = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        console.log(`[verify-otp] action=${action} phone=${e164}`);
+        console.log(`[verify-otp] SUPABASE_URL=${SUPABASE_URL?.slice(0,30)} KEY=${SUPABASE_KEY?.slice(0,10)}`);
 
         // ── ENVIAR código ─────────────────────────────────────────────────────
         if (action === 'send') {
             const otp       = generateCode();
-            const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-            // Guardar/sobreescribir en la tabla
-            const { error: dbErr } = await db.from('otp_codes').upsert(
-                { phone: e164, code: otp, expires_at: expiresAt, attempts: 0 },
-                { onConflict: 'phone' }
-            );
-            if (dbErr) {
-                console.error('[verify-otp] DB error on upsert:', dbErr.message);
+            // Upsert en otp_codes via REST
+            const db = await sbRest('otp_codes?on_conflict=phone', 'POST', {
+                phone: e164, code: otp, expires_at: expiresAt, attempts: 0,
+            });
+            console.log('[verify-otp] DB upsert:', db.status, JSON.stringify(db.body));
+
+            if (!db.ok && db.status !== 409) {
                 return new Response(
-                    JSON.stringify({ success: false, error: 'Error interno al crear código' }),
+                    JSON.stringify({ success: false, error: `DB error: ${JSON.stringify(db.body)}` }),
                     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
@@ -70,7 +86,7 @@ serve(async (req: Request) => {
                 }
             );
             const smsData = await smsRes.json();
-            console.log('[verify-otp] SMS send:', smsRes.status, smsData.sid ?? smsData.message);
+            console.log('[verify-otp] SMS:', smsRes.status, smsData.sid ?? smsData.message);
 
             if (!smsRes.ok) {
                 return new Response(
@@ -87,45 +103,40 @@ serve(async (req: Request) => {
 
         // ── VERIFICAR código ──────────────────────────────────────────────────
         if (action === 'check') {
-            const { data: row, error: fetchErr } = await db
-                .from('otp_codes')
-                .select('code, expires_at, attempts')
-                .eq('phone', e164)
-                .single();
+            const db = await sbRest(
+                `otp_codes?phone=eq.${encodeURIComponent(e164)}&select=code,expires_at,attempts`,
+                'GET'
+            );
+            console.log('[verify-otp] DB fetch:', db.status, JSON.stringify(db.body));
 
-            if (fetchErr || !row) {
-                console.log('[verify-otp] check: no record found for', e164);
+            const row = Array.isArray(db.body) ? db.body[0] : null;
+            if (!row) {
                 return new Response(
                     JSON.stringify({ success: true, verified: false }),
                     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
 
-            // Verificar expiración
             if (new Date(row.expires_at) < new Date()) {
-                await db.from('otp_codes').delete().eq('phone', e164);
-                console.log('[verify-otp] check: code expired for', e164);
+                await sbRest(`otp_codes?phone=eq.${encodeURIComponent(e164)}`, 'DELETE');
                 return new Response(
                     JSON.stringify({ success: true, verified: false, reason: 'expired' }),
                     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
 
-            // Actualizar intentos
             const newAttempts = (row.attempts ?? 0) + 1;
-            await db.from('otp_codes').update({ attempts: newAttempts }).eq('phone', e164);
+            await sbRest(`otp_codes?phone=eq.${encodeURIComponent(e164)}`, 'PATCH', { attempts: newAttempts });
 
             if (row.code !== code) {
-                console.log('[verify-otp] check: wrong code for', e164, `(attempt ${newAttempts})`);
                 return new Response(
                     JSON.stringify({ success: true, verified: false }),
                     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
 
-            // ✅ Código correcto — eliminar registro
-            await db.from('otp_codes').delete().eq('phone', e164);
-            console.log('[verify-otp] check: APPROVED for', e164);
+            await sbRest(`otp_codes?phone=eq.${encodeURIComponent(e164)}`, 'DELETE');
+            console.log('[verify-otp] APPROVED for', e164);
             return new Response(
                 JSON.stringify({ success: true, verified: true }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
