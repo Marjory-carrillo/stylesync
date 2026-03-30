@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
@@ -57,36 +57,8 @@ export default function Booking() {
     };
     const getActiveAnnouncements = () => announcements.filter(a => a.active);
 
-    const sendSMS = async (phone: string, message: string, otpCode?: string): Promise<{ success: boolean; provider?: string; error?: string }> => {
-        const currentProvider = businessConfig?.smsProvider ?? 'demo';
-
-        if (!tenantId) {
-            console.log(`[SMS DEMO fallback - no tenantId] To: ${phone}`);
-            return { success: true, provider: 'demo' };
-        }
-        try {
-            const reqBody: Record<string, string> = {
-                to: phone, message, tenant_id: tenantId, provider: currentProvider,
-            };
-            // Pasar el código OTP y el nombre del negocio para usar la plantilla aprobada
-            if (otpCode) {
-                reqBody.otp_code     = otpCode;
-                reqBody.business_name = businessConfig?.name ?? 'CitaLink';
-            }
-            const { data, error } = await supabase.functions.invoke('send-sms', { body: reqBody });
-            if (error) {
-                console.warn('[SMS] Edge function error:', error);
-                return { success: false, error: `[DEBUG] Error en Edge Function: ${error.message}` };
-            }
-            if (!data?.success) {
-                return { success: false, error: `[DEBUG] Twilio error (código ${data?.twilioCode}): ${data?.error}` };
-            }
-            return { success: true, provider: data?.provider ?? 'demo' };
-        } catch (err: any) {
-            console.warn('[SMS] Unexpected error:', err);
-            return { success: false, error: `[DEBUG] Error inesperado: ${err.message}` };
-        }
-    };
+    // sendSMS removida — OTP ahora usa Twilio Verify (verify-otp edge function)
+    // Para WhatsApp OTP futuro, descomentar y conectar a send-sms con ContentSid de auth template.
 
 
     const loading = tenantLoading || (tenantId && configLoading);
