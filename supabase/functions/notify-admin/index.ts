@@ -26,7 +26,7 @@ async function sendWA(to: string, body: string): Promise<boolean> {
         { method: 'POST', headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() }
     );
     const data = await res.json();
-    console.log('[notify-admin] Twilio:', res.status, data.sid ?? data.message);
+    console.log('[notify-admin] Twilio response:', res.status, JSON.stringify(data));
     return res.ok;
 }
 
@@ -34,41 +34,56 @@ serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
-        const { tenant_id, event_type, appointment } = await req.json();
-        // event_type: 'new' | 'reschedule' | 'cancel'
+        const payload = await req.json();
+        const { tenant_id, event_type, appointment } = payload;
+        // Optional: admin_phone and business_name can be passed directly from frontend
+        const directPhone = payload.admin_phone as string | undefined;
+        const directName  = payload.business_name as string | undefined;
 
-        const supabase = createClient(
-            Deno.env.get('SUPABASE_URL')!,
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-        );
+        console.log('[notify-admin] received tenant_id:', tenant_id, '| event:', event_type, '| direct_phone:', directPhone);
 
-        // Get barber's phone from tenants table
-        const { data: tenant } = await supabase
-            .from('tenants')
-            .select('name, phone, sms_provider')
-            .eq('id', tenant_id)
-            .single();
+        let adminPhone = directPhone;
+        let businessName = directName ?? 'CitaLink';
 
-        if (!tenant?.phone) {
-            console.warn('[notify-admin] No phone configured for tenant');
-            return new Response(JSON.stringify({ success: false, error: 'No phone' }), { headers: corsHeaders });
+        // Only query DB if phone wasn't passed directly
+        if (!adminPhone) {
+            const supabase = createClient(
+                Deno.env.get('SUPABASE_URL')!,
+                Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+            );
+
+            const { data: tenant, error: tenantError } = await supabase
+                .from('tenants')
+                .select('name, phone, sms_provider')
+                .eq('id', tenant_id)
+                .single();
+
+            console.log('[notify-admin] tenant lookup:', JSON.stringify(tenant), '| error:', tenantError?.message);
+
+            if (!tenant?.phone) {
+                console.warn('[notify-admin] No phone on tenant, tenant_id was:', tenant_id);
+                return new Response(JSON.stringify({ success: false, error: 'No phone' }), { headers: corsHeaders });
+            }
+
+            if (tenant.sms_provider !== 'whatsapp') {
+                console.log('[notify-admin] sms_provider is not whatsapp:', tenant.sms_provider);
+                return new Response(JSON.stringify({ success: false, reason: 'whatsapp not enabled' }), { headers: corsHeaders });
+            }
+
+            adminPhone   = tenant.phone;
+            businessName = tenant.name;
         }
 
-        if (tenant.sms_provider !== 'whatsapp') {
-            console.log('[notify-admin] WA not enabled (provider:', tenant.sms_provider, ')');
-            return new Response(JSON.stringify({ success: false, reason: 'whatsapp not enabled' }), { headers: corsHeaders });
-        }
+        const adminWA = normalizeToWA(adminPhone);
+        console.log('[notify-admin] sending to WA:', adminWA);
 
-        const adminWA = normalizeToWA(tenant.phone);
-
-        // Build message based on event type
-        const icons: Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
+        const icons:  Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
         const labels: Record<string, string> = { new: 'NUEVA CITA', reschedule: 'CITA REPROGRAMADA', cancel: 'CITA CANCELADA' };
 
         const icon  = icons[event_type]  ?? '📅';
         const label = labels[event_type] ?? 'EVENTO DE CITA';
 
-        const msg = `${icon} *${label}* — ${tenant.name}
+        const msg = `${icon} *${label}* — ${businessName}
 👤 *${appointment.client_name}*
 ✂️ ${appointment.service_name ?? 'Servicio'}
 📆 ${appointment.date} · ${appointment.time}
@@ -78,7 +93,7 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ success: sent }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     } catch (err: any) {
-        console.error('[notify-admin] Error:', err.message);
+        console.error('[notify-admin] Fatal error:', err.message);
         return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: corsHeaders });
     }
 });

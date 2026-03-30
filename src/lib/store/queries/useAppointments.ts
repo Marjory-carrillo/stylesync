@@ -5,21 +5,33 @@ import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
 
 // Helper: notify barber via WhatsApp (fire-and-forget)
-async function notifyAdmin(tenantId: string, eventType: 'new' | 'reschedule' | 'cancel', appointment: {
-    client_name: string; client_phone: string; service_name?: string; date: string; time: string;
-}) {
+async function notifyAdmin(
+    tenantId: string,
+    eventType: 'new' | 'reschedule' | 'cancel',
+    appointment: { client_name: string; client_phone: string; service_name?: string; date: string; time: string },
+    adminPhone?: string,
+    businessName?: string,
+) {
     try {
         await supabase.functions.invoke('notify-admin', {
-            body: { tenant_id: tenantId, event_type: eventType, appointment },
+            body: {
+                tenant_id: tenantId,
+                event_type: eventType,
+                appointment,
+                ...(adminPhone   ? { admin_phone:   adminPhone   } : {}),
+                ...(businessName ? { business_name: businessName } : {}),
+            },
         });
     } catch (_) { /* fire-and-forget */ }
 }
 
-export const useAppointments = (options?: { startDate?: string }) => {
+export const useAppointments = (options?: { startDate?: string; adminPhone?: string; businessName?: string }) => {
     const { tenantId } = useAuthStore();
     const { showToast, setDeviceHasPending, getDevicePendingId, clearDevicePending } = useUIStore();
     const queryClient = useQueryClient();
     const queryKey = ['appointments', tenantId, options?.startDate];
+    const adminPhone   = options?.adminPhone;
+    const businessName = options?.businessName;
 
     // GET Appointments
     const query = useQuery({
@@ -69,7 +81,7 @@ export const useAppointments = (options?: { startDate?: string }) => {
                     client_phone: data._appt.clientPhone,
                     date: data._appt.date,
                     time: data._appt.time,
-                });
+                }, adminPhone, businessName);
             }
         },
         onError: (err: any) => showToast(`Error al reservar: ${err.message}`, 'error'),
@@ -98,7 +110,7 @@ export const useAppointments = (options?: { startDate?: string }) => {
                     client_phone: apt.clientPhone,
                     date: apt.date,
                     time: apt.time,
-                });
+                }, adminPhone, businessName);
             }
         },
         onError: (err: any) => showToast(`Error al cancelar: ${err.message}`, 'error'),
@@ -147,7 +159,7 @@ export const useAppointments = (options?: { startDate?: string }) => {
                     client_phone: apt.clientPhone,
                     date: newDate ?? apt.date,
                     time: newTime,
-                });
+                }, adminPhone, businessName);
             }
         },
         onError: (err: any) => showToast(`Error al actualizar hora: ${err.message}`, 'error'),

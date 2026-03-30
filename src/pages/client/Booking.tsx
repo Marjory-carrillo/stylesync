@@ -34,13 +34,17 @@ export default function Booking() {
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
     const { services } = useServices();
     const { stylists } = useStylists();
-    const { appointments, addAppointment, cancelAppointment, updateAppointmentTime } = useAppointments();
-    const { schedule } = useSchedule();
     const { data: businessConfig, isLoading: configLoading } = useTenantData();
+    const { appointments, addAppointment, cancelAppointment, updateAppointmentTime } = useAppointments({
+        adminPhone:   businessConfig?.phone ?? undefined,
+        businessName: businessConfig?.name  ?? undefined,
+    });
+    const { schedule } = useSchedule();
     const { blockedSlots } = useBlockedSlots();
     const { blockedPhones } = useBlockedPhones();
     const { announcements } = useAnnouncements();
     const { addToWaitingList } = useWaitingList();
+
     
     const isPhoneBlocked = (phone: string) => blockedPhones.includes(phone);
     const hasActiveAppointment = (phone: string) => appointments.some(a => a.clientPhone === phone && a.status === 'confirmada');
@@ -1282,25 +1286,17 @@ export default function Booking() {
                                 return (
                                     <div className="w-full mb-6">
                                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] text-center mb-3">Añadir al Calendario</p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <a
-                                                href={generateGoogleCalendarUrl(calEvent)}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex flex-col items-center justify-center py-4 rounded-3xl bg-gradient-to-b from-blue-500/10 to-blue-600/5 border border-blue-500/20 hover:border-blue-400/40 hover:bg-blue-500/15 transition-all text-blue-400 hover:text-blue-300 group"
-                                            >
-                                                <CalendarPlus size={20} className="mb-2 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Google</span>
-                                            </a>
-                                            <button
-                                                onClick={() => downloadICSFile(calEvent)}
-                                                className="flex flex-col items-center justify-center py-4 rounded-3xl bg-gradient-to-b from-purple-500/10 to-purple-600/5 border border-purple-500/20 hover:border-purple-400/40 hover:bg-purple-500/15 transition-all text-purple-400 hover:text-purple-300 group"
-                                            >
-                                                <Download size={20} className="mb-2 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Apple / Otro</span>
-                                            </button>
-                                        </div>
+                                        <a
+                                            href={generateGoogleCalendarUrl(calEvent)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-3 w-full py-4 rounded-3xl bg-gradient-to-b from-blue-500/10 to-blue-600/5 border border-blue-500/20 hover:border-blue-400/40 hover:bg-blue-500/15 transition-all text-blue-400 hover:text-blue-300 group"
+                                        >
+                                            <CalendarPlus size={20} className="group-hover:scale-110 transition-transform" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Agregar a Google Calendar</span>
+                                        </a>
                                     </div>
+
                                 );
                             })()}
 
