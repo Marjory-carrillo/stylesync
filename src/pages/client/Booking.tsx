@@ -247,6 +247,7 @@ export default function Booking() {
     const [smsProvider, setSmsProvider] = useState<'demo' | 'whatsapp'>('demo');
     const [smsDebugError, setSmsDebugError] = useState<string | null>(null);
     const [resendCountdown, setResendCountdown] = useState(0);
+    const [verifySid, setVerifySid] = useState<string | null>(null);
 
     // Countdown timer for resend button
     useEffect(() => {
@@ -288,7 +289,7 @@ export default function Booking() {
             const currentProvider = businessConfig?.smsProvider ?? 'demo';
 
             if (currentProvider === 'whatsapp') {
-                // ── Twilio Verify (WhatsApp) ──────────────────────────────────
+                // ── Twilio Verify SMS ─────────────────────────────────────────
                 const { data, error } = await supabase.functions.invoke('verify-otp', {
                     body: { action: 'send', phone: cleanPhone },
                 });
@@ -297,7 +298,8 @@ export default function Booking() {
                     return;
                 }
                 setSmsProvider('whatsapp');
-                setGeneratedOtp('__verify__'); // señal de que usamos Verify
+                setGeneratedOtp('__verify__');
+                setVerifySid(data?.sid ?? null); // guardar SID para el check
                 setOtpAttempts(0);
                 setOtpCode('');
                 setStep(16);
@@ -317,11 +319,11 @@ export default function Booking() {
 
     const verifyOtp = async () => {
         if (generatedOtp === '__verify__') {
-            // ── Twilio Verify: verificar con la API ───────────────────────────
+            // ── Twilio Verify: verificar con SID (más confiable que número) ──
             setIsSendingSms(true);
             try {
                 const { data } = await supabase.functions.invoke('verify-otp', {
-                    body: { action: 'check', phone: clientPhone, code: otpCode },
+                    body: { action: 'check', phone: clientPhone, code: otpCode, sid: verifySid },
                 });
                 if (data?.verified) {
                     isClosed ? setStep(15) : setStep(2);
