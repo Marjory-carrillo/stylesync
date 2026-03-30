@@ -25,8 +25,8 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, Download, MessageSquare } from 'lucide-react';
-import { generateGoogleCalendarUrl, downloadICSFile } from '../../lib/calendarUtils';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare } from 'lucide-react';
+import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Booking() {
