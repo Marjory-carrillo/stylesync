@@ -92,14 +92,14 @@ serve(async (req: Request) => {
             const tenant = appt.tenants;
             if (tenant?.sms_provider !== 'whatsapp') continue;
 
-            const apptDatetime  = new Date(`${appt.date}T${appt.time}`);
-            const bookedAt      = new Date(appt.booked_at ?? appt.created_at ?? now);
-            const diffMs        = apptDatetime.getTime() - bookedAt.getTime();
-            const diffHours     = diffMs / (1000 * 60 * 60);
-            const msUntilAppt   = apptDatetime.getTime() - now.getTime();
-            const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);
+            const apptDatetime   = new Date(`${appt.date}T${appt.time}`);
+            const bookedAt       = new Date(appt.booked_at ?? appt.created_at ?? now);
+            const diffMs         = apptDatetime.getTime() - bookedAt.getTime();
+            const diffHours      = diffMs / (1000 * 60 * 60);          // booking→appt hours
+            const msUntilAppt    = apptDatetime.getTime() - now.getTime();
+            const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);    // now→appt hours
 
-            // Same day booking → only confirmation (no reminder)
+            // Same day booking → only confirmation, skip reminder
             const apptDateStr = appt.date;
             const todayStr    = now.toISOString().split('T')[0];
             if (apptDateStr === todayStr) continue;
@@ -107,15 +107,18 @@ serve(async (req: Request) => {
             let shouldSendNow = false;
 
             if (diffHours < 24) {
-                // Less than 24h from booking to appointment: send 1h before appointment
+                // Booked < 24h before appointment → remind 1h before
                 if (hoursUntilAppt <= 1 && hoursUntilAppt > 0) shouldSendNow = true;
+
+            } else if (diffHours <= 72) {
+                // Booked 24h–3 days before → remind 30min before the 24h cancellation deadline
+                const deadlineMs         = bookedAt.getTime() + (23.5 * 60 * 60 * 1000);
+                const minutesToDeadline  = (deadlineMs - now.getTime()) / (1000 * 60);
+                if (minutesToDeadline <= 15 && minutesToDeadline > -15) shouldSendNow = true;
+
             } else {
-                // 24h or more: send 30 min before the 24h deadline
-                const deadlineMs    = bookedAt.getTime() + (23.5 * 60 * 60 * 1000); // 23h30min
-                const msUntilDeadline = deadlineMs - now.getTime();
-                const minutesUntilDeadline = msUntilDeadline / (1000 * 60);
-                // Send if deadline is in the next 15 minutes (cron window)
-                if (minutesUntilDeadline <= 15 && minutesUntilDeadline > -15) shouldSendNow = true;
+                // Booked +3 days before appointment → remind 5h before the appointment
+                if (hoursUntilAppt <= 5 && hoursUntilAppt > 4.75) shouldSendNow = true;
             }
 
             if (!shouldSendNow) continue;

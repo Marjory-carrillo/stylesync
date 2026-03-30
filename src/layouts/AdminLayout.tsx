@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
+import { useRealtimeNotifications } from '../lib/store/useRealtimeNotifications';
 import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus } from 'lucide-react';
 import AdminBookingModal from '../components/AdminBookingModal';
+import NotificationBell from '../components/NotificationBell';
 
 export default function AdminLayout() {
     const { t, i18n } = useTranslation();
@@ -18,6 +20,7 @@ export default function AdminLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
+    const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'es' ? 'en' : 'es';
@@ -59,6 +62,13 @@ export default function AdminLayout() {
                 </div>
                 <span className="font-bold text-white tracking-tight">Cita<span className="text-violet-500">Link</span> Admin</span>
                 <div className="flex items-center gap-2">
+                    <NotificationBell
+                        notifications={notifications}
+                        unreadCount={unreadCount}
+                        onMarkAllRead={markAllRead}
+                        onDismiss={dismiss}
+                        onClearAll={clearAll}
+                    />
                     <button
                         onClick={() => setIsNewApptModalOpen(true)}
                         className="p-2.5 bg-accent/10 hover:bg-accent/20 rounded-xl text-accent transition-all active:scale-90 border border-accent/20"
@@ -163,6 +173,17 @@ export default function AdminLayout() {
                 </nav>
 
                 <div className="p-4 mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2">
+                    {/* Notification Bell — Desktop sidebar */}
+                    <div className="hidden lg:flex items-center justify-between px-4 py-3">
+                        <span className="text-xs text-slate-500 font-medium">Notificaciones</span>
+                        <NotificationBell
+                            notifications={notifications}
+                            unreadCount={unreadCount}
+                            onMarkAllRead={markAllRead}
+                            onDismiss={dismiss}
+                            onClearAll={clearAll}
+                        />
+                    </div>
                     <button
                         onClick={toggleLanguage}
                         className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 group"
