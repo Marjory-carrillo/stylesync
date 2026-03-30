@@ -75,14 +75,6 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             if (data.id) setDeviceHasPending(data.id);
             queryClient.invalidateQueries({ queryKey });
             showToast('Cita reservada con éxito', 'success');
-            if (tenantId && data._appt) {
-                notifyAdmin(tenantId, 'new', {
-                    client_name: data._appt.clientName,
-                    client_phone: data._appt.clientPhone,
-                    date: data._appt.date,
-                    time: data._appt.time,
-                }, adminPhone, businessName);
-            }
         },
         onError: (err: any) => showToast(`Error al reservar: ${err.message}`, 'error'),
     });

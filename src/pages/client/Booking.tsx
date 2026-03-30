@@ -403,9 +403,31 @@ export default function Booking() {
             date: selectedDate,
             time: selectedTime,
         });
+
         setBookingResult(result);
-        if (result.success) setStep(5);
+        if (result.success) {
+            setStep(5);
+            // Notify barber via WhatsApp — businessConfig is loaded by this point
+            if (businessConfig?.phone && tenantId) {
+                supabase.functions.invoke('notify-admin', {
+                    body: {
+                        tenant_id: tenantId,
+                        event_type: 'new',
+                        admin_phone: businessConfig.phone,
+                        business_name: businessConfig.name,
+                        appointment: {
+                            client_name: clientName.trim(),
+                            client_phone: clientPhone.trim(),
+                            service_name: selectedService.name,
+                            date: selectedDate,
+                            time: selectedTime,
+                        },
+                    },
+                }).catch(() => { /* fire-and-forget */ });
+            }
+        }
     };
+
 
     const resetBooking = () => {
         setStep(1);
