@@ -4,7 +4,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
-const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+14155238886';
+const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
+
+// ── Plantillas aprobadas por Meta (Content SIDs de Twilio) ──────────────────
+const TEMPLATE_CONFIRMACION  = 'HXfa893170a1790b0bd8aeff7448fde298';
+const TEMPLATE_RECORDATORIO  = 'HXc99ae2355cd2f306973e448d922dc77f';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -18,20 +22,37 @@ function normalizeToWA(phone: string): string {
     return `whatsapp:+521${digits.slice(-10)}`;
 }
 
-async function sendWA(to: string, body: string): Promise<boolean> {
+/** Envía mensaje usando una plantilla aprobada por Meta (ContentSid) */
+async function sendTemplate(
+    to: string,
+    contentSid: string,
+    variables: Record<string, string>
+): Promise<boolean> {
     const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
-    const form = new URLSearchParams({ To: normalizeToWA(to), From: TWILIO_WA_FROM, Body: body });
+    const form = new URLSearchParams({
+        To: normalizeToWA(to),
+        From: TWILIO_WA_FROM,
+        ContentSid: contentSid,
+        ContentVariables: JSON.stringify(variables),
+    });
     const res = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-        { method: 'POST', headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() }
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Basic ${credentials}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: form.toString(),
+        }
     );
     const data = await res.json();
-    console.log('[process-reminders] WA to', to, '→', res.status, data.sid ?? data.message);
+    console.log('[process-reminders] Template WA to', to, '→', res.status, data.sid ?? data.message ?? JSON.stringify(data));
     return res.ok;
 }
 
 function formatDateTime(date: string, time: string): string {
-    const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const days   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const d = new Date(`${date}T${time}`);
     return `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} a las ${time.slice(0,5)}`;
@@ -52,30 +73,36 @@ serve(async (req: Request) => {
         // ── 1. CONFIRMACIONES PENDIENTES ──────────────────────────────────────
         const { data: toConfirm } = await supabase
             .from('appointments')
-            .select('*, tenants(name, phone, sms_provider, confirmation_template)')
+            .select('*, tenants(name, sms_provider)')
             .eq('status', 'pendiente')
             .eq('confirmation_sent', false);
 
         for (const appt of (toConfirm ?? [])) {
             const tenant = appt.tenants;
             if (tenant?.sms_provider !== 'whatsapp') continue;
+            if (!appt.client_phone) continue;
 
-            const template = tenant.confirmation_template
-                ?? `✅ *Cita confirmada*\nHola {nombre}, tu cita en *{negocio}* está confirmada:\n📆 {fecha}\n✂️ {servicio}\n📍 Hasta pronto!`;
+            // Obtener nombre del servicio
+            const { data: svc } = await supabase
+                .from('services')
+                .select('name')
+                .eq('id', appt.service_id)
+                .single();
 
-            // Get service name
-            const { data: svc } = await supabase.from('services').select('name').eq('id', appt.service_id).single();
+            // Variables de la plantilla citalink_cliente_confirmacion:
+            // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio
+            const ok = await sendTemplate(appt.client_phone, TEMPLATE_CONFIRMACION, {
+                '1': appt.client_name,
+                '2': tenant.name,
+                '3': formatDateTime(appt.date, appt.time),
+                '4': svc?.name ?? 'Servicio',
+            });
 
-            const msg = template
-                .replace('{nombre}', appt.client_name)
-                .replace('{negocio}', tenant.name)
-                .replace('{fecha}', formatDateTime(appt.date, appt.time))
-                .replace('{servicio}', svc?.name ?? 'Servicio')
-                .replace('{hora}', appt.time?.slice(0,5));
-
-            const ok = await sendWA(appt.client_phone, msg);
             if (ok) {
-                await supabase.from('appointments').update({ confirmation_sent: true }).eq('id', appt.id);
+                await supabase
+                    .from('appointments')
+                    .update({ confirmation_sent: true })
+                    .eq('id', appt.id);
                 confirmations++;
             }
         }
@@ -83,7 +110,7 @@ serve(async (req: Request) => {
         // ── 2. RECORDATORIOS PENDIENTES ───────────────────────────────────────
         const { data: pending } = await supabase
             .from('appointments')
-            .select('*, tenants(name, sms_provider, reminder_template)')
+            .select('*, tenants(name, sms_provider)')
             .eq('status', 'pendiente')
             .eq('confirmation_sent', true)
             .eq('reminder_sent', false);
@@ -91,15 +118,16 @@ serve(async (req: Request) => {
         for (const appt of (pending ?? [])) {
             const tenant = appt.tenants;
             if (tenant?.sms_provider !== 'whatsapp') continue;
+            if (!appt.client_phone) continue;
 
             const apptDatetime   = new Date(`${appt.date}T${appt.time}`);
             const bookedAt       = new Date(appt.booked_at ?? appt.created_at ?? now);
             const diffMs         = apptDatetime.getTime() - bookedAt.getTime();
-            const diffHours      = diffMs / (1000 * 60 * 60);          // booking→appt hours
+            const diffHours      = diffMs / (1000 * 60 * 60);
             const msUntilAppt    = apptDatetime.getTime() - now.getTime();
-            const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);    // now→appt hours
+            const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);
 
-            // Same day booking → only confirmation, skip reminder
+            // Cita del mismo día → solo confirmación, sin recordatorio
             const apptDateStr = appt.date;
             const todayStr    = now.toISOString().split('T')[0];
             if (apptDateStr === todayStr) continue;
@@ -107,37 +135,42 @@ serve(async (req: Request) => {
             let shouldSendNow = false;
 
             if (diffHours < 24) {
-                // Booked < 24h before appointment → remind 1h before
+                // Reservada <24h antes → recordar 1h antes
                 if (hoursUntilAppt <= 1 && hoursUntilAppt > 0) shouldSendNow = true;
 
             } else if (diffHours <= 72) {
-                // Booked 24h–3 days before → remind 30min before the 24h cancellation deadline
-                const deadlineMs         = bookedAt.getTime() + (23.5 * 60 * 60 * 1000);
-                const minutesToDeadline  = (deadlineMs - now.getTime()) / (1000 * 60);
+                // Reservada 24h–3 días antes → recordar 30min antes del límite de cancelación
+                const deadlineMs        = bookedAt.getTime() + (23.5 * 60 * 60 * 1000);
+                const minutesToDeadline = (deadlineMs - now.getTime()) / (1000 * 60);
                 if (minutesToDeadline <= 15 && minutesToDeadline > -15) shouldSendNow = true;
 
             } else {
-                // Booked +3 days before appointment → remind 5h before the appointment
+                // Reservada +3 días antes → recordar 5h antes de la cita
                 if (hoursUntilAppt <= 5 && hoursUntilAppt > 4.75) shouldSendNow = true;
             }
 
             if (!shouldSendNow) continue;
 
-            const { data: svc } = await supabase.from('services').select('name').eq('id', appt.service_id).single();
+            const { data: svc } = await supabase
+                .from('services')
+                .select('name')
+                .eq('id', appt.service_id)
+                .single();
 
-            const template = tenant.reminder_template
-                ?? `⏰ *Recordatorio de cita*\nHola {nombre}, te recordamos tu cita en *{negocio}*:\n📆 {fecha}\n✂️ {servicio}\nSi necesitas cancelar o reprogramar hazlo a tiempo. ¡Te esperamos!`;
+            // Variables de la plantilla citalink_cliente_recordatorio:
+            // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio
+            const ok = await sendTemplate(appt.client_phone, TEMPLATE_RECORDATORIO, {
+                '1': appt.client_name,
+                '2': tenant.name,
+                '3': formatDateTime(appt.date, appt.time),
+                '4': svc?.name ?? 'Servicio',
+            });
 
-            const msg = template
-                .replace('{nombre}', appt.client_name)
-                .replace('{negocio}', tenant.name)
-                .replace('{fecha}', formatDateTime(appt.date, appt.time))
-                .replace('{servicio}', svc?.name ?? 'Servicio')
-                .replace('{hora}', appt.time?.slice(0,5));
-
-            const ok = await sendWA(appt.client_phone, msg);
             if (ok) {
-                await supabase.from('appointments').update({ reminder_sent: true }).eq('id', appt.id);
+                await supabase
+                    .from('appointments')
+                    .update({ reminder_sent: true })
+                    .eq('id', appt.id);
                 reminders++;
             }
         }
@@ -150,6 +183,9 @@ serve(async (req: Request) => {
 
     } catch (err: any) {
         console.error('[process-reminders] Fatal:', err.message);
-        return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: corsHeaders });
+        return new Response(
+            JSON.stringify({ success: false, error: err.message }),
+            { status: 500, headers: corsHeaders }
+        );
     }
 });

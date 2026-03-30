@@ -57,7 +57,7 @@ export default function Booking() {
     };
     const getActiveAnnouncements = () => announcements.filter(a => a.active);
 
-    const sendSMS = async (phone: string, message: string): Promise<{ success: boolean; provider?: string; error?: string }> => {
+    const sendSMS = async (phone: string, message: string, otpCode?: string): Promise<{ success: boolean; provider?: string; error?: string }> => {
         const currentProvider = businessConfig?.smsProvider ?? 'demo';
 
         if (!tenantId) {
@@ -65,9 +65,15 @@ export default function Booking() {
             return { success: true, provider: 'demo' };
         }
         try {
-            const { data, error } = await supabase.functions.invoke('send-sms', {
-                body: { to: phone, message, tenant_id: tenantId, provider: currentProvider },
-            });
+            const reqBody: Record<string, string> = {
+                to: phone, message, tenant_id: tenantId, provider: currentProvider,
+            };
+            // Pasar el código OTP y el nombre del negocio para usar la plantilla aprobada
+            if (otpCode) {
+                reqBody.otp_code     = otpCode;
+                reqBody.business_name = businessConfig?.name ?? 'CitaLink';
+            }
+            const { data, error } = await supabase.functions.invoke('send-sms', { body: reqBody });
             if (error) {
                 console.warn('[SMS] Edge function error:', error);
                 return { success: false, error: `[DEBUG] Error en Edge Function: ${error.message}` };
@@ -81,6 +87,7 @@ export default function Booking() {
             return { success: false, error: `[DEBUG] Error inesperado: ${err.message}` };
         }
     };
+
 
     const loading = tenantLoading || (tenantId && configLoading);
 
@@ -267,6 +274,14 @@ export default function Booking() {
     const [otpAttempts, setOtpAttempts] = useState(0);
     const [smsProvider, setSmsProvider] = useState<'demo' | 'whatsapp'>('demo');
     const [smsDebugError, setSmsDebugError] = useState<string | null>(null);
+    const [resendCountdown, setResendCountdown] = useState(0);
+
+    // Countdown timer for resend button
+    useEffect(() => {
+        if (resendCountdown <= 0) return;
+        const timer = setTimeout(() => setResendCountdown(c => c - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [resendCountdown]);
 
     // ── Step 1: Validate & Init OTP ───
     const handleClientSubmit = async () => {
@@ -296,58 +311,92 @@ export default function Booking() {
 
         setIsSendingSms(true);
         setSmsDebugError(null);
+        setResendCountdown(15);
         try {
-            // Generate OTP
-            const code = Math.floor(1000 + Math.random() * 9000).toString();
-            setGeneratedOtp(code);
-            setOtpAttempts(0);
-            setOtpCode('');
+            const currentProvider = businessConfig?.smsProvider ?? 'demo';
 
-            // Enviar código vía Edge Function (WhatsApp o DEMO según configuración del negocio)
-            const message = `Tu código para ${businessConfig?.name || 'nuestro servicio'} es: *${code}*. Válido por 10 minutos. (Vía CitaLink)`;
-            const smsRes = await sendSMS(cleanPhone, message);
-
-            if (smsRes.success) {
-                setSmsProvider((smsRes.provider as 'demo' | 'whatsapp') ?? 'demo');
-                setStep(16); // Go to OTP verification
+            if (currentProvider === 'whatsapp') {
+                // ── Twilio Verify (WhatsApp) ──────────────────────────────────
+                const { data, error } = await supabase.functions.invoke('verify-otp', {
+                    body: { action: 'send', phone: cleanPhone },
+                });
+                if (error || !data?.success) {
+                    setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');
+                    return;
+                }
+                setSmsProvider('whatsapp');
+                setGeneratedOtp('__verify__'); // señal de que usamos Verify
+                setOtpAttempts(0);
+                setOtpCode('');
+                setStep(16);
             } else {
-                // Mostrar error detallado para debug
-                setSmsDebugError(smsRes.error ?? 'Error desconocido al enviar el código');
+                // ── Demo: código en pantalla ──────────────────────────────────
+                const code = Math.floor(1000 + Math.random() * 9000).toString();
+                setGeneratedOtp(code);
+                setOtpAttempts(0);
+                setOtpCode('');
+                setSmsProvider('demo');
+                setStep(16);
             }
         } finally {
             setIsSendingSms(false);
         }
     };
 
-    const verifyOtp = () => {
-        if (otpCode === generatedOtp) {
-            // Success
-            if (isClosed) {
-                setStep(15); // Closed info
-            } else {
-                setStep(2); // Service select
+    const verifyOtp = async () => {
+        if (generatedOtp === '__verify__') {
+            // ── Twilio Verify: verificar con la API ───────────────────────────
+            setIsSendingSms(true);
+            try {
+                const { data } = await supabase.functions.invoke('verify-otp', {
+                    body: { action: 'check', phone: clientPhone, code: otpCode },
+                });
+                if (data?.verified) {
+                    isClosed ? setStep(15) : setStep(2);
+                } else {
+                    const newAttempts = otpAttempts + 1;
+                    setOtpAttempts(newAttempts);
+                    if (newAttempts >= 3) {
+                        setClientError('Has excedido el número de intentos. Intenta más tarde.');
+                        setStep(1);
+                    } else {
+                        setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts}`);
+                    }
+                }
+            } finally {
+                setIsSendingSms(false);
             }
         } else {
-            const newAttempts = otpAttempts + 1;
-            setOtpAttempts(newAttempts);
-            if (newAttempts >= 3) {
-                setClientError('Has excedido el número de intentos. Intenta más tarde.');
-                setStep(1);
+            // ── Demo: comparación local ───────────────────────────────────────
+            if (otpCode === generatedOtp) {
+                isClosed ? setStep(15) : setStep(2);
             } else {
-                setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts} `);
+                const newAttempts = otpAttempts + 1;
+                setOtpAttempts(newAttempts);
+                if (newAttempts >= 3) {
+                    setClientError('Has excedido el número de intentos. Intenta más tarde.');
+                    setStep(1);
+                } else {
+                    setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts}`);
+                }
             }
         }
     };
 
     const resendOtp = async () => {
         setIsSendingSms(true);
+        setResendCountdown(15);
         try {
-            const code = Math.floor(1000 + Math.random() * 9000).toString();
-            setGeneratedOtp(code);
+            const currentProvider = businessConfig?.smsProvider ?? 'demo';
+            if (currentProvider === 'whatsapp') {
+                await supabase.functions.invoke('verify-otp', {
+                    body: { action: 'send', phone: clientPhone },
+                });
+            } else {
+                const code = Math.floor(1000 + Math.random() * 9000).toString();
+                setGeneratedOtp(code);
+            }
             setOtpAttempts(0);
-
-            const message = `Tu nuevo código para ${businessConfig?.name || 'nuestro servicio'} es: ${code}. (Vía CitaLink)`;
-            await sendSMS(clientPhone, message);
         } finally {
             setIsSendingSms(false);
         }
@@ -731,14 +780,45 @@ export default function Booking() {
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">Verificación de Seguridad</h3>
 
-                        {/* WhatsApp notification banner */}
+                        {/* ── Proveedor: SMS (activo) ── */}
                         {smsProvider === 'whatsapp' ? (
                             <div className="mb-6">
-                                <div className="relative bg-[#0a2618] border border-[#25D366]/30 rounded-2xl p-4 overflow-hidden shadow-lg shadow-[#25D366]/10">
+                                <div className="relative bg-[#0a1628] border border-blue-500/30 rounded-2xl p-4 overflow-hidden shadow-lg shadow-blue-500/10">
                                     {/* glow top-right */}
+                                    <div className="absolute -top-8 -right-8 w-28 h-28 bg-blue-500/15 rounded-full blur-2xl pointer-events-none" />
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        {/* SMS icon */}
+                                        <div className="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                                            <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6"><path d="M20 2H4a2 2 0 00-2 2v14a2 2 0 002 2h4l4 4 4-4h4a2 2 0 002-2V4a2 2 0 00-2-2z" fill="#3b82f6"/><path d="M7 9h10M7 13h6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">SMS</span>
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+                                                </span>
+                                            </div>
+                                            <p className="text-white text-sm font-medium">
+                                                ¡Código enviado a <span className="text-blue-400 font-bold">{clientPhone}</span>!
+                                            </p>
+                                            <p className="text-white/50 text-xs mt-0.5">Revisa tus mensajes de texto e ingresa el código.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-muted mb-6">
+                                Hemos enviado un código a <strong>{clientPhone}</strong>. Ingrésalo para continuar.
+                            </p>
+                        )}
+
+                        {/* ── Banner WhatsApp (reservado para cuando tengas Auth templates aprobados) ──
+                        {smsProvider === 'whatsapp' && useWhatsAppOtp && (
+                            <div className="mb-6">
+                                <div className="relative bg-[#0a2618] border border-[#25D366]/30 rounded-2xl p-4 overflow-hidden shadow-lg shadow-[#25D366]/10">
                                     <div className="absolute -top-8 -right-8 w-28 h-28 bg-[#25D366]/15 rounded-full blur-2xl pointer-events-none" />
                                     <div className="flex items-center gap-3 relative z-10">
-                                        {/* WhatsApp icon */}
                                         <div className="w-11 h-11 rounded-xl bg-[#25D366]/20 border border-[#25D366]/30 flex items-center justify-center shrink-0">
                                             <svg viewBox="0 0 32 32" fill="none" className="w-6 h-6"><path d="M16 3C8.82 3 3 8.82 3 16c0 2.35.63 4.55 1.73 6.45L3 29l6.72-1.7A12.93 12.93 0 0016 29c7.18 0 13-5.82 13-13S23.18 3 16 3z" fill="#25D366"/><path d="M22.1 19.6c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.96-.95 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.68-1.63-.93-2.23-.24-.59-.49-.5-.68-.51h-.58c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47s1.06 2.87 1.21 3.07c.15.2 2.08 3.17 5.04 4.45.7.3 1.25.48 1.68.62.7.22 1.34.19 1.84.11.56-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="#fff"/></svg>
                                         </div>
@@ -758,11 +838,9 @@ export default function Booking() {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
-                            <p className="text-muted mb-6">
-                                Hemos enviado un código a <strong>{clientPhone}</strong>. Ingrésalo para continuar.
-                            </p>
                         )}
+                        ── Fin banner WhatsApp ── */}
+
 
                         {/* MOCK SMS CARD — solo visible en modo DEMO */}
                         {generatedOtp && !isSendingSms && smsProvider === 'demo' && (
@@ -816,9 +894,14 @@ export default function Booking() {
                             <button
                                 className="btn btn-ghost text-sm w-full text-muted hover:text-white disabled:opacity-50"
                                 onClick={resendOtp}
-                                disabled={isSendingSms}
+                                disabled={isSendingSms || resendCountdown > 0}
                             >
-                                {isSendingSms ? 'Enviando nuevo código...' : '¿No recibiste el código? Reenviar'}
+                                {isSendingSms
+                                    ? 'Enviando nuevo código...'
+                                    : resendCountdown > 0
+                                        ? `⏳ Reenviar en ${resendCountdown}s...`
+                                        : '¿No recibiste el código? Reenviar'
+                                }
                             </button>
 
                             {isSendingSms && (
