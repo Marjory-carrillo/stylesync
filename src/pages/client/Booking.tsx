@@ -370,7 +370,7 @@ export default function Booking() {
 
     const handleUpdateTime = async (time: string) => {
         if (updatingAppointmentId) {
-            await updateAppointmentTime({ id: updatingAppointmentId, newTime: time });
+            await updateAppointmentTime({ id: updatingAppointmentId, newTime: time, newDate: selectedDate });
             setSelectedTime(time);
             setStep(12);
         }

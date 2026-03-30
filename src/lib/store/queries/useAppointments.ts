@@ -113,13 +113,14 @@ export const useAppointments = (options?: { startDate?: string }) => {
 
     // UPDATE TIME
     const updateTimeMutation = useMutation({
-        mutationFn: async ({ id, newTime }: { id: string, newTime: string }) => {
+        mutationFn: async ({ id, newTime, newDate }: { id: string, newTime: string, newDate?: string }) => {
             if (!tenantId) throw new Error("No tenant info");
 
             const { data, error } = await supabase.rpc('update_appointment_time_by_client', {
                 p_appointment_id: id,
                 p_tenant_id: tenantId,
                 p_new_time: newTime,
+                p_new_date: newDate ?? null,
             });
 
             if (error) throw error;
