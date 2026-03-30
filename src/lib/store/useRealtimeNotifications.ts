@@ -103,7 +103,8 @@ export function useRealtimeNotifications() {
                     addNotification({ type: 'cancel', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
                 } else if (a.status === 'completada' && old.status !== 'completada') {
                     addNotification({ type: 'complete', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
-                } else if ((a.time !== old.time || a.date !== old.date) && a.status === 'pendiente') {
+                } else if (a.time !== old.time || a.date !== old.date) {
+                    // Si cambia la fecha u hora (sin importar si es confirmada o pendiente)
                     addNotification({ type: 'reschedule', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
                 }
             })
