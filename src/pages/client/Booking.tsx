@@ -461,17 +461,31 @@ export default function Booking() {
 
     // ── Normal flow ───
 
-    const handleSelectTime = async (time: string) => {
+    const handleSelectTime = (time: string) => {
         if (isUpdating) { handleUpdateTime(time); return; }
         setSelectedTime(time);
-        // Ir a Step 4 (Confirmar Reserva) para que el usuario revise los datos
-        setStep(4);
+        // Solo resalta la hora, el botón "Continuar" aparecerá en el UI
     };
 
-    const handleConfirm = async () => {
+    // Botón "Continuar" del Step 3: envía OTP y muestra banner WhatsApp
+    const handleContinueToOtp = async () => {
         if (!selectedService || !selectedTime || !clientName || !clientPhone) return;
 
-        const currentProvider = businessConfig?.smsProvider ?? 'demo';
+        // Consulta directa para obtener sms_provider (evita bug de cache)
+        let currentProvider = 'demo';
+        let bName = businessConfig?.name ?? 'CitaLink';
+        if (tenantId) {
+            const { data: tenantRow } = await supabase
+                .from('tenants')
+                .select('sms_provider, name')
+                .eq('id', tenantId)
+                .single();
+            if (tenantRow) {
+                currentProvider = tenantRow.sms_provider || 'demo';
+                bName = tenantRow.name || bName;
+            }
+        }
+
         if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
             // ── Enviar OTP y mostrar banner de WhatsApp ──────────────────────
             setIsSendingSms(true);
@@ -488,7 +502,7 @@ export default function Booking() {
                     body: {
                         action: 'send',
                         phone: clientPhone,
-                        businessName:       businessConfig?.name ?? 'CitaLink',
+                        businessName:       bName,
                         clientName:         clientName.trim(),
                         serviceName:        selectedService?.name ?? 'tu servicio',
                         appointmentDateTime,
@@ -513,6 +527,11 @@ export default function Booking() {
             // Demo: crear cita directamente sin OTP
             await createAppointmentAfterOtp();
         }
+    };
+
+    // handleConfirm ahora solo se usa como fallback desde Step 4 si aún existe
+    const handleConfirm = async () => {
+        await handleContinueToOtp();
     };
 
 
@@ -1180,8 +1199,25 @@ export default function Booking() {
                             </div>
                         )}
 
+                        {availableSlots.length > 0 && selectedTime && (
+                            <div className="mt-6 space-y-3 animate-slide-up">
+                                <button
+                                    className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 to-orange-400 hover:from-fuchsia-600 hover:to-orange-500 shadow-lg shadow-fuchsia-500/20 transition-all duration-300 flex items-center justify-center gap-2"
+                                    onClick={handleContinueToOtp}
+                                    disabled={isSendingSms}
+                                >
+                                    {isSendingSms ? (
+                                        <><span className="animate-spin">⏳</span> Enviando código...</>
+                                    ) : (
+                                        <>Continuar <ChevronRight size={20} /></>
+                                    )}
+                                </button>
+                                <button className="btn btn-ghost w-full" onClick={() => setSelectedTime(null)}>Elegir otra hora</button>
+                            </div>
+                        )}
+
                         {availableSlots.length > 0 && (
-                            <button className="btn btn-ghost w-full mt-6" onClick={() => setStep(25)}>← Elegir otra fecha</button>
+                            <button className="btn btn-ghost w-full mt-3" onClick={() => setStep(25)}>← Elegir otra fecha</button>
                         )}
                     </div>
                 )}
