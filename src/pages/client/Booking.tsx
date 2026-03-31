@@ -286,46 +286,9 @@ export default function Booking() {
         setSmsDebugError(null);
         setResendCountdown(15);
         try {
-            const currentProvider = businessConfig?.smsProvider ?? 'demo';
-
-            if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
-                // ── Twilio Verify SMS ─────────────────────────────────────────
-                // Armar fecha/hora legible para la plantilla de confirmación
-                const dateLabel = selectedDate
-                    ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
-                    : 'próximamente';
-                const timeLabel = selectedTime ? format12h(selectedTime) : '';
-                const appointmentDateTime = timeLabel ? `${dateLabel} a las ${timeLabel}` : dateLabel;
-
-                const { data, error } = await supabase.functions.invoke('verify-otp', {
-                    body: {
-                        action: 'send',
-                        phone: cleanPhone,
-                        businessName:       businessConfig?.name ?? 'CitaLink',
-                        clientName:         clientName.trim(),
-                        serviceName:        selectedService?.name ?? 'tu servicio',
-                        appointmentDateTime,
-                    },
-                });
-                if (error || !data?.success) {
-                    setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');
-                    return;
-                }
-                setSmsProvider(currentProvider as 'sms' | 'whatsapp');
-                setGeneratedOtp('__verify__');
-                setVerifySid(data?.sid ?? null); // guardar SID para el check
-                setOtpAttempts(0);
-                setOtpCode('');
-                setStep(16);
-            } else {
-                // ── Demo: código en pantalla ──────────────────────────────────
-                const code = Math.floor(1000 + Math.random() * 9000).toString();
-                setGeneratedOtp(code);
-                setOtpAttempts(0);
-                setOtpCode('');
-                setSmsProvider('demo');
-                setStep(16);
-            }
+            // Solo validamos — el OTP se manda después de elegir hora
+            setSmsProvider('demo');
+            setStep(2);
         } finally {
             setIsSendingSms(false);
         }
@@ -333,14 +296,14 @@ export default function Booking() {
 
     const verifyOtp = async () => {
         if (generatedOtp === '__verify__') {
-            // ── Twilio Verify: verificar con SID (más confiable que número) ──
+            // ── Twilio: verificar código ingresado por el cliente ──
             setIsSendingSms(true);
             try {
                 const { data } = await supabase.functions.invoke('verify-otp', {
                     body: { action: 'check', phone: clientPhone, code: otpCode, sid: verifySid },
                 });
                 if (data?.verified) {
-                    isClosed ? setStep(15) : setStep(2);
+                    isClosed ? setStep(15) : setStep(4); // ← va a confirmación, no a servicios
                 } else {
                     const newAttempts = otpAttempts + 1;
                     setOtpAttempts(newAttempts);
@@ -357,7 +320,7 @@ export default function Booking() {
         } else {
             // ── Demo: comparación local ───────────────────────────────────────
             if (otpCode === generatedOtp) {
-                isClosed ? setStep(15) : setStep(2);
+                isClosed ? setStep(15) : setStep(4); // ← va a confirmación
             } else {
                 const newAttempts = otpAttempts + 1;
                 setOtpAttempts(newAttempts);
@@ -419,10 +382,50 @@ export default function Booking() {
 
     // ── Normal flow ───
 
-    const handleSelectTime = (time: string) => {
+    const handleSelectTime = async (time: string) => {
         if (isUpdating) { handleUpdateTime(time); return; }
         setSelectedTime(time);
-        setStep(4);
+
+        const currentProvider = businessConfig?.smsProvider ?? 'demo';
+        if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
+            // ── Enviar OTP ahora que tenemos todos los datos de la cita ──────
+            setIsSendingSms(true);
+            setSmsDebugError(null);
+            setResendCountdown(15);
+            try {
+                const dateLabel = selectedDate
+                    ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
+                    : 'próximamente';
+                const timeLabel = format12h(time);
+                const appointmentDateTime = `${dateLabel} a las ${timeLabel}`;
+
+                const { data, error } = await supabase.functions.invoke('verify-otp', {
+                    body: {
+                        action: 'send',
+                        phone: clientPhone,
+                        businessName:       businessConfig?.name ?? 'CitaLink',
+                        clientName:         clientName.trim(),
+                        serviceName:        selectedService?.name ?? 'tu servicio',
+                        appointmentDateTime,
+                    },
+                });
+                if (error || !data?.success) {
+                    setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');
+                    setStep(4); // fallback a confirmación sin OTP
+                    return;
+                }
+                setSmsProvider(currentProvider as 'sms' | 'whatsapp');
+                setGeneratedOtp('__verify__');
+                setVerifySid(data?.sid ?? null);
+                setOtpAttempts(0);
+                setOtpCode('');
+                setStep(16); // ir a pantalla OTP
+            } finally {
+                setIsSendingSms(false);
+            }
+        } else {
+            setStep(4); // Demo/sin proveedor → ir directo a confirmación
+        }
     };
 
     const handleConfirm = async () => {
