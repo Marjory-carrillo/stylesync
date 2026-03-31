@@ -358,6 +358,25 @@ export default function Booking() {
         try {
             await cancelAppointment({ id: appointmentId });
             setStep(11);
+
+            // ── Notificar al admin y al cliente sobre la cancelación ──────
+            if (businessConfig?.phone && tenantId) {
+                supabase.functions.invoke('notify-admin', {
+                    body: {
+                        tenant_id: tenantId,
+                        event_type: 'cancel',
+                        admin_phone: businessConfig.phone,
+                        business_name: businessConfig.name,
+                        appointment: {
+                            client_name: clientName.trim(),
+                            client_phone: clientPhone.trim(),
+                            service_name: selectedService?.name ?? 'Servicio',
+                            date: selectedDate,
+                            time: selectedTime ?? '00:00',
+                        },
+                    },
+                }).catch(() => { /* fire-and-forget */ });
+            }
         } catch (error) {
             console.error('Error al cancelar:', error);
         }
