@@ -534,6 +534,7 @@ export default function Booking() {
     // const weeklyCancels = clientPhone ? getWeeklyCancellations(clientPhone.trim()) : 0;
 
 
+    // @ts-ignore — used in JSX for closed-state rendering
     const isClosed = !todaySchedule.open || hasClosedAnnouncement;
 
     // const stepLabels = ['Datos', 'Servicio', 'Fecha', 'Hora', 'Confirmar']; // Removed unused
