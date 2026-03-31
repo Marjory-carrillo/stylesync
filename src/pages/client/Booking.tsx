@@ -377,6 +377,25 @@ export default function Booking() {
             await updateAppointmentTime({ id: updatingAppointmentId, newTime: time, newDate: selectedDate });
             setSelectedTime(time);
             setStep(12);
+
+            // ── Notificar al admin y al cliente sobre la reprogramación ──────
+            if (businessConfig?.phone && tenantId) {
+                supabase.functions.invoke('notify-admin', {
+                    body: {
+                        tenant_id: tenantId,
+                        event_type: 'reschedule',
+                        admin_phone: businessConfig.phone,
+                        business_name: businessConfig.name,
+                        appointment: {
+                            client_name: clientName.trim(),
+                            client_phone: clientPhone.trim(),
+                            service_name: selectedService?.name ?? 'Servicio',
+                            date: selectedDate,
+                            time,
+                        },
+                    },
+                }).catch(() => { /* fire-and-forget */ });
+            }
         }
     };
 
