@@ -96,7 +96,7 @@ serve(async (req: Request) => {
                     From:             TWILIO_FROM_WA,
                     To:               `whatsapp:${toWaNumber(e164)}`,
                     ContentSid:       TWILIO_WA_TEMPLATE,
-                    ContentVariables: JSON.stringify({ '1': otp }), // Template: "CitaLink: tu acceso es {{1}}. no lo compartas."
+                    ContentVariables: JSON.stringify({ '1': otp }), // Template aprobado: "✅tu acceso es {{1}}. Vence en 10min" (HXd1d06725c17059b25422d5756ea0b9a7)
                 };
                 console.log('[verify-otp] Sending WA template to:', toWaNumber(e164));
             } else {
