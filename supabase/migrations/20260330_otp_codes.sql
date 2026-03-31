@@ -7,10 +7,18 @@ CREATE TABLE IF NOT EXISTS otp_codes (
     created_at  timestamptz DEFAULT now()
 );
 
--- Auto-limpiar registros expirados
-CREATE INDEX IF NOT EXISTS otp_codes_expires_at_idx ON otp_codes(expires_at);
+-- Permisos de acceso para todos los roles de Supabase
+GRANT ALL ON TABLE otp_codes TO anon, authenticated, service_role;
 
--- Solo la service role puede operar esta tabla (Edge Function)
+-- RLS: solo service_role puede operar (desde Edge Functions)
 ALTER TABLE otp_codes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_only" ON otp_codes
-    USING (auth.role() = 'service_role');
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'otp_codes' AND policyname = 'service_role_only'
+  ) THEN
+    CREATE POLICY "service_role_only" ON otp_codes
+        FOR ALL USING (auth.role() = 'service_role');
+  END IF;
+END $$;
