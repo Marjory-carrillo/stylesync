@@ -16,10 +16,16 @@ const corsHeaders = {
 };
 
 function normalizeE164(phone: string): string {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('521') && digits.length === 13) return `+52${digits.slice(3)}`; // strip the 1 → +52XXXXXXXXXX
-    if (digits.startsWith('52') && digits.length === 12) return `+${digits}`;             // already +52XXXXXXXXXX
-    return `+52${digits.slice(-10)}`;                                                      // fallback
+    let digits = phone.replace(/\D/g, '');
+
+    // Strip leading 521XXXXXXXXXX → +52XXXXXXXXXX (13 digits with mobile prefix)
+    if (digits.startsWith('521') && digits.length === 13) return `+52${digits.slice(3)}`;
+    // Already 52XXXXXXXXXX (12 digits)
+    if (digits.startsWith('52') && digits.length === 12) return `+${digits}`;
+    // Strip leading 0 if user typed 0XXXXXXXXX (common mistake in MX)
+    if (digits.startsWith('0') && digits.length === 11) digits = digits.slice(1);
+    // Return last 10 digits with +52 prefix
+    return `+52${digits.slice(-10)}`;
 }
 
 // WhatsApp Mexico requires +521XXXXXXXXXX (13 digits with mobile prefix 1)
