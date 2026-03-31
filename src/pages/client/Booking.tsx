@@ -247,7 +247,6 @@ export default function Booking() {
     const [smsProvider, setSmsProvider] = useState<'demo' | 'sms' | 'whatsapp'>('demo');
     const [smsDebugError, setSmsDebugError] = useState<string | null>(null);
     const [resendCountdown, setResendCountdown] = useState(0);
-    const [verifySid, setVerifySid] = useState<string | null>(null);
 
     // Countdown timer for resend button
     useEffect(() => {
@@ -339,9 +338,12 @@ export default function Booking() {
             // ── Twilio: verificar código ingresado por el cliente ──
             setIsSendingSms(true);
             try {
-                const { data } = await supabase.functions.invoke('verify-otp', {
-                    body: { action: 'check', phone: clientPhone, code: otpCode, sid: verifySid },
+                const _checkRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
+                    body: JSON.stringify({ action: 'check', phone: clientPhone, code: otpCode }),
                 });
+                const data = _checkRes.ok ? await _checkRes.json().catch(() => ({})) : {};
                 if (data?.verified) {
                     // OTP válido → crear la cita y ir a confirmación final
                     await createAppointmentAfterOtp();
@@ -381,8 +383,10 @@ export default function Booking() {
         try {
             const currentProvider = businessConfig?.smsProvider ?? 'demo';
             if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
-                await supabase.functions.invoke('verify-otp', {
-                    body: { action: 'send', phone: clientPhone },
+                await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
+                    body: JSON.stringify({ action: 'send', phone: clientPhone }),
                 });
             } else {
                 const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -498,26 +502,38 @@ export default function Booking() {
                 const timeLabel = format12h(selectedTime);
                 const appointmentDateTime = `${dateLabel} a las ${timeLabel}`;
 
-                const { data, error } = await supabase.functions.invoke('verify-otp', {
-                    body: {
-                        action: 'send',
-                        phone: clientPhone,
-                        businessName:       bName,
-                        clientName:         clientName.trim(),
-                        serviceName:        selectedService?.name ?? 'tu servicio',
-                        appointmentDateTime,
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                const anonKey    = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+                const funcRes = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
+                    method:  'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${anonKey}`,
+                        'apikey': anonKey,
                     },
+                    body: JSON.stringify({
+                        action:              'send',
+                        phone:               clientPhone,
+                        businessName:        bName,
+                        clientName:          clientName.trim(),
+                        serviceName:         selectedService?.name ?? 'tu servicio',
+                        appointmentDateTime,
+                    }),
                 });
-                if (error || !data?.success) {
-                    const debugErr = data?.error ?? error?.message ?? 'Error al enviar código';
+
+                const funcData = funcRes.ok
+                    ? await funcRes.json().catch(() => ({ success: false, error: 'Respuesta inválida del servidor' }))
+                    : { success: false, error: `HTTP ${funcRes.status}` };
+
+                if (!funcData?.success) {
+                    const debugErr = funcData?.error ?? 'Error al enviar código';
                     setSmsDebugError(debugErr);
-                    // IMPORTANTE: NO crear la cita. Mostramos el error al usuario
                     setClientError(`Error procesando WhatsApp: ${debugErr}`);
                     return;
                 }
                 setSmsProvider(currentProvider as 'sms' | 'whatsapp');
                 setGeneratedOtp('__verify__');
-                setVerifySid(data?.sid ?? null);
                 setOtpAttempts(0);
                 setOtpCode('');
                 setStep(16); // ir a pantalla OTP (banner WhatsApp)

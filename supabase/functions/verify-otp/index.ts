@@ -77,6 +77,14 @@ serve(async (req: Request) => {
 
         // ── ENVIAR código ─────────────────────────────────────────────────────
         if (action === 'send') {
+            // Verificar credenciales de Twilio
+            if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_WA) {
+                return new Response(
+                    JSON.stringify({ success: false, error: `Credenciales Twilio faltantes: SID=${!!TWILIO_ACCOUNT_SID} TOKEN=${!!TWILIO_AUTH_TOKEN} FROM=${!!TWILIO_FROM_WA}` }),
+                    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+
             const otp       = generateCode();
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
@@ -187,10 +195,12 @@ serve(async (req: Request) => {
         );
 
     } catch (err: any) {
-        console.error('[verify-otp] Fatal:', err.message);
+        console.error('[verify-otp] Fatal:', err?.message ?? String(err));
+        // Retornamos 200 para que el SDK de Supabase no genere un error genérico
+        // y el frontend pueda leer el mensaje de error real
         return new Response(
-            JSON.stringify({ success: false, error: err.message }),
-            { status: 500, headers: corsHeaders }
+            JSON.stringify({ success: false, error: `Error interno: ${err?.message ?? String(err)}` }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
 });
