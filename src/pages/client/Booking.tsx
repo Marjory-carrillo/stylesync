@@ -754,8 +754,8 @@ export default function Booking() {
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">Verificación de Seguridad</h3>
 
-                        {/* ── Proveedor: SMS (activo) ── */}
-                        {smsProvider === 'whatsapp' ? (
+                        {/* ── Proveedor: SMS ── */}
+                        {smsProvider === 'sms' && (
                             <div className="mb-6">
                                 <div className="relative bg-[#0a1628] border border-blue-500/30 rounded-2xl p-4 overflow-hidden shadow-lg shadow-blue-500/10">
                                     {/* glow top-right */}
@@ -781,14 +781,10 @@ export default function Booking() {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
-                            <p className="text-muted mb-6">
-                                Hemos enviado un código a <strong>{clientPhone}</strong>. Ingrésalo para continuar.
-                            </p>
                         )}
 
-                        {/* ── Banner WhatsApp (reservado para cuando tengas Auth templates aprobados) ──
-                        {smsProvider === 'whatsapp' && useWhatsAppOtp && (
+                        {/* ── Proveedor: WhatsApp ── */}
+                        {smsProvider === 'whatsapp' && (
                             <div className="mb-6">
                                 <div className="relative bg-[#0a2618] border border-[#25D366]/30 rounded-2xl p-4 overflow-hidden shadow-lg shadow-[#25D366]/10">
                                     <div className="absolute -top-8 -right-8 w-28 h-28 bg-[#25D366]/15 rounded-full blur-2xl pointer-events-none" />
@@ -813,7 +809,6 @@ export default function Booking() {
                                 </div>
                             </div>
                         )}
-                        ── Fin banner WhatsApp ── */}
 
 
                         {/* MOCK SMS CARD — solo visible en modo DEMO */}
