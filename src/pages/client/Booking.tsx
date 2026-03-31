@@ -291,7 +291,7 @@ export default function Booking() {
             if (currentProvider === 'whatsapp') {
                 // ── Twilio Verify SMS ─────────────────────────────────────────
                 const { data, error } = await supabase.functions.invoke('verify-otp', {
-                    body: { action: 'send', phone: cleanPhone },
+                    body: { action: 'send', phone: cleanPhone, businessName: businessConfig?.name ?? 'CitaLink' },
                 });
                 if (error || !data?.success) {
                     setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');

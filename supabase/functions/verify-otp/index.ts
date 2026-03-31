@@ -1,9 +1,11 @@
 // @ts-nocheck — Deno runtime (Supabase Edge Functions)
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
-const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
-const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
-const TWILIO_FROM_SMS    = (Deno.env.get('TWILIO_WA_FROM') ?? '').replace('whatsapp:', '');
+const TWILIO_ACCOUNT_SID    = Deno.env.get('TWILIO_ACCOUNT_SID')!;
+const TWILIO_AUTH_TOKEN     = Deno.env.get('TWILIO_AUTH_TOKEN')!;
+const TWILIO_FROM_WA        = Deno.env.get('TWILIO_WA_FROM') ?? '';          // whatsapp:+15706349708
+const TWILIO_FROM_SMS       = TWILIO_FROM_WA.replace('whatsapp:', '');        // +15706349708
+const TWILIO_WA_TEMPLATE    = Deno.env.get('TWILIO_WA_TEMPLATE_SID') ?? ''; // HXxxxxxx — cuando esté aprobado
 
 const SUPABASE_URL       = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_KEY       = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -44,7 +46,7 @@ serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
-        const { action, phone, code } = await req.json();
+        const { action, phone, code, businessName = 'CitaLink' } = await req.json();
         const e164 = normalizeE164(phone);
 
         console.log(`[verify-otp] action=${action} phone=${e164}`);
@@ -68,25 +70,41 @@ serve(async (req: Request) => {
                 );
             }
 
-            // Enviar SMS con Twilio Messages API
+            // Enviar via WhatsApp Template (si está disponible) o SMS como respaldo
             const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
-            const smsRes = await fetch(
-                `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-                {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Basic ${credentials}`,
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        From: TWILIO_FROM_SMS,
-                        To:   e164,
-                        Body: `Tu código de verificación es: ${otp}. Válido por 10 minutos.`,
-                    }).toString(),
-                }
-            );
+            const msgUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+
+            let msgBody: Record<string, string>;
+            if (TWILIO_WA_TEMPLATE) {
+                // ── WhatsApp Template: citalink_cliente_v ──────────────────
+                // {{1}} = businessName, {{2}} = código OTP
+                msgBody = {
+                    From:             TWILIO_FROM_WA,
+                    To:               `whatsapp:${e164}`,
+                    ContentSid:       TWILIO_WA_TEMPLATE,
+                    ContentVariables: JSON.stringify({ '1': businessName, '2': otp }),
+                };
+                console.log('[verify-otp] Sending via WhatsApp template:', TWILIO_WA_TEMPLATE);
+            } else {
+                // ── SMS como respaldo ───────────────────────────────────────
+                msgBody = {
+                    From: TWILIO_FROM_SMS,
+                    To:   e164,
+                    Body: `Tu código de verificación es: ${otp}. Válido por 10 minutos.`,
+                };
+                console.log('[verify-otp] Sending via SMS (no WA template configured)');
+            }
+
+            const smsRes = await fetch(msgUrl, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Basic ${credentials}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(msgBody).toString(),
+            });
             const smsData = await smsRes.json();
-            console.log('[verify-otp] SMS:', smsRes.status, smsData.sid ?? smsData.message);
+            console.log('[verify-otp] Msg send:', smsRes.status, smsData.sid ?? smsData.message);
 
             if (!smsRes.ok) {
                 return new Response(
