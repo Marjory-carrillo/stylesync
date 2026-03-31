@@ -41,15 +41,17 @@ async function sendWA(to: string, body: string): Promise<boolean> {
     return res.ok;
 }
 
-/** Envía plantilla aprobada por Meta al CLIENTE (outbound sin sesión activa) */
+/** Envía plantilla aprobada por Meta (to debe ser whatsapp:+...) */
 async function sendTemplate(
     to: string,
     contentSid: string,
     variables: Record<string, string>
 ): Promise<boolean> {
     const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+    // Si 'to' no empieza con 'whatsapp:', normalizamos; si ya viene formateado, lo usamos directo
+    const waTo = to.startsWith('whatsapp:') ? to : normalizeToWA(to);
     const form = new URLSearchParams({
-        To: normalizeToWA(to),
+        To: waTo,
         From: TWILIO_WA_FROM,
         ContentSid: contentSid,
         ContentVariables: JSON.stringify(variables),
@@ -66,7 +68,7 @@ async function sendTemplate(
         }
     );
     const data = await res.json();
-    console.log('[notify-admin] Template to client:', res.status, data.sid ?? data.message ?? JSON.stringify(data));
+    console.log('[notify-admin] Template send:', res.status, waTo, data.sid ?? data.message ?? JSON.stringify(data));
     return res.ok;
 }
 
@@ -113,7 +115,7 @@ serve(async (req: Request) => {
             businessName = tenant.name;
         }
 
-        // ── 1. NOTIFICACIÓN AL ADMIN (texto libre) ────────────────────────────
+        // ── 1. NOTIFICACIÓN AL ADMIN ──────────────────────────────────────────
         const adminWA = normalizeToWA(adminPhone);
         console.log('[notify-admin] sending to admin WA:', adminWA);
 
@@ -145,6 +147,7 @@ serve(async (req: Request) => {
                 '5': appointment.client_phone,
             });
         }
+
 
         // Fallback: texto libre si la plantilla no está aprobada aún
         if (!adminSent) {
