@@ -17,9 +17,17 @@ const corsHeaders = {
 
 function normalizeE164(phone: string): string {
     const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('52') && digits.length === 12) return `+${digits}`;
-    if (digits.startsWith('521') && digits.length === 13) return `+52${digits.slice(3)}`;
-    return `+52${digits.slice(-10)}`;
+    if (digits.startsWith('521') && digits.length === 13) return `+52${digits.slice(3)}`; // strip the 1 → +52XXXXXXXXXX
+    if (digits.startsWith('52') && digits.length === 12) return `+${digits}`;             // already +52XXXXXXXXXX
+    return `+52${digits.slice(-10)}`;                                                      // fallback
+}
+
+// WhatsApp Mexico requires +521XXXXXXXXXX (13 digits with mobile prefix 1)
+function toWaNumber(e164: string): string {
+    if (e164.startsWith('+52') && !e164.startsWith('+521') && e164.length === 12) {
+        return `+521${e164.slice(3)}`; // +52XXXXXXXXXX → +521XXXXXXXXXX
+    }
+    return e164; // already correct or non-MX
 }
 
 function generateCode(): string {
@@ -80,11 +88,11 @@ serve(async (req: Request) => {
                 // {{1}} = businessName, {{2}} = código OTP
                 msgBody = {
                     From:             TWILIO_FROM_WA,
-                    To:               `whatsapp:${e164}`,
+                    To:               `whatsapp:${toWaNumber(e164)}`,
                     ContentSid:       TWILIO_WA_TEMPLATE,
                     ContentVariables: JSON.stringify({ '1': businessName, '2': otp }),
                 };
-                console.log('[verify-otp] Sending via WhatsApp template:', TWILIO_WA_TEMPLATE);
+                console.log('[verify-otp] Sending WA template to:', toWaNumber(e164));
             } else {
                 // ── SMS como respaldo ───────────────────────────────────────
                 msgBody = {
