@@ -294,6 +294,46 @@ export default function Booking() {
         }
     };
 
+    // ── Crear cita después de verificación OTP ──────────────────────────
+    const createAppointmentAfterOtp = async () => {
+        if (!selectedService || !selectedTime || !clientName || !clientPhone) return;
+
+        const availableStylists = slotsMetadata[selectedTime] || [];
+        const assignedStylistId = selectedStylist ? selectedStylist.id : (availableStylists[0] ?? null);
+
+        const result = await addAppointment({
+            clientName: clientName.trim(),
+            clientPhone: clientPhone.trim(),
+            serviceId: selectedService.id,
+            stylistId: assignedStylistId ? Number(assignedStylistId) : null,
+            date: selectedDate,
+            time: selectedTime,
+        });
+
+        setBookingResult(result);
+        if (result.success) {
+            setStep(5);
+            // Notificar al admin vía WhatsApp
+            if (businessConfig?.phone && tenantId) {
+                supabase.functions.invoke('notify-admin', {
+                    body: {
+                        tenant_id: tenantId,
+                        event_type: 'new',
+                        admin_phone: businessConfig.phone,
+                        business_name: businessConfig.name,
+                        appointment: {
+                            client_name: clientName.trim(),
+                            client_phone: clientPhone.trim(),
+                            service_name: selectedService.name,
+                            date: selectedDate,
+                            time: selectedTime,
+                        },
+                    },
+                }).catch(() => { /* fire-and-forget */ });
+            }
+        }
+    };
+
     const verifyOtp = async () => {
         if (generatedOtp === '__verify__') {
             // ── Twilio: verificar código ingresado por el cliente ──
@@ -303,7 +343,8 @@ export default function Booking() {
                     body: { action: 'check', phone: clientPhone, code: otpCode, sid: verifySid },
                 });
                 if (data?.verified) {
-                    isClosed ? setStep(15) : setStep(4); // ← va a confirmación, no a servicios
+                    // OTP válido → crear la cita y ir a confirmación final
+                    await createAppointmentAfterOtp();
                 } else {
                     const newAttempts = otpAttempts + 1;
                     setOtpAttempts(newAttempts);
@@ -320,7 +361,7 @@ export default function Booking() {
         } else {
             // ── Demo: comparación local ───────────────────────────────────────
             if (otpCode === generatedOtp) {
-                isClosed ? setStep(15) : setStep(4); // ← va a confirmación
+                await createAppointmentAfterOtp();
             } else {
                 const newAttempts = otpAttempts + 1;
                 setOtpAttempts(newAttempts);
@@ -423,10 +464,16 @@ export default function Booking() {
     const handleSelectTime = async (time: string) => {
         if (isUpdating) { handleUpdateTime(time); return; }
         setSelectedTime(time);
+        // Ir a Step 4 (Confirmar Reserva) para que el usuario revise los datos
+        setStep(4);
+    };
+
+    const handleConfirm = async () => {
+        if (!selectedService || !selectedTime || !clientName || !clientPhone) return;
 
         const currentProvider = businessConfig?.smsProvider ?? 'demo';
         if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
-            // ── Enviar OTP ahora que tenemos todos los datos de la cita ──────
+            // ── Enviar OTP y mostrar banner de WhatsApp ──────────────────────
             setIsSendingSms(true);
             setSmsDebugError(null);
             setResendCountdown(15);
@@ -434,7 +481,7 @@ export default function Booking() {
                 const dateLabel = selectedDate
                     ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
                     : 'próximamente';
-                const timeLabel = format12h(time);
+                const timeLabel = format12h(selectedTime);
                 const appointmentDateTime = `${dateLabel} a las ${timeLabel}`;
 
                 const { data, error } = await supabase.functions.invoke('verify-otp', {
@@ -449,7 +496,8 @@ export default function Booking() {
                 });
                 if (error || !data?.success) {
                     setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');
-                    setStep(4); // fallback a confirmación sin OTP
+                    // Fallback: crear cita sin OTP
+                    await createAppointmentAfterOtp();
                     return;
                 }
                 setSmsProvider(currentProvider as 'sms' | 'whatsapp');
@@ -457,52 +505,13 @@ export default function Booking() {
                 setVerifySid(data?.sid ?? null);
                 setOtpAttempts(0);
                 setOtpCode('');
-                setStep(16); // ir a pantalla OTP
+                setStep(16); // ir a pantalla OTP (banner WhatsApp)
             } finally {
                 setIsSendingSms(false);
             }
         } else {
-            setStep(4); // Demo/sin proveedor → ir directo a confirmación
-        }
-    };
-
-    const handleConfirm = async () => {
-        if (!selectedService || !selectedTime || !clientName || !clientPhone) return;
-
-        // Smart Assignment: Pick the first available stylist for this slot
-        const availableStylists = slotsMetadata[selectedTime] || [];
-        const assignedStylistId = selectedStylist ? selectedStylist.id : (availableStylists[0] ?? null);
-
-        const result = await addAppointment({
-            clientName: clientName.trim(),
-            clientPhone: clientPhone.trim(),
-            serviceId: selectedService.id,
-            stylistId: assignedStylistId ? Number(assignedStylistId) : null,
-            date: selectedDate,
-            time: selectedTime,
-        });
-
-        setBookingResult(result);
-        if (result.success) {
-            setStep(5);
-            // Notify barber via WhatsApp — businessConfig is loaded by this point
-            if (businessConfig?.phone && tenantId) {
-                supabase.functions.invoke('notify-admin', {
-                    body: {
-                        tenant_id: tenantId,
-                        event_type: 'new',
-                        admin_phone: businessConfig.phone,
-                        business_name: businessConfig.name,
-                        appointment: {
-                            client_name: clientName.trim(),
-                            client_phone: clientPhone.trim(),
-                            service_name: selectedService.name,
-                            date: selectedDate,
-                            time: selectedTime,
-                        },
-                    },
-                }).catch(() => { /* fire-and-forget */ });
-            }
+            // Demo: crear cita directamente sin OTP
+            await createAppointmentAfterOtp();
         }
     };
 
