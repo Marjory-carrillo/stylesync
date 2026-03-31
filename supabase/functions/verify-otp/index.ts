@@ -97,20 +97,12 @@ serve(async (req: Request) => {
             const msgUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
             const waTo   = `whatsapp:${toWaNumber(e164)}`;
 
-            // ── PASO 1: Plantilla de Confirmación (Utility) para abrir sesión ──────
-            // Categoría Utility = Meta NUNCA lo bloquea como Marketing.
-            // Esto abre una ventana de 24h con el cliente y permite enviar texto libre después.
-            const CONFIRM_TEMPLATE_SID = 'HXfa893170a1790b0bd8aeff7448fde298';
-            // Variables de la plantilla citalink_cliente_confirmacion:
-            // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha/hora, {{4}} = servicio
-            const confirmVars: Record<string, string> = {
-                '1': clientName   || 'Cliente',
-                '2': businessName || 'CitaLink',
-                '3': appointmentDateTime || 'próximamente',
-                '4': serviceName  || 'tu servicio',
-            };
+            // ── Plantilla Utility: confirmación + OTP en un solo mensaje ──────────
+            // citalink_cliente_confirmacion_v2 (Approved, Utility)
+            // {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=código
+            const CONFIRM_OTP_SID = 'HXc86774c877ad719610460e035b8c7fd3';
 
-            const confirmRes = await fetch(msgUrl, {
+            const templateRes = await fetch(msgUrl, {
                 method: 'POST',
                 headers: {
                     Authorization: `Basic ${credentials}`,
@@ -119,38 +111,22 @@ serve(async (req: Request) => {
                 body: new URLSearchParams({
                     From:             TWILIO_FROM_WA,
                     To:               waTo,
-                    ContentSid:       CONFIRM_TEMPLATE_SID,
-                    ContentVariables: JSON.stringify(confirmVars),
+                    ContentSid:       CONFIRM_OTP_SID,
+                    ContentVariables: JSON.stringify({
+                        '1': clientName         || 'Cliente',
+                        '2': businessName       || 'CitaLink',
+                        '3': appointmentDateTime || 'próximamente',
+                        '4': serviceName        || 'tu servicio',
+                        '5': otp,               // ← el código OTP
+                    }),
                 }).toString(),
             });
-            const confirmData = await confirmRes.json();
-            console.log('[verify-otp] Confirm template send:', confirmRes.status, confirmData.sid ?? confirmData.message);
+            const templateData = await templateRes.json();
+            console.log('[verify-otp] Template send:', templateRes.status, templateData.sid ?? templateData.message);
 
-            if (!confirmRes.ok) {
-                // Si falla la confirmación, informamos pero no detenemos el flujo — intentamos el OTP igual
-                console.warn('[verify-otp] Confirm template failed, proceeding with OTP anyway:', confirmData.message);
-            }
-
-            // ── PASO 2: OTP como texto libre (dentro de la sesión activa de 24h) ──
-            // La ventana está abierta gracias al Paso 1, así que Meta permite texto libre.
-            const otpRes = await fetch(msgUrl, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Basic ${credentials}`,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    From: TWILIO_FROM_WA,
-                    To:   waTo,
-                    Body: `Tu clave de acceso es: *${otp}*`,
-                }).toString(),
-            });
-            const otpData = await otpRes.json();
-            console.log('[verify-otp] OTP free-form send:', otpRes.status, otpData.sid ?? otpData.message);
-
-            if (!otpRes.ok) {
+            if (!templateRes.ok) {
                 return new Response(
-                    JSON.stringify({ success: false, error: otpData.message }),
+                    JSON.stringify({ success: false, error: templateData.message }),
                     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
@@ -160,6 +136,7 @@ serve(async (req: Request) => {
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
+
 
 
         // ── VERIFICAR código ──────────────────────────────────────────────────
