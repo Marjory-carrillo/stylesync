@@ -97,7 +97,7 @@ export interface BusinessConfig {
     primaryColor?: string;
     accentColor?: string;
     sms_enabled?: boolean;
-    smsProvider?: 'demo' | 'whatsapp';
+    smsProvider?: 'demo' | 'sms' | 'whatsapp';
     breakBetweenAppointments?: number; // 0 = off, positive = minutes of buffer
     showDashboardMetrics?: boolean;
 }

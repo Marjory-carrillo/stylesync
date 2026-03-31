@@ -244,7 +244,7 @@ export default function Booking() {
     const [otpCode, setOtpCode] = useState('');
     const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
     const [otpAttempts, setOtpAttempts] = useState(0);
-    const [smsProvider, setSmsProvider] = useState<'demo' | 'whatsapp'>('demo');
+    const [smsProvider, setSmsProvider] = useState<'demo' | 'sms' | 'whatsapp'>('demo');
     const [smsDebugError, setSmsDebugError] = useState<string | null>(null);
     const [resendCountdown, setResendCountdown] = useState(0);
     const [verifySid, setVerifySid] = useState<string | null>(null);
@@ -288,7 +288,7 @@ export default function Booking() {
         try {
             const currentProvider = businessConfig?.smsProvider ?? 'demo';
 
-            if (currentProvider === 'whatsapp') {
+            if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
                 // ── Twilio Verify SMS ─────────────────────────────────────────
                 const { data, error } = await supabase.functions.invoke('verify-otp', {
                     body: { action: 'send', phone: cleanPhone, businessName: businessConfig?.name ?? 'CitaLink' },
@@ -297,7 +297,7 @@ export default function Booking() {
                     setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');
                     return;
                 }
-                setSmsProvider('whatsapp');
+                setSmsProvider(currentProvider as 'sms' | 'whatsapp');
                 setGeneratedOtp('__verify__');
                 setVerifySid(data?.sid ?? null); // guardar SID para el check
                 setOtpAttempts(0);
@@ -362,7 +362,7 @@ export default function Booking() {
         setResendCountdown(15);
         try {
             const currentProvider = businessConfig?.smsProvider ?? 'demo';
-            if (currentProvider === 'whatsapp') {
+            if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
                 await supabase.functions.invoke('verify-otp', {
                     body: { action: 'send', phone: clientPhone },
                 });
