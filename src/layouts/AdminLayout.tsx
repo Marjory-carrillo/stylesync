@@ -182,6 +182,7 @@ export default function AdminLayout() {
                             onMarkAllRead={markAllRead}
                             onDismiss={dismiss}
                             onClearAll={clearAll}
+                            direction="up"
                         />
                     </div>
                     <button

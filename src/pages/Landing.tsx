@@ -232,7 +232,9 @@ export default function Landing() {
                     </div>
 
                     {/* Real App Preview */}
-                    <div className="relative mx-auto max-w-5xl mt-16">
+                    <div className="relative mx-auto max-w-5xl mt-16 overflow-hidden">
+                        {/* Scale down on mobile so mockup fits without clipping */}
+                        <div className="origin-top scale-[0.52] -mb-[215px] sm:scale-[0.75] sm:-mb-[115px] md:scale-100 md:mb-0">
                         <div className="absolute -inset-4 bg-gradient-to-r from-violet-600/20 via-transparent to-indigo-600/20 blur-2xl rounded-3xl" />
                         <div className="relative bg-[#0d1526] border border-white/8 rounded-2xl overflow-hidden shadow-[0_0_80px_-20px_rgba(124,58,237,0.35)]">
                             {/* ── Browser chrome ── */}
@@ -360,6 +362,7 @@ export default function Landing() {
                                 </div>
                             </div>
                         </div>
+                        </div>{/* end scale wrapper */}
                     </div>
                 </div>
 

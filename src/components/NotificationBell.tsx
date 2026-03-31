@@ -8,6 +8,7 @@ interface Props {
     onMarkAllRead: () => void;
     onDismiss: (id: string) => void;
     onClearAll: () => void;
+    direction?: 'down' | 'up'; // 'down' for header (mobile), 'up' for sidebar (desktop)
 }
 
 const TYPE_CONFIG: Record<NotifType, { icon: React.ElementType; color: string; bg: string; label: string }> = {
@@ -31,7 +32,7 @@ function formatDate(date: string, time: string): string {
     return `${days[d.getDay()]} ${d.getDate()} · ${time.slice(0,5)}`;
 }
 
-export default function NotificationBell({ notifications, unreadCount, onMarkAllRead, onDismiss, onClearAll }: Props) {
+export default function NotificationBell({ notifications, unreadCount, onMarkAllRead, onDismiss, onClearAll, direction = 'down' }: Props) {
     const [open, setOpen] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);
 
@@ -81,9 +82,10 @@ export default function NotificationBell({ notifications, unreadCount, onMarkAll
             {/* Panel */}
             {open && (
                 <div
-                    className="absolute right-0 top-full mt-3 w-80 sm:w-96 z-[300]
+                    className={`absolute right-0 z-[9999] w-80 sm:w-96
                         bg-[#0d1829] border border-white/10 rounded-2xl shadow-2xl shadow-black/50
-                        overflow-hidden animate-slide-down"
+                        overflow-hidden animate-slide-down
+                        ${direction === 'up' ? 'bottom-full mb-3' : 'top-full mt-3'}`}
                     style={{ maxHeight: '520px' }}
                 >
                     {/* Header */}
