@@ -91,12 +91,12 @@ serve(async (req: Request) => {
             let msgBody: Record<string, string>;
             if (TWILIO_WA_TEMPLATE) {
                 // ── WhatsApp Template: citalink_cliente_v ──────────────────
-                // {{1}} = businessName, {{2}} = código OTP
+                // {{1}} = código OTP
                 msgBody = {
                     From:             TWILIO_FROM_WA,
                     To:               `whatsapp:${toWaNumber(e164)}`,
                     ContentSid:       TWILIO_WA_TEMPLATE,
-                    ContentVariables: JSON.stringify({ '1': businessName, '2': otp }),
+                    ContentVariables: JSON.stringify({ '1': otp }), // Template: "CitaLink: tu acceso es {{1}}. no lo compartas."
                 };
                 console.log('[verify-otp] Sending WA template to:', toWaNumber(e164));
             } else {
