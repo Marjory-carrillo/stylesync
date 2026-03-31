@@ -60,8 +60,17 @@ serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
-        const { action, phone, code, businessName = 'CitaLink' } = await req.json();
+        const {
+            action,
+            phone,
+            code,
+            businessName       = 'CitaLink',
+            clientName         = 'Cliente',
+            serviceName        = 'tu servicio',
+            appointmentDateTime = 'próximamente',
+        } = await req.json();
         const e164 = normalizeE164(phone);
+
 
         console.log(`[verify-otp] action=${action} phone=${e164}`);
         console.log(`[verify-otp] SUPABASE_URL=${SUPABASE_URL?.slice(0,30)} KEY=${SUPABASE_KEY?.slice(0,10)}`);
@@ -84,45 +93,64 @@ serve(async (req: Request) => {
                 );
             }
 
-            // Enviar via WhatsApp Template (si está disponible) o SMS como respaldo
             const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
             const msgUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+            const waTo   = `whatsapp:${toWaNumber(e164)}`;
 
-            let msgBody: Record<string, string>;
-            if (TWILIO_WA_TEMPLATE) {
-                // ── WhatsApp Template: citalink_cliente_v ──────────────────
-                // {{1}} = código OTP
-                msgBody = {
-                    From:             TWILIO_FROM_WA,
-                    To:               `whatsapp:${toWaNumber(e164)}`,
-                    ContentSid:       TWILIO_WA_TEMPLATE,
-                    ContentVariables: JSON.stringify({ '1': otp }), // Solo {{1}} = el código OTP
-                };
-                console.log('[verify-otp] Sending WA template to:', toWaNumber(e164));
-            } else {
-                // ── SMS como respaldo ───────────────────────────────────────
-                msgBody = {
-                    From: TWILIO_FROM_SMS,
-                    To:   e164,
-                    Body: `Tu código de verificación es: ${otp}. Válido por 10 minutos.`,
-                };
-                console.log('[verify-otp] Sending via SMS (no WA template configured)');
-            }
+            // ── PASO 1: Plantilla de Confirmación (Utility) para abrir sesión ──────
+            // Categoría Utility = Meta NUNCA lo bloquea como Marketing.
+            // Esto abre una ventana de 24h con el cliente y permite enviar texto libre después.
+            const CONFIRM_TEMPLATE_SID = 'HXfa893170a1790b0bd8aeff7448fde298';
+            // Variables de la plantilla citalink_cliente_confirmacion:
+            // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha/hora, {{4}} = servicio
+            const confirmVars: Record<string, string> = {
+                '1': clientName   || 'Cliente',
+                '2': businessName || 'CitaLink',
+                '3': appointmentDateTime || 'próximamente',
+                '4': serviceName  || 'tu servicio',
+            };
 
-            const smsRes = await fetch(msgUrl, {
+            const confirmRes = await fetch(msgUrl, {
                 method: 'POST',
                 headers: {
                     Authorization: `Basic ${credentials}`,
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: new URLSearchParams(msgBody).toString(),
+                body: new URLSearchParams({
+                    From:             TWILIO_FROM_WA,
+                    To:               waTo,
+                    ContentSid:       CONFIRM_TEMPLATE_SID,
+                    ContentVariables: JSON.stringify(confirmVars),
+                }).toString(),
             });
-            const smsData = await smsRes.json();
-            console.log('[verify-otp] Msg send:', smsRes.status, smsData.sid ?? smsData.message);
+            const confirmData = await confirmRes.json();
+            console.log('[verify-otp] Confirm template send:', confirmRes.status, confirmData.sid ?? confirmData.message);
 
-            if (!smsRes.ok) {
+            if (!confirmRes.ok) {
+                // Si falla la confirmación, informamos pero no detenemos el flujo — intentamos el OTP igual
+                console.warn('[verify-otp] Confirm template failed, proceeding with OTP anyway:', confirmData.message);
+            }
+
+            // ── PASO 2: OTP como texto libre (dentro de la sesión activa de 24h) ──
+            // La ventana está abierta gracias al Paso 1, así que Meta permite texto libre.
+            const otpRes = await fetch(msgUrl, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Basic ${credentials}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    From: TWILIO_FROM_WA,
+                    To:   waTo,
+                    Body: `Tu clave de acceso es: *${otp}*`,
+                }).toString(),
+            });
+            const otpData = await otpRes.json();
+            console.log('[verify-otp] OTP free-form send:', otpRes.status, otpData.sid ?? otpData.message);
+
+            if (!otpRes.ok) {
                 return new Response(
-                    JSON.stringify({ success: false, error: smsData.message }),
+                    JSON.stringify({ success: false, error: otpData.message }),
                     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
@@ -132,6 +160,7 @@ serve(async (req: Request) => {
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
+
 
         // ── VERIFICAR código ──────────────────────────────────────────────────
         if (action === 'check') {

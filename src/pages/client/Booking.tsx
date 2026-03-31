@@ -290,8 +290,22 @@ export default function Booking() {
 
             if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
                 // ── Twilio Verify SMS ─────────────────────────────────────────
+                // Armar fecha/hora legible para la plantilla de confirmación
+                const dateLabel = selectedDate
+                    ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
+                    : 'próximamente';
+                const timeLabel = selectedTime ? format12h(selectedTime) : '';
+                const appointmentDateTime = timeLabel ? `${dateLabel} a las ${timeLabel}` : dateLabel;
+
                 const { data, error } = await supabase.functions.invoke('verify-otp', {
-                    body: { action: 'send', phone: cleanPhone, businessName: businessConfig?.name ?? 'CitaLink' },
+                    body: {
+                        action: 'send',
+                        phone: cleanPhone,
+                        businessName:       businessConfig?.name ?? 'CitaLink',
+                        clientName:         clientName.trim(),
+                        serviceName:        selectedService?.name ?? 'tu servicio',
+                        appointmentDateTime,
+                    },
                 });
                 if (error || !data?.success) {
                     setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');
