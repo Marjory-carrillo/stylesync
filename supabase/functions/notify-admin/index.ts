@@ -7,14 +7,14 @@ const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
 // ── Plantillas aprobadas por Meta — Notificaciones al CLIENTE ───────────────
-const TEMPLATE_CLIENTE_CONFIRMACION   = 'HXfa893170a1790b0bd8aeff7448fde298';
+// NOTA: citalink_cliente_confirmacion (con OTP) la manda verify-otp al elegir hora
 const TEMPLATE_CLIENTE_CANCELACION    = 'HX57d98cdadf1b4ba0d560f15c9a6b1ecd';
 const TEMPLATE_CLIENTE_REPROGRAMACION = 'HX197821733621547516ac219bf561c65e';
 
 // ── Plantillas aprobadas por Meta — Notificaciones al ADMIN ─────────────────
-const TEMPLATE_ADMIN_NUEVA_CITA    = 'HX4b518926b4e052885a93cfc485c25d39';
-const TEMPLATE_ADMIN_REPROGRAMACION = 'HXfe45424793d1a462c99700d880350fb8';
-const TEMPLATE_ADMIN_CANCELACION   = 'HXba4fd144b9e00ea17fcbf58349859d47';
+const TEMPLATE_ADMIN_NUEVA_CITA      = 'HX4b316926b4e052885a93cfc485c25d39'; // ← SID corregido
+const TEMPLATE_ADMIN_REPROGRAMACION  = 'HXfe45424793d1a462c99700d880350fb8';
+const TEMPLATE_ADMIN_CANCELACION     = 'HXba4fd144b9e00ea17fcbf58349859d47';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -174,18 +174,9 @@ serve(async (req: Request) => {
             const fechaFormateada = formatDT(appointment.date, appointment.time);
 
             if (event_type === 'new') {
-                // Plantilla citalink_cliente_confirmacion:
-                // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio
-                clientSent = await sendTemplate(
-                    appointment.client_phone,
-                    TEMPLATE_CLIENTE_CONFIRMACION,
-                    {
-                        '1': appointment.client_name,
-                        '2': businessName,
-                        '3': fechaFormateada,
-                        '4': appointment.service_name ?? 'Servicio',
-                    }
-                );
+                // ── El cliente YA recibió confirmación+OTP vía verify-otp al elegir hora ──
+                // No enviamos segunda confirmación aquí para evitar duplicado.
+                clientSent = true;
 
             } else if (event_type === 'cancel') {
                 // Plantilla citalink_cliente_cancelacion:
