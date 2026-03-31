@@ -509,9 +509,10 @@ export default function Booking() {
                     },
                 });
                 if (error || !data?.success) {
-                    setSmsDebugError(data?.error ?? error?.message ?? 'Error al enviar código');
-                    // Fallback: crear cita sin OTP
-                    await createAppointmentAfterOtp();
+                    const debugErr = data?.error ?? error?.message ?? 'Error al enviar código';
+                    setSmsDebugError(debugErr);
+                    // IMPORTANTE: NO crear la cita. Mostramos el error al usuario
+                    setClientError(`Error procesando WhatsApp: ${debugErr}`);
                     return;
                 }
                 setSmsProvider(currentProvider as 'sms' | 'whatsapp');
@@ -1201,6 +1202,11 @@ export default function Booking() {
 
                         {availableSlots.length > 0 && selectedTime && (
                             <div className="mt-6 space-y-3 animate-slide-up">
+                                {clientError && (
+                                    <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm font-medium animate-pulse text-center mb-2">
+                                        {clientError}
+                                    </div>
+                                )}
                                 <button
                                     className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 to-orange-400 hover:from-fuchsia-600 hover:to-orange-500 shadow-lg shadow-fuchsia-500/20 transition-all duration-300 flex items-center justify-center gap-2"
                                     onClick={handleContinueToOtp}
@@ -1212,7 +1218,7 @@ export default function Booking() {
                                         <>Continuar <ChevronRight size={20} /></>
                                     )}
                                 </button>
-                                <button className="btn btn-ghost w-full" onClick={() => setSelectedTime(null)}>Elegir otra hora</button>
+                                <button className="btn btn-ghost w-full" onClick={() => { setSelectedTime(null); setClientError(null); }}>Elegir otra hora</button>
                             </div>
                         )}
 
