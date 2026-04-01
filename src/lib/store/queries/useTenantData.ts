@@ -5,8 +5,9 @@ import { useAuthStore } from '../authStore';
 
 import { useUIStore } from '../uiStore';
 
-export const useTenantData = () => {
-    const { tenantId } = useAuthStore();
+export const useTenantData = (overrideTenantId?: string) => {
+    const storeTenantId = useAuthStore((state) => state.tenantId);
+    const tenantId = overrideTenantId || storeTenantId;
     const { showToast } = useUIStore();
     const queryClient = useQueryClient();
     const queryKey = ['tenant', tenantId];

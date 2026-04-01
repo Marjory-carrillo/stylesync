@@ -34,7 +34,7 @@ export default function Booking() {
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
     const { services } = useServices();
     const { stylists } = useStylists();
-    const { data: businessConfig, isLoading: configLoading } = useTenantData();
+    const { data: businessConfig, isLoading: configLoading } = useTenantData(tenantId);
     const { appointments, addAppointment, cancelAppointment, updateAppointmentTime } = useAppointments({
         adminPhone:   businessConfig?.phone ?? undefined,
         businessName: businessConfig?.name  ?? undefined,
@@ -312,22 +312,28 @@ export default function Booking() {
         setBookingResult(result);
         if (result.success) {
             setStep(5);
-            // Notificar al admin vía WhatsApp
-            if (businessConfig?.phone && tenantId) {
-                supabase.functions.invoke('notify-admin', {
-                    body: {
-                        tenant_id: tenantId,
-                        event_type: 'new',
-                        admin_phone: businessConfig.phone,
-                        business_name: businessConfig.name,
+            // Notificar al admin vía WhatsApp (fire-and-forget)
+            // Si businessConfig.phone está disponible lo pasamos; si no, notify-admin
+            // buscará el teléfono del admin en la BD usando tenant_id.
+            if (tenantId) {
+                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+                const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+                fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
+                    body: JSON.stringify({
+                        tenant_id:     tenantId,
+                        event_type:    'new',
+                        admin_phone:   businessConfig?.phone ?? undefined,
+                        business_name: businessConfig?.name  ?? undefined,
                         appointment: {
-                            client_name: clientName.trim(),
+                            client_name:  clientName.trim(),
                             client_phone: clientPhone.trim(),
                             service_name: selectedService.name,
-                            date: selectedDate,
-                            time: selectedTime,
+                            date:         selectedDate,
+                            time:         selectedTime,
                         },
-                    },
+                    }),
                 }).catch(() => { /* fire-and-forget */ });
             }
         }
