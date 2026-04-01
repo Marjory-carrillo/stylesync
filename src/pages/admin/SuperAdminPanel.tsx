@@ -53,7 +53,7 @@ export default function SuperAdminPanel() {
     const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99' });
     const [isCreating, setIsCreating] = useState(false);
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
-    const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, number>>({});
+    const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, { total: number; week: number; month: number }>>({});
     const [appointmentsLast30, setAppointmentsLast30] = useState<number | null>(null);
     const [uniqueClients, setUniqueClients] = useState<number | null>(null);
     const showToast = useUIStore(s => s.showToast);
@@ -82,17 +82,25 @@ export default function SuperAdminPanel() {
             const { count } = await supabase.from('sms_logs').select('*', { count: 'exact', head: true });
             setTotalSmsCount(count || 0);
 
-            // Conteos por tenant
+            // Conteos por tenant con fecha para calcular semana/mes
             const { data: logsData, error } = await supabase
                 .from('sms_logs')
-                .select('tenant_id');
+                .select('tenant_id, created_at');
 
             if (error) throw error;
 
-            const counts: Record<string, number> = {};
+            const now = new Date();
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const oneMonthAgo = subMonths(now, 1);
+
+            const counts: Record<string, { total: number; week: number; month: number }> = {};
             logsData?.forEach(log => {
                 if (log.tenant_id) {
-                    counts[log.tenant_id] = (counts[log.tenant_id] || 0) + 1;
+                    if (!counts[log.tenant_id]) counts[log.tenant_id] = { total: 0, week: 0, month: 0 };
+                    counts[log.tenant_id].total += 1;
+                    const logDate = new Date(log.created_at);
+                    if (logDate >= oneWeekAgo) counts[log.tenant_id].week += 1;
+                    if (logDate >= oneMonthAgo) counts[log.tenant_id].month += 1;
                 }
             });
             setSmsCountsByTenant(counts);
@@ -327,12 +335,32 @@ export default function SuperAdminPanel() {
                                         <span className="text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate">
                                             citalink.app/{tenant.slug}
                                         </span>
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 rounded border border-amber-500/20 shadow-sm animate-fade-in">
-                                            <Zap size={10} className="text-amber-500" />
-                                            <span className="text-[10px] font-black text-amber-500 tracking-tighter">
-                                                {smsCountsByTenant[tenant.id] || 0} SMS
-                                            </span>
-                                        </div>
+                                    </div>
+
+                                    {/* SMS Stats: Week / Month / Total */}
+                                    <div className="flex items-center gap-1.5 mt-2">
+                                        {(() => {
+                                            const stats = smsCountsByTenant[tenant.id] || { total: 0, week: 0, month: 0 };
+                                            return (
+                                                <>
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="Mensajes esta semana">
+                                                        <Calendar size={10} className="text-emerald-400" />
+                                                        <span className="text-[10px] font-black text-emerald-400">{stats.week}</span>
+                                                        <span className="text-[8px] text-emerald-400/60 font-bold">SEM</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20" title="Mensajes este mes">
+                                                        <BarChart3 size={10} className="text-blue-400" />
+                                                        <span className="text-[10px] font-black text-blue-400">{stats.month}</span>
+                                                        <span className="text-[8px] text-blue-400/60 font-bold">MES</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20" title="Mensajes totales">
+                                                        <Zap size={10} className="text-amber-400" />
+                                                        <span className="text-[10px] font-black text-amber-400">{stats.total}</span>
+                                                        <span className="text-[8px] text-amber-400/60 font-bold">TOT</span>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 
@@ -422,31 +450,48 @@ export default function SuperAdminPanel() {
             {/* Create Business Modal */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-                    <div className="glass-panel w-full max-w-lg border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in">
-                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.03]">
-                            <div>
-                                <h3 className="text-2xl font-black text-white tracking-tight uppercase">Nuevo Negocio</h3>
-                                <p className="text-slate-400 text-xs mt-1">Configuración rápida de instancia SaaS</p>
+                    <div className="w-full max-w-xl bg-[#0a0f1a] border border-white/[0.08] rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden animate-scale-in">
+                        {/* Header */}
+                        <div className="relative p-6 pb-5 border-b border-white/5 overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/5 to-transparent" />
+                            <div className="relative flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                        <Plus size={22} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-white tracking-tight">Nuevo Negocio</h3>
+                                        <p className="text-slate-500 text-[11px] mt-0.5">Configuración rápida de instancia SaaS</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsCreateModalOpen(false)} className="p-2.5 hover:bg-white/5 rounded-xl transition-colors border border-transparent hover:border-white/10">
+                                    <X size={18} className="text-slate-500" />
+                                </button>
                             </div>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                                <X className="text-slate-400" />
-                            </button>
                         </div>
-                        <form onSubmit={handleCreateBusiness} className="p-8 space-y-6">
-                            <div className="grid grid-cols-1 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Nombre Comercial</label>
+
+                        <form onSubmit={handleCreateBusiness} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+
+                            {/* ── Sección: Negocio ── */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Building2 size={14} className="text-blue-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">Datos del Negocio</span>
+                                </div>
+
+                                {/* Nombre */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">Nombre Comercial</label>
                                     <input
-                                        required
-                                        type="text"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                                        required type="text"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
                                         placeholder="Ej. Barbería El Rey"
                                         value={newBusiness.name}
                                         onChange={e => {
                                             const name = e.target.value;
                                             const autoSlug = name
                                                 .toLowerCase()
-                                                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos
+                                                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                                                 .replace(/[^\w\s-]/g, '')
                                                 .trim()
                                                 .replace(/\s+/g, '-')
@@ -456,44 +501,14 @@ export default function SuperAdminPanel() {
                                     />
                                 </div>
 
-                                {/* Correo del Dueño */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Correo del Dueño</label>
-                                    <input
-                                        required
-                                        type="email"
-                                        className="w-full bg-black/40 border border-accent/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
-                                        placeholder="dueno@correo.com"
-                                        value={newBusiness.ownerEmail}
-                                        onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
-                                    />
-                                    <p className="text-[10px] text-slate-500 ml-1">El dueño usará este correo para iniciar sesión.</p>
-                                </div>
-
-                                {/* Contraseña del Dueño */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Contraseña del Dueño</label>
-                                    <input
-                                        required
-                                        type="password"
-                                        minLength={6}
-                                        className="w-full bg-black/40 border border-emerald-500/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
-                                        placeholder="Mínimo 6 caracteres"
-                                        value={newBusiness.ownerPassword}
-                                        onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
-                                    />
-                                    <p className="text-[10px] text-slate-500 ml-1">Con esta contraseña + su correo podrá acceder al panel.</p>
-                                </div>
-
-                                {/* Slug — editable manualmente si se necesita ajustar */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Slug / URL <span className="normal-case font-normal text-slate-600">(auto-generado)</span></label>
+                                {/* Slug */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">URL Personalizada</label>
                                     <div className="flex">
-                                        <div className="bg-white/5 border border-white/10 rounded-l-xl px-4 py-3 text-slate-500 text-sm border-r-0 shrink-0">citalink.app/</div>
+                                        <div className="bg-white/[0.03] border border-white/[0.08] border-r-0 rounded-l-xl px-3.5 py-3 text-slate-500 text-xs font-medium shrink-0 flex items-center">citalink.app/</div>
                                         <input
-                                            required
-                                            type="text"
-                                            className="flex-1 bg-black/40 border border-white/10 rounded-r-xl px-3 py-3 text-white focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none font-mono text-sm"
+                                            required type="text"
+                                            className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-r-xl px-3 py-3 text-white font-mono text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none"
                                             placeholder="mi-negocio"
                                             value={newBusiness.slug}
                                             onChange={e => setNewBusiness({ ...newBusiness, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
@@ -501,66 +516,114 @@ export default function SuperAdminPanel() {
                                     </div>
                                 </div>
 
-                                {/* Categoría — picker visual */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Categoría</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                {/* Categoría */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">Categoría</label>
+                                    <div className="grid grid-cols-3 gap-1.5">
                                         {[
-                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={18} />, color: 'amber' },
-                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={18} />, color: 'pink' },
-                                            { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={18} />, color: 'rose' },
-                                            { id: 'spa', label: 'Spa', icon: <Flower2 size={18} />, color: 'emerald' },
-                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={18} />, color: 'blue' },
-                                            { id: 'other', label: 'Otro', icon: <MoreHorizontal size={18} />, color: 'slate' },
+                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={16} />, color: 'amber' },
+                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={16} />, color: 'pink' },
+                                            { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={16} />, color: 'rose' },
+                                            { id: 'spa', label: 'Spa', icon: <Flower2 size={16} />, color: 'emerald' },
+                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={16} />, color: 'blue' },
+                                            { id: 'other', label: 'Otro', icon: <MoreHorizontal size={16} />, color: 'slate' },
                                         ].map(cat => {
                                             const isSelected = newBusiness.category === cat.id;
                                             const colorMap: Record<string, string> = {
-                                                amber: isSelected ? 'border-amber-400/60 bg-amber-400/10 text-amber-400' : 'border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-amber-400',
-                                                pink: isSelected ? 'border-pink-400/60 bg-pink-400/10 text-pink-400' : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
-                                                rose: isSelected ? 'border-rose-400/60 bg-rose-400/10 text-rose-400' : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
-                                                emerald: isSelected ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-400' : 'border-white/5 text-slate-500 hover:border-emerald-400/30 hover:text-emerald-400',
-                                                blue: isSelected ? 'border-blue-400/60 bg-blue-400/10 text-blue-400' : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
-                                                slate: isSelected ? 'border-slate-400/60 bg-slate-400/10 text-slate-300' : 'border-white/5 text-slate-500 hover:border-slate-400/30 hover:text-slate-400',
+                                                amber: isSelected ? 'border-amber-400/50 bg-amber-400/10 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.1)]' : 'border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-amber-400',
+                                                pink: isSelected ? 'border-pink-400/50 bg-pink-400/10 text-pink-400 shadow-[0_0_12px_rgba(244,114,182,0.1)]' : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
+                                                rose: isSelected ? 'border-rose-400/50 bg-rose-400/10 text-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.1)]' : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
+                                                emerald: isSelected ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.1)]' : 'border-white/5 text-slate-500 hover:border-emerald-400/30 hover:text-emerald-400',
+                                                blue: isSelected ? 'border-blue-400/50 bg-blue-400/10 text-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.1)]' : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
+                                                slate: isSelected ? 'border-slate-400/50 bg-slate-400/10 text-slate-300' : 'border-white/5 text-slate-500 hover:border-slate-400/30 hover:text-slate-400',
                                             };
                                             return (
                                                 <button
-                                                    key={cat.id}
-                                                    type="button"
+                                                    key={cat.id} type="button"
                                                     onClick={() => setNewBusiness({ ...newBusiness, category: cat.id })}
-                                                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-200 cursor-pointer bg-black/30 ${colorMap[cat.color]}`}
+                                                    className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border transition-all duration-200 cursor-pointer bg-white/[0.02] ${colorMap[cat.color]}`}
                                                 >
                                                     {cat.icon}
-                                                    <span className="text-[10px] font-bold uppercase tracking-wide leading-none">{cat.label}</span>
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider leading-none">{cat.label}</span>
                                                 </button>
                                             );
                                         })}
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Costo Mensual */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Costo Mensual ($)</label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-accent font-black text-sm pointer-events-none">$</span>
+                            {/* Divider */}
+                            <div className="border-t border-white/5" />
+
+                            {/* ── Sección: Acceso del Dueño ── */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Users size={14} className="text-emerald-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del Dueño</span>
+                                </div>
+
+                                {/* Email + Password en 2 columnas */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Correo Electrónico</label>
                                         <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-accent font-black focus:ring-2 focus:ring-accent focus:border-transparent transition-all outline-none"
+                                            required type="email"
+                                            className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
+                                            placeholder="dueno@correo.com"
+                                            value={newBusiness.ownerEmail}
+                                            onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Contraseña</label>
+                                        <input
+                                            required type="password" minLength={6}
+                                            className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
+                                            placeholder="Mín. 6 caracteres"
+                                            value={newBusiness.ownerPassword}
+                                            onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueño usará estas credenciales para acceder a su panel de administración.</p>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="border-t border-white/5" />
+
+                            {/* ── Sección: Precio ── */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Zap size={14} className="text-amber-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Plan</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="relative flex-1">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400 font-black text-sm pointer-events-none">$</span>
+                                        <input
+                                            type="number" min="0" step="0.01"
+                                            className="w-full bg-white/[0.04] border border-amber-500/20 rounded-xl pl-8 pr-4 py-3 text-amber-400 font-black focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/30 transition-all outline-none text-sm"
                                             value={newBusiness.monthlyPrice}
                                             onChange={e => setNewBusiness({ ...newBusiness, monthlyPrice: e.target.value })}
                                         />
                                     </div>
+                                    <span className="text-[11px] text-slate-500 font-medium shrink-0">MXN / mes</span>
                                 </div>
                             </div>
+
+                            {/* Error */}
+                            {/* (error display is handled by showToast) */}
+
+                            {/* Submit */}
                             <button
                                 type="submit"
                                 disabled={isCreating}
-                                className="btn btn-primary w-full py-4 text-lg shadow-xl shadow-accent/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="w-full py-4 rounded-2xl font-black text-white text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2.5 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 {isCreating ? (
-                                    <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> Creando...</>) : (
-                                    'Iniciar Instancia de Negocio'
+                                    <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> Creando Instancia...</>
+                                ) : (
+                                    <><Zap size={16} /> Crear Negocio</>
                                 )}
                             </button>
                         </form>
