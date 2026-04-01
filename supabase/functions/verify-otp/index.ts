@@ -142,12 +142,23 @@ serve(async (req: Request) => {
 
             // Log the OTP/confirmation message
             if (tenant_id) {
-                await sbRest('sms_logs', 'POST', {
-                    tenant_id,
-                    phone: e164,
-                    message_type: 'client_otp',
-                    provider: 'whatsapp',
+                const logRes = await fetch(`${SUPABASE_URL}/rest/v1/sms_logs`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey':        SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type':  'application/json',
+                        'Prefer':        'return=minimal',
+                    },
+                    body: JSON.stringify({
+                        tenant_id,
+                        phone: e164,
+                        message_type: 'client_otp',
+                        provider: 'whatsapp',
+                        status: 'sent',
+                    }),
                 });
+                console.log('[verify-otp] sms_logs insert:', logRes.status);
             }
 
             return new Response(
