@@ -50,7 +50,7 @@ export default function SuperAdminPanel() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', monthlyPrice: '29.99' });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99' });
     const [isCreating, setIsCreating] = useState(false);
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, number>>({});
@@ -137,15 +137,15 @@ export default function SuperAdminPanel() {
     const handleCreateBusiness = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsCreating(true);
-        const res = await createTenant(newBusiness.name, newBusiness.slug, '', newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase());
+        const res = await createTenant(newBusiness.name, newBusiness.slug, '', newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase(), newBusiness.ownerPassword);
         setIsCreating(false);
         if (res.success) {
             setIsCreateModalOpen(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', monthlyPrice: '29.99' });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99' });
             showToast(
-                res.inviteSent
-                    ? `Negocio creado. Invitación enviada a ${newBusiness.ownerEmail}`
-                    : 'Negocio creado. El dueño puede registrarse con ese correo.',
+                res.accountCreated
+                    ? `Negocio creado. Cuenta creada para ${newBusiness.ownerEmail}`
+                    : 'Negocio creado. La cuenta del dueño no se pudo crear automáticamente.',
                 'success'
             );
             fetchAllTenants();
@@ -467,7 +467,22 @@ export default function SuperAdminPanel() {
                                         value={newBusiness.ownerEmail}
                                         onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
                                     />
-                                    <p className="text-[10px] text-slate-500 ml-1">Se enviará un link de invitación a este correo para que el dueño cree su contraseña.</p>
+                                    <p className="text-[10px] text-slate-500 ml-1">El dueño usará este correo para iniciar sesión.</p>
+                                </div>
+
+                                {/* Contraseña del Dueño */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Contraseña del Dueño</label>
+                                    <input
+                                        required
+                                        type="password"
+                                        minLength={6}
+                                        className="w-full bg-black/40 border border-emerald-500/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
+                                        placeholder="Mínimo 6 caracteres"
+                                        value={newBusiness.ownerPassword}
+                                        onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-slate-500 ml-1">Con esta contraseña + su correo podrá acceder al panel.</p>
                                 </div>
 
                                 {/* Slug — editable manualmente si se necesita ajustar */}

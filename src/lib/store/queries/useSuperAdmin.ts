@@ -25,7 +25,7 @@ export function useSuperAdmin() {
     });
 
     const createTenantMutation = useMutation({
-        mutationFn: async ({ name, slug, address, category, ownerEmail }: { name: string, slug: string, address: string, category: string, ownerEmail: string }) => {
+        mutationFn: async ({ name, slug, address, category, ownerEmail, ownerPassword }: { name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string }) => {
             if (!user) throw new Error('No user logged in');
 
             // 1. Check if slug exists
@@ -70,20 +70,29 @@ export function useSuperAdmin() {
                 await supabase.from('stylists').insert(stl);
             }
 
-            // 5. Enviar invitación por Magic Link (el dueño hace clic y crea su contraseña)
-            let inviteSent = false;
+            // 5. Crear la cuenta del dueño con email + contraseña vía Edge Function
+            let accountCreated = false;
             try {
-                const { error: otpError } = await supabase.auth.signInWithOtp({
-                    email: ownerEmail,
-                    options: { shouldCreateUser: true }
-                });
-                inviteSent = !otpError;
-                if (otpError) console.warn('OTP no enviado:', otpError.message);
+                const { data: { session } } = await supabase.auth.getSession();
+                const fnRes = await fetch(
+                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`,
+                        },
+                        body: JSON.stringify({ email: ownerEmail, password: ownerPassword }),
+                    }
+                );
+                const fnData = await fnRes.json();
+                accountCreated = fnData.success === true;
+                if (!accountCreated) console.warn('create-owner:', fnData.error);
             } catch (err) {
-                console.warn('No se pudo enviar el Magic Link:', err);
+                console.warn('No se pudo crear la cuenta del dueño:', err);
             }
 
-            return { success: true, data, inviteSent };
+            return { success: true, data, accountCreated };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
@@ -114,10 +123,10 @@ export function useSuperAdmin() {
         allTenants: query.data || [],
         isLoading: query.isLoading,
         fetchAllTenants: () => queryClient.invalidateQueries({ queryKey }),
-        createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string): Promise<{ success: boolean; data?: any; error?: string; inviteSent?: boolean }> => {
+        createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string): Promise<{ success: boolean; data?: any; error?: string; accountCreated?: boolean }> => {
             try {
-                const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail });
-                return { success: true, data: res.data, inviteSent: res.inviteSent };
+                const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail, ownerPassword });
+                return { success: true, data: res.data, accountCreated: res.accountCreated };
             } catch (err: any) {
                 return { success: false, error: err.message };
             }

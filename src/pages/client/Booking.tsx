@@ -159,7 +159,7 @@ export default function Booking() {
     // Appointments for selected date
     const dateAppointments: SlotAppointment[] = useMemo(() => {
         return appointments
-            .filter(a => a.date === selectedDate && a.status === 'confirmada' && (!selectedStylist || a.stylistId === selectedStylist.id))
+            .filter(a => a.date === selectedDate && a.status !== 'cancelada' && (!selectedStylist || a.stylistId === selectedStylist.id))
             .map(a => {
                 const svc = services.find(s => s.id === a.serviceId);
                 const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
@@ -209,7 +209,7 @@ export default function Booking() {
 
         stylistsToCheck.forEach(stylist => {
             const stylistApps = appointments
-                .filter(a => a.date === selectedDate && a.status === 'confirmada' && String(a.stylistId) === String(stylist.id))
+                .filter(a => a.date === selectedDate && a.status !== 'cancelada' && String(a.stylistId) === String(stylist.id))
                 .map(a => {
                     const svc = services.find(s => s.id === a.serviceId);
                     const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);

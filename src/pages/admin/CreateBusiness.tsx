@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2, LogOut, Mail } from 'lucide-react';
+import { Store as StoreIcon, ArrowRight, Check, Scissors, Sparkles, Flower2, Dog, Briefcase, Globe, MapPin, Building2, Loader2, LogOut, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import { useAuthStore } from '../../lib/store/authStore';
 import { supabase } from '../../lib/supabaseClient';
@@ -18,6 +18,8 @@ export default function CreateBusiness() {
     const [address, setAddress] = useState('');
     const [category, setCategory] = useState('');
     const [ownerEmail, setOwnerEmail] = useState('');
+    const [ownerPassword, setOwnerPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -44,7 +46,13 @@ export default function CreateBusiness() {
             return;
         }
 
-        const res = await createTenant(name, slug, address, category, ownerEmail);
+        if (!ownerPassword || ownerPassword.length < 6) {
+            setError('La contraseña debe tener al menos 6 caracteres.');
+            setLoading(false);
+            return;
+        }
+
+        const res = await createTenant(name, slug, address, category, ownerEmail, ownerPassword);
 
         if (res.success) {
             // Optional: Add a small delay for "success" animation
@@ -212,7 +220,37 @@ export default function CreateBusiness() {
                                     required
                                 />
                             </div>
-                            <p className="text-xs text-slate-500 ml-1">Le llegará un correo para acceder a su panel sin contraseña.</p>
+                            <p className="text-xs text-slate-500 ml-1">Le llegará un correo de bienvenida.</p>
+                        </div>
+
+                        {/* Owner Password Input */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300 ml-1">
+                                Contraseña del Dueño
+                                <span className="ml-2 text-xs text-emerald-400 font-normal">← Con esta entrará a su panel</span>
+                            </label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-400 transition-colors">
+                                    <Lock size={18} />
+                                </div>
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={ownerPassword}
+                                    onChange={(e) => setOwnerPassword(e.target.value)}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-12 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                                    placeholder="Mínimo 6 caracteres"
+                                    required
+                                    minLength={6}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-white transition-colors"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 ml-1">El dueño usará esta contraseña + su email para iniciar sesión.</p>
                         </div>
 
                         {/* Address Input */}
