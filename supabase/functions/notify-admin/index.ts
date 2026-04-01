@@ -82,6 +82,12 @@ serve(async (req: Request) => {
         const directPhone = payload.admin_phone as string | undefined;
         const directName  = payload.business_name as string | undefined;
 
+        // Supabase client for logging
+        const supabaseLog = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
+
         console.log('[notify-admin] received tenant_id:', tenant_id, '| event:', event_type, '| direct_phone:', directPhone);
 
         let adminPhone   = directPhone;
@@ -165,6 +171,16 @@ serve(async (req: Request) => {
 📆 ${fechaAdmin}  📱 ${appointment.client_phone}`);
         }
 
+        // Log admin notification
+        if (adminSent && tenant_id) {
+            await supabaseLog.from('sms_logs').insert({
+                tenant_id,
+                phone: adminPhone,
+                message_type: `admin_${event_type}`,
+                provider: 'whatsapp',
+            }).then(r => { if (r.error) console.warn('[notify-admin] sms_logs insert error (admin):', r.error.message); });
+        }
+
 
         // ── 2. NOTIFICACIÓN AL CLIENTE (plantilla aprobada por Meta) ─────────
         let clientSent = false;
@@ -207,6 +223,16 @@ serve(async (req: Request) => {
                         { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': appointment.service_name ?? 'Servicio', '5': 'Reprogramada ✅' }
                     );
                 }
+            }
+
+            // Log client notification
+            if (clientSent && tenant_id) {
+                await supabaseLog.from('sms_logs').insert({
+                    tenant_id,
+                    phone: appointment.client_phone,
+                    message_type: `client_${event_type}`,
+                    provider: 'whatsapp',
+                }).then(r => { if (r.error) console.warn('[notify-admin] sms_logs insert error (client):', r.error.message); });
             }
         }
 

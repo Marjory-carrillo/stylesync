@@ -64,6 +64,7 @@ serve(async (req: Request) => {
             action,
             phone,
             code,
+            tenant_id,
             businessName       = 'CitaLink',
             clientName         = 'Cliente',
             serviceName        = 'tu servicio',
@@ -137,6 +138,16 @@ serve(async (req: Request) => {
                     JSON.stringify({ success: false, error: templateData.message }),
                     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
+            }
+
+            // Log the OTP/confirmation message
+            if (tenant_id) {
+                await sbRest('sms_logs', 'POST', {
+                    tenant_id,
+                    phone: e164,
+                    message_type: 'client_otp',
+                    provider: 'whatsapp',
+                });
             }
 
             return new Response(

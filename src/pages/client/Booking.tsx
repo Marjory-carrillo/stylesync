@@ -244,7 +244,7 @@ export default function Booking() {
     const [otpCode, setOtpCode] = useState('');
     const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
     const [otpAttempts, setOtpAttempts] = useState(0);
-    const [smsProvider, setSmsProvider] = useState<'demo' | 'sms' | 'whatsapp'>('demo');
+    const [smsProvider, setSmsProvider] = useState<'demo' | 'whatsapp'>('demo');
     const [smsDebugError, setSmsDebugError] = useState<string | null>(null);
     const [resendCountdown, setResendCountdown] = useState(0);
 
@@ -388,7 +388,7 @@ export default function Booking() {
         setResendCountdown(15);
         try {
             const currentProvider = businessConfig?.smsProvider ?? 'demo';
-            if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
+            if (currentProvider === 'whatsapp') {
                 await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
@@ -496,7 +496,7 @@ export default function Booking() {
             }
         }
 
-        if (currentProvider === 'whatsapp' || currentProvider === 'sms') {
+        if (currentProvider === 'whatsapp') {
             // ── Enviar OTP y mostrar banner de WhatsApp ──────────────────────
             setIsSendingSms(true);
             setSmsDebugError(null);
@@ -521,6 +521,7 @@ export default function Booking() {
                     body: JSON.stringify({
                         action:              'send',
                         phone:               clientPhone,
+                        tenant_id:           tenantId,
                         businessName:        bName,
                         clientName:          clientName.trim(),
                         serviceName:         selectedService?.name ?? 'tu servicio',
@@ -538,7 +539,7 @@ export default function Booking() {
                     setClientError(`Error procesando WhatsApp: ${debugErr}`);
                     return;
                 }
-                setSmsProvider(currentProvider as 'sms' | 'whatsapp');
+                setSmsProvider(currentProvider as 'whatsapp');
                 setGeneratedOtp('__verify__');
                 setOtpAttempts(0);
                 setOtpCode('');
@@ -860,35 +861,6 @@ export default function Booking() {
                             <Shield size={32} />
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">Verificación de Seguridad</h3>
-
-                        {/* ── Proveedor: SMS ── */}
-                        {smsProvider === 'sms' && (
-                            <div className="mb-6">
-                                <div className="relative bg-[#0a1628] border border-blue-500/30 rounded-2xl p-4 overflow-hidden shadow-lg shadow-blue-500/10">
-                                    {/* glow top-right */}
-                                    <div className="absolute -top-8 -right-8 w-28 h-28 bg-blue-500/15 rounded-full blur-2xl pointer-events-none" />
-                                    <div className="flex items-center gap-3 relative z-10">
-                                        {/* SMS icon */}
-                                        <div className="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                                            <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6"><path d="M20 2H4a2 2 0 00-2 2v14a2 2 0 002 2h4l4 4 4-4h4a2 2 0 002-2V4a2 2 0 00-2-2z" fill="#3b82f6"/><path d="M7 9h10M7 13h6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                                        </div>
-                                        <div className="flex-1 text-left">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className="text-blue-400 text-xs font-bold uppercase tracking-widest">SMS</span>
-                                                <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
-                                                </span>
-                                            </div>
-                                            <p className="text-white text-sm font-medium">
-                                                ¡Código enviado a <span className="text-blue-400 font-bold">{clientPhone}</span>!
-                                            </p>
-                                            <p className="text-white/50 text-xs mt-0.5">Revisa tus mensajes de texto e ingresa el código.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
                         {/* ── Proveedor: WhatsApp ── */}
                         {smsProvider === 'whatsapp' && (

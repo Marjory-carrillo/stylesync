@@ -384,22 +384,19 @@ export default function SuperAdminPanel() {
                                         </button>
                                     </div>
 
-                                    {/* SMS / WhatsApp Provider Selector */}
+                                    {/* WhatsApp Provider Selector */}
                                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
                                         <div className="flex flex-col items-start mr-1">
                                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Mensajería</span>
                                             <span className={`text-[10px] font-bold ${
                                                 tenant.sms_provider === 'whatsapp' ? 'text-emerald-400'
-                                                : tenant.sms_provider === 'sms' ? 'text-blue-400'
                                                 : 'text-amber-500/70'
                                             }`}>
-                                                {tenant.sms_provider === 'whatsapp' ? 'WHATSAPP'
-                                                : tenant.sms_provider === 'sms' ? 'SMS'
-                                                : 'DEMO'}
+                                                {tenant.sms_provider === 'whatsapp' ? 'WHATSAPP' : 'DEMO'}
                                             </span>
                                         </div>
                                         <div className="flex gap-1">
-                                            {(['demo', 'sms', 'whatsapp'] as const).map((p) => (
+                                            {(['demo', 'whatsapp'] as const).map((p) => (
                                                 <button
                                                     key={p}
                                                     onClick={async () => {
@@ -412,7 +409,7 @@ export default function SuperAdminPanel() {
                                                             showToast("Error: " + error.message, 'error');
                                                         } else {
                                                             fetchAllTenants();
-                                                            const labels = { demo: 'Demo', sms: '📱 SMS', whatsapp: '💬 WhatsApp' };
+                                                            const labels = { demo: 'Demo', whatsapp: '💬 WhatsApp' };
                                                             showToast(`Mensajería → ${labels[p]} para ${tenant.name}`, 'info');
                                                         }
                                                     }}
@@ -420,13 +417,11 @@ export default function SuperAdminPanel() {
                                                         tenant.sms_provider === p
                                                             ? p === 'whatsapp'
                                                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                                                : p === 'sms'
-                                                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
                                                                 : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
                                                             : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
                                                     }`}
                                                 >
-                                                    {p === 'demo' ? '🔵 Demo' : p === 'sms' ? '📱 SMS' : '💬 WA'}
+                                                    {p === 'demo' ? '🔵 Demo' : '💬 WA'}
                                                 </button>
                                             ))}
                                         </div>

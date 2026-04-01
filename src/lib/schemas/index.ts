@@ -86,5 +86,4 @@ export const businessConfigSchema = z.object({
         .optional()
         .or(z.literal('')),
     category: z.string().optional(),
-    sms_enabled: z.boolean().optional(),
 });

@@ -96,8 +96,7 @@ export interface BusinessConfig {
     description?: string;
     primaryColor?: string;
     accentColor?: string;
-    sms_enabled?: boolean;
-    smsProvider?: 'demo' | 'sms' | 'whatsapp';
+    smsProvider?: 'demo' | 'whatsapp';
     breakBetweenAppointments?: number; // 0 = off, positive = minutes of buffer
     showDashboardMetrics?: boolean;
 }
@@ -172,7 +171,7 @@ export interface StoreContextType {
     switchTenant: (tenantId: string) => Promise<void>;
     deleteTenant: (tenantId: string) => Promise<{ success: boolean; error?: string }>;
 
-    sendSMS: (phone: string, message: string) => Promise<{ success: boolean; error?: string }>;
+
 
     loading: boolean;
 
