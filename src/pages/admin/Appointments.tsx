@@ -10,7 +10,7 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, Phone, Scissors, Send, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download } from 'lucide-react';
+import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
@@ -64,23 +64,7 @@ export default function Appointments() {
         return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
     }, [services, tenantConfig]);
 
-    const generateReminderWhatsAppUrl = useCallback((apt: any) => {
-        const svc = services.find(s => s.id === apt.serviceId);
-        const biz = tenantConfig as any;
-        let msg = '';
-        if (biz?.reminderTemplate) {
-            msg = biz.reminderTemplate
-                .replace(/\[NOMBRE\]/g, apt.clientName || '')
-                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
-                .replace(/\[FECHA\]/g, apt.date || '')
-                .replace(/\[HORA\]/g, apt.time || '')
-                .replace(/\[NEGOCIO\]/g, biz?.name || '')
-                .replace(/\[DIRECCION\]/g, biz?.address || '');
-        } else {
-            msg = `Hola *${apt.clientName}*, te recordamos tu cita manana en *${biz?.name ?? 'el negocio'}*: ${svc?.name ?? ''} a las ${apt.time}. ${biz?.address ?? ''}`;
-        }
-        return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-    }, [services, tenantConfig]);
+
 
     const appointments = useMemo(() => {
         if (userRole === 'employee' && userStylistId) {
@@ -90,7 +74,7 @@ export default function Appointments() {
     }, [allAppointments, userRole, userStylistId]);
 
     const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'espera'>('list');
-    const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'recordatorios'>('confirmada');
+    const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada'>('confirmada');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -144,13 +128,7 @@ export default function Appointments() {
     };
 
 
-    // ── Filter Logic ──
-    const isTomorrow = (dateStr: string) => {
-        const d = new Date(dateStr + 'T00:00:00');
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return d.toDateString() === tomorrow.toDateString();
-    };
+
 
     // Use local system date in YYYY-MM-DD format (timezone-safe)
     const todayStr = new Date().toLocaleDateString('en-CA');
@@ -165,9 +143,7 @@ export default function Appointments() {
             if (new Date() >= end) isFinished = true;
         }
 
-        if (filter === 'recordatorios') {
-            return apt.status === 'confirmada' && !isFinished && isTomorrow(apt.date);
-        }
+
         if (filter === 'confirmada') {
             return apt.status === 'confirmada' && !isFinished;
         }
@@ -280,7 +256,6 @@ export default function Appointments() {
                     <div className="flex gap-1.5 p-1 bg-white/5 rounded-xl border border-white/5 overflow-x-auto hide-scrollbar">
                         {[
                             { id: 'confirmada', label: t('appointments.filters.confirmada'), color: 'bg-emerald-500', text: 'text-emerald-400' },
-                            { id: 'recordatorios', label: t('appointments.filters.recordatorios'), color: 'bg-amber-500', text: 'text-amber-400' },
                             { id: 'completada', label: t('appointments.filters.completada'), color: 'bg-slate-500', text: 'text-slate-400' },
                             { id: 'cancelada', label: t('appointments.filters.cancelada'), color: 'bg-red-500', text: 'text-red-400' }
                         ].map((tab) => (
@@ -455,8 +430,8 @@ export default function Appointments() {
                                 appointments={filteredAppointments}
                                 services={services}
                                 stylists={stylists}
-                                onWhatsApp={(apt, type) => {
-                                    const url = type === 'confirm' ? generateWhatsAppUrl(apt) : generateReminderWhatsAppUrl(apt);
+                                onWhatsApp={(apt) => {
+                                    const url = generateWhatsAppUrl(apt);
                                     window.open(url, '_blank');
                                 }}
                                 onCancel={(apt) => handleAdminCancel(apt)}
@@ -587,21 +562,15 @@ export default function Appointments() {
 
                                                             {/* Actions */}
                                                             <div className="flex items-center justify-end gap-2 pr-1 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-0 border-dashed">
-                                                                {filter === 'recordatorios' ? (
-                                                                    <a href={generateReminderWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-500/20" title="Enviar Recordatorio">
-                                                                        <Send size={14} /> <span>Recordatorio</span>
-                                                                    </a>
-                                                                ) : (
-                                                                    apt.status === 'confirmada' && (
-                                                                        <div className="flex items-center gap-1">
-                                                                            <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
-                                                                                <MessageCircle size={20} />
-                                                                            </a>
-                                                                            <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20" title="Cancelar">
-                                                                                <Trash2 size={20} />
-                                                                            </button>
-                                                                        </div>
-                                                                    )
+                                                                {apt.status === 'confirmada' && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
+                                                                            <MessageCircle size={20} />
+                                                                        </a>
+                                                                        <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20" title="Cancelar">
+                                                                            <Trash2 size={20} />
+                                                                        </button>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </div>

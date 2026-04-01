@@ -8,7 +8,7 @@ interface WeekCalendarProps {
     appointments: Appointment[];
     services: Service[];
     stylists: Stylist[];
-    onWhatsApp: (apt: Appointment, type: 'confirm' | 'remind') => void;
+    onWhatsApp: (apt: Appointment) => void;
     onCancel: (apt: Appointment) => void;
 }
 
@@ -199,18 +199,11 @@ const WeekCalendar = React.memo(function WeekCalendar({ appointments, services, 
 
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => { setSelectedApt(null); onWhatsApp(selectedApt, 'confirm'); }}
+                                            onClick={() => { setSelectedApt(null); onWhatsApp(selectedApt); }}
                                             className="flex-1 btn bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border border-green-500/20 flex flex-col items-center gap-1 py-3"
                                         >
                                             <MessageCircle size={18} />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider">Confirmación</span>
-                                        </button>
-                                        <button
-                                            onClick={() => { setSelectedApt(null); onWhatsApp(selectedApt, 'remind'); }}
-                                            className="flex-1 btn bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white border border-amber-500/20 flex flex-col items-center gap-1 py-3"
-                                        >
-                                            <MessageCircle size={18} />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider">Recordatorio</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Contactar</span>
                                         </button>
                                         {!isFinished && (
                                             <button
