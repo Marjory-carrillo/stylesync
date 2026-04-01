@@ -70,6 +70,8 @@ body {
   height: 100%;
   overscroll-behavior-y: none;
   /* Prevent bounce on mobile */
+  overflow-x: hidden;
+  /* Prevent horizontal scrolling */
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);

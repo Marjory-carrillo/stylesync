@@ -463,11 +463,15 @@ export default function Dashboard() {
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
                                                 <span className="text-white font-black text-base block tracking-tight leading-none mb-1">{item.name.toUpperCase()}</span>
-                                                <span className="text-[10px] text-slate-500 font-mono">{item.phone}</span>
+                                                <span className="text-[11px] text-slate-400 font-bold bg-white/5 px-2 py-0.5 rounded-lg border border-white/5 inline-flex items-center gap-1">
+                                                    <Phone size={10} /> {item.phone}
+                                                </span>
                                             </div>
-                                            <div className="text-right">
-                                                <span className="text-[9px] font-black uppercase text-accent/60 tracking-widest block mb-0.5">Esperando</span>
-                                                <span className="text-[10px] text-white font-bold bg-white/5 px-2 py-0.5 rounded-md">{item.date}</span>
+                                            <div className="text-right flex flex-col items-end">
+                                                <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest block mb-0.5">Solicita para:</span>
+                                                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                                                    {new Date(item.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                </span>
                                             </div>
                                         </div>
 

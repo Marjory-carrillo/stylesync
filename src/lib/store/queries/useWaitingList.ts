@@ -18,7 +18,9 @@ export const useWaitingList = () => {
             const { data, error } = await supabase
                 .from('waiting_list')
                 .select('*')
-                .eq('tenant_id', tenantId);
+                .eq('tenant_id', tenantId)
+                .order('date', { ascending: true })
+                .order('created_at', { ascending: true });
             if (error) throw error;
 
             return data.map((w: any) => ({

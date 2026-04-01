@@ -217,7 +217,7 @@ export default function Appointments() {
         <div className="animate-fade-in h-[calc(100vh-100px)] flex flex-col gap-6">
 
             {/* Header & Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-none px-1">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-none px-1 w-full max-w-full">
                 <div>
                     <h2 className="text-3xl font-bold text-white tracking-tight">{t('appointments.title')}</h2>
                     <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
@@ -244,7 +244,7 @@ export default function Appointments() {
                 </div>
 
                 {/* Controls Container */}
-                <div className="flex items-center gap-3 bg-black/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md overflow-x-auto">
+                <div className="flex items-center gap-3 bg-black/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md overflow-x-auto hide-scrollbar w-full max-w-full">
                     {/* View Mode Toggles */}
                     <div className="flex gap-1 border-r border-white/10 pr-3 mr-1">
                         <button
@@ -305,8 +305,8 @@ export default function Appointments() {
             </div>
 
             {/* Secondary Controls: Search & Date Filter */}
-            <div className="flex flex-col sm:flex-row gap-4 flex-none px-1">
-                <div className="flex-1 bg-[#1a1f2e]/80 hover:bg-[#1f2536] p-3 rounded-2xl border border-white/5 hover:border-white/10 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-accent/50 focus-within:border-accent/30 shadow-inner">
+            <div className="flex flex-col sm:flex-row gap-4 flex-none px-1 w-full max-w-full">
+                <div className="flex-1 w-full bg-[#1a1f2e]/80 hover:bg-[#1f2536] p-3 rounded-2xl border border-white/5 hover:border-white/10 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-accent/50 focus-within:border-accent/30 shadow-inner">
                     <Search className="text-muted shrink-0 ml-1" size={18} />
                     <input
                         type="text"
@@ -363,7 +363,7 @@ export default function Appointments() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 min-h-0 flex flex-col items-center justify-start">
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-start w-full max-w-full">
                 <div className="w-full max-w-5xl bg-black/20 rounded-3xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col shadow-2xl h-full">
                     {/* ── Lista de Espera View ── */}
                     {viewMode === 'espera' ? (
@@ -408,12 +408,12 @@ export default function Appointments() {
                                                                         <Scissors size={9} /> {svc.name}
                                                                     </span>
                                                                 )}
-                                                                <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg">
-                                                                    <CalendarDays size={9} />
-                                                                    {new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                                                <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]">
+                                                                    <CalendarDays size={10} />
+                                                                    Desea cita para: {new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                                                                 </span>
-                                                                <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg">
-                                                                    <Phone size={9} /> {client.phone}
+                                                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300 bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                                                                    <Phone size={10} /> {client.phone}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -499,16 +499,16 @@ export default function Appointments() {
                                     return Object.keys(grouped).sort().map(date => (
                                         <div key={date} className="space-y-2 mb-6 last:mb-2">
                                             {/* Date Header */}
-                                            <div className="flex items-center gap-3 px-3 py-2 sticky top-0 bg-[#161b2a]/95 backdrop-blur-sm z-10 border-b border-white/5 mx-[-8px]">
-                                                <div className="p-1.5 rounded-lg bg-accent/10 border border-accent/20">
-                                                    <CalendarDays size={12} className="text-accent" />
+                                            <div className="flex items-center gap-3 px-4 py-2.5 sticky top-2 mb-3 bg-[#10131c]/95 backdrop-blur-2xl z-20 rounded-2xl border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                                                <div className="p-1.5 rounded-xl bg-accent/10 border border-accent/20">
+                                                    <CalendarDays size={13} className="text-accent" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">
+                                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-white/90">
                                                         {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                                                     </span>
                                                     {date === todayStr && (
-                                                        <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">Hoy</span>
+                                                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mt-0.5">HOY</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -549,17 +549,17 @@ export default function Appointments() {
                                                         <div className={`w-1.5 shrink-0 ${isCompleted ? 'bg-emerald-500/30' : isCancelled ? 'bg-red-500/30' : 'bg-gradient-to-b from-accent/80 to-accent/20'}`} />
 
                                                         {/* Time Column */}
-                                                        <div className="flex flex-col items-center justify-center w-20 shrink-0 bg-white/[0.03] border-r border-white/5 py-4">
-                                                            <span className={`text-base font-black tracking-tighter ${isCancelled ? 'text-red-400 line-through' : 'text-white'}`}>
+                                                        <div className="flex flex-col items-center justify-center w-[72px] sm:w-20 shrink-0 bg-white/[0.02] border-r border-white/5 py-4">
+                                                            <span className={`text-base sm:text-lg font-black tracking-tighter ${isCancelled ? 'text-red-400 line-through' : 'text-white'}`}>
                                                                 {displayTime.replace(/(am|pm)/, '')}
                                                             </span>
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-accent/80 -mt-1">
+                                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-accent/80 -mt-1 sm:-mt-1.5">
                                                                 {displayTime.match(/(am|pm)/)?.[0]}
                                                             </span>
                                                         </div>
 
                                                         {/* Main Info */}
-                                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-4 p-4">
+                                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center p-3 gap-0 md:gap-4 overflow-hidden">
                                                             {/* Client info */}
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-center gap-2 mb-1">
@@ -574,19 +574,19 @@ export default function Appointments() {
                                                             </div>
 
                                                             {/* Service & Stylist */}
-                                                            <div className="flex flex-col gap-2 md:min-w-[200px]">
-                                                                <div className="flex items-center gap-2.5 text-sm font-black text-white px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 w-fit">
-                                                                    <Scissors size={14} className="text-accent" />
-                                                                    <span className="tracking-tight">{service?.name}</span>
+                                                            <div className="flex flex-col gap-1.5 md:min-w-[180px] mt-2 md:mt-0">
+                                                                <div className="flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 w-fit">
+                                                                    <Scissors size={12} className="text-accent" />
+                                                                    <span className="tracking-tight truncate max-w-[150px]">{service?.name}</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 px-3 uppercase tracking-widest leading-none">
-                                                                    <User size={12} className="opacity-40" />
-                                                                    <span>{stylist?.name || 'Cualquier profesional'}</span>
+                                                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 px-2 uppercase tracking-widest leading-none">
+                                                                    <User size={10} className="opacity-40" />
+                                                                    <span className="truncate max-w-[150px]">{stylist?.name || 'Cualquier profesional'}</span>
                                                                 </div>
                                                             </div>
 
                                                             {/* Actions */}
-                                                            <div className="flex items-center justify-end gap-2 pr-2">
+                                                            <div className="flex items-center justify-end gap-2 pr-1 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-0 border-dashed">
                                                                 {filter === 'recordatorios' ? (
                                                                     <a href={generateReminderWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-500/20" title="Enviar Recordatorio">
                                                                         <Send size={14} /> <span>Recordatorio</span>
@@ -659,9 +659,14 @@ export default function Appointments() {
                                                                 <div className="flex flex-col gap-0.5">
                                                                     <span className="text-white font-bold text-sm tracking-tight">{client.name}</span>
                                                                     {svc && <span className="text-[10px] text-accent font-bold uppercase tracking-widest">{svc.name}</span>}
-                                                                    <span className="text-[10px] text-slate-500 font-medium">
-                                                                        {new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}
-                                                                    </span>
+                                                                    <div className="flex flex-col gap-0.5 mt-0.5">
+                                                                        <span className="text-[10px] font-black text-amber-400 flex items-center gap-1">
+                                                                            <CalendarDays size={10} /> Solicita para: {new Date(client.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                                                        </span>
+                                                                        <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                                            <Phone size={10} /> {client.phone}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => removeFromWaitingList(client.id)}
