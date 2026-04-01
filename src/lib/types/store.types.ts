@@ -99,6 +99,7 @@ export interface BusinessConfig {
     smsProvider?: 'demo' | 'whatsapp';
     breakBetweenAppointments?: number; // 0 = off, positive = minutes of buffer
     showDashboardMetrics?: boolean;
+    timezone?: string; // IANA timezone, e.g. 'America/Mexico_City'
 }
 
 export interface Tenant extends BusinessConfig {

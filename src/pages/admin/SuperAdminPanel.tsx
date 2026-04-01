@@ -50,7 +50,7 @@ export default function SuperAdminPanel() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99' });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City' });
     const [isCreating, setIsCreating] = useState(false);
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, { total: number; week: number; month: number }>>({});
@@ -145,11 +145,11 @@ export default function SuperAdminPanel() {
     const handleCreateBusiness = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsCreating(true);
-        const res = await createTenant(newBusiness.name, newBusiness.slug, '', newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase(), newBusiness.ownerPassword);
+        const res = await createTenant(newBusiness.name, newBusiness.slug, '', newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase(), newBusiness.ownerPassword, newBusiness.timezone);
         setIsCreating(false);
         if (res.success) {
             setIsCreateModalOpen(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99' });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City' });
             showToast(
                 res.accountCreated
                     ? `Negocio creado. Cuenta creada para ${newBusiness.ownerEmail}`
@@ -509,6 +509,25 @@ export default function SuperAdminPanel() {
                                             onChange={e => setNewBusiness({ ...newBusiness, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
                                         />
                                     </div>
+                                </div>
+
+                                {/* Zona Horaria */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">Zona Horaria</label>
+                                    <select
+                                        value={newBusiness.timezone}
+                                        onChange={e => setNewBusiness({ ...newBusiness, timezone: e.target.value })}
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
+                                    >
+                                        <option value="America/Mexico_City" className="bg-slate-900">Hora Central (CDMX, Monterrey)</option>
+                                        <option value="America/Tijuana" className="bg-slate-900">Hora del Pacífico (Tijuana, Mexicali)</option>
+                                        <option value="America/Mazatlan" className="bg-slate-900">Hora de la Montaña (Mazatlán, Culiacán)</option>
+                                        <option value="America/Cancun" className="bg-slate-900">Hora del Este (Cancún)</option>
+                                        <option value="America/Bogota" className="bg-slate-900">Colombia / Perú / Ecuador</option>
+                                        <option value="America/Santiago" className="bg-slate-900">Chile</option>
+                                        <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">Argentina</option>
+                                        <option value="Europe/Madrid" className="bg-slate-900">España (Península)</option>
+                                    </select>
                                 </div>
 
                                 {/* Categoría */}
