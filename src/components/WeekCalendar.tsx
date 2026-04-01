@@ -174,7 +174,14 @@ const WeekCalendar = React.memo(function WeekCalendar({ appointments, services, 
                                 <>
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 className="text-xl font-bold text-white">{selectedApt.clientName}</h3>
+                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                                {selectedApt.clientName}
+                                                {selectedApt.reminderSent && (
+                                                    <span className="flex items-center gap-1 text-[9px] font-black text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                                                        <MessageCircle size={10} /> Rec. Enviado
+                                                    </span>
+                                                )}
+                                            </h3>
                                             <p className="text-sm text-muted">{selectedApt.clientPhone}</p>
                                         </div>
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${isFinished ? 'bg-slate-500/20 text-slate-400' : 'bg-green-500/20 text-green-400'}`}>

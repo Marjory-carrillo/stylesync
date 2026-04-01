@@ -49,6 +49,8 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 serviceId: a.service_id,
                 stylistId: a.stylist_id,
                 bookedAt: a.booked_at,
+                reminderSent: a.reminder_sent,
+                confirmationSent: a.confirmation_sent,
             })) as Appointment[];
         },
         enabled: !!tenantId,

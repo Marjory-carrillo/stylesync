@@ -554,9 +554,16 @@ export default function Appointments() {
                                                                     <Scissors size={12} className="text-accent" />
                                                                     <span className="tracking-tight truncate max-w-[150px]">{service?.name}</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 px-2 uppercase tracking-widest leading-none">
-                                                                    <User size={10} className="opacity-40" />
-                                                                    <span className="truncate max-w-[150px]">{stylist?.name || 'Cualquier profesional'}</span>
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 px-2 uppercase tracking-widest leading-none">
+                                                                        <User size={10} className="opacity-40" />
+                                                                        <span className="truncate max-w-[150px]">{stylist?.name || 'Cualquier profesional'}</span>
+                                                                    </div>
+                                                                    {apt.reminderSent && !isCancelled && (
+                                                                        <div className="flex items-center gap-1 text-[9px] font-black text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                                                                            <MessageCircle size={10} /> Recordatorio
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
 

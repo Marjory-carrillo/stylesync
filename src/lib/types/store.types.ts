@@ -29,6 +29,8 @@ export interface Appointment {
     time: string; // "10:00"
     status: 'confirmada' | 'cancelada' | 'completada';
     bookedAt: string; // ISO timestamp of when this was booked
+    reminderSent?: boolean;
+    confirmationSent?: boolean;
 }
 
 export interface Client {
