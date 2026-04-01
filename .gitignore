@@ -26,3 +26,12 @@ dist-ssr
 
 .vercel
 .env*.local
+
+# Temp debug files
+content_templates.json
+get_twilio.js
+old_notify.ts
+test.js
+test_twilio.js
+twilio.json
+twilio_utf8.json

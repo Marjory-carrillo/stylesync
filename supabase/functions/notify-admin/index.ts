@@ -6,15 +6,15 @@ const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
-// ── Plantillas aprobadas por Meta — Notificaciones al CLIENTE ───────────────
-// NOTA: citalink_cliente_confirmacion (con OTP) la manda verify-otp al elegir hora
+// ── SIDs de plantillas aprobadas por Meta ── Notificaciones al Admin
+const TEMPLATE_ADMIN_NUEVA_CITA      = 'HX4b316926b4e052833a93cfc485c25d39';
+const TEMPLATE_ADMIN_REPROGRAMACION  = 'HXfe45424793d1a462c99700d880350fb8';
+const TEMPLATE_ADMIN_CANCELACION     = 'HXba4fd144b9e00ea17fcbf38349859d47';
+// Cliente (cancelacion/reprogramacion)
 const TEMPLATE_CLIENTE_CANCELACION    = 'HX57d98cdadf1b4ba0d560f15c9a6b1ecd';
 const TEMPLATE_CLIENTE_REPROGRAMACION = 'HX197821733621547516ac219bf561c65e';
-
-// ── Plantillas aprobadas por Meta — Notificaciones al ADMIN ─────────────────
-const TEMPLATE_ADMIN_NUEVA_CITA      = 'HX4b316926b4e052885a93cfc485c25d39'; // ← SID corregido
-const TEMPLATE_ADMIN_REPROGRAMACION  = 'HXfe45424793d1a462c99700d880350fb8';
-const TEMPLATE_ADMIN_CANCELACION     = 'HXba4fd144b9e00ea17fcbf58349859d47';
+// Fallback (confirmacion_v2) — se usa si el template específico falla
+const TEMPLATE_FALLBACK = 'HXc86774c877ad719610460e035b8c7fd3';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -23,9 +23,10 @@ const corsHeaders = {
 
 function normalizeToWA(phone: string): string {
     const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('521') && digits.length === 13) return `whatsapp:+${digits}`;
-    if (digits.startsWith('52') && digits.length === 12) return `whatsapp:+521${digits.slice(2)}`;
-    return `whatsapp:+521${digits.slice(-10)}`;
+    // Siempre enviamos con +52 sin el 1 intermedio, ya que WhatsApp (y Twilio) están fallando en rutas +521.
+    if (digits.startsWith('521') && digits.length === 13) return `whatsapp:+52${digits.slice(3)}`;
+    if (digits.startsWith('52') && digits.length === 12) return `whatsapp:+${digits}`;
+    return `whatsapp:+52${digits.slice(-10)}`;
 }
 
 /** Envía texto libre al admin (ventana de sesión activa) */
@@ -128,37 +129,40 @@ serve(async (req: Request) => {
         };
         const fechaAdmin = formatDTAdmin(appointment.date, appointment.time);
 
-        // ── Seleccionar plantilla del admin según evento ──────────────────────
-        const adminTemplates: Record<string, string> = {
+        // ── Notificar al admin ──────────────────────────────────────────────────
+        const adminTemplateMap: Record<string, string> = {
             new:        TEMPLATE_ADMIN_NUEVA_CITA,
             reschedule: TEMPLATE_ADMIN_REPROGRAMACION,
             cancel:     TEMPLATE_ADMIN_CANCELACION,
         };
-        const adminTemplateSid = adminTemplates[event_type];
+        // Plantilla admin: {{1}}=negocio, {{2}}=cliente, {{3}}=servicio, {{4}}=fecha, {{5}}=tel
+        let adminSent = await sendTemplate(adminWA, adminTemplateMap[event_type], {
+            '1': businessName,
+            '2': appointment.client_name,
+            '3': appointment.service_name ?? 'Servicio',
+            '4': fechaAdmin,
+            '5': appointment.client_phone,
+        });
 
-        let adminSent = false;
-        if (adminTemplateSid) {
-            // Plantilla aprobada: {{1}}=negocio, {{2}}=cliente, {{3}}=servicio, {{4}}=fecha, {{5}}=tel
-            adminSent = await sendTemplate(adminWA, adminTemplateSid, {
-                '1': businessName,
-                '2': appointment.client_name,
-                '3': appointment.service_name ?? 'Servicio',
-                '4': fechaAdmin,
+        // Fallback: template genérico si el específico falla
+        if (!adminSent) {
+            adminSent = await sendTemplate(adminWA, TEMPLATE_FALLBACK, {
+                '1': appointment.client_name,
+                '2': businessName,
+                '3': fechaAdmin,
+                '4': appointment.service_name ?? 'Servicio',
                 '5': appointment.client_phone,
             });
         }
 
-
-        // Fallback: texto libre si la plantilla no está aprobada aún
+        // Fallback final: texto libre
         if (!adminSent) {
-            const icons:  Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
-            const labels: Record<string, string> = { new: 'NUEVA CITA', reschedule: 'REPROGRAMADA', cancel: 'CANCELADA' };
-            const adminMsg = `${icons[event_type] ?? '📅'} *${labels[event_type] ?? 'CITA'}* — ${businessName}
-👤 ${appointment.client_name}
-✂️ ${appointment.service_name ?? 'Servicio'}
-📆 ${fechaAdmin}
-📱 ${appointment.client_phone}`;
-            adminSent = await sendWA(adminWA, adminMsg);
+            const icons: Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
+            const lbls:  Record<string, string> = { new: 'NUEVA CITA', reschedule: 'REPROGRAMADA', cancel: 'CANCELADA' };
+            adminSent = await sendWA(adminWA,
+                `${icons[event_type] ?? '📅'} *${lbls[event_type] ?? 'CITA'}* — ${businessName}
+👤 ${appointment.client_name}  ✂️ ${appointment.service_name ?? 'Servicio'}
+📆 ${fechaAdmin}  📱 ${appointment.client_phone}`);
         }
 
 
@@ -177,36 +181,32 @@ serve(async (req: Request) => {
             const fechaFormateada = formatDT(appointment.date, appointment.time);
 
             if (event_type === 'new') {
-                // ── El cliente YA recibió confirmación+OTP vía verify-otp al elegir hora ──
-                // No enviamos segunda confirmación aquí para evitar duplicado.
+                // El cliente YA recibió confirmación+OTP vía verify-otp al elegir hora
                 clientSent = true;
 
             } else if (event_type === 'cancel') {
-                // Plantilla citalink_cliente_cancelacion:
-                // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha
                 clientSent = await sendTemplate(
-                    appointment.client_phone,
-                    TEMPLATE_CLIENTE_CANCELACION,
-                    {
-                        '1': appointment.client_name,
-                        '2': businessName,
-                        '3': fechaFormateada,
-                    }
+                    appointment.client_phone, TEMPLATE_CLIENTE_CANCELACION,
+                    { '1': appointment.client_name, '2': businessName, '3': fechaFormateada }
                 );
+                if (!clientSent) {
+                    clientSent = await sendTemplate(
+                        appointment.client_phone, TEMPLATE_FALLBACK,
+                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': 'Cita cancelada', '5': 'Contacta al negocio' }
+                    );
+                }
 
             } else if (event_type === 'reschedule') {
-                // Plantilla citalink_cliente_reprogramacion:
-                // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio
                 clientSent = await sendTemplate(
-                    appointment.client_phone,
-                    TEMPLATE_CLIENTE_REPROGRAMACION,
-                    {
-                        '1': appointment.client_name,
-                        '2': businessName,
-                        '3': fechaFormateada,
-                        '4': appointment.service_name ?? 'Servicio',
-                    }
+                    appointment.client_phone, TEMPLATE_CLIENTE_REPROGRAMACION,
+                    { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': appointment.service_name ?? 'Servicio' }
                 );
+                if (!clientSent) {
+                    clientSent = await sendTemplate(
+                        appointment.client_phone, TEMPLATE_FALLBACK,
+                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': appointment.service_name ?? 'Servicio', '5': 'Reprogramada ✅' }
+                    );
+                }
             }
         }
 

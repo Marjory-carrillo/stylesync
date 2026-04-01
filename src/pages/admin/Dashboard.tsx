@@ -10,7 +10,7 @@ import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
-import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,6 +20,7 @@ type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 export default function Dashboard() {
     const { t } = useTranslation();
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
+    const [tomorrowOpen, setTomorrowOpen] = useState(false);
     const { userRole, userStylistId } = useAuthStore();
     const isEmployee = userRole === 'employee';
     const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>(
@@ -91,29 +92,25 @@ export default function Dashboard() {
         }, 0);
     }, [todayAppts, services]);
 
-    const reminders = useMemo(() => {
+    const tomorrowAppts = useMemo(() => {
         const target = new Date();
         target.setDate(target.getDate() + 1);
         const yyyy = target.getFullYear();
         const mm = String(target.getMonth() + 1).padStart(2, '0');
         const dd = String(target.getDate()).padStart(2, '0');
         const tStr = `${yyyy}-${mm}-${dd}`;
-        
-        return appointments.filter(a => {
-            if (a.date !== tStr || a.status === 'cancelada') return false;
-            
+        return appointments
+            .filter(a => a.date === tStr && a.status !== 'cancelada')
+            .sort((a, b) => a.time.localeCompare(b.time));
+    }, [appointments]);
+
+    const reminders = useMemo(() => {
+        return tomorrowAppts.filter(a => {
             if (!a.bookedAt) return false;
-            
-            const bookedDate = new Date(a.bookedAt);
-            const now = new Date();
-            // Diferencia en milisegundos
-            const diffTime = now.getTime() - bookedDate.getTime();
-            // Convertimos a días
-            const diffDays = diffTime / (1000 * 3600 * 24);
-            
+            const diffDays = (Date.now() - new Date(a.bookedAt).getTime()) / (1000 * 3600 * 24);
             return diffDays >= 3;
         });
-    }, [appointments]);
+    }, [tomorrowAppts]);
 
     // ── Reports Logic ──
     const currentMonthStats = useMemo(() => {
@@ -657,64 +654,87 @@ export default function Dashboard() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* ── Reminders ── */}
-                <div className="lg:col-span-3 glass-panel p-6 rounded-2xl border border-white/5">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <Bell size={100} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="flex h-3 w-3 relative">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+            {/* ── Próximas Citas Mañana (collapsible) ── */}
+            <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                {/* Header / toggle */}
+                <button
+                    onClick={() => setTomorrowOpen(o => !o)}
+                    className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-3 w-3 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+                        </span>
+                        <h3 className="font-bold text-lg text-white">
+                            Próximas Citas (Mañana)
+                            <span className="ml-2 px-2.5 py-0.5 rounded-full bg-accent/20 text-accent text-sm font-black">
+                                {tomorrowAppts.length}
                             </span>
-                            <h3 className="font-bold text-lg text-white">{t('dashboard.reminders.title')} ({reminders.length})</h3>
-                        </div>
-                        <p className="text-sm text-muted mb-6 max-w-2xl">
-                            Estas citas fueron reservadas con anticipación (3+ días). Se recomienda enviar un recordatorio para confirmar asistencia.
+                        </h3>
+                    </div>
+                    <ChevronDown
+                        size={20}
+                        className={`text-slate-400 transition-transform duration-300 ${tomorrowOpen ? 'rotate-180' : ''}`}
+                    />
+                </button>
+
+                {tomorrowOpen && (
+                    <div className="px-6 pb-6">
+                        <p className="text-sm text-muted mb-4">
+                            {reminders.length > 0
+                                ? `${reminders.length} de estas citas llevan 3+ días reservadas. Recuerda enviarles un recordatorio.`
+                                : 'Citas confirmadas para mañana.'}
                         </p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {reminders.map(appt => {
-                                const svc = getServiceById(appt.serviceId);
-                                const waUrl = generateReminderWhatsAppUrl(appt);
-                                return (
-                                    <div key={appt.id} className="bg-slate-900/40 backdrop-blur-md border border-white/5 p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
-                                                <div className="text-[10px] font-bold text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded inline-block">{svc?.name.toUpperCase()}</div>
+                        {tomorrowAppts.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                                <Calendar size={32} className="mb-2 text-slate-500" />
+                                <p className="text-sm">No hay citas agendadas para mañana.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {tomorrowAppts.map(appt => {
+                                    const svc = getServiceById(appt.serviceId);
+                                    const waUrl = generateReminderWhatsAppUrl(appt);
+                                    const needsReminder = reminders.some(r => r.id === appt.id);
+                                    const [h, m] = appt.time.split(':');
+                                    let hh = parseInt(h);
+                                    const ampm = hh >= 12 ? 'pm' : 'am';
+                                    hh = hh % 12 || 12;
+                                    return (
+                                        <div key={appt.id} className={`bg-slate-900/40 backdrop-blur-md border p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group ${
+                                            needsReminder ? 'border-amber-500/30' : 'border-white/5'
+                                        }`}>
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
+                                                    <div className="text-[10px] font-bold text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded inline-block">{svc?.name?.toUpperCase() ?? 'SERVICIO'}</div>
+                                                </div>
+                                                <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>
                                             </div>
-                                            {(() => {
-                                                const [h, m] = appt.time.split(':');
-                                                let hh = parseInt(h);
-                                                const ampm = hh >= 12 ? 'pm' : 'am';
-                                                hh = hh % 12;
-                                                hh = hh ? hh : 12;
-                                                return <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>;
-                                            })()}
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium">
+                                                <Phone size={12} className="opacity-50" />
+                                                <span>{appt.clientPhone}</span>
+                                                {needsReminder && (
+                                                    <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
+                                                )}
+                                            </div>
+                                            <a
+                                                href={waUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-primary w-full py-2 text-xs gap-2"
+                                            >
+                                                <MessageCircle size={14} /> WhatsApp
+                                            </a>
                                         </div>
-
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-6 font-medium">
-                                            <Phone size={12} className="opacity-50" />
-                                            <span>{appt.clientPhone}</span>
-                                        </div>
-
-                                        <a
-                                            href={waUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="btn btn-primary w-full py-2 text-xs gap-2"
-                                        >
-                                            <MessageCircle size={14} /> WhatsApp
-                                        </a>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
-                </div>
+                )}
             </div>
             {/* Today's Appointments */}
             <div className="glass-card p-6 rounded-xl">

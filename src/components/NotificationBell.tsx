@@ -82,10 +82,12 @@ export default function NotificationBell({ notifications, unreadCount, onMarkAll
             {/* Panel */}
             {open && (
                 <div
-                    className={`absolute right-0 z-[9999] w-80 sm:w-96
+                    className={`absolute z-[9999] w-80 sm:w-96
                         bg-[#0d1829] border border-white/10 rounded-2xl shadow-2xl shadow-black/50
                         overflow-hidden animate-slide-down
-                        ${direction === 'up' ? 'bottom-full mb-3' : 'top-full mt-3'}`}
+                        ${direction === 'up'
+                            ? 'bottom-full mb-3 left-0 right-auto'
+                            : 'top-full mt-3 right-0 left-auto'}`}
                     style={{ maxHeight: '520px' }}
                 >
                     {/* Header */}
