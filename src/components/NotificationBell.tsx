@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Calendar, RotateCcw, XCircle, CheckCircle, Trash2, BellOff } from 'lucide-react';
+import { Bell, X, Calendar, RotateCcw, XCircle, CheckCircle, Trash2, BellOff, Phone, AlertTriangle } from 'lucide-react';
 import type { AdminNotification, NotifType } from '../lib/store/useRealtimeNotifications';
 
 interface Props {
@@ -8,7 +8,8 @@ interface Props {
     onMarkAllRead: () => void;
     onDismiss: (id: string) => void;
     onClearAll: () => void;
-    direction?: 'down' | 'up'; // 'down' for header (mobile), 'up' for sidebar (desktop)
+    direction?: 'down' | 'up';
+    getMonthlyCancellations?: (phone: string) => number;
 }
 
 const TYPE_CONFIG: Record<NotifType, { icon: React.ElementType; color: string; bg: string; label: string }> = {
@@ -32,7 +33,7 @@ function formatDate(date: string, time: string): string {
     return `${days[d.getDay()]} ${d.getDate()} · ${time.slice(0,5)}`;
 }
 
-export default function NotificationBell({ notifications, unreadCount, onMarkAllRead, onDismiss, onClearAll, direction = 'down' }: Props) {
+export default function NotificationBell({ notifications, unreadCount, onMarkAllRead, onDismiss, onClearAll, direction = 'down', getMonthlyCancellations }: Props) {
     const [open, setOpen] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);
 
@@ -159,10 +160,22 @@ export default function NotificationBell({ notifications, unreadCount, onMarkAll
                                                     <span className={`text-[10px] font-bold uppercase tracking-wider ${cfg.color}`}>
                                                         {cfg.label}
                                                     </span>
+                                                    {/* Monthly repeat canceller alert */}
+                                                    {notif.type === 'cancel' && getMonthlyCancellations && getMonthlyCancellations(notif.clientPhone) >= 3 && (
+                                                        <span className="flex items-center gap-1 text-[9px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/30 px-1.5 py-0.5 rounded-md">
+                                                            <AlertTriangle size={9} /> {getMonthlyCancellations(notif.clientPhone)} en el mes
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm font-semibold text-white truncate mt-0.5">
                                                     {notif.clientName}
                                                 </p>
+                                                {/* Phone number */}
+                                                {notif.clientPhone && (
+                                                    <a href={`tel:${notif.clientPhone}`} className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-accent transition-colors mt-0.5 w-fit">
+                                                        <Phone size={10} /> {notif.clientPhone}
+                                                    </a>
+                                                )}
                                                 <p className="text-xs text-slate-500 mt-0.5">
                                                     📆 {formatDate(notif.date, notif.time)}
                                                 </p>

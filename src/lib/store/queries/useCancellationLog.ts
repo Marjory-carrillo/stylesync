@@ -40,9 +40,17 @@ export const useCancellationLog = () => {
         return cancellationLog.filter(c => c.clientPhone === phone && c.cancelledAt >= weekStart).length;
     };
 
+    // Devuelve cuántas cancelaciones ha hecho un teléfono en el mes actual
+    const getMonthlyCancellations = (phone: string): number => {
+        const now = new Date();
+        const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        return cancellationLog.filter(c => c.clientPhone === phone && c.cancelledAt >= monthStart).length;
+    };
+
     return {
         ...query,
         cancellationLog,
         getWeeklyCancellations,
+        getMonthlyCancellations,
     };
 };

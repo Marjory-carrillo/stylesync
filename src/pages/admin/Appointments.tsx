@@ -10,7 +10,7 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download } from 'lucide-react';
+import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
@@ -37,7 +37,7 @@ export default function Appointments() {
 
     const isLoading = apptsPending || servicesPending || stylistsPending;
     const { data: tenantConfig } = useTenantData();
-    const { cancellationLog } = useCancellationLog();
+    const { cancellationLog, getMonthlyCancellations } = useCancellationLog();
     const { isPhoneBlocked } = useBlockedPhones();
 
     // Helpers locales (ya tenemos services y stylists cargados arriba)
@@ -703,22 +703,36 @@ export default function Appointments() {
                                     <div className={`grid transition-all duration-300 ease-in-out ${showLog ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                                         <div className="overflow-hidden">
                                             <div className="p-3 pt-0 space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
-                                                {cancellationLog.slice(0, 10).map(log => (
-                                                    <div key={log.id} className="flex justify-between items-center p-3 rounded-xl bg-black/20 border border-white/[0.02] hover:bg-white/5 hover:border-white/10 transition-colors">
-                                                        <div className="flex flex-col gap-0.5">
-                                                            <span className="text-white/90 font-bold text-[13px]">{log.clientName}</span>
-                                                            <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
-                                                                <span className="capitalize">{log.serviceName}</span>
-                                                                <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-                                                                <span className="uppercase tracking-wider">{log.date}</span>
+                                                {cancellationLog.slice(0, 10).map(log => {
+                                                    const monthlyCount = getMonthlyCancellations(log.clientPhone);
+                                                    const isFrequent = monthlyCount >= 3;
+                                                    return (
+                                                        <div key={log.id} className={`flex justify-between items-center p-3 rounded-xl border transition-colors ${isFrequent ? 'bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10' : 'bg-black/20 border-white/[0.02] hover:bg-white/5 hover:border-white/10'}`}>
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className="text-white/90 font-bold text-[13px]">{log.clientName}</span>
+                                                                    {isFrequent && (
+                                                                        <span className="flex items-center gap-1 text-[9px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/30 px-1.5 py-0.5 rounded-md">
+                                                                            <AlertTriangle size={9} /> {monthlyCount} cancel. este mes
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <a href={`tel:${log.clientPhone}`} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-accent transition-colors w-fit">
+                                                                    <Phone size={9} /> {log.clientPhone}
+                                                                </a>
+                                                                <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
+                                                                    <span className="capitalize">{log.serviceName}</span>
+                                                                    <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                                                    <span className="uppercase tracking-wider">{log.date}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded">Cancelada</span>
+                                                                <span className="opacity-50 text-[9px] font-medium text-slate-400">{new Date(log.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col items-end gap-1">
-                                                            <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded">Cancelada</span>
-                                                            <span className="opacity-50 text-[9px] font-medium text-slate-400">{new Date(log.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>

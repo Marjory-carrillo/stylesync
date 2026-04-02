@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useRealtimeNotifications } from '../lib/store/useRealtimeNotifications';
+import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
 import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus } from 'lucide-react';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
@@ -21,6 +22,7 @@ export default function AdminLayout() {
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
     const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
+    const { getMonthlyCancellations } = useCancellationLog();
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'es' ? 'en' : 'es';
@@ -68,6 +70,7 @@ export default function AdminLayout() {
                         onMarkAllRead={markAllRead}
                         onDismiss={dismiss}
                         onClearAll={clearAll}
+                        getMonthlyCancellations={getMonthlyCancellations}
                     />
                     <button
                         onClick={() => setIsNewApptModalOpen(true)}
@@ -183,6 +186,7 @@ export default function AdminLayout() {
                             onDismiss={dismiss}
                             onClearAll={clearAll}
                             direction="up"
+                            getMonthlyCancellations={getMonthlyCancellations}
                         />
                     </div>
                     <button
