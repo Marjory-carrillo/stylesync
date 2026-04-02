@@ -83,7 +83,7 @@ export function useSuperAdmin() {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${session?.access_token}`,
                         },
-                        body: JSON.stringify({ email: ownerEmail, password: ownerPassword }),
+                        body: JSON.stringify({ email: ownerEmail, password: ownerPassword, businessName: name, businessSlug: slug }),
                     }
                 );
                 const fnData = await fnRes.json();

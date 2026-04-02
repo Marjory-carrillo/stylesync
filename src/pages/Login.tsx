@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 import { useAuthStore } from '../lib/store/authStore';
@@ -15,7 +15,18 @@ export default function Login() {
     const [isSignUp, setIsSignUp] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
     const [resetSent, setResetSent] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [copiedPw, setCopiedPw] = useState(false);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const inviteEmail = searchParams.get('email');
+    const invitePw = searchParams.get('pw');
+
+    // Pre-fill credentials from magic link redirect
+    useEffect(() => {
+        if (inviteEmail) setEmail(inviteEmail);
+        if (invitePw) setPassword(invitePw);
+    }, [inviteEmail, invitePw]);
 
     useEffect(() => {
         if (user) {
@@ -93,7 +104,32 @@ export default function Login() {
                     {/* Subtle border gradient on hover */}
                     <div className="absolute inset-0 rounded-3xl border border-white/0 group-hover:border-white/10 transition-colors pointer-events-none" />
 
-                    <form onSubmit={handleLogin} className="space-y-6 relative z-10">
+                    {/* Welcome banner shown when arriving via magic link with credentials */}
+                {inviteEmail && invitePw && (
+                    <div className="mb-5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+                        <p className="text-emerald-400 font-bold text-sm flex items-center gap-2">
+                            <CheckCircle2 size={16} /> ¡Bienvenido a CítaLink!
+                        </p>
+                        <p className="text-xs text-slate-400">Tus credenciales de acceso — guárdalas en un lugar seguro:</p>
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between bg-black/30 px-3 py-2 rounded-xl">
+                                <span className="text-xs text-slate-400 font-medium">Email</span>
+                                <span className="text-xs font-bold text-white">{inviteEmail}</span>
+                            </div>
+                            <div className="flex items-center justify-between bg-black/30 px-3 py-2 rounded-xl gap-2">
+                                <span className="text-xs text-slate-400 font-medium">Contraseña</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-white font-mono">{showPassword ? invitePw : '••••••••'}</span>
+                                    <button type="button" onClick={() => setShowPassword(p => !p)} className="text-slate-500 hover:text-white transition-colors">{showPassword ? <EyeOff size={12}/> : <Eye size={12}/>}</button>
+                                    <button type="button" onClick={() => { navigator.clipboard.writeText(invitePw!); setCopiedPw(true); setTimeout(() => setCopiedPw(false), 2000); }} className="text-slate-500 hover:text-emerald-400 transition-colors">{copiedPw ? <CheckCircle2 size={12} className="text-emerald-400"/> : <Copy size={12}/>}</button>
+                                </div>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-slate-600">Haz clic en <strong className="text-slate-400">Entrar</strong> para acceder ahora.</p>
+                    </div>
+                )}
+
+                <form onSubmit={handleLogin} className="space-y-6 relative z-10">
 
                         {/* Email Input */}
                         <div className="space-y-2">
