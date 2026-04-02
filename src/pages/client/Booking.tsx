@@ -1425,13 +1425,17 @@ export default function Booking() {
                                 className="btn btn-primary w-full py-4 mt-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={!clientName || clientPhone.length < 8}
                                 onClick={async () => {
-                                    await addToWaitingList({
-                                        name: clientName,
-                                        phone: clientPhone,
-                                        serviceId: selectedService.id,
-                                        date: selectedDate,
-                                    });
-                                    setStep(26);
+                                    try {
+                                        await addToWaitingList({
+                                            name: clientName,
+                                            phone: clientPhone,
+                                            serviceId: selectedService.id,
+                                            date: selectedDate,
+                                        });
+                                        setStep(26); // solo si el insert fue exitoso
+                                    } catch {
+                                        // el toast de error ya lo maneja useWaitingList
+                                    }
                                 }}
                             >
                                 Unirme a la Lista

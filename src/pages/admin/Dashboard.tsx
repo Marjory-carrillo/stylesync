@@ -21,6 +21,7 @@ export default function Dashboard() {
     const { t } = useTranslation();
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
     const [tomorrowOpen, setTomorrowOpen] = useState(false);
+    const [waitingListOpen, setWaitingListOpen] = useState(false);
     const { userRole, userStylistId } = useAuthStore();
     const isEmployee = userRole === 'employee';
     const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>(
@@ -32,7 +33,7 @@ export default function Dashboard() {
     const startDate = useMemo(() => format(subMonths(new Date(), 12), 'yyyy-MM-01'), []);
     const { appointments: allAppointments, isPending: apptsPending } = useAppointments({ startDate });
     const { services, isPending: svcsLoading } = useServices();
-    const { waitingList, addToWaitingList } = useWaitingList();
+    const { waitingList, addToWaitingList, removeFromWaitingList } = useWaitingList();
     const { stylists } = useStylists();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || { slug: '' };
@@ -343,58 +344,52 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* ── Alerts & Recovery Opportunities ── */}
+            {/* ── Alerts & Recovery Opportunities (deduplicado por fecha) ── */}
             {
-                (cancellationLog.length > 0 && waitingList.length > 0) && (
-                    <div className="glass-panel p-6 rounded-xl border-l-4 border-yellow-500 relative overflow-hidden mb-8">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 animate-pulse">
-                                <Bell size={24} />
+                (cancellationLog.length > 0 && waitingList.length > 0) && (() => {
+                    // Agrupar cancelaciones por fecha — un solo card por fecha
+                    const byDate: Record<string, typeof cancellationLog[0]> = {};
+                    cancellationLog.forEach(c => { if (!byDate[c.date]) byDate[c.date] = c; });
+                    const uniqueCancels = Object.values(byDate).slice(0, 5);
+                    const hasOpportunities = uniqueCancels.some(c => waitingList.some(w => w.date === c.date));
+                    if (!hasOpportunities) return null;
+
+                    return (
+                        <div className="glass-panel p-6 rounded-xl border-l-4 border-yellow-500 relative overflow-hidden mb-8">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 animate-pulse">
+                                    <Bell size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold text-white">Oportunidades de Recuperación</h3>
                             </div>
-                            <h3 className="text-lg font-bold text-white">Oportunidades de Recuperación</h3>
-                        </div>
 
-                        <div className="space-y-4">
-                            {cancellationLog.slice(0, 5).map(cancel => {
-                                // Find matches in waiting list for same date
-                                // We match primarily by date now, and show the service name in the UI for context
-                                const matches = waitingList.filter(w => w.date === cancel.date);
-                                if (matches.length === 0) return null;
+                            <div className="space-y-4">
+                                {uniqueCancels.map(cancel => {
+                                    const matches = waitingList.filter(w => w.date === cancel.date);
+                                    if (matches.length === 0) return null;
+                                    const [h, m] = cancel.time.split(':');
+                                    let hh = parseInt(h);
+                                    const ampm = hh >= 12 ? 'pm' : 'am';
+                                    hh = hh % 12 || 12;
+                                    const time12 = `${hh}:${m}${ampm}`;
 
-                                return (
-                                    <div key={cancel.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
-                                        <div className="flex items-center gap-2 text-sm text-red-400 mb-2">
-                                            <Clock size={14} />
-                                            {/* Formatter for 12h time */}
-                                            {(() => {
-                                                const [h, m] = cancel.time.split(':');
-                                                let hh = parseInt(h);
-                                                const ampm = hh >= 12 ? 'pm' : 'am';
-                                                hh = hh % 12;
-                                                hh = hh ? hh : 12;
-                                                const time12 = `${hh}:${m}${ampm}`;
-                                                return <span>Espacio liberado el <strong>{cancel.date}</strong> a las <strong>{time12}</strong> ({cancel.serviceName})</span>;
-                                            })()}
-                                        </div>
-                                        <p className="text-xs text-muted mb-3">Hay {matches.length} clientes esperando para esta fecha:</p>
+                                    return (
+                                        <div key={cancel.date} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 text-sm text-red-400 mb-2">
+                                                <Clock size={14} />
+                                                <span>Espacio liberado el <strong>{cancel.date}</strong> a las <strong>{time12}</strong> ({cancel.serviceName})</span>
+                                            </div>
+                                            <p className="text-xs text-muted mb-3">Hay {matches.length} cliente{matches.length !== 1 ? 's' : ''} esperando para esta fecha:</p>
 
-                                        <div className="space-y-2">
-                                            {matches.map(match => {
-                                                const [h, m] = cancel.time.split(':');
-                                                let hh = parseInt(h);
-                                                const ampm = hh >= 12 ? 'pm' : 'am';
-                                                hh = hh % 12;
-                                                hh = hh ? hh : 12;
-                                                const time12Str = `${hh}:${m}${ampm}`;
-
-                                                return (
+                                            <div className="space-y-2">
+                                                {matches.map(match => (
                                                     <div key={match.id} className="flex justify-between items-center bg-black/30 backdrop-blur-md p-3 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
                                                         <div>
                                                             <span className="text-white font-black text-sm block tracking-tight">{match.name.toUpperCase()}</span>
                                                             <span className="text-[10px] text-slate-500 font-mono tracking-tighter">{match.phone}</span>
                                                         </div>
                                                         <a
-                                                            href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, te contactamos de ${(businessConfig as any)?.name}. ¡Se acaba de liberar un espacio el ${match.date} a las ${time12Str}! ¿Te interesa tomarlo?`}
+                                                            href={`https://wa.me/${match.phone.replace(/\D/g, '')}?text=Hola ${match.name}, te contactamos de ${(businessConfig as any)?.name}. ¡Se acaba de liberar un espacio el ${match.date} a las ${time12}! ¿Te interesa tomarlo?`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="btn btn-sm bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 font-bold shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
@@ -402,98 +397,143 @@ export default function Dashboard() {
                                                             <MessageCircle size={14} /> Avisar Cliente
                                                         </a>
                                                     </div>
-                                                );
-                                            })}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                )
+                    );
+                })()
             }
 
-            {/* ── General Waiting List Header ── */}
-            <div id="waiting-list-section" className="glass-panel p-6 rounded-2xl border border-white/5 mb-8">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Users size={20} className="text-accent" /> Lista de Espera ({waitingList.length})
-                            </h3>
-                            <p className="text-xs text-muted">Clientes esperando un espacio libre</p>
-                        </div>
-                        <button
-                            onClick={async () => {
-                                const name = prompt('Nombre del cliente:');
-                                if (!name) return;
-                                const phone = prompt('WhatsApp (10 dígitos):');
-                                if (!phone) return;
-                                const date = prompt('Fecha (YYYY-MM-DD):', new Date().toLocaleDateString('en-CA'));
-                                if (!date) return;
-
-                                // Find first service as default
-                                const serviceId = services[0]?.id || 0;
-
-                                await addToWaitingList({
-                                    name,
-                                    phone,
-                                    date,
-                                    serviceId
-                                } as any);
-                                showToast('Cliente añadido a la lista', 'success');
-                            }}
-                            className="px-4 py-2 bg-accent/20 text-accent hover:bg-accent hover:text-white rounded-xl border border-accent/20 transition-all font-bold text-xs"
-                        >
-                            + Añadir a Lista
-                        </button>
+            {/* ── Lista de Espera (colapsable) ── */}
+            <div id="waiting-list-section" className="glass-panel rounded-2xl border border-white/5 overflow-hidden mb-8">
+                {/* Header / toggle */}
+                <button
+                    onClick={() => setWaitingListOpen(o => !o)}
+                    className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-3 w-3 relative">
+                            {waitingList.length > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>}
+                            <span className={`relative inline-flex rounded-full h-3 w-3 ${waitingList.length > 0 ? 'bg-amber-500' : 'bg-slate-600'}`}></span>
+                        </span>
+                        <h3 className="font-bold text-lg text-white">
+                            Lista de Espera
+                            <span className="ml-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-sm font-black">
+                                {waitingList.length}
+                            </span>
+                        </h3>
                     </div>
+                    <div className="flex items-center gap-3">
+                        {!waitingListOpen && (
+                            <button
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const name = prompt('Nombre del cliente:');
+                                    if (!name) return;
+                                    const phone = prompt('WhatsApp (10 dígitos):');
+                                    if (!phone) return;
+                                    const date = prompt('Fecha (YYYY-MM-DD):', new Date().toLocaleDateString('en-CA'));
+                                    if (!date) return;
+                                    const serviceId = services[0]?.id || 0;
+                                    await addToWaitingList({ name, phone, date, serviceId } as any);
+                                    showToast('Cliente añadido a la lista', 'success');
+                                }}
+                                className="px-3 py-1.5 bg-accent/20 text-accent hover:bg-accent hover:text-white rounded-xl border border-accent/20 transition-all font-bold text-xs"
+                            >
+                                + Añadir
+                            </button>
+                        )}
+                        <ChevronDown
+                            size={20}
+                            className={`text-slate-400 transition-transform duration-300 ${waitingListOpen ? 'rotate-180' : ''}`}
+                        />
+                    </div>
+                </button>
 
-                    {waitingList.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
-                            <Users size={32} className="mb-2 text-slate-500" />
-                            <p className="text-sm font-medium">No hay nadie en la lista de espera actualmente.</p>
+                {/* Expandable content */}
+                {waitingListOpen && (
+                    <div className="px-6 pb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <p className="text-sm text-muted">Clientes esperando un espacio libre.</p>
+                            <button
+                                onClick={async () => {
+                                    const name = prompt('Nombre del cliente:');
+                                    if (!name) return;
+                                    const phone = prompt('WhatsApp (10 dígitos):');
+                                    if (!phone) return;
+                                    const date = prompt('Fecha (YYYY-MM-DD):', new Date().toLocaleDateString('en-CA'));
+                                    if (!date) return;
+                                    const serviceId = services[0]?.id || 0;
+                                    await addToWaitingList({ name, phone, date, serviceId } as any);
+                                    showToast('Cliente añadido a la lista', 'success');
+                                }}
+                                className="px-3 py-1.5 bg-accent/20 text-accent hover:bg-accent hover:text-white rounded-xl border border-accent/20 transition-all font-bold text-xs"
+                            >
+                                + Añadir a Lista
+                            </button>
                         </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {waitingList.map(item => {
-                                const svc = getServiceById(item.serviceId);
-                                return (
-                                    <div key={item.id} className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 flex flex-col justify-between group hover:border-accent/30 transition-all duration-500 relative overflow-hidden">
-                                        <div className="absolute -right-4 -top-4 w-12 h-12 bg-accent/5 blur-xl rounded-full"></div>
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <span className="text-white font-black text-base block tracking-tight leading-none mb-1">{item.name.toUpperCase()}</span>
-                                                <span className="text-[11px] text-slate-400 font-bold bg-white/5 px-2 py-0.5 rounded-lg border border-white/5 inline-flex items-center gap-1">
-                                                    <Phone size={10} /> {item.phone}
-                                                </span>
+
+                        {waitingList.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
+                                <Users size={32} className="mb-2 text-slate-500" />
+                                <p className="text-sm font-medium">No hay nadie en la lista de espera actualmente.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {waitingList.map(item => {
+                                    const svc = getServiceById(item.serviceId);
+                                    return (
+                                        <div key={item.id} className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 flex flex-col justify-between group hover:border-accent/30 transition-all duration-500 relative overflow-hidden">
+                                            <div className="absolute -right-4 -top-4 w-12 h-12 bg-accent/5 blur-xl rounded-full"></div>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <span className="text-white font-black text-base block tracking-tight leading-none mb-1">{item.name.toUpperCase()}</span>
+                                                    <span className="text-[11px] text-slate-400 font-bold bg-white/5 px-2 py-0.5 rounded-lg border border-white/5 inline-flex items-center gap-1">
+                                                        <Phone size={10} /> {item.phone}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest">Solicita para:</span>
+                                                    <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                                                        {new Date(item.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="text-right flex flex-col items-end">
-                                                <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest block mb-0.5">Solicita para:</span>
-                                                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
-                                                    {new Date(item.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                                </span>
+
+                                            <div className="flex items-center gap-2 text-xs text-muted mb-4">
+                                                <Scissors size={12} className="opacity-40" />
+                                                <span>{svc?.name || 'Cualquier servicio'}</span>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <a
+                                                    href={`https://wa.me/${item.phone.replace(/\D/g, '')}?text=Hola ${item.name}, te contactamos de ${(businessConfig as any)?.name}. Vimos que estabas en nuestra lista de espera para el ${item.date}. ¿Aún estás interesado en agendar una cita?`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 btn btn-sm bg-accent/20 text-accent hover:bg-accent hover:text-white py-2 rounded-lg border border-accent/20 transition-all font-bold text-xs flex items-center justify-center gap-2"
+                                                >
+                                                    <MessageCircle size={14} /> WhatsApp
+                                                </a>
+                                                <button
+                                                    onClick={() => removeFromWaitingList(item.id)}
+                                                    className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20"
+                                                    title="Eliminar de lista"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center gap-2 text-xs text-muted mb-4">
-                                            <Scissors size={12} className="opacity-40" />
-                                            <span>{svc?.name || 'Cualquier servicio'}</span>
-                                        </div>
-
-                                        <a
-                                            href={`https://wa.me/${item.phone.replace(/\D/g, '')}?text=Hola ${item.name}, te contactamos de ${(businessConfig as any)?.name}. Vimos que estabas en nuestra lista de espera para el ${item.date}. ¿Aún estás interesado en agendar una cita?`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="btn btn-sm bg-accent/20 text-accent hover:bg-accent hover:text-white w-full py-2 rounded-lg border border-accent/20 transition-all font-bold text-xs flex items-center justify-center gap-2"
-                                        >
-                                            <MessageCircle size={14} /> Contactar por WhatsApp
-                                        </a>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {/* ── Top Stats Grid ── */}
             {(businessConfig as any).showDashboardMetrics !== false && (
