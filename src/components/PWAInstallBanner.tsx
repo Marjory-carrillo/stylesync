@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Download, Share, Plus } from 'lucide-react';
 import { Infinity as InfinityIcon } from 'lucide-react';
 
-export default function PWAInstallBanner() {
+export default function PWAInstallBanner({ businessName }: { businessName?: string }) {
     const [show, setShow] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -68,8 +68,10 @@ export default function PWAInstallBanner() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                        <p className="font-black text-white text-sm leading-tight">
-                            Instala <span className="text-violet-400">CitaLink</span> en tu teléfono
+                        <p className="font-black text-white text-[13px] sm:text-sm leading-tight">
+                            {businessName 
+                                ? <>Guarda este acceso para tus próximas citas con <span className="text-violet-400">{businessName}</span></>
+                                : <>Instala <span className="text-violet-400">CitaLink</span> en tu teléfono</>}
                         </p>
                         <p className="text-xs text-slate-400 mt-0.5 leading-snug">
                             {isIOS
@@ -92,7 +94,7 @@ export default function PWAInstallBanner() {
                                 className="mt-2.5 flex items-center gap-2 bg-violet-500 hover:bg-violet-600 active:scale-95 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg shadow-violet-500/20"
                             >
                                 <Download size={13} />
-                                Instalar app
+                                Guardar en Inicio
                             </button>
                         )}
                     </div>

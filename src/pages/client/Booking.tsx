@@ -28,7 +28,7 @@ import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterva
 import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
-
+import PWAInstallBanner from '../../components/PWAInstallBanner';
 export default function Booking() {
     const { slug } = useParams();
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
@@ -621,6 +621,7 @@ export default function Booking() {
 
     return (
         <div className="container animate-fade-in" style={{ maxWidth: '520px', paddingTop: 'var(--space-xl)', paddingBottom: '3rem' }}>
+            <PWAInstallBanner businessName={businessConfig?.name || undefined} />
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
                     {businessConfig?.logoUrl && (
@@ -1599,13 +1600,13 @@ export default function Booking() {
                             })()}
 
                             {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
-                            <a
-                                href="/"
+                            <button
+                                onClick={resetBooking}
                                 className="w-full py-5 rounded-[2.5rem] bg-gradient-to-r from-accent to-blue-600 hover:scale-[1.02] active:scale-95 transition-all duration-300 text-slate-900 font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3"
                             >
                                 <span>Finalizar Reserva</span>
                                 <ChevronRight size={20} />
-                            </a>
+                            </button>
                         </div>
 
                         <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.2em] mb-8">Gracias por confiar en {businessConfig?.name || 'nosotros'}</p>

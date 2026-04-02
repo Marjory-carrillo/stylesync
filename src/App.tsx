@@ -30,8 +30,6 @@ import BrandingManager from './components/BrandingManager';
 import ToastContainer from './components/Toast';
 import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
-import PWAInstallBanner from './components/PWAInstallBanner';
-
 const MaintenancePage = () => (
   <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0f172a] text-center">
     <div className="w-20 h-20 mb-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center animate-pulse shadow-[0_0_50px_-10px_rgba(59,130,246,0.5)]">
@@ -229,7 +227,6 @@ function App() {
         <Router>
           <BrandingManager />
           <ToastContainer />
-          <PWAInstallBanner />
           <Suspense fallback={<SplashScreen />}>
             <Routes>
               {/* Main Landing */}
