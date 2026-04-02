@@ -777,7 +777,7 @@ export default function Booking() {
                             <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                                 <Shield size={15} className="text-accent shrink-0" />
                                 <p className="text-[11px] text-slate-400">
-                                    Verificación por SMS · Solo 1 cita por número de teléfono
+                                    Verificación por WhatsApp · Solo 1 cita por número de teléfono
                                 </p>
                             </div>
 
