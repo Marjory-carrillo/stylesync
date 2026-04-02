@@ -8,6 +8,7 @@ export interface Service {
     price: number;
     duration: number; // minutes
     image?: string;
+    isAddon?: boolean; // if true, shown only as add-on; not in main service list
 }
 
 export interface Stylist {
@@ -92,6 +93,7 @@ export interface BusinessConfig {
     slug: string;
     bookingDaysAhead?: number;
     commissionsEnabled?: boolean;
+    enableAddons?: boolean;
     weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
     confirmationTemplate?: string;
     reminderTemplate?: string;

@@ -10,7 +10,7 @@ import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
-import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent, BarChart2 } from 'lucide-react';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent, BarChart2 } from 'lucide-react';
 import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
@@ -526,6 +526,33 @@ export default function Settings() {
                                             setInfoForm({ ...infoForm, showDashboardMetrics: val });
                                             await updateBusinessConfig({ showDashboardMetrics: val });
                                             showToast(val ? 'Métricas activadas' : 'Métricas desactivadas', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Addons Toggle */}
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-white font-medium flex items-center gap-2">
+                                        <PlusCircle size={16} className="text-accent" />
+                                        Servicios Adicionales (Add-ons)
+                                    </h4>
+                                    <p className="text-sm text-muted mt-0.5">Permite a los clientes seleccionar servicios extras al reservar (ej. lavar cabello + mascarilla).</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.enableAddons ?? false}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, enableAddons: val });
+                                            await updateBusinessConfig({ enableAddons: val });
+                                            showToast(val ? 'Servicios adicionales activados' : 'Servicios adicionales desactivados', 'success');
                                         }}
                                     />
                                     <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>

@@ -46,6 +46,7 @@ export const serviceSchema = z.object({
     price: z.number().min(0, 'El precio no puede ser negativo').max(1000000, 'El precio es demasiado alto'),
     duration: z.number().min(5, 'La duración mínima es 5 minutos').max(480, 'La duración máxima es 480 minutos (8 horas)'),
     image: z.string().url('URL de imagen inválida').optional().or(z.literal('')),
+    isAddon: z.boolean().optional().default(false),
 });
 
 export type ServiceInput = z.infer<typeof serviceSchema>;

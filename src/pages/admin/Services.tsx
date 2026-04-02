@@ -18,6 +18,7 @@ export default function Services() {
     const [formDuration, setFormDuration] = useState('');
     const [formPrice, setFormPrice] = useState('');
     const [formImage, setFormImage] = useState('');
+    const [formIsAddon, setFormIsAddon] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
     const [formError, setFormError] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export default function Services() {
         setFormDuration('');
         setFormPrice('');
         setFormImage('');
+        setFormIsAddon(false);
         setIsModalOpen(true);
     };
 
@@ -41,6 +43,7 @@ export default function Services() {
         setFormDuration(String(svc.duration));
         setFormPrice(String(svc.price));
         setFormImage(svc.image || '');
+        setFormIsAddon(svc.isAddon ?? false);
         setIsModalOpen(true);
     };
 
@@ -49,7 +52,8 @@ export default function Services() {
             name: formName,
             duration: Number(formDuration),
             price: Number(formPrice),
-            image: formImage || ''
+            image: formImage || '',
+            isAddon: formIsAddon,
         });
 
         if (!result.success) {
@@ -133,7 +137,12 @@ export default function Services() {
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        <div className="font-bold text-white">{service.name}</div>
+                                        <div className="font-bold text-white mb-1">{service.name}</div>
+                                        {service.isAddon && (
+                                            <span className="inline-flex py-0.5 px-2 rounded font-bold text-[10px] uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                Servicio Adicional
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-2 text-muted">
@@ -260,6 +269,27 @@ export default function Services() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* isAddon Toggle */}
+                            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                <label className="flex items-start justify-between cursor-pointer group">
+                                    <div>
+                                        <div className="font-medium text-white group-hover:text-accent transition-colors">Servicio Adicional (Extra)</div>
+                                        <div className="text-xs text-muted mt-1 w-5/6">
+                                            Actívalo si este servicio no se puede agendar solo, sino que se ofrece como un "extra" a otro servicio principal.
+                                        </div>
+                                    </div>
+                                    <div className="relative inline-flex items-center h-6 w-11 rounded-full flex-shrink-0 transition-colors duration-200 mt-1" style={{ backgroundColor: formIsAddon ? 'var(--color-accent)' : '#334155' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            className="sr-only" 
+                                            checked={formIsAddon}
+                                            onChange={(e) => setFormIsAddon(e.target.checked)}
+                                        />
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${formIsAddon ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </div>
+                                </label>
                             </div>
                         </div>
 

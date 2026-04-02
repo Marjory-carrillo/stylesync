@@ -986,68 +986,11 @@ export default function Booking() {
                     </div>
                 )}
 
-                {/* ══ STEP 2: Service ══ */}
+                {/* ══ STEP 2: Stylist Selection ══ */}
                 {step === 2 && (
                     <div className="animate-slide-up">
                         <div className="mb-6 text-center">
                             <p className="text-sm text-accent font-medium mb-1">Paso 1 de 4</p>
-                            <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                ¿Qué te gustaría hacerte hoy?
-                            </h3>
-                        </div>
-
-                        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
-                            {services.map((service: Service) => (
-                                <div
-                                    key={service.id}
-                                    className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
-                                    onClick={() => {
-                                        setSelectedService(service);
-                                        setStep(22);
-                                    }}
-                                >
-                                    <div className="flex items-center gap-3 p-3">
-                                        {/* Imagen compacta: 56px en móvil */}
-                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
-                                            {service.image ? (
-                                                <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                    <Calendar size={24} />
-                                                </div>
-                                            )}
-                                        </div>
-                                        {/* Texto sin truncar */}
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
-                                                {service.name}
-                                            </h4>
-                                            <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
-                                                <span className="text-cyan-400 font-bold">${service.price}</span>
-                                                <span className="text-muted flex items-center gap-1">
-                                                    <Clock size={12} /> {service.duration} min
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {/* Indicador de seleccionado */}
-                                        {selectedService?.id === service.id && (
-                                            <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
-                                                <CheckCircle size={14} className="text-slate-900" />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar mis datos</button>
-                    </div>
-                )}
-
-                {/* ══ STEP 22: Stylist Selection ══ */}
-                {step === 22 && (
-                    <div className="animate-slide-up">
-                        <div className="mb-6 text-center">
-                            <p className="text-sm text-accent font-medium mb-1">Paso 2 de 4</p>
                             <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                                 ¿Prefieres a alguien en especial?
                             </h3>
@@ -1061,7 +1004,7 @@ export default function Booking() {
                                 onClick={() => {
                                     setSelectedStylist(null);
                                     setSelectedAddOns([]);
-                                    setStep(23);
+                                    setStep(22);
                                 }}
                             >
                                 <div className="flex items-center gap-5">
@@ -1085,7 +1028,7 @@ export default function Booking() {
                                     onClick={() => {
                                         setSelectedStylist(stylist);
                                         setSelectedAddOns([]);
-                                        setStep(23);
+                                        setStep(22);
                                     }}
                                 >
                                     <div className="flex items-center gap-5">
@@ -1106,7 +1049,66 @@ export default function Booking() {
                                 </div>
                             ))}
                         </div>
-                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro servicio</button>
+                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar número</button>
+                    </div>
+                )}
+
+                {/* ══ STEP 22: Service ══ */}
+                {step === 22 && (
+                    <div className="animate-slide-up">
+                        <div className="mb-6 text-center">
+                            <p className="text-sm text-accent font-medium mb-1">Paso 2 de 4</p>
+                            <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                ¿Qué te gustaría hacerte hoy?
+                            </h3>
+                        </div>
+
+                        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
+                            {services.filter(s => !s.isAddon).map((service: Service) => (
+                                <div
+                                    key={service.id}
+                                    className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
+                                    onClick={() => {
+                                        setSelectedService(service);
+                                        const hasAddons = services.some(s => s.isAddon);
+                                        if (businessConfig?.enableAddons && hasAddons) {
+                                            setStep(23);
+                                        } else {
+                                            setStep(25);
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center gap-3 p-3">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
+                                            {service.image ? (
+                                                <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                    <Calendar size={24} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
+                                                {service.name}
+                                            </h4>
+                                            <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
+                                                <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                <span className="text-muted flex items-center gap-1">
+                                                    <Clock size={12} /> {service.duration} min
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {selectedService?.id === service.id && (
+                                            <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
+                                                <CheckCircle size={14} className="text-slate-900" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro {professionalLabel.toLowerCase()}</button>
                     </div>
                 )}
 
@@ -1122,7 +1124,7 @@ export default function Booking() {
                         {/* Add-on chips */}
                         <div className="flex flex-col gap-2">
                             {services
-                                .filter(s => s.id !== selectedService.id)
+                                .filter(s => s.isAddon && s.id !== selectedService.id)
                                 .map((s: Service) => {
                                     const isSelected = selectedAddOns.includes(s.id);
                                     return (
@@ -1187,7 +1189,7 @@ export default function Booking() {
                                 </button>
                             )}
                         </div>
-                        <button className="btn btn-ghost w-full mt-2 text-sm" onClick={() => setStep(22)}>← Cambiar {professionalLabel.toLowerCase()}</button>
+                        <button className="btn btn-ghost w-full mt-2 text-sm" onClick={() => setStep(22)}>← Cambiar de servicio principal</button>
                     </div>
                 )}
 
@@ -1219,7 +1221,7 @@ export default function Booking() {
                                 );
                             })}
                         </div>
-                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-md)' }} onClick={() => { setIsUpdating(false); setStep(isUpdating ? 10 : 2); }}>← Atrás</button>
+                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-md)' }} onClick={() => { setIsUpdating(false); setStep(isUpdating ? 10 : 22); }}>← Atrás</button>
                     </div>
                 )}
 

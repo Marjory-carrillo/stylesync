@@ -21,7 +21,10 @@ export const useServices = () => {
                 .eq('tenant_id', tenantId)
                 .order('id');
             if (error) throw error;
-            return data as Service[];
+            return (data as any[]).map(d => ({
+                ...d,
+                isAddon: d.is_addon
+            })) as Service[];
         },
         enabled: !!tenantId,
     });
@@ -30,9 +33,11 @@ export const useServices = () => {
     const addMutation = useMutation({
         mutationFn: async (service: Omit<Service, 'id'>) => {
             if (!tenantId) throw new Error("No tenant info");
+            const { isAddon, ...rest } = service as any;
+            const dbData = { ...rest, is_addon: isAddon ?? false, tenant_id: tenantId };
             const { data, error } = await supabase
                 .from('services')
-                .insert([{ ...service, tenant_id: tenantId }])
+                .insert([dbData])
                 .select()
                 .single();
             if (error) throw error;
@@ -49,9 +54,13 @@ export const useServices = () => {
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }: { id: number; data: Partial<Service> }) => {
             if (!tenantId) throw new Error("No tenant info");
+            const { isAddon, ...rest } = data as any;
+            const dbData = { ...rest };
+            if (isAddon !== undefined) dbData.is_addon = isAddon;
+
             const { error } = await supabase
                 .from('services')
-                .update(data)
+                .update(dbData)
                 .eq('id', id)
                 .eq('tenant_id', tenantId);
             if (error) throw error;
