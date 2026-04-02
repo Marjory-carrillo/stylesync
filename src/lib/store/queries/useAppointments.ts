@@ -96,7 +96,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
 
     // CANCEL Appointment
     const cancelMutation = useMutation({
-        mutationFn: async ({ id }: { id: string }) => {
+        mutationFn: async ({ id, serviceName }: { id: string; serviceName: string }) => {
             if (!tenantId) throw new Error('No tenant info');
             const apt = query.data?.find(a => a.id === id);
             const { data, error } = await supabase.rpc('cancel_appointment_by_client', {
@@ -105,9 +105,9 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             });
             if (error) throw error;
             if (!data?.success) throw new Error(data?.error || 'Error al cancelar');
-            return { id, apt };
+            return { id, apt, serviceName };
         },
-        onSuccess: ({ id, apt }) => {
+        onSuccess: ({ id, apt, serviceName }) => {
             if (getDevicePendingId() === id) clearDevicePending();
             queryClient.invalidateQueries({ queryKey });
             showToast('Cita cancelada', 'success');
@@ -115,6 +115,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 notifyAdmin(tenantId, 'cancel', {
                     client_name: apt.clientName,
                     client_phone: apt.clientPhone,
+                    service_name: serviceName,
                     date: apt.date,
                     time: apt.time,
                 }, adminPhone, businessName);
@@ -144,7 +145,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
 
     // UPDATE TIME + DATE
     const updateTimeMutation = useMutation({
-        mutationFn: async ({ id, newTime, newDate }: { id: string; newTime: string; newDate?: string }) => {
+        mutationFn: async ({ id, newTime, newDate, serviceName }: { id: string; newTime: string; newDate?: string; serviceName: string }) => {
             if (!tenantId) throw new Error('No tenant info');
             const apt = query.data?.find(a => a.id === id);
             const { data, error } = await supabase.rpc('update_appointment_time_by_client', {
@@ -155,15 +156,16 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             });
             if (error) throw error;
             if (!data?.success) throw new Error(data?.error || 'Error al actualizar');
-            return { apt, newTime, newDate };
+            return { apt, newTime, newDate, serviceName };
         },
-        onSuccess: ({ apt, newTime, newDate }) => {
+        onSuccess: ({ apt, newTime, newDate, serviceName }) => {
             queryClient.invalidateQueries({ queryKey });
             showToast('Hora actualizada', 'success');
             if (tenantId && apt) {
                 notifyAdmin(tenantId, 'reschedule', {
                     client_name: apt.clientName,
                     client_phone: apt.clientPhone,
+                    service_name: serviceName,
                     date: newDate ?? apt.date,
                     time: newTime,
                 }, adminPhone, businessName);

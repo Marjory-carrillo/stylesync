@@ -474,27 +474,15 @@ export default function Booking() {
     // ── Manage existing ───
     const handleClientCancel = async (appointmentId: string) => {
         try {
-            await cancelAppointment({ id: appointmentId });
-            setStep(11);
+            const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
+            const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
+            const activeAddOnNames = activeAppt?.additional_services ?? [];
+            const activeCombinedServiceName = activeService 
+                ? activeService.name + (activeAddOnNames.length > 0 ? ' + ' + activeAddOnNames.join(' + ') : '')
+                : 'Servicio';
 
-            // ── Notificar al admin y al cliente sobre la cancelación ──────
-            if (businessConfig?.phone && tenantId) {
-                supabase.functions.invoke('notify-admin', {
-                    body: {
-                        tenant_id: tenantId,
-                        event_type: 'cancel',
-                        admin_phone: businessConfig.phone,
-                        business_name: businessConfig.name,
-                        appointment: {
-                            client_name: clientName.trim(),
-                            client_phone: clientPhone.trim(),
-                            service_name: selectedService?.name ?? 'Servicio',
-                            date: selectedDate,
-                            time: selectedTime ?? '00:00',
-                        },
-                    },
-                }).catch(() => { /* fire-and-forget */ });
-            }
+            await cancelAppointment({ id: appointmentId, serviceName: activeCombinedServiceName });
+            setStep(11);
         } catch (error) {
             console.error('Error al cancelar:', error);
         }
@@ -511,28 +499,16 @@ export default function Booking() {
 
     const handleUpdateTime = async (time: string) => {
         if (updatingAppointmentId) {
-            await updateAppointmentTime({ id: updatingAppointmentId, newTime: time, newDate: selectedDate });
+            const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
+            const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
+            const activeAddOnNames = activeAppt?.additional_services ?? [];
+            const activeCombinedServiceName = activeService 
+                ? activeService.name + (activeAddOnNames.length > 0 ? ' + ' + activeAddOnNames.join(' + ') : '')
+                : 'Servicio';
+
+            await updateAppointmentTime({ id: updatingAppointmentId, newTime: time, newDate: selectedDate, serviceName: activeCombinedServiceName });
             setSelectedTime(time);
             setStep(12);
-
-            // ── Notificar al admin y al cliente sobre la reprogramación ──────
-            if (businessConfig?.phone && tenantId) {
-                supabase.functions.invoke('notify-admin', {
-                    body: {
-                        tenant_id: tenantId,
-                        event_type: 'reschedule',
-                        admin_phone: businessConfig.phone,
-                        business_name: businessConfig.name,
-                        appointment: {
-                            client_name: clientName.trim(),
-                            client_phone: clientPhone.trim(),
-                            service_name: selectedService?.name ?? 'Servicio',
-                            date: selectedDate,
-                            time,
-                        },
-                    },
-                }).catch(() => { /* fire-and-forget */ });
-            }
         }
     };
 
@@ -569,6 +545,9 @@ export default function Booking() {
             setSmsDebugError(null);
             setResendCountdown(15);
             try {
+                const addOnNames = selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean);
+                const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '');
+
                 const dateLabel = selectedDate
                     ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
                     : 'próximamente';
@@ -591,7 +570,7 @@ export default function Booking() {
                         tenant_id:           tenantId,
                         businessName:        bName,
                         clientName:          clientName.trim(),
-                        serviceName:         selectedService?.name ?? 'tu servicio',
+                        serviceName:         combinedServiceName,
                         appointmentDateTime,
                     }),
                 });
