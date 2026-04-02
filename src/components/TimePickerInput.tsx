@@ -78,7 +78,7 @@ export default function TimePickerInput({ value, onChange, placeholder = '--:-- 
                 type="button"
                 disabled={disabled}
                 onClick={() => !disabled && setOpen(o => !o)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-sm w-[130px] justify-center ${
+                className={`flex items-center gap-1.5 px-2 py-2 rounded-xl border transition-all text-xs sm:text-sm w-full justify-center ${
                     open
                         ? 'bg-accent/10 border-accent/40 text-white'
                         : hasValue
@@ -86,8 +86,8 @@ export default function TimePickerInput({ value, onChange, placeholder = '--:-- 
                             : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
                 } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
             >
-                <Clock size={14} className={hasValue ? 'text-accent' : 'text-slate-500'} />
-                <span className="font-mono font-bold tracking-wide">
+                <Clock size={12} className={hasValue ? 'text-accent shrink-0' : 'text-slate-500 shrink-0'} />
+                <span className="font-mono font-bold tracking-wide truncate">
                     {hasValue ? formatDisplay(value) : placeholder}
                 </span>
             </button>

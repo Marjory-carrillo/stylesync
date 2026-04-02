@@ -623,49 +623,51 @@ export default function Settings() {
                         {DAY_KEYS.map(day => {
                             const hours = scheduleForm[day] || { open: false, start: '09:00', end: '18:00' };
                             return (
-                                <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
-                                    <div className="w-32 font-medium capitalize text-white flex items-center gap-2">
-                                        <span className={`w-2 h-2 rounded-full ${hours.open ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                        {DAY_NAMES[day]}
+                                <div key={day} className="flex flex-col p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 gap-3">
+                                    {/* Day header: name + toggle */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="font-medium capitalize text-white flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full shrink-0 ${hours.open ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                            {DAY_NAMES[day]}
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={hours.open}
+                                                onChange={e => setScheduleForm({
+                                                    ...scheduleForm,
+                                                    [day]: { ...hours, open: e.target.checked }
+                                                })}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                        </label>
                                     </div>
 
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={hours.open}
-                                            onChange={e => setScheduleForm({
-                                                ...scheduleForm,
-                                                [day]: { ...hours, open: e.target.checked }
-                                            })}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                    </label>
-
                                     {hours.open && (
-                                        <div className="flex flex-col gap-2 flex-1">
+                                        <div className="flex flex-col gap-2 pl-4">
                                             {/* Agenda row */}
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[9px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-widest">Agenda</span>
+                                            <div className="grid grid-cols-[3rem_1fr_auto_1fr] items-center gap-1.5">
+                                                <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Agenda</span>
                                                 <TimePickerInput
                                                     value={hours.start}
                                                     onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, start: val } })}
                                                 />
-                                                <span className="text-slate-600 text-xs">—</span>
+                                                <span className="text-slate-600 text-xs text-center">—</span>
                                                 <TimePickerInput
                                                     value={hours.end}
                                                     onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, end: val } })}
                                                 />
                                             </div>
                                             {/* Comida row */}
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[9px] uppercase font-black text-slate-500 w-12 shrink-0 tracking-widest">Comida</span>
+                                            <div className="grid grid-cols-[3rem_1fr_auto_1fr] items-center gap-1.5">
+                                                <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Comida</span>
                                                 <TimePickerInput
                                                     value={hours.breakStart || ''}
                                                     onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakStart: val } })}
                                                     placeholder="--:-- ---"
                                                 />
-                                                <span className="text-slate-600 text-xs">—</span>
+                                                <span className="text-slate-600 text-xs text-center">—</span>
                                                 <TimePickerInput
                                                     value={hours.breakEnd || ''}
                                                     onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakEnd: val } })}
@@ -674,7 +676,7 @@ export default function Settings() {
                                             </div>
                                         </div>
                                     )}
-                                    {!hours.open && <span className="text-sm text-muted italic flex-1">Cerrado</span>}
+                                    {!hours.open && <span className="text-sm text-muted italic pl-4">Cerrado</span>}
                                 </div>
                             );
                         })}
