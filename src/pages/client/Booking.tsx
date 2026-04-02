@@ -929,12 +929,19 @@ export default function Booking() {
                                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#25D366]"></span>
                                                 </span>
                                             </div>
-                                            <p className="text-white text-sm font-medium">
+                                             <p className="text-white text-sm font-medium">
                                                 ¡Código enviado a <span className="text-[#25D366] font-bold">{clientPhone}</span>!
                                             </p>
                                             <p className="text-white/50 text-xs mt-0.5">Revisa tu WhatsApp e ingresa el código.</p>
                                         </div>
                                     </div>
+                                </div>
+                                {/* Aviso: si no llega el código */}
+                                <div className="mt-3 flex items-start gap-2 px-1">
+                                    <AlertTriangle size={13} className="text-yellow-400 shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-yellow-300/80 text-left leading-relaxed">
+                                        Si no recibes el código en 30 segundos, es posible que ese número <strong>no tenga WhatsApp activo</strong>. Usa el botón <strong>"← Cambiar número"</strong> para corregirlo.
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -1008,7 +1015,14 @@ export default function Booking() {
                                 </p>
                             )}
                         </div>
-                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar número</button>
+                        {/* Cambiar número — botón prominente */}
+                        <button
+                            className="w-full mt-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-sm text-slate-300 hover:text-white transition-all flex items-center justify-center gap-2"
+                            onClick={() => { setStep(1); setClientError(null); setOtpCode(''); }}
+                        >
+                            <Phone size={14} />
+                            ← Cambiar número de WhatsApp
+                        </button>
                     </div>
                 )}
 

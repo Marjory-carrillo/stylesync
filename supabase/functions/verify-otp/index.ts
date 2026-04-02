@@ -147,33 +147,9 @@ serve(async (req: Request) => {
                 );
             }
 
-            // Twilio puede aceptar el mensaje (HTTP 201) pero fallar asincrónicamente.
-            // Esperamos 4s y consultamos el estado real del mensaje por su SID.
-            const msgSid = templateData.sid;
-            if (msgSid) {
-                await new Promise(resolve => setTimeout(resolve, 4000));
-                const statusRes = await fetch(
-                    `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages/${msgSid}.json`,
-                    { headers: { Authorization: `Basic ${credentials}` } }
-                );
-                const statusData = await statusRes.json();
-                console.log('[verify-otp] Message status poll:', JSON.stringify({ status: statusData.status, error_code: statusData.error_code }));
-
-                if (statusData.status === 'failed' || statusData.status === 'undelivered') {
-                    const errorCode = statusData.error_code;
-                    const isInvalidRecipient = errorCode === 63024 || String(errorCode) === '63024';
-                    return new Response(
-                        JSON.stringify({
-                            success: false,
-                            code: errorCode,
-                            error: isInvalidRecipient
-                                ? 'Este número no tiene WhatsApp. Por favor verifica que sea el número correcto e intenta de nuevo.'
-                                : `No se pudo enviar el mensaje (error ${errorCode}). Verifica tu número.`,
-                        }),
-                        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                    );
-                }
-            }
+            // Twilio acepta el mensaje con HTTP 201 incluso si el número no tiene WhatsApp.
+            // El error 63024 se reporta de forma asíncrona y no es detectable en tiempo real.
+            // Solo bloqueamos si hay un error HTTP directo (ver bloque anterior).
 
             // Log the OTP/confirmation message
             if (tenant_id) {
