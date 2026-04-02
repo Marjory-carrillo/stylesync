@@ -31,6 +31,7 @@ export interface Appointment {
     bookedAt: string; // ISO timestamp of when this was booked
     reminderSent?: boolean;
     confirmationSent?: boolean;
+    additionalServices?: string[]; // names of add-on services
 }
 
 export interface Client {

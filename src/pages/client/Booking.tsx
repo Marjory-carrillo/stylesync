@@ -89,8 +89,28 @@ export default function Booking() {
     const [clientError, setClientError] = useState<string | null>(null);
     const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
     const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null>(null);
+    const [selectedAddOns, setSelectedAddOns] = useState<number[]>([]); // additional service IDs
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+    // Add-ons computed values: duration adds up, price adds up
+    const totalDuration = useMemo(() => {
+        const base = selectedService?.duration ?? 0;
+        const extras = selectedAddOns.reduce((sum, id) => {
+            const svc = services.find(s => s.id === id);
+            return sum + (svc?.duration ?? 0);
+        }, 0);
+        return base + extras;
+    }, [selectedService, selectedAddOns, services]);
+
+    const totalPrice = useMemo(() => {
+        const base = selectedService?.price ?? 0;
+        const extras = selectedAddOns.reduce((sum, id) => {
+            const svc = services.find(s => s.id === id);
+            return sum + (svc?.price ?? 0);
+        }, 0);
+        return base + extras;
+    }, [selectedService, selectedAddOns, services]);
     const [bookingResult, setBookingResult] = useState<{ success: boolean; error?: string } | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
@@ -200,7 +220,7 @@ export default function Booking() {
         const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
         // Fallback: if no stylists exist (MVP), treat as generic resource with ID '0'
         if (stylistsToCheck.length === 0) {
-            const slots = getSmartSlots(baseDate, selectedService.duration, selectedDateSchedule.start, selectedDateSchedule.end, dateAppointments, relevantBlockedSlots, bufferMinutes);
+            const slots = getSmartSlots(baseDate, totalDuration, selectedDateSchedule.start, selectedDateSchedule.end, dateAppointments, relevantBlockedSlots, bufferMinutes);
             slots.forEach(slot => {
                 metadata[slot] = ['0'];
             });
@@ -217,7 +237,7 @@ export default function Booking() {
                     return { id: a.id, stylistId: String(a.stylistId), start, end };
                 });
 
-            const slots = getSmartSlots(baseDate, selectedService.duration, selectedDateSchedule.start, selectedDateSchedule.end, stylistApps, relevantBlockedSlots, bufferMinutes);
+            const slots = getSmartSlots(baseDate, totalDuration, selectedDateSchedule.start, selectedDateSchedule.end, stylistApps, relevantBlockedSlots, bufferMinutes);
 
             slots.forEach(slot => {
                 if (!metadata[slot]) metadata[slot] = [];
@@ -226,7 +246,7 @@ export default function Booking() {
         });
 
         return metadata;
-    }, [selectedService, selectedDate, selectedDateSchedule, blockedSlots, selectedStylist, stylists, appointments, services, dateAppointments]);
+    }, [selectedService, totalDuration, selectedDate, selectedDateSchedule, blockedSlots, selectedStylist, stylists, appointments, services, dateAppointments]);
 
     // Detect if the day is manually blocked (e.g., "All Day" block such as 00:00 - 23:59)
     const isDayBlockedManually = useMemo(() => {
@@ -300,6 +320,12 @@ export default function Booking() {
         const availableStylists = slotsMetadata[selectedTime] || [];
         const assignedStylistId = selectedStylist ? selectedStylist.id : (availableStylists[0] ?? null);
 
+        // Build combined service name (main + add-ons)
+        const addOnNames = selectedAddOns
+            .map(id => services.find(s => s.id === id)?.name)
+            .filter(Boolean);
+        const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '');
+
         const result = await addAppointment({
             clientName: clientName.trim(),
             clientPhone: clientPhone.trim(),
@@ -307,14 +333,12 @@ export default function Booking() {
             stylistId: assignedStylistId ? Number(assignedStylistId) : null,
             date: selectedDate,
             time: selectedTime,
+            additionalServices: addOnNames.length > 0 ? addOnNames as string[] : undefined,
         });
 
         setBookingResult(result);
         if (result.success) {
             setStep(5);
-            // Notificar al admin vía WhatsApp (fire-and-forget)
-            // Si businessConfig.phone está disponible lo pasamos; si no, notify-admin
-            // buscará el teléfono del admin en la BD usando tenant_id.
             if (tenantId) {
                 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
                 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -329,7 +353,7 @@ export default function Booking() {
                         appointment: {
                             client_name:  clientName.trim(),
                             client_phone: clientPhone.trim(),
-                            service_name: selectedService.name,
+                            service_name: combinedServiceName,
                             date:         selectedDate,
                             time:         selectedTime,
                         },
@@ -1036,7 +1060,8 @@ export default function Booking() {
                                 className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist === null ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
                                 onClick={() => {
                                     setSelectedStylist(null);
-                                    setStep(25);
+                                    setSelectedAddOns([]);
+                                    setStep(23);
                                 }}
                             >
                                 <div className="flex items-center gap-5">
@@ -1059,7 +1084,8 @@ export default function Booking() {
                                     className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist?.id === stylist.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
                                     onClick={() => {
                                         setSelectedStylist(stylist);
-                                        setStep(25);
+                                        setSelectedAddOns([]);
+                                        setStep(23);
                                     }}
                                 >
                                     <div className="flex items-center gap-5">
@@ -1081,6 +1107,87 @@ export default function Booking() {
                             ))}
                         </div>
                         <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro servicio</button>
+                    </div>
+                )}
+
+                {/* ══ STEP 23: Add-On Services ══ */}
+                {step === 23 && selectedService && (
+                    <div className="animate-slide-up">
+                        <div className="mb-5 text-center">
+                            <p className="text-sm text-accent font-medium mb-1">Paso 2 de 4</p>
+                            <h3 className="text-xl font-bold text-white">¿Deseas agregar algo más?</h3>
+                            <p className="text-xs text-muted mt-1">Servicios adicionales opcionales</p>
+                        </div>
+
+                        {/* Add-on chips */}
+                        <div className="flex flex-col gap-2">
+                            {services
+                                .filter(s => s.id !== selectedService.id)
+                                .map((s: Service) => {
+                                    const isSelected = selectedAddOns.includes(s.id);
+                                    return (
+                                        <button
+                                            key={s.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedAddOns(prev =>
+                                                    isSelected
+                                                        ? prev.filter(id => id !== s.id)
+                                                        : [...prev, s.id]
+                                                );
+                                            }}
+                                            className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl border transition-all duration-200 text-left ${
+                                                isSelected
+                                                    ? 'bg-cyan-400/10 border-cyan-400/40 ring-1 ring-cyan-400/40'
+                                                    : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                                                    isSelected ? 'bg-cyan-400 border-cyan-400' : 'border-white/30'
+                                                }`}>
+                                                    {isSelected && <CheckCircle size={10} className="text-slate-900" />}
+                                                </div>
+                                                <span className={`font-semibold text-sm ${
+                                                    isSelected ? 'text-cyan-300' : 'text-white'
+                                                }`}>{s.name}</span>
+                                            </div>
+                                            <span className="text-xs text-cyan-400 font-bold shrink-0">${s.price} · {s.duration}min</span>
+                                        </button>
+                                    );
+                                })
+                            }
+                        </div>
+
+                        {/* Summary if something selected */}
+                        {selectedAddOns.length > 0 && (
+                            <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
+                                <span className="text-slate-500 font-bold uppercase tracking-widest mr-1">Resumen:</span>
+                                <span className="font-semibold text-white">
+                                    {selectedService.name} + {selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(' + ')}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-3 mt-5">
+                            <button
+                                className="flex-1 btn btn-ghost text-sm py-3"
+                                onClick={() => { setSelectedAddOns([]); setStep(25); }}
+                            >
+                                Omitir
+                            </button>
+                            {selectedAddOns.length > 0 && (
+                                <button
+                                    className="flex-1 btn text-sm py-3 font-bold"
+                                    style={{ background: 'var(--color-accent)', color: '#fff' }}
+                                    onClick={() => setStep(25)}
+                                >
+                                    Confirmar selección →
+                                </button>
+                            )}
+                        </div>
+                        <button className="btn btn-ghost w-full mt-2 text-sm" onClick={() => setStep(22)}>← Cambiar {professionalLabel.toLowerCase()}</button>
                     </div>
                 )}
 
@@ -1313,11 +1420,20 @@ export default function Booking() {
                                         <div className="w-full h-full bg-slate-800 flex items-center justify-center"><RefreshCw className="text-muted" /></div>
                                     )}
                                 </div>
-                                <div>
-                                    <h4 className="text-lg font-bold text-white">{selectedService.name}</h4>
-                                    <p className="text-sm text-muted mb-2">{selectedService.duration} min</p>
+                                <div className="flex-1 min-w-0">
+                                    {/* Main service + add-ons combined label */}
+                                    <h4 className="text-base font-bold text-white leading-snug">
+                                        {selectedService.name}
+                                        {selectedAddOns.length > 0 && (
+                                            <span className="text-cyan-400">
+                                                {' + ' + selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(' + ')}
+                                            </span>
+                                        )}
+                                    </h4>
+                                    <p className="text-sm text-muted mb-2">{totalDuration} min en total</p>
                                     <div className="inline-block px-2 py-1 bg-accent/20 text-accent rounded text-xs font-bold border border-accent/20">
-                                        ${selectedService.price}
+                                        ${totalPrice}
+                                        {selectedAddOns.length > 0 && <span className="text-white/40 ml-1 font-normal">total</span>}
                                     </div>
                                 </div>
                             </div>
@@ -1394,16 +1510,21 @@ export default function Booking() {
                             {/* Service Section */}
                             <div className="w-full mb-10 text-center">
                                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Servicio Reservado</h4>
-                                <div className="inline-flex items-center gap-4 bg-white/5 rounded-3xl p-4 border border-white/10 w-full justify-center">
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center border border-white/10 shrink-0">
-                                        {selectedService?.image ? <img src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Calendar size={20} className="text-accent" />}
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="font-black text-white uppercase text-base leading-tight">{selectedService?.name}</p>
-                                        <div className="flex items-center gap-1.5 mt-1">
-                                            <span className="text-[9px] font-black text-slate-400 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-widest">{selectedService?.duration} MIN</span>
-                                            <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase tracking-widest">${selectedService?.price}</span>
+                                <div className="bg-white/5 rounded-3xl p-4 border border-white/10 w-full text-left">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center border border-white/10 shrink-0">
+                                            {selectedService?.image ? <img src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Calendar size={18} className="text-accent" />}
                                         </div>
+                                        <p className="font-black text-white text-sm leading-tight">
+                                            {selectedService?.name}
+                                            {selectedAddOns.length > 0 && (
+                                                <span className="text-cyan-400"> + {selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(' + ')}</span>
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 pl-1">
+                                        <span className="text-[9px] font-black text-slate-400 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-widest">{totalDuration} MIN</span>
+                                        <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase tracking-widest">${totalPrice}{selectedAddOns.length > 0 ? ' total' : ''}</span>
                                     </div>
                                 </div>
                             </div>
