@@ -78,14 +78,18 @@ export default function SuperAdminPanel() {
 
     const fetchSmsMetrics = async () => {
         try {
-            // Conteo total
-            const { count } = await supabase.from('sms_logs').select('*', { count: 'exact', head: true });
+            // Conteo total de mensajes WhatsApp reales (excluye demo)
+            const { count } = await supabase
+                .from('sms_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('provider', 'whatsapp');
             setTotalSmsCount(count || 0);
 
-            // Conteos por tenant con fecha para calcular semana/mes
+            // Conteos por tenant — solo WhatsApp, con fecha para semana/mes
             const { data: logsData, error } = await supabase
                 .from('sms_logs')
-                .select('tenant_id, created_at');
+                .select('tenant_id, created_at')
+                .eq('provider', 'whatsapp');
 
             if (error) throw error;
 
@@ -236,10 +240,10 @@ export default function SuperAdminPanel() {
                 />
                 <StatCard
                     icon={<Zap size={24} />}
-                    title="SMS Totales"
+                    title="WhatsApp Totales"
                     value={totalSmsCount !== null ? totalSmsCount : '...'}
-                    color="text-amber-400"
-                    sub="Mensajes enviados"
+                    color="text-emerald-400"
+                    sub="Mensajes WhatsApp enviados"
                     delay="3"
                 />
             </div>
@@ -337,26 +341,26 @@ export default function SuperAdminPanel() {
                                         </span>
                                     </div>
 
-                                    {/* SMS Stats: Week / Month / Total */}
+                                    {/* WhatsApp Stats: Week / Month / Total */}
                                     <div className="flex items-center gap-1.5 mt-2">
                                         {(() => {
                                             const stats = smsCountsByTenant[tenant.id] || { total: 0, week: 0, month: 0 };
                                             return (
                                                 <>
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="Mensajes esta semana">
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="WA esta semana">
                                                         <Calendar size={10} className="text-emerald-400" />
                                                         <span className="text-[10px] font-black text-emerald-400">{stats.week}</span>
                                                         <span className="text-[8px] text-emerald-400/60 font-bold">SEM</span>
                                                     </div>
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20" title="Mensajes este mes">
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20" title="WA este mes">
                                                         <BarChart3 size={10} className="text-blue-400" />
                                                         <span className="text-[10px] font-black text-blue-400">{stats.month}</span>
                                                         <span className="text-[8px] text-blue-400/60 font-bold">MES</span>
                                                     </div>
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20" title="Mensajes totales">
-                                                        <Zap size={10} className="text-amber-400" />
-                                                        <span className="text-[10px] font-black text-amber-400">{stats.total}</span>
-                                                        <span className="text-[8px] text-amber-400/60 font-bold">TOT</span>
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="WA totales">
+                                                        <Zap size={10} className="text-emerald-400" />
+                                                        <span className="text-[10px] font-black text-emerald-400">{stats.total}</span>
+                                                        <span className="text-[8px] text-emerald-400/60 font-bold">TOT</span>
                                                     </div>
                                                 </>
                                             );

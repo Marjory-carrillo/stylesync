@@ -32,7 +32,9 @@ serve(async (req: Request) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
         );
 
-        const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://citalink.app';
+        // SITE_URL must be set as an Edge Function secret in Supabase Dashboard
+        // Dashboard → Edge Functions → Secrets → SITE_URL = https://cita-link.vercel.app
+        const siteUrl = (Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://cita-link.vercel.app').replace(/\/$/, '');
 
         // Check if user already exists
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
