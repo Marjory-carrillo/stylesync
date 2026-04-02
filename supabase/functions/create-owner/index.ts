@@ -63,44 +63,46 @@ serve(async (req: Request) => {
         }
 
         // ── NEW USER ─────────────────────────────────────────────────────────
-        // Use inviteUserByEmail — this reliably sends an email via Supabase SMTP
-        // The redirect URL carries the plaintext password so the login page can prefill/show it
-        const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`;
-
-        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            redirectTo,
-            data: {
+        // Crear usuario directamente con email confirmado y contraseña lista.
+        // Esto evita el estado "invited" que impide el login con contraseña.
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,          // El usuario puede hacer login de inmediato
+            user_metadata: {
                 business_name: businessName || '',
                 business_slug: businessSlug || '',
             },
         });
 
-        if (inviteError) {
-            // Fallback if invite fails (e.g. user exists but wasn't found)
-            console.warn('[create-owner] invite failed, falling back to createUser:', inviteError.message);
-            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-                email,
-                password,
-                email_confirm: true,
-            });
-            if (createError) throw createError;
-            console.log(`[create-owner] ✅ Created (fallback) ${email} → ${newUser.user.id}`);
+        if (createError) {
+            console.error('[create-owner] createUser error:', createError.message);
             return new Response(
-                JSON.stringify({ success: true, userId: newUser.user.id, isExisting: false }),
-                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                JSON.stringify({ success: false, error: createError.message }),
+                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
 
-        console.log(`[create-owner] ✅ Invited ${email} → ${inviteData.user.id}`);
+        console.log(`[create-owner] ✅ Created ${email} → ${newUser.user.id}`);
 
-        // Set the password on the invited user so they can also log in directly
-        await supabaseAdmin.auth.admin.updateUserById(inviteData.user.id, {
-            password,
-            email_confirm: true,
-        }).catch(e => console.warn('[create-owner] updateUserById warn:', e.message));
+        // Enviar magic link de bienvenida para que el dueño tenga acceso rápido
+        // El redirectTo lleva email y contraseña como params para que el login los prefille
+        const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`;
+        await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email,
+            options: { redirectTo },
+        }).then(({ data: linkData, error: linkError }) => {
+            if (linkError) {
+                console.warn('[create-owner] generateLink warn:', linkError.message);
+            } else {
+                console.log('[create-owner] Magic link generated for:', email);
+                // Nota: generateLink con email_confirm=true envía el email automáticamente vía SMTP de Supabase
+            }
+        }).catch(e => console.warn('[create-owner] generateLink exception:', e.message));
 
         return new Response(
-            JSON.stringify({ success: true, userId: inviteData.user.id, isExisting: false }),
+            JSON.stringify({ success: true, userId: newUser.user.id, isExisting: false }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 

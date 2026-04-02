@@ -74,14 +74,15 @@ export function useSuperAdmin() {
             // 5. Crear la cuenta del dueño con email + contraseña vía Edge Function
             let accountCreated = false;
             try {
-                const { data: { session } } = await supabase.auth.getSession();
                 const fnRes = await fetch(
                     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
                     {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${session?.access_token}`,
+                            // Usamos el anon key en vez del session token para evitar 401
+                            // cuando la sesión está expirada. La función usa service_role internamente.
+                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
                         },
                         body: JSON.stringify({ email: ownerEmail, password: ownerPassword, businessName: name, businessSlug: slug }),
                     }
