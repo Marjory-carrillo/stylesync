@@ -10,7 +10,7 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle } from 'lucide-react';
+import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
@@ -38,7 +38,7 @@ export default function Appointments() {
     const isLoading = apptsPending || servicesPending || stylistsPending;
     const { data: tenantConfig } = useTenantData();
     const { cancellationLog, getMonthlyCancellations } = useCancellationLog();
-    const { isPhoneBlocked } = useBlockedPhones();
+    const { isPhoneBlocked, blockPhone, unblockPhone } = useBlockedPhones();
 
     // Helpers locales (ya tenemos services y stylists cargados arriba)
     const getServiceById = useCallback((id: number) =>
@@ -706,15 +706,29 @@ export default function Appointments() {
                                                 {cancellationLog.slice(0, 10).map(log => {
                                                     const monthlyCount = getMonthlyCancellations(log.clientPhone);
                                                     const isFrequent = monthlyCount >= 3;
+                                                    const isSuspect = monthlyCount >= 4;
+                                                    const blocked = isPhoneBlocked(log.clientPhone);
                                                     return (
-                                                        <div key={log.id} className={`flex justify-between items-center p-3 rounded-xl border transition-colors ${isFrequent ? 'bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10' : 'bg-black/20 border-white/[0.02] hover:bg-white/5 hover:border-white/10'}`}>
-                                                            <div className="flex flex-col gap-0.5">
+                                                        <div key={log.id} className={`flex justify-between items-start p-3 rounded-xl border transition-colors ${
+                                                            isSuspect ? (blocked ? 'bg-red-900/10 border-red-500/30' : 'bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10')
+                                                            : isFrequent ? 'bg-orange-500/5 border-orange-500/10 hover:bg-orange-500/5'
+                                                            : 'bg-black/20 border-white/[0.02] hover:bg-white/5 hover:border-white/10'
+                                                        }`}>
+                                                            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                                    <span className="text-white/90 font-bold text-[13px]">{log.clientName}</span>
-                                                                    {isFrequent && (
+                                                                    <span className={`font-bold text-[13px] ${blocked ? 'line-through text-red-400/60' : 'text-white/90'}`}>{log.clientName}</span>
+                                                                    {isSuspect && (
+                                                                        <span className="flex items-center gap-1 text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded-md">
+                                                                            <AlertTriangle size={9} /> {monthlyCount} cancel. este mes
+                                                                        </span>
+                                                                    )}
+                                                                    {!isSuspect && isFrequent && (
                                                                         <span className="flex items-center gap-1 text-[9px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/30 px-1.5 py-0.5 rounded-md">
                                                                             <AlertTriangle size={9} /> {monthlyCount} cancel. este mes
                                                                         </span>
+                                                                    )}
+                                                                    {blocked && (
+                                                                        <span className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded-md uppercase tracking-wider">Bloqueado</span>
                                                                     )}
                                                                 </div>
                                                                 <a href={`tel:${log.clientPhone}`} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-accent transition-colors w-fit">
@@ -726,9 +740,27 @@ export default function Appointments() {
                                                                     <span className="uppercase tracking-wider">{log.date}</span>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex flex-col items-end gap-1">
+                                                            <div className="flex flex-col items-end gap-1.5 shrink-0 ml-2">
                                                                 <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded">Cancelada</span>
                                                                 <span className="opacity-50 text-[9px] font-medium text-slate-400">{new Date(log.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                {/* Block / Unblock button for 4+ monthly cancels */}
+                                                                {isSuspect && (
+                                                                    <button
+                                                                        onClick={() => blocked
+                                                                            ? unblockPhone(log.clientPhone)
+                                                                            : blockPhone({ phone: log.clientPhone, reason: `${monthlyCount} cancelaciones en el mes` })
+                                                                        }
+                                                                        className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg border transition-all ${
+                                                                            blocked
+                                                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                                                                                : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500 hover:text-white'
+                                                                        }`}
+                                                                        title={blocked ? 'Desbloquear cliente' : 'Bloquear cliente'}
+                                                                    >
+                                                                        <ShieldCheck size={10} />
+                                                                        {blocked ? 'Desbloquear' : 'Bloquear'}
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     );
