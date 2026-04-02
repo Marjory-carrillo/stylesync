@@ -117,6 +117,49 @@ export default function Booking() {
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
     // const [cancelError, setCancelError] = useState<string | null>(null);
 
+    // Dynamically update document head (title, apple title) and manifest for this tenant
+    useEffect(() => {
+        if (!businessConfig) return;
+        const bName = businessConfig.name || 'CitaLink';
+        const title = `${bName} - Reservas`;
+
+        document.title = title;
+
+        const updateMeta = (name: string, content: string) => {
+            let meta = document.querySelector(`meta[name="${name}"]`);
+            if (meta) meta.setAttribute('content', content);
+        };
+        updateMeta('apple-mobile-web-app-title', bName);
+
+        // Generate dynamic manifest making start_url point to the specific slug
+        const manifest = {
+            name: title,
+            short_name: bName,
+            description: `Reserva tu cita en ${bName}`,
+            start_url: `/reserva/${slug}`,
+            display: "standalone",
+            background_color: "#060c1a",
+            theme_color: "#7c3aed",
+            icons: [
+                { src: "/assets/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+                { src: "/assets/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+            ]
+        };
+
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(blob);
+
+        let manifestElem = document.querySelector('#pwa-manifest') as HTMLLinkElement;
+        if (manifestElem) {
+            manifestElem.href = manifestURL;
+        }
+
+        return () => {
+            URL.revokeObjectURL(manifestURL);
+        };
+    }, [businessConfig, slug]);
+
     // Formatter for 12h time
     const format12h = (timeStr: string | null) => {
         if (!timeStr) return '';
