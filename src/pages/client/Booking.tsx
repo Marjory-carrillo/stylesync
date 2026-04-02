@@ -308,7 +308,7 @@ export default function Booking() {
     const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
     const [otpAttempts, setOtpAttempts] = useState(0);
     const [smsProvider, setSmsProvider] = useState<'demo' | 'whatsapp'>('demo');
-    const [smsDebugError, setSmsDebugError] = useState<string | null>(null);
+    const setSmsDebugError = (_: string | null) => {}; // debug panel removed
     const [resendCountdown, setResendCountdown] = useState(0);
 
     // Countdown timer for resend button
@@ -582,7 +582,15 @@ export default function Booking() {
                 if (!funcData?.success) {
                     const debugErr = funcData?.error ?? 'Error al enviar código';
                     setSmsDebugError(debugErr);
-                    setClientError(`Error procesando WhatsApp: ${debugErr}`);
+                    // Error 63024: número no registrado en WhatsApp → volver a step 1 con mensaje claro
+                    const isInvalidWA = funcData?.code === 63024 || String(funcData?.code) === '63024'
+                        || debugErr.includes('no tiene WhatsApp');
+                    if (isInvalidWA) {
+                        setClientError('⚠️ Este número no tiene WhatsApp. Verifica que sea correcto e intenta de nuevo.');
+                        setStep(1); // Regresar al paso de teléfono para que lo corrija
+                    } else {
+                        setClientError(`Error procesando WhatsApp: ${debugErr}`);
+                    }
                     return;
                 }
                 setSmsProvider(currentProvider as 'whatsapp');
@@ -784,12 +792,7 @@ export default function Booking() {
                                 </p>
                             )}
 
-                            {/* DEBUG: error de WhatsApp — quitar cuando funcione */}
-                            {smsDebugError && !isSendingSms && (
-                                <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-mono break-all">
-                                    <span className="font-bold text-red-400">⚠ DEBUG:</span> {smsDebugError}
-                                </div>
-                            )}
+
                         </div>
                     </div>
                 )}

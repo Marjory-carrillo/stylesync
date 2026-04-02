@@ -134,8 +134,14 @@ serve(async (req: Request) => {
             console.log('[verify-otp] Template send:', templateRes.status, templateData.sid ?? templateData.message);
 
             if (!templateRes.ok) {
+                // Error 63024: el número no tiene WhatsApp registrado
+                const twilioCode = templateData.code ?? templateData.error_code;
+                const isInvalidRecipient = twilioCode === 63024 || String(twilioCode) === '63024';
+                const errorMsg = isInvalidRecipient
+                    ? 'Este número no tiene WhatsApp. Por favor verifica que sea el número correcto de WhatsApp y vuelve a intentarlo.'
+                    : (templateData.message ?? 'Error al enviar el mensaje de WhatsApp.');
                 return new Response(
-                    JSON.stringify({ success: false, error: templateData.message }),
+                    JSON.stringify({ success: false, error: errorMsg, code: twilioCode }),
                     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
