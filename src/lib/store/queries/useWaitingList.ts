@@ -46,6 +46,7 @@ export const useWaitingList = () => {
             const { error } = await supabase.from('waiting_list').insert([{
                 tenant_id: tenantId,
                 name: clientData.name,
+                client_name: clientData.name,  // legacy NOT NULL column
                 phone: clientData.phone,
                 date: clientData.date,
                 service_id: clientData.serviceId
