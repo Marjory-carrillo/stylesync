@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
@@ -10,7 +10,7 @@ import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, MessageSquare, Percent, BarChart2 } from 'lucide-react';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2 } from 'lucide-react';
 import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
@@ -110,8 +110,7 @@ export default function Settings() {
     const { announcements, addAnnouncement, removeAnnouncement } = useAnnouncements();
     const { blockedSlots, addBlockedSlot, removeBlockedSlot } = useBlockedSlots();
     const { stylists, updateStylist } = useStylists();
-    const confirmationRef = useRef<HTMLTextAreaElement>(null);
-    const reminderRef = useRef<HTMLTextAreaElement>(null);
+
 
     const updateStylistCommissionRate = async (id: number, rate: number) => {
         await updateStylist({ id, data: { commissionRate: rate } });
@@ -122,7 +121,7 @@ export default function Settings() {
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [newAnnouncementType, setNewAnnouncementType] = useState<'info' | 'warning' | 'closed'>('info');
     const [uploadingLogo, setUploadingLogo] = useState(false);
-    const [lastFocusedField, setLastFocusedField] = useState<'confirmationTemplate' | 'reminderTemplate' | null>(null);
+
 
     // Blocked slots form
     const [blockDate, setBlockDate] = useState('');
@@ -165,38 +164,7 @@ export default function Settings() {
         showToast('Información del negocio actualizada', 'success');
     };
 
-    const insertVariable = (variable: string) => {
-        if (!lastFocusedField) {
-            showToast('Selecciona primero dónde quieres insertar la variable', 'info');
-            return;
-        }
-        
-        const ref = lastFocusedField === 'confirmationTemplate' ? confirmationRef : reminderRef;
-        const textarea = ref.current;
-        const currentVal = infoForm[lastFocusedField] || '';
 
-        if (textarea) {
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const newVal = currentVal.substring(0, start) + variable + currentVal.substring(end);
-            
-            setInfoForm({
-                ...infoForm,
-                [lastFocusedField]: newVal
-            });
-
-            // Re-focus and set cursor after the inserted variable
-            setTimeout(() => {
-                textarea.focus();
-                textarea.setSelectionRange(start + variable.length, start + variable.length);
-            }, 0);
-        } else {
-            setInfoForm({
-                ...infoForm,
-                [lastFocusedField]: currentVal + variable
-            });
-        }
-    };
 
     const handleScheduleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
