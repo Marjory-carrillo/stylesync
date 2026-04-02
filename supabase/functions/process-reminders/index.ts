@@ -6,9 +6,9 @@ const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
-// ── Plantillas aprobadas por Meta (Content SIDs de Twilio) ──────────────────
-const TEMPLATE_CONFIRMACION  = 'HXfa893170a1790b0bd8aeff7448fde298';
-const TEMPLATE_RECORDATORIO  = 'HXc99ae2355cd2f306973e448d922dc77f';
+// ── Plantilla aprobada por Meta (Content SID de Twilio) ─────────────────────
+// citalink_cliente_recordatorio: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio
+const TEMPLATE_RECORDATORIO = 'HXc99ae2355cd2f306973e448d922dc77f';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -67,20 +67,48 @@ serve(async (req: Request) => {
     );
 
     const now = new Date();
-    let confirmations = 0, reminders = 0;
+    let reminders = 0;
 
     try {
-        // ── 1. CONFIRMACIONES PENDIENTES ──────────────────────────────────────
-        const { data: toConfirm } = await supabase
+        // ── RECORDATORIOS: citas confirmadas sin recordatorio enviado ─────────
+        // Busca citas con status='confirmada' (único estado de citas activas)
+        // que aún no tengan reminder_sent=true y sean futuras
+        const { data: pending, error: fetchError } = await supabase
             .from('appointments')
             .select('*, tenants(name, sms_provider)')
-            .eq('status', 'pendiente')
-            .eq('confirmation_sent', false);
+            .eq('status', 'confirmada')
+            .eq('reminder_sent', false);
 
-        for (const appt of (toConfirm ?? [])) {
+        if (fetchError) {
+            console.error('[process-reminders] DB fetch error:', fetchError.message);
+            throw fetchError;
+        }
+
+        console.log(`[process-reminders] Citas pendientes de recordatorio: ${pending?.length ?? 0}`);
+
+        for (const appt of (pending ?? [])) {
             const tenant = appt.tenants;
+
+            // Solo enviar si el negocio usa WhatsApp
             if (tenant?.sms_provider !== 'whatsapp') continue;
             if (!appt.client_phone) continue;
+
+            const apptDatetime   = new Date(`${appt.date}T${appt.time}`);
+            const msUntilAppt    = apptDatetime.getTime() - now.getTime();
+            const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);
+
+            // Ignorar citas que ya pasaron
+            if (hoursUntilAppt <= 0) continue;
+
+            // Ignorar citas que faltan más de 25 horas (demasiado pronto para recordar)
+            if (hoursUntilAppt > 25) continue;
+
+            // Ventana de recordatorio: entre 1h y 25h antes de la cita
+            // Esto garantiza que el cron horario siempre capture la cita
+            // en alguna de sus ejecuciones dentro de esa ventana
+            const shouldSendNow = hoursUntilAppt <= 25 && hoursUntilAppt > 0;
+
+            if (!shouldSendNow) continue;
 
             // Obtener nombre del servicio
             const { data: svc } = await supabase
@@ -89,81 +117,18 @@ serve(async (req: Request) => {
                 .eq('id', appt.service_id)
                 .single();
 
-            // Variables de la plantilla citalink_cliente_confirmacion:
-            // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio
-            const ok = await sendTemplate(appt.client_phone, TEMPLATE_CONFIRMACION, {
-                '1': appt.client_name,
-                '2': tenant.name,
-                '3': formatDateTime(appt.date, appt.time),
-                '4': svc?.name ?? 'Servicio',
-            });
-
-            if (ok) {
-                await supabase
-                    .from('appointments')
-                    .update({ confirmation_sent: true })
-                    .eq('id', appt.id);
-                confirmations++;
-            }
-        }
-
-        // ── 2. RECORDATORIOS PENDIENTES ───────────────────────────────────────
-        const { data: pending } = await supabase
-            .from('appointments')
-            .select('*, tenants(name, sms_provider)')
-            .eq('status', 'pendiente')
-            .eq('confirmation_sent', true)
-            .eq('reminder_sent', false);
-
-        for (const appt of (pending ?? [])) {
-            const tenant = appt.tenants;
-            if (tenant?.sms_provider !== 'whatsapp') continue;
-            if (!appt.client_phone) continue;
-
-            const apptDatetime   = new Date(`${appt.date}T${appt.time}`);
-            const bookedAt       = new Date(appt.booked_at ?? appt.created_at ?? now);
-            const diffMs         = apptDatetime.getTime() - bookedAt.getTime();
-            const diffHours      = diffMs / (1000 * 60 * 60);
-            const msUntilAppt    = apptDatetime.getTime() - now.getTime();
-            const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);
-
-            // Cita del mismo día → solo confirmación, sin recordatorio
-            const apptDateStr = appt.date;
-            const todayStr    = now.toISOString().split('T')[0];
-            if (apptDateStr === todayStr) continue;
-
-            let shouldSendNow = false;
-
-            if (diffHours < 24) {
-                // Reservada <24h antes → recordar 1h antes
-                if (hoursUntilAppt <= 1 && hoursUntilAppt > 0) shouldSendNow = true;
-
-            } else if (diffHours <= 72) {
-                // Reservada 24h–3 días antes → recordar 30min antes del límite de cancelación
-                const deadlineMs        = bookedAt.getTime() + (23.5 * 60 * 60 * 1000);
-                const minutesToDeadline = (deadlineMs - now.getTime()) / (1000 * 60);
-                if (minutesToDeadline <= 15 && minutesToDeadline > -15) shouldSendNow = true;
-
-            } else {
-                // Reservada +3 días antes → recordar 5h antes de la cita
-                if (hoursUntilAppt <= 5 && hoursUntilAppt > 4.75) shouldSendNow = true;
-            }
-
-            if (!shouldSendNow) continue;
-
-            const { data: svc } = await supabase
-                .from('services')
-                .select('name')
-                .eq('id', appt.service_id)
-                .single();
+            // Construir nombre del servicio con adicionales si existen
+            const addOnNames: string[] = appt.additional_services ?? [];
+            const serviceName = (svc?.name ?? 'Servicio') +
+                (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '');
 
             // Variables de la plantilla citalink_cliente_recordatorio:
             // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio
             const ok = await sendTemplate(appt.client_phone, TEMPLATE_RECORDATORIO, {
-                '1': appt.client_name,
-                '2': tenant.name,
+                '1': appt.client_name ?? 'Cliente',
+                '2': tenant.name ?? 'el negocio',
                 '3': formatDateTime(appt.date, appt.time),
-                '4': svc?.name ?? 'Servicio',
+                '4': serviceName,
             });
 
             if (ok) {
@@ -172,12 +137,13 @@ serve(async (req: Request) => {
                     .update({ reminder_sent: true })
                     .eq('id', appt.id);
                 reminders++;
+                console.log(`[process-reminders] ✅ Recordatorio enviado a ${appt.client_phone} para cita ${appt.id}`);
             }
         }
 
-        console.log(`[process-reminders] ✅ Confirmaciones: ${confirmations}, Recordatorios: ${reminders}`);
+        console.log(`[process-reminders] ✅ Recordatorios enviados: ${reminders}`);
         return new Response(
-            JSON.stringify({ success: true, confirmations, reminders }),
+            JSON.stringify({ success: true, reminders }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 
