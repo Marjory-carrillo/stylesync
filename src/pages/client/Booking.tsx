@@ -476,7 +476,7 @@ export default function Booking() {
         try {
             const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
             const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
-            const activeAddOnNames = activeAppt?.additional_services ?? [];
+            const activeAddOnNames = activeAppt?.additionalServices ?? [];
             const activeCombinedServiceName = activeService 
                 ? activeService.name + (activeAddOnNames.length > 0 ? ' + ' + activeAddOnNames.join(' + ') : '')
                 : 'Servicio';
@@ -501,7 +501,7 @@ export default function Booking() {
         if (updatingAppointmentId) {
             const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
             const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
-            const activeAddOnNames = activeAppt?.additional_services ?? [];
+            const activeAddOnNames = activeAppt?.additionalServices ?? [];
             const activeCombinedServiceName = activeService 
                 ? activeService.name + (activeAddOnNames.length > 0 ? ' + ' + activeAddOnNames.join(' + ') : '')
                 : 'Servicio';

@@ -178,7 +178,11 @@ export default function Appointments() {
         const apt = confirmModal.appt;
         if (!apt) return;
 
-        await cancelAppointment({ id: apt.id });
+        const svc = getServiceById(apt.serviceId);
+        const addOnNames = apt.additionalServices ?? [];
+        const serviceName = svc ? svc.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '') : 'Servicio';
+
+        await cancelAppointment({ id: apt.id, serviceName });
         setConfirmModal({ open: false, appt: null });
 
         // Check waiting list for this date
