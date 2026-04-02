@@ -131,10 +131,11 @@ serve(async (req: Request) => {
                 }).toString(),
             });
             const templateData = await templateRes.json();
-            console.log('[verify-otp] Template send:', templateRes.status, templateData.sid ?? templateData.message);
+            // Log full Twilio response to diagnose 63024 and delivery issues
+            console.log('[verify-otp] Twilio full response:', templateRes.status, JSON.stringify(templateData));
 
+            // Check for HTTP-level errors first
             if (!templateRes.ok) {
-                // Error 63024: el número no tiene WhatsApp registrado
                 const twilioCode = templateData.code ?? templateData.error_code;
                 const isInvalidRecipient = twilioCode === 63024 || String(twilioCode) === '63024';
                 const errorMsg = isInvalidRecipient
@@ -144,6 +145,34 @@ serve(async (req: Request) => {
                     JSON.stringify({ success: false, error: errorMsg, code: twilioCode }),
                     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
+            }
+
+            // Twilio puede aceptar el mensaje (HTTP 201) pero fallar asincrónicamente.
+            // Esperamos 4s y consultamos el estado real del mensaje por su SID.
+            const msgSid = templateData.sid;
+            if (msgSid) {
+                await new Promise(resolve => setTimeout(resolve, 4000));
+                const statusRes = await fetch(
+                    `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages/${msgSid}.json`,
+                    { headers: { Authorization: `Basic ${credentials}` } }
+                );
+                const statusData = await statusRes.json();
+                console.log('[verify-otp] Message status poll:', JSON.stringify({ status: statusData.status, error_code: statusData.error_code }));
+
+                if (statusData.status === 'failed' || statusData.status === 'undelivered') {
+                    const errorCode = statusData.error_code;
+                    const isInvalidRecipient = errorCode === 63024 || String(errorCode) === '63024';
+                    return new Response(
+                        JSON.stringify({
+                            success: false,
+                            code: errorCode,
+                            error: isInvalidRecipient
+                                ? 'Este número no tiene WhatsApp. Por favor verifica que sea el número correcto e intenta de nuevo.'
+                                : `No se pudo enviar el mensaje (error ${errorCode}). Verifica tu número.`,
+                        }),
+                        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                    );
+                }
             }
 
             // Log the OTP/confirmation message
