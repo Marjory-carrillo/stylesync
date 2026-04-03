@@ -160,6 +160,7 @@ function App() {
     const loadUserContext = async (session: any) => {
       if (!session?.user) {
         if (mounted) {
+          localStorage.removeItem('citalink_tenant_id');
           setAuth({ user: null, session: null, loadingAuth: false });
           setTenantData({ tenantId: null, userRole: null, userStylistId: null });
         }
