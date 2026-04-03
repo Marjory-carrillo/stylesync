@@ -9,6 +9,7 @@ import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
 import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus } from 'lucide-react';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
+import BranchSwitcher from '../components/BranchSwitcher';
 
 export default function AdminLayout() {
     const { t, i18n } = useTranslation();
@@ -122,6 +123,9 @@ export default function AdminLayout() {
                         <X size={20} />
                     </button>
                 </div>
+
+                {/* Branch Switcher (multi-business owners) */}
+                <BranchSwitcher />
 
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                     <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>

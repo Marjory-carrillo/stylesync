@@ -25,22 +25,25 @@ export function useSuperAdmin() {
     });
 
     const createTenantMutation = useMutation({
-        mutationFn: async ({ name, slug, address, category, ownerEmail, ownerPassword, timezone }: { name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone?: string }) => {
+        mutationFn: async ({ name, slug, address, category, ownerEmail, ownerPassword, timezone, existingOwnerId, brandSlug }: { name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone?: string, existingOwnerId?: string, brandSlug?: string }) => {
             if (!user) throw new Error('No user logged in');
 
             // 1. Check if slug exists
             const { data: existing } = await supabase.from('tenants').select('id').eq('slug', slug).single();
             if (existing) throw new Error('Este link ya ha sido ocupado.');
 
-            // 2. Create Tenant
-            const { data, error } = await supabase.from('tenants').insert([{
+            // 2. Create Tenant — if existingOwnerId, assign to that user; otherwise SuperAdmin is the technical creator
+            const insertPayload: any = {
                 name,
                 slug,
                 address,
                 category,
-                owner_id: user.id, // SuperAdmin es el creador técnico
+                owner_id: existingOwnerId || user.id,
                 timezone: timezone || 'America/Mexico_City',
-            }]).select().single();
+            };
+            if (brandSlug) insertPayload.brand_slug = brandSlug;
+
+            const { data, error } = await supabase.from('tenants').insert([insertPayload]).select().single();
             
             if (error || !data) throw new Error(error?.message || 'Error al crear negocio');
 
@@ -72,26 +75,38 @@ export function useSuperAdmin() {
             }
 
             // 5. Crear la cuenta del dueño con email + contraseña vía Edge Function
+            // Skip if assigning to an existing owner (they already have an account)
             let accountCreated = false;
-            try {
-                const fnRes = await fetch(
-                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            // Usamos el anon key en vez del session token para evitar 401
-                            // cuando la sesión está expirada. La función usa service_role internamente.
-                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-                        },
-                        body: JSON.stringify({ email: ownerEmail, password: ownerPassword, businessName: name, businessSlug: slug }),
-                    }
-                );
-                const fnData = await fnRes.json();
-                accountCreated = fnData.success === true;
-                if (!accountCreated) console.warn('create-owner:', fnData.error);
-            } catch (err) {
-                console.warn('No se pudo crear la cuenta del dueño:', err);
+            if (!existingOwnerId) {
+                try {
+                    const fnRes = await fetch(
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                            },
+                            body: JSON.stringify({ email: ownerEmail, password: ownerPassword, businessName: name, businessSlug: slug }),
+                        }
+                    );
+                    const fnData = await fnRes.json();
+                    accountCreated = fnData.success === true;
+                    if (!accountCreated) console.warn('create-owner:', fnData.error);
+                } catch (err) {
+                    console.warn('No se pudo crear la cuenta del dueño:', err);
+                }
+            } else {
+                accountCreated = true; // Existing owner, no need to create
+            }
+
+            // 6. If brand_slug is provided, also update other tenants of the same owner to share the brand
+            if (brandSlug && existingOwnerId) {
+                await supabase
+                    .from('tenants')
+                    .update({ brand_slug: brandSlug })
+                    .eq('owner_id', existingOwnerId)
+                    .is('brand_slug', null);
             }
 
             return { success: true, data, accountCreated };
@@ -125,9 +140,9 @@ export function useSuperAdmin() {
         allTenants: query.data || [],
         isLoading: query.isLoading,
         fetchAllTenants: () => queryClient.invalidateQueries({ queryKey }),
-        createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone: string = 'America/Mexico_City'): Promise<{ success: boolean; data?: any; error?: string; accountCreated?: boolean }> => {
+        createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone: string = 'America/Mexico_City', existingOwnerId?: string, brandSlug?: string): Promise<{ success: boolean; data?: any; error?: string; accountCreated?: boolean }> => {
             try {
-                const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail, ownerPassword, timezone });
+                const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail, ownerPassword, timezone, existingOwnerId, brandSlug });
                 return { success: true, data: res.data, accountCreated: res.accountCreated };
             } catch (err: any) {
                 return { success: false, error: err.message };

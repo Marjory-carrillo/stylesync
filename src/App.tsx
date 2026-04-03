@@ -14,8 +14,10 @@ const Settings = lazy(() => import('./pages/admin/Settings'));
 const Team = lazy(() => import('./pages/admin/Team'));
 const Commissions = lazy(() => import('./pages/admin/Commissions'));
 const Booking = lazy(() => import('./pages/client/Booking'));
+const BranchPicker = lazy(() => import('./pages/client/BranchPicker'));
 const Login = lazy(() => import('./pages/Login'));
 const CreateBusiness = lazy(() => import('./pages/admin/CreateBusiness'));
+const SelectBusiness = lazy(() => import('./pages/admin/SelectBusiness'));
 const SuperAdminPanel = lazy(() => import('./pages/admin/SuperAdminPanel'));
 const Leads = lazy(() => import('./pages/admin/Leads'));
 const GlobalSettings = lazy(() => import('./pages/admin/GlobalSettings'));
@@ -51,7 +53,7 @@ const MaintenancePage = () => (
 );
 
 const AdminRoute = () => {
-  const { user, loadingAuth, tenantId, userRole } = useAuthStore();
+  const { user, loadingAuth, tenantId, userRole, userTenants } = useAuthStore();
   const config = useGlobalStore(s => s.config);
   const loadingConfig = useGlobalStore(s => s.loadingConfig);
   const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
@@ -91,6 +93,11 @@ const AdminRoute = () => {
         </div>
       </div>
     );
+  }
+
+  // Owner con múltiples negocios sin uno seleccionado → selector
+  if (!isSuperAdmin && !tenantId && userRole === 'owner' && userTenants.length > 1) {
+    return <Navigate to="/select-business" replace />;
   }
 
   // Usuario normal sin tenant → onboarding crear negocio
@@ -140,7 +147,7 @@ const OnboardingRoute = () => {
 
 
 function App() {
-  const { userRole, setAuth, setTenantData } = useAuthStore();
+  const { userRole, setAuth, setTenantData, setUserTenants } = useAuthStore();
   const fetchGlobalConfig = useGlobalStore(s => s.fetchGlobalConfig);
 
   useEffect(() => {
@@ -170,18 +177,40 @@ function App() {
         return;
       }
 
-      // Primero verificamos si el usuario es DUEÑO (Owner) de un negocio
-      const { data: ownerTenant } = await supabase
+      // Primero verificamos si el usuario es DUEÑO (Owner) de uno o más negocios
+      const { data: ownerTenants } = await supabase
         .from('tenants')
-        .select('id')
-        .eq('owner_id', user.id)
-        .maybeSingle();
+        .select('id, name, slug, logo_url, category')
+        .eq('owner_id', user.id);
 
-      if (ownerTenant) {
+      if (ownerTenants && ownerTenants.length > 0) {
+        const tenantSummaries = ownerTenants.map(t => ({
+          id: t.id,
+          name: t.name,
+          slug: t.slug,
+          logoUrl: t.logo_url || '',
+          category: t.category || '',
+        }));
+
+        if (ownerTenants.length === 1) {
+          // Solo 1 negocio → directo como antes
+          if (mounted) {
+            setAuth({ user, session, loadingAuth: false });
+            setTenantData({ tenantId: ownerTenants[0].id, userRole: 'owner', userStylistId: null });
+            setUserTenants(tenantSummaries);
+          }
+          return;
+        }
+
+        // 2+ negocios → revisar si hay uno guardado en localStorage
+        const savedTenantId = localStorage.getItem('citalink_tenant_id');
+        const validSaved = savedTenantId && ownerTenants.some(t => t.id === savedTenantId);
+
         if (mounted) {
           setAuth({ user, session, loadingAuth: false });
+          setUserTenants(tenantSummaries);
           setTenantData({
-            tenantId: ownerTenant.id,
+            tenantId: validSaved ? savedTenantId : null,
             userRole: 'owner',
             userStylistId: null
           });
@@ -220,7 +249,7 @@ function App() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [setAuth, setTenantData]);
+  }, [setAuth, setTenantData, setUserTenants]);
 
   return (
       <ErrorBoundary>
@@ -237,12 +266,16 @@ function App() {
                 <Route index element={<Booking />} />
               </Route>
 
+              {/* Multi-Branch Client Route */}
+              <Route path="/sucursales/:slug" element={<BranchPicker />} />
+
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Onboarding Route (User logged in, no tenant) */}
               <Route element={<OnboardingRoute />}>
                 <Route path="/create-business" element={<CreateBusiness />} />
+                <Route path="/select-business" element={<SelectBusiness />} />
               </Route>
 
               {/* Admin Routes (User logged in + Tenant) */}

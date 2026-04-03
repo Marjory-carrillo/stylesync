@@ -50,8 +50,10 @@ export default function SuperAdminPanel() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City' });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '' });
     const [isCreating, setIsCreating] = useState(false);
+    const [isExistingOwner, setIsExistingOwner] = useState(false);
+    const [selectedOwnerId, setSelectedOwnerId] = useState('');
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, { total: number; week: number; month: number }>>({});
     const [appointmentsLast30, setAppointmentsLast30] = useState<number | null>(null);
@@ -149,15 +151,29 @@ export default function SuperAdminPanel() {
     const handleCreateBusiness = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsCreating(true);
-        const res = await createTenant(newBusiness.name, newBusiness.slug, '', newBusiness.category, newBusiness.ownerEmail.trim().toLowerCase(), newBusiness.ownerPassword, newBusiness.timezone);
+        const res = await createTenant(
+            newBusiness.name,
+            newBusiness.slug,
+            '',
+            newBusiness.category,
+            newBusiness.ownerEmail.trim().toLowerCase(),
+            newBusiness.ownerPassword,
+            newBusiness.timezone,
+            isExistingOwner && selectedOwnerId ? selectedOwnerId : undefined,
+            isExistingOwner && newBusiness.brandSlug ? newBusiness.brandSlug : undefined
+        );
         setIsCreating(false);
         if (res.success) {
             setIsCreateModalOpen(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City' });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '' });
+            setIsExistingOwner(false);
+            setSelectedOwnerId('');
             showToast(
-                res.accountCreated
-                    ? `Negocio creado. Cuenta creada para ${newBusiness.ownerEmail}`
-                    : 'Negocio creado. La cuenta del dueño no se pudo crear automáticamente.',
+                isExistingOwner
+                    ? `Sucursal creada y asignada al dueño existente.`
+                    : res.accountCreated
+                        ? `Negocio creado. Cuenta creada para ${newBusiness.ownerEmail}`
+                        : 'Negocio creado. La cuenta del dueño no se pudo crear automáticamente.',
                 'success'
             );
             fetchAllTenants();
@@ -515,6 +531,24 @@ export default function SuperAdminPanel() {
                                     </div>
                                 </div>
 
+                                {/* Brand Slug (only when assigning to existing owner) */}
+                                {isExistingOwner && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Link de Marca (Todas las Sucursales)</label>
+                                        <div className="flex">
+                                            <div className="bg-white/[0.03] border border-violet-500/20 border-r-0 rounded-l-xl px-3.5 py-3 text-slate-500 text-xs font-medium shrink-0 flex items-center">citalink.app/sucursales/</div>
+                                            <input
+                                                type="text"
+                                                className="flex-1 bg-white/[0.04] border border-violet-500/20 rounded-r-xl px-3 py-3 text-violet-400 font-mono text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/30 transition-all outline-none"
+                                                placeholder="mi-marca"
+                                                value={newBusiness.brandSlug}
+                                                onChange={e => setNewBusiness({ ...newBusiness, brandSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-violet-400/60 ml-1">Los clientes verán todas las sucursales en un solo link.</p>
+                                    </div>
+                                )}
+
                                 {/* Zona Horaria */}
                                 <div className="space-y-1.5">
                                     <label className="text-[11px] font-bold text-slate-400 ml-1">Zona Horaria</label>
@@ -575,35 +609,82 @@ export default function SuperAdminPanel() {
 
                             {/* ── Sección: Acceso del Dueño ── */}
                             <div className="space-y-4">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Users size={14} className="text-emerald-400" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del Dueño</span>
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <Users size={14} className="text-emerald-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del Dueño</span>
+                                    </div>
+                                    {/* Toggle: Existing Owner */}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setIsExistingOwner(!isExistingOwner); setSelectedOwnerId(''); }}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                                            isExistingOwner
+                                                ? 'bg-violet-500/20 text-violet-400 border-violet-500/40'
+                                                : 'bg-white/5 text-slate-500 border-white/10 hover:text-slate-300'
+                                        }`}
+                                    >
+                                        <Building2 size={10} />
+                                        {isExistingOwner ? 'Dueño Existente' : '+ Nueva Cuenta'}
+                                    </button>
                                 </div>
 
-                                {/* Email + Password en 2 columnas */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Correo Electrónico</label>
-                                        <input
-                                            required type="email"
-                                            className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
-                                            placeholder="dueno@correo.com"
-                                            value={newBusiness.ownerEmail}
-                                            onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
-                                        />
+                                {isExistingOwner ? (
+                                    /* Existing Owner Selector */
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Seleccionar Dueño Existente</label>
+                                        <select
+                                            required
+                                            value={selectedOwnerId}
+                                            onChange={e => setSelectedOwnerId(e.target.value)}
+                                            className="w-full bg-white/[0.04] border border-violet-500/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/30 transition-all outline-none text-sm appearance-none"
+                                        >
+                                            <option value="" className="bg-slate-900">— Elegir un dueño —</option>
+                                            {(() => {
+                                                // Get unique owners from existing tenants
+                                                const ownerMap = new Map<string, { id: string; name: string }>(); 
+                                                allTenants.forEach(t => {
+                                                    if (t.owner_id && !ownerMap.has(t.owner_id)) {
+                                                        ownerMap.set(t.owner_id, { id: t.owner_id, name: t.name });
+                                                    }
+                                                });
+                                                return Array.from(ownerMap.values()).map(owner => (
+                                                    <option key={owner.id} value={owner.id} className="bg-slate-900">
+                                                        Dueño de: {owner.name}
+                                                    </option>
+                                                ));
+                                            })()}
+                                        </select>
+                                        <p className="text-[10px] text-violet-400/70 ml-1">📎 La nueva sucursal aparecerá en el panel del dueño seleccionado.</p>
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Contraseña</label>
-                                        <input
-                                            required type="password" minLength={6}
-                                            className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
-                                            placeholder="Mín. 6 caracteres"
-                                            value={newBusiness.ownerPassword}
-                                            onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueño usará estas credenciales para acceder a su panel de administración.</p>
+                                ) : (
+                                    /* New Owner: Email + Password */
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Correo Electrónico</label>
+                                                <input
+                                                    required type="email"
+                                                    className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
+                                                    placeholder="dueno@correo.com"
+                                                    value={newBusiness.ownerEmail}
+                                                    onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Contraseña</label>
+                                                <input
+                                                    required type="password" minLength={6}
+                                                    className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
+                                                    placeholder="Mín. 6 caracteres"
+                                                    value={newBusiness.ownerPassword}
+                                                    onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueño usará estas credenciales para acceder a su panel de administración.</p>
+                                    </>
+                                )}
                             </div>
 
                             {/* Divider */}
