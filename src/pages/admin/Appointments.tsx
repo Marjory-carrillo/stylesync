@@ -197,34 +197,36 @@ export default function Appointments() {
         <div className="animate-fade-in h-[calc(100vh-100px)] flex flex-col gap-6">
 
             {/* Header & Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-none px-1 w-full max-w-full">
-                <div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">{t('appointments.title')}</h2>
-                    <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
+            <div className="flex flex-col gap-3 flex-none px-1 w-full">
+                {/* Row 1: Title + Action Buttons */}
+                <div className="flex items-center justify-between gap-3 min-w-0">
+                    <div className="min-w-0">
+                        <h2 className="text-2xl font-bold text-white tracking-tight truncate">{t('appointments.title')}</h2>
+                        <p className="text-xs text-muted-foreground truncate">{t('appointments.subtitle')}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button
+                            onClick={exportCSV}
+                            disabled={filteredAppointments.length === 0}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white/5 text-slate-300 hover:text-white font-bold rounded-xl hover:bg-white/10 transition-all border border-white/10 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Exportar CSV"
+                        >
+                            <Download size={15} />
+                            <span className="hidden sm:inline text-xs">CSV</span>
+                        </button>
+                        <button
+                            onClick={() => setShowBookingModal(true)}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-accent/20 text-sm whitespace-nowrap"
+                        >
+                            <Plus size={15} />
+                            <span className="hidden xs:inline">Nueva Cita</span>
+                            <span className="xs:hidden">+</span>
+                        </button>
+                    </div>
                 </div>
 
-                {/* Nueva Cita button */}
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={exportCSV}
-                        disabled={filteredAppointments.length === 0}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white/5 text-slate-300 hover:text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Exportar CSV"
-                    >
-                        <Download size={16} />
-                        <span className="hidden sm:inline">CSV</span>
-                    </button>
-                    <button
-                        onClick={() => setShowBookingModal(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-accent/20 text-sm shrink-0"
-                    >
-                        <Plus size={16} />
-                        Nueva Cita
-                    </button>
-                </div>
-
-                {/* Controls Container */}
-                <div className="flex items-center gap-3 bg-black/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md overflow-x-auto hide-scrollbar w-full max-w-full">
+                {/* Row 2: Controls Bar */}
+                <div className="flex items-center gap-3 bg-black/40 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md overflow-x-auto hide-scrollbar w-full">
                     {/* View Mode Toggles */}
                     <div className="flex gap-1 border-r border-white/10 pr-3 mr-1">
                         <button

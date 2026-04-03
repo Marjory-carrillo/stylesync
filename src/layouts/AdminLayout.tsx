@@ -101,9 +101,9 @@ export default function AdminLayout() {
 
             {/* Sidebar Navigation */}
             <aside className={`
-                fixed inset-y-0 left-0 w-72 bg-[#0f172a] shadow-2xl z-50 transform transition-all duration-500 ease-in-out
+                fixed inset-y-0 left-0 w-64 shrink-0 bg-[#0f172a] shadow-2xl z-50 transform transition-all duration-500 ease-in-out
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-                lg:relative lg:translate-x-0 lg:m-6 lg:rounded-[2.5rem] lg:glass-panel lg:border-none
+                lg:relative lg:translate-x-0 lg:m-4 lg:rounded-[2.5rem] lg:glass-panel lg:border-none lg:flex lg:flex-col
             `}>
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                     <div className="flex items-center gap-3">
@@ -230,7 +230,7 @@ export default function AdminLayout() {
             </aside>
 
             {/* Main Content Area */}
-            <main role="main" className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 bg-transparent">
+            <main role="main" className="flex-1 min-w-0 overflow-y-auto relative pt-16 lg:pt-0 bg-transparent">
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
                     <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-[var(--color-accent)]/10 blur-[120px]"></div>
                     <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--color-primary)]/10 blur-[120px]"></div>
