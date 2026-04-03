@@ -131,6 +131,18 @@ export default function Booking() {
         };
         updateMeta('apple-mobile-web-app-title', bName);
 
+        // Use business logo if available, otherwise fallback to CitaLink defaults
+        const logoUrl = businessConfig.logoUrl;
+        const defaultIcons = [
+            { src: "/assets/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+            { src: "/assets/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+        ];
+        const businessIcons = logoUrl ? [
+            { src: logoUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: logoUrl, sizes: "512x512", type: "image/png", purpose: "any" },
+            ...defaultIcons // keep defaults as maskable fallback
+        ] : defaultIcons;
+
         // Generate dynamic manifest making start_url point to the specific slug
         const manifest = {
             name: title,
@@ -139,11 +151,8 @@ export default function Booking() {
             start_url: `/reserva/${slug}`,
             display: "standalone",
             background_color: "#060c1a",
-            theme_color: "#7c3aed",
-            icons: [
-                { src: "/assets/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-                { src: "/assets/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
-            ]
+            theme_color: businessConfig.primaryColor || "#7c3aed",
+            icons: businessIcons
         };
 
         const stringManifest = JSON.stringify(manifest);
@@ -153,6 +162,17 @@ export default function Booking() {
         let manifestElem = document.querySelector('#pwa-manifest') as HTMLLinkElement;
         if (manifestElem) {
             manifestElem.href = manifestURL;
+        }
+
+        // Set apple-touch-icon for iOS home screen (uses logo if available)
+        if (logoUrl) {
+            let appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+            if (!appleIcon) {
+                appleIcon = document.createElement('link');
+                appleIcon.rel = 'apple-touch-icon';
+                document.head.appendChild(appleIcon);
+            }
+            appleIcon.href = logoUrl;
         }
 
         return () => {
