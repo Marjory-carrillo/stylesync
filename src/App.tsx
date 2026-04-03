@@ -170,6 +170,10 @@ function App() {
       const user = session.user;
       const isSuperAdmin = user.user_metadata?.is_super_admin === true;
 
+      // Siempre limpiamos los tenants del store al inicio
+      // para evitar que queden residuos de una sesión anterior
+      if (mounted) setUserTenants([]);
+
       if (isSuperAdmin) {
         if (mounted) {
           setAuth({ user, session, loadingAuth: false });
