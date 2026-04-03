@@ -351,10 +351,19 @@ export default function SuperAdminPanel() {
                                             })()}
                                         </span>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         <span className="text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate">
                                             citalink.app/{tenant.slug}
                                         </span>
+                                        {tenant.brand_slug && (
+                                            <span className="flex items-center gap-1 text-[9px] font-black text-violet-400 px-2 py-0.5 bg-violet-500/10 rounded border border-violet-500/25 uppercase tracking-wider">
+                                                <Building2 size={9} />
+                                                {(() => {
+                                                    const siblings = allTenants.filter(t => t.brand_slug === tenant.brand_slug);
+                                                    return `${siblings.length} sucursales`;
+                                                })()}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* WhatsApp Stats: Week / Month / Total */}
