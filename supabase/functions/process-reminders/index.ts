@@ -75,7 +75,7 @@ serve(async (req: Request) => {
         // que aún no tengan reminder_sent=true y sean futuras
         const { data: pending, error: fetchError } = await supabase
             .from('appointments')
-            .select('*, tenants(name, sms_provider)')
+            .select('*, tenants(name, sms_provider, timezone)')
             .eq('status', 'confirmada')
             .eq('reminder_sent', false);
 
@@ -93,7 +93,33 @@ serve(async (req: Request) => {
             if (tenant?.sms_provider !== 'whatsapp') continue;
             if (!appt.client_phone) continue;
 
-            const apptDatetime   = new Date(`${appt.date}T${appt.time}`);
+            const tZone = tenant.timezone || 'America/Mexico_City';
+
+            // Deno ejecuta en UTC. Necesitamos saber qué "Offset" tiene la zona del cliente en este preciso instante de ejecución.
+            const offsetParts = new Intl.DateTimeFormat('en-US', {
+                timeZone: tZone,
+                timeZoneName: 'shortOffset'
+            }).formatToParts(now);
+            
+            const offsetString = offsetParts.find(p => p.type === 'timeZoneName')?.value; // ej: "GMT-6" o "GMT-05:00" o "GMT"
+            
+            // Re-ensamblar la fecha como un string ISO 8601 absoluto para que JavaScript lo parsee como tiempo real:
+            // "2024-04-03T10:00:00-06:00"
+            let isoOffset = 'Z';
+            if (offsetString && offsetString !== 'GMT') {
+                isoOffset = offsetString.replace('GMT', '');
+                // JS requiere HH:mm, si viene -6 o -6:00 ajustarlo.
+                if (!isoOffset.includes(':')) {
+                    isoOffset += ':00'; // de "-6" a "-6:00"
+                }
+                const sign = isoOffset[0];
+                let [h, m] = isoOffset.slice(1).split(':');
+                if (h.length === 1) h = '0' + h;
+                isoOffset = `${sign}${h}:${m}`;
+            }
+
+            const apptDatetime = new Date(`${appt.date}T${appt.time}${isoOffset}`);
+            
             const msUntilAppt    = apptDatetime.getTime() - now.getTime();
             const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);
 
@@ -104,8 +130,6 @@ serve(async (req: Request) => {
             if (hoursUntilAppt > 25) continue;
 
             // Ventana de recordatorio: entre 1h y 25h antes de la cita
-            // Esto garantiza que el cron horario siempre capture la cita
-            // en alguna de sus ejecuciones dentro de esa ventana
             const shouldSendNow = hoursUntilAppt <= 25 && hoursUntilAppt > 0;
 
             if (!shouldSendNow) continue;
