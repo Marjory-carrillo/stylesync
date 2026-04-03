@@ -528,6 +528,33 @@ export default function Settings() {
                             </div>
                         </div>
 
+                        {/* Hide Prices Toggle */}
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-white font-medium flex items-center gap-2">
+                                        <Percent size={16} className="text-accent" />
+                                        Ocultar Precios en Reservas
+                                    </h4>
+                                    <p className="text-sm text-muted mt-0.5">Cuando está activo, tus clientes no verán el precio de los servicios en tu link de reservas.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.hideServicePrices ?? false}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, hideServicePrices: val });
+                                            await updateBusinessConfig({ hideServicePrices: val });
+                                            showToast(val ? 'Precios ocultos en reservas' : 'Precios visibles en reservas', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+                        </div>
+
                         {infoError && (
                             <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm flex items-center gap-2 animate-shake">
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-400" />

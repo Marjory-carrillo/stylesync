@@ -106,6 +106,7 @@ export interface BusinessConfig {
     showDashboardMetrics?: boolean;
     timezone?: string; // IANA timezone, e.g. 'America/Mexico_City'
     brandSlug?: string;
+    hideServicePrices?: boolean;
 }
 
 export interface Tenant extends BusinessConfig {

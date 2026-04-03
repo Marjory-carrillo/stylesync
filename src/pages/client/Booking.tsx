@@ -828,7 +828,9 @@ export default function Booking() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">{activeService.name}</h2>
-                                    <p className="text-accent font-bold text-lg">${activeService.price}</p>
+                                    {!businessConfig?.hideServicePrices && (
+                                        <p className="text-accent font-bold text-lg">${activeService.price}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -1133,7 +1135,9 @@ export default function Booking() {
                                                 {service.name}
                                             </h4>
                                             <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
-                                                <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                {!businessConfig?.hideServicePrices && (
+                                                    <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                )}
                                                 <span className="text-muted flex items-center gap-1">
                                                     <Clock size={12} /> {service.duration} min
                                                 </span>
@@ -1194,7 +1198,7 @@ export default function Booking() {
                                                     isSelected ? 'text-cyan-300' : 'text-white'
                                                 }`}>{s.name}</span>
                                             </div>
-                                            <span className="text-xs text-cyan-400 font-bold shrink-0">${s.price} · {s.duration}min</span>
+                                            <span className="text-xs text-cyan-400 font-bold shrink-0">{!businessConfig?.hideServicePrices ? `$${s.price} · ` : ''}{s.duration}min</span>
                                         </button>
                                     );
                                 })

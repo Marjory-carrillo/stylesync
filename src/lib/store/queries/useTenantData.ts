@@ -45,6 +45,7 @@ export const useTenantData = (overrideTenantId?: string) => {
                 breakBetweenAppointments: data.break_between_appointments || 0,
                 smsProvider: (data.sms_provider as 'demo' | 'whatsapp') || 'demo',
                 brandSlug: data.brand_slug,
+                hideServicePrices: data.hide_service_prices ?? false,
             };
         },
         enabled: !!tenantId,
@@ -73,6 +74,7 @@ export const useTenantData = (overrideTenantId?: string) => {
             if (newData.reminderTemplate !== undefined) payload.reminder_template = newData.reminderTemplate;
             if (newData.showDashboardMetrics !== undefined) payload.show_dashboard_metrics = newData.showDashboardMetrics;
             if (newData.breakBetweenAppointments !== undefined) payload.break_between_appointments = newData.breakBetweenAppointments;
+            if (newData.hideServicePrices !== undefined) payload.hide_service_prices = newData.hideServicePrices;
 
             const { error } = await supabase
                 .from('tenants')
