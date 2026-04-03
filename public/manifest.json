@@ -2,6 +2,7 @@
     "name": "CitaLink — Reserva tu Cita",
     "short_name": "CitaLink",
     "description": "Agenda tu cita en segundos. Sin llamadas, sin filas.",
+    "id": "citalink-app",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
