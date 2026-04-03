@@ -44,6 +44,7 @@ export const useTenantData = (overrideTenantId?: string) => {
                 showDashboardMetrics: data.show_dashboard_metrics ?? true,
                 breakBetweenAppointments: data.break_between_appointments || 0,
                 smsProvider: (data.sms_provider as 'demo' | 'whatsapp') || 'demo',
+                brandSlug: data.brand_slug,
             };
         },
         enabled: !!tenantId,

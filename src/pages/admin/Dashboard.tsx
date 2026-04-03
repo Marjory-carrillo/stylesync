@@ -10,7 +10,7 @@ import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
-import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2 } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -36,7 +36,8 @@ export default function Dashboard() {
     const { waitingList, addToWaitingList, removeFromWaitingList } = useWaitingList();
     const { stylists } = useStylists();
     const { data: tenantConfig } = useTenantData();
-    const businessConfig = tenantConfig || { slug: '' };
+    const businessConfig = tenantConfig || { slug: '', brandSlug: '' };
+    const [linkType, setLinkType] = useState<'branch' | 'brand'>('branch');
 
     const isLoading = apptsPending || svcsLoading;
 
@@ -314,31 +315,62 @@ export default function Dashboard() {
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-                        <div className="flex items-center bg-black/40 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/5 flex-1 md:min-w-[320px] shadow-inner">
-                            <code className="text-blue-400 font-mono text-xs md:text-sm select-all truncate">
-                                citalink.app/reserva/{businessConfig.slug || '...'}
-                            </code>
-                        </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    const url = `${window.location.origin}/reserva/${businessConfig.slug}`;
-                                    navigator.clipboard.writeText(url);
-                                    showToast('¡Enlace copiado!', 'success');
-                                }}
-                                className="flex-1 sm:flex-none px-10 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-xl shadow-cyan-900/40 text-sm tracking-wide"
-                            >
-                                Copiar Link
-                            </button>
-                            <a
-                                href={`/reserva/${businessConfig.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-5 py-4 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm flex items-center gap-2 backdrop-blur-sm"
-                            >
-                                Abrir
-                            </a>
+                    <div className="flex flex-col gap-4 w-full xl:w-auto">
+                        {businessConfig.brandSlug && (
+                            <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 w-fit">
+                                <button
+                                    onClick={() => setLinkType('branch')}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${linkType === 'branch' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Sucursal
+                                </button>
+                                <button
+                                    onClick={() => setLinkType('brand')}
+                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${linkType === 'brand' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <Building2 size={12} />
+                                    Multisucursal
+                                </button>
+                            </div>
+                        )}
+                        <div className="flex flex-col sm:flex-row gap-4 w-full">
+                            <div className="flex items-center bg-black/40 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/5 flex-1 md:min-w-[320px] shadow-inner">
+                                <code className={`font-mono text-xs md:text-sm select-all truncate ${linkType === 'brand' ? 'text-violet-400' : 'text-blue-400'}`}>
+                                    {(() => {
+                                        const path = linkType === 'brand' && businessConfig.brandSlug 
+                                            ? `sucursales/${businessConfig.brandSlug}`
+                                            : `reserva/${businessConfig.slug || '...'}`;
+                                        return `citalink.app/${path}`;
+                                    })()}
+                                </code>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        const path = linkType === 'brand' && businessConfig.brandSlug 
+                                            ? `/sucursales/${businessConfig.brandSlug}`
+                                            : `/reserva/${businessConfig.slug || ''}`;
+                                        const url = `${window.location.origin}${path}`;
+                                        navigator.clipboard.writeText(url);
+                                        showToast('¡Enlace copiado!', 'success');
+                                    }}
+                                    className={`flex-1 sm:flex-none px-10 py-4 text-white font-black rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-xl text-sm tracking-wide ${
+                                        linkType === 'brand' 
+                                        ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600 shadow-violet-900/40' 
+                                        : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-900/40'
+                                    }`}
+                                >
+                                    Copiar
+                                </button>
+                                <a
+                                    href={linkType === 'brand' && businessConfig.brandSlug ? `/sucursales/${businessConfig.brandSlug}` : `/reserva/${businessConfig.slug || ''}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-5 py-4 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm flex items-center gap-2 backdrop-blur-sm"
+                                >
+                                    Abrir
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

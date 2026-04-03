@@ -105,6 +105,7 @@ export interface BusinessConfig {
     breakBetweenAppointments?: number; // 0 = off, positive = minutes of buffer
     showDashboardMetrics?: boolean;
     timezone?: string; // IANA timezone, e.g. 'America/Mexico_City'
+    brandSlug?: string;
 }
 
 export interface Tenant extends BusinessConfig {
