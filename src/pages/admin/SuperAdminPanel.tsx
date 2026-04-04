@@ -467,6 +467,52 @@ export default function SuperAdminPanel() {
                                         </div>
                                     </div>
 
+                                    {/* Plan Selector */}
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
+                                        <div className="flex flex-col items-start mr-1">
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
+                                            <span className={`text-[10px] font-bold ${
+                                                tenant.plan === 'business' ? 'text-violet-400'
+                                                : tenant.plan === 'pro' ? 'text-amber-400'
+                                                : 'text-slate-500'
+                                            }`}>
+                                                {(tenant.plan || 'free').toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            {(['free', 'pro', 'business'] as const).map((p) => (
+                                                <button
+                                                    key={p}
+                                                    onClick={async () => {
+                                                        if ((tenant.plan || 'free') === p) return;
+                                                        const { error } = await supabase
+                                                            .from('tenants')
+                                                            .update({ plan: p })
+                                                            .eq('id', tenant.id);
+                                                        if (error) {
+                                                            showToast('Error: ' + error.message, 'error');
+                                                        } else {
+                                                            fetchAllTenants();
+                                                            const labels = { free: 'Free', pro: '⭐ Pro', business: '🚀 Business' };
+                                                            showToast(`Plan → ${labels[p]} para ${tenant.name}`, 'success');
+                                                        }
+                                                    }}
+                                                    className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all ${
+                                                        (tenant.plan || 'free') === p
+                                                            ? p === 'business'
+                                                                ? 'bg-violet-500/20 text-violet-400 border border-violet-500/40'
+                                                                : p === 'pro'
+                                                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                                                    : 'bg-slate-500/20 text-slate-400 border border-slate-500/40'
+                                                            : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
+                                                    }`}
+                                                >
+                                                    {p === 'free' ? 'Free' : p === 'pro' ? '⭐ Pro' : '🚀 Biz'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         ))}
