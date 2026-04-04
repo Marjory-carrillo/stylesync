@@ -40,6 +40,7 @@ export function useSuperAdmin() {
                 category,
                 owner_id: existingOwnerId || user.id,
                 timezone: timezone || 'America/Mexico_City',
+                sms_provider: 'whatsapp',
             };
             if (brandSlug) insertPayload.brand_slug = brandSlug;
 
