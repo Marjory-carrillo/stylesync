@@ -11,6 +11,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2 } from 'lucide-react';
+import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -37,6 +38,11 @@ export default function Dashboard() {
     const { stylists } = useStylists();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || { slug: '', brandSlug: '' };
+    const tenantPlan = (tenantConfig as any)?.plan || 'free';
+    const trialEndsAt = (tenantConfig as any)?.trialEndsAt || null;
+    const inTrial = isInTrial(trialEndsAt);
+    const planLimits = getPlanLimits(tenantPlan);
+    const monthlyApptLimit = (!inTrial && planLimits.maxAppointmentsPerMonth > 0) ? planLimits.maxAppointmentsPerMonth : -1;
     const [linkType, setLinkType] = useState<'branch' | 'brand'>('branch');
 
     const isLoading = apptsPending || svcsLoading;
@@ -637,7 +643,14 @@ export default function Dashboard() {
                         <div className="flex-1 min-w-0">
                             <p className="text-[10px] text-slate-500 mb-0.5 font-black uppercase tracking-widest truncate">{t('dashboard.metrics.month_appts')}</p>
                             <div className="flex items-center gap-2">
-                                {isLoading ? <Skeleton className="h-8 w-12" /> : <p className="text-3xl font-black text-white tracking-tighter">{currentMonthStats.count}</p>}
+                                {isLoading ? <Skeleton className="h-8 w-12" /> : (
+                                    <p className="text-3xl font-black text-white tracking-tighter">
+                                        {currentMonthStats.count}
+                                        {monthlyApptLimit > 0 && (
+                                            <span className="text-base font-bold text-slate-500">/{monthlyApptLimit}</span>
+                                        )}
+                                    </p>
+                                )}
                                 <div className={`flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-lg border ${currentMonthStats.appsGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
                                     {currentMonthStats.appsGrowth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                                     {Math.abs(Math.round(currentMonthStats.appsGrowth))}%
@@ -645,9 +658,41 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
-                    <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3">
-                        {t('dashboard.metrics.canceled', { count: currentMonthStats.canceled })}
-                    </div>
+
+                    {/* Free plan progress bar */}
+                    {monthlyApptLimit > 0 && !isLoading && (() => {
+                        const pct = Math.min((currentMonthStats.count / monthlyApptLimit) * 100, 100);
+                        const isNear  = pct >= 70;
+                        const isFull  = pct >= 100;
+                        const barColor = isFull ? 'bg-red-500' : isNear ? 'bg-amber-500' : 'bg-violet-500';
+                        const textColor = isFull ? 'text-red-400' : isNear ? 'text-amber-400' : 'text-slate-500';
+                        return (
+                            <div className="relative z-10">
+                                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-700 ${barColor} ${isFull ? 'animate-pulse' : ''}`}
+                                        style={{ width: `${pct}%` }}
+                                    />
+                                </div>
+                                {isFull ? (
+                                    <p className="text-[10px] font-black text-red-400 tracking-tight">
+                                        ⚠️ Límite alcanzado — <span className="underline cursor-pointer hover:text-red-300">Actualiza a Pro</span>
+                                    </p>
+                                ) : (
+                                    <p className={`text-[10px] font-bold tracking-tight ${textColor}`}>
+                                        {monthlyApptLimit - currentMonthStats.count} citas restantes este mes
+                                    </p>
+                                )}
+                            </div>
+                        );
+                    })()}
+
+                    {/* No free limit: show canceled count */}
+                    {monthlyApptLimit <= 0 && (
+                        <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3">
+                            {t('dashboard.metrics.canceled', { count: currentMonthStats.canceled })}
+                        </div>
+                    )}
                 </div>
 
                 {!isEmployee && (
