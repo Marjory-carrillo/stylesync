@@ -7,6 +7,7 @@ export interface PlanLimits {
     price: number;        // MXN/mes
     maxBranches: number;
     maxEmployeesPerBranch: number;
+    maxAppointmentsPerMonth: number; // -1 = unlimited
     canExpandBranches: boolean;
     canExpandEmployees: boolean;
     extraBranchPrice: number;   // MXN/mes por sucursal extra
@@ -19,6 +20,7 @@ const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
         price: 0,
         maxBranches: 1,
         maxEmployeesPerBranch: 2,
+        maxAppointmentsPerMonth: 30,
         canExpandBranches: false,
         canExpandEmployees: false,
         extraBranchPrice: 0,
@@ -29,6 +31,7 @@ const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
         price: 899,
         maxBranches: 1,
         maxEmployeesPerBranch: 2,
+        maxAppointmentsPerMonth: -1,
         canExpandBranches: false,
         canExpandEmployees: true,
         extraBranchPrice: 0,
@@ -39,6 +42,7 @@ const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
         price: 1649,
         maxBranches: 2,
         maxEmployeesPerBranch: 2,
+        maxAppointmentsPerMonth: -1,
         canExpandBranches: true,
         canExpandEmployees: true,
         extraBranchPrice: 749,

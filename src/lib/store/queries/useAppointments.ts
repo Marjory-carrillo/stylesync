@@ -91,7 +91,13 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             queryClient.invalidateQueries({ queryKey });
             showToast('Cita reservada con éxito', 'success');
         },
-        onError: (err: any) => showToast(`Error al reservar: ${err.message}`, 'error'),
+        onError: (err: any) => {
+            if (err.message === 'MONTHLY_LIMIT_REACHED') {
+                showToast('Límite de 30 citas/mes alcanzado en Plan Free. Actualiza a Pro para citas ilimitadas.', 'error');
+            } else {
+                showToast(`Error al reservar: ${err.message}`, 'error');
+            }
+        },
     });
 
     // CANCEL Appointment

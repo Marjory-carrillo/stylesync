@@ -621,6 +621,7 @@ export default function Landing() {
                                 {[
                                     '1 sucursal',
                                     '2 estilistas incluidos',
+                                    '30 citas por mes',
                                     'Agenda online 24/7',
                                     'Recordatorios WhatsApp',
                                     'App instalable (PWA)',
