@@ -122,6 +122,7 @@ export default function Booking() {
         if (!businessConfig) return;
         const bName = businessConfig.name || 'CitaLink';
         const title = `${bName} - Reservas`;
+        let blobURLs: string[] = [];
 
         document.title = title;
 
@@ -131,52 +132,118 @@ export default function Booking() {
         };
         updateMeta('apple-mobile-web-app-title', bName);
 
-        // Use business logo if available, otherwise fallback to CitaLink defaults
         const logoUrl = businessConfig.logoUrl;
-        const defaultIcons = [
-            { src: "/assets/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-            { src: "/assets/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
-        ];
-        const businessIcons = logoUrl ? [
-            { src: logoUrl, sizes: "192x192", type: "image/png", purpose: "any" },
-            { src: logoUrl, sizes: "512x512", type: "image/png", purpose: "any" },
-            ...defaultIcons // keep defaults as maskable fallback
-        ] : defaultIcons;
+        const brandColor = businessConfig.primaryColor || '#7c3aed';
 
-        // Generate dynamic manifest making start_url point to the specific slug
-        const manifest = {
-            name: title,
-            short_name: bName,
-            description: `Reserva tu cita en ${bName}`,
-            start_url: `/reserva/${slug}`,
-            display: "standalone",
-            background_color: "#060c1a",
-            theme_color: businessConfig.primaryColor || "#7c3aed",
-            icons: businessIcons
+        // Generate a proper app icon: logo centered on brand-colored background
+        const generateAppIcon = (size: number): Promise<string> => {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d')!;
+
+                // Fill background with brand color
+                ctx.fillStyle = brandColor;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, size, size, size * 0.18);
+                ctx.fill();
+
+                if (!logoUrl) {
+                    // No logo — just show first letter
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(bName.charAt(0).toUpperCase(), size / 2, size / 2);
+                    canvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob!);
+                        blobURLs.push(url);
+                        resolve(url);
+                    }, 'image/png');
+                    return;
+                }
+
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    // Draw logo centered with 25% padding
+                    const padding = size * 0.2;
+                    const maxDim = size - padding * 2;
+                    const scale = Math.min(maxDim / img.width, maxDim / img.height);
+                    const w = img.width * scale;
+                    const h = img.height * scale;
+                    const x = (size - w) / 2;
+                    const y = (size - h) / 2;
+
+                    // White circle behind logo for contrast
+                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, maxDim / 2 + padding * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.drawImage(img, x, y, w, h);
+                    canvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob!);
+                        blobURLs.push(url);
+                        resolve(url);
+                    }, 'image/png');
+                };
+                img.onerror = () => {
+                    // Fallback: letter icon
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(bName.charAt(0).toUpperCase(), size / 2, size / 2);
+                    canvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob!);
+                        blobURLs.push(url);
+                        resolve(url);
+                    }, 'image/png');
+                };
+                img.src = logoUrl;
+            });
         };
 
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], { type: 'application/json' });
-        const manifestURL = URL.createObjectURL(blob);
+        // Generate icons and set manifest
+        Promise.all([generateAppIcon(192), generateAppIcon(512)]).then(([icon192, icon512]) => {
+            const manifest = {
+                name: title,
+                short_name: bName,
+                description: `Reserva tu cita en ${bName}`,
+                start_url: `/reserva/${slug}`,
+                display: "standalone",
+                background_color: brandColor,
+                theme_color: brandColor,
+                icons: [
+                    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
+                    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+                ]
+            };
 
-        let manifestElem = document.querySelector('#pwa-manifest') as HTMLLinkElement;
-        if (manifestElem) {
-            manifestElem.href = manifestURL;
-        }
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], { type: 'application/json' });
+            const manifestURL = URL.createObjectURL(blob);
+            blobURLs.push(manifestURL);
 
-        // Set apple-touch-icon for iOS home screen (uses logo if available)
-        if (logoUrl) {
+            let manifestElem = document.querySelector('#pwa-manifest') as HTMLLinkElement;
+            if (manifestElem) {
+                manifestElem.href = manifestURL;
+            }
+
+            // Set apple-touch-icon for iOS home screen
             let appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
             if (!appleIcon) {
                 appleIcon = document.createElement('link');
                 appleIcon.rel = 'apple-touch-icon';
                 document.head.appendChild(appleIcon);
             }
-            appleIcon.href = logoUrl;
-        }
+            appleIcon.href = icon512;
+        });
 
         return () => {
-            URL.revokeObjectURL(manifestURL);
+            blobURLs.forEach(url => URL.revokeObjectURL(url));
         };
     }, [businessConfig, slug]);
 
