@@ -57,6 +57,27 @@ function Counter({ end, suffix = '', duration = 1800 }: { end: number; suffix?: 
     return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
+/* ── FAQ Accordion ────────────────────────────────────────── */
+function FAQItem({ q, a }: { q: string; a: string }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div
+            className={`border rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer ${open ? 'border-violet-500/30 bg-violet-500/5' : 'border-white/5 bg-white/[0.02] hover:border-white/10'}`}
+            onClick={() => setOpen(!open)}
+        >
+            <div className="flex items-center justify-between px-6 py-4">
+                <p className="text-sm font-semibold text-white pr-4">{q}</p>
+                <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-violet-400' : ''}`} />
+            </div>
+            {open && (
+                <div className="px-6 pb-4">
+                    <p className="text-sm text-slate-400 leading-relaxed">{a}</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 /* ── Main Landing Component ───────────────────────────────────── */
 export default function Landing() {
     const { user, isSuperAdmin } = useAuthStore();
@@ -101,6 +122,10 @@ export default function Landing() {
     /* ── Section visibility hooks ──── */
     const s1 = useInView(); const s2 = useInView(); const s3 = useInView();
     const s4 = useInView(); const s5 = useInView(); const s6 = useInView();
+    const s7 = useInView();
+
+    // Pricing annual toggle
+    const [annual, setAnnual] = useState(false);
 
     /* ── DATA ──────────────────────── */
     const features = [
@@ -148,6 +173,7 @@ export default function Landing() {
                         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
                             <a href="#features" className="hover:text-white transition-colors">Funciones</a>
                             <a href="#how" className="hover:text-white transition-colors">¿Cómo funciona?</a>
+                            <a href="#precios" className="hover:text-white transition-colors">Precios</a>
                             <a href="#testimonials" className="hover:text-white transition-colors">Testimonios</a>
                         </div>
                         <div className="flex items-center gap-3">
@@ -545,6 +571,173 @@ export default function Landing() {
                             </div>
                         ))}
                     </div>
+                </div>
+            </section>
+
+            {/* ═══════════ PRICING ═══════════ */}
+            <section id="precios" className="py-28 border-t border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-violet-700/10 blur-[120px] rounded-full pointer-events-none" />
+                <div ref={s7.ref} className={`relative max-w-6xl mx-auto px-4 transition-all duration-700 ${s7.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+
+                    {/* Header */}
+                    <div className="text-center mb-16">
+                        <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Planes simples</span>
+                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">Elige el plan que crece contigo</h2>
+                        <p className="text-slate-400 text-lg max-w-xl mx-auto">Sin contratos. Sin sorpresas. Cancela cuando quieras.</p>
+
+                        {/* Annual toggle */}
+                        <div className="flex items-center justify-center gap-3 mt-8">
+                            <span className={`text-sm font-semibold transition-colors ${!annual ? 'text-white' : 'text-slate-500'}`}>Mensual</span>
+                            <button
+                                onClick={() => setAnnual(!annual)}
+                                className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${annual ? 'bg-violet-600' : 'bg-white/10'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${annual ? 'left-7' : 'left-1'}`} />
+                            </button>
+                            <span className={`text-sm font-semibold transition-colors ${annual ? 'text-white' : 'text-slate-500'}`}>
+                                Anual
+                                <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">-20%</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Plan cards */}
+                    <div className="grid md:grid-cols-3 gap-6 items-start">
+
+                        {/* FREE */}
+                        <div className="relative bg-white/[0.02] border border-white/8 rounded-3xl p-8 hover:border-white/15 transition-all duration-300">
+                            <div className="mb-6">
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Free</p>
+                                <div className="flex items-end gap-1">
+                                    <span className="text-5xl font-black text-white">$0</span>
+                                    <span className="text-slate-500 mb-2">/mes</span>
+                                </div>
+                                <p className="text-slate-400 text-sm mt-2">Para empezar a digitalizar tu negocio sin costo.</p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl border border-white/10 text-slate-300 font-bold text-sm hover:bg-white/5 transition-all mb-8">
+                                Empezar Gratis
+                            </button>
+                            <ul className="space-y-3">
+                                {[
+                                    '1 sucursal',
+                                    '2 estilistas incluidos',
+                                    'Agenda online 24/7',
+                                    'Recordatorios WhatsApp',
+                                    'App instalable (PWA)',
+                                    'Branding personalizado',
+                                ].map((f) => (
+                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
+                                        <CheckCircle2 className="w-4 h-4 text-slate-600 shrink-0" />{f}
+                                    </li>
+                                ))}
+                                {[
+                                    'Múltiples sucursales',
+                                    'Reportes avanzados',
+                                ].map((f) => (
+                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-600 line-through">
+                                        <X className="w-4 h-4 text-slate-700 shrink-0" />{f}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* PRO — Highlighted */}
+                        <div className="relative bg-gradient-to-b from-violet-950/60 to-[#070d1d] border border-violet-500/30 rounded-3xl p-8 shadow-[0_0_60px_-15px_rgba(124,58,237,0.4)] scale-[1.02]">
+                            {/* Popular badge */}
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-violet-500/30">
+                                    ⭐ Más Popular
+                                </span>
+                            </div>
+                            <div className="mb-6 mt-4">
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-400 mb-2">Pro</p>
+                                <div className="flex items-end gap-1">
+                                    <span className="text-5xl font-black text-white">{annual ? '$719' : '$899'}</span>
+                                    <span className="text-slate-400 mb-2">/mes</span>
+                                </div>
+                                {annual && <p className="text-emerald-400 text-xs font-bold mt-1">Ahorras $2,160/año</p>}
+                                <p className="text-slate-400 text-sm mt-2">Para negocios en crecimiento con más de 2 empleados.</p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-500/25 mb-8">
+                                Empezar con Pro →
+                            </button>
+                            <ul className="space-y-3">
+                                {[
+                                    '1 sucursal',
+                                    '2 estilistas incluidos',
+                                    'Estilistas extra: +$349/c/u mes',
+                                    'Agenda online 24/7',
+                                    'Recordatorios WhatsApp',
+                                    'App instalable (PWA)',
+                                    'Branding personalizado',
+                                    'Reportes avanzados',
+                                    'Soporte prioritario',
+                                ].map((f) => (
+                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
+                                        <CheckCircle2 className="w-4 h-4 text-violet-400 shrink-0" />{f}
+                                    </li>
+                                ))}
+                                {['Múltiples sucursales'].map((f) => (
+                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-600 line-through">
+                                        <X className="w-4 h-4 text-slate-700 shrink-0" />{f}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* BUSINESS */}
+                        <div className="relative bg-white/[0.02] border border-amber-500/20 rounded-3xl p-8 hover:border-amber-500/30 transition-all duration-300">
+                            <div className="mb-6">
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-400 mb-2">Business</p>
+                                <div className="flex items-end gap-1">
+                                    <span className="text-5xl font-black text-white">{annual ? '$1,319' : '$1,649'}</span>
+                                    <span className="text-slate-500 mb-2">/mes</span>
+                                </div>
+                                {annual && <p className="text-emerald-400 text-xs font-bold mt-1">Ahorras $3,960/año</p>}
+                                <p className="text-slate-400 text-sm mt-2">Para cadenas con múltiples sucursales y equipos grandes.</p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-sm hover:bg-amber-500/20 transition-all mb-8">
+                                Hablar con Ventas
+                            </button>
+                            <ul className="space-y-3">
+                                {[
+                                    '2 sucursales incluidas',
+                                    'Sucursales extra: +$749/c/u mes',
+                                    '2 estilistas por sucursal',
+                                    'Estilistas extra: +$349/c/u mes',
+                                    'Todo lo del plan Pro',
+                                    'Panel multi-sucursal unificado',
+                                    'Reportes por sucursal',
+                                    'Soporte dedicado',
+                                    'Configuración asistida',
+                                ].map((f) => (
+                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
+                                        <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />{f}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                    </div>
+
+                    {/* Extra cost note */}
+                    <p className="text-center text-xs text-slate-600 mt-8">Todos los precios en MXN. IVA no incluido. Los empleados adicionales se cobran el siguiente ciclo de facturación.</p>
+
+                    {/* FAQ */}
+                    <div className="mt-20 max-w-2xl mx-auto">
+                        <h3 className="text-2xl font-black text-white text-center mb-8">Preguntas frecuentes</h3>
+                        <div className="space-y-3">
+                            {[
+                                { q: '¿Puedo cambiar de plan cuando quiera?', a: 'Sí. Puedes subir o bajar de plan en cualquier momento desde tu panel. Los cambios aplican el siguiente ciclo.' },
+                                { q: '¿Qué pasa cuando vence el trial?', a: 'Tu cuenta pasa automáticamente al plan Free. Tus datos se conservan. Si quieres más funciones, solo actualiza tu plan.' },
+                                { q: '¿Hay costos de instalación?', a: 'No. CitaLink es 100% en la nube. No hay app que descargar, no hay hardware que comprar.' },
+                                { q: '¿Cómo funciona el costo por empleado extra?', a: 'Los primeros 2 empleados van incluidos en cualquier plan de pago. Si agregas un 3ro, se cobra $349/mes adicional por ese empleado.' },
+                            ].map((item, i) => (
+                                <FAQItem key={i} q={item.q} a={item.a} />
+                            ))}
+                        </div>
+                    </div>
+
                 </div>
             </section>
 
