@@ -2,12 +2,20 @@
 import { useState } from 'react';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { canAddStylist, getPlanLimits, getPlanBadgeStyles } from '../../lib/planLimits';
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
+import { useUIStore } from '../../lib/store/uiStore';
 
 export default function Staff() {
     const { uploadStylistPhoto } = useImageUpload();
     const { stylists, addStylist, removeStylist, updateStylist, isLoading } = useStylists();
+    const { data: businessConfig } = useTenantData();
+    const showToast = useUIStore(s => s.showToast);
+    const plan = businessConfig?.plan || 'free';
+    const limits = getPlanLimits(plan);
+    const badge = getPlanBadgeStyles(plan);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -20,6 +28,14 @@ export default function Staff() {
     const [formError, setFormError] = useState<string | null>(null);
 
     const openAdd = () => {
+        const check = canAddStylist(plan, stylists.length);
+        if (!check.allowed) {
+            showToast(check.message || 'Límite alcanzado', 'error');
+            return;
+        }
+        if (check.message) {
+            showToast(check.message, 'info');
+        }
         setFormError(null);
         setEditingId(null);
         setFormName('');
@@ -87,8 +103,16 @@ export default function Staff() {
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         Equipo
                         {isLoading && <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>}
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}>
+                            {limits.name}
+                        </span>
                     </h2>
-                    <p className="text-sm text-muted">Gestiona a tus estilistas y personal.</p>
+                    <p className="text-sm text-muted flex items-center gap-2 mt-1">
+                        Gestiona a tus estilistas y personal.
+                        <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                            {stylists.length}/{limits.canExpandEmployees ? '∞' : limits.maxEmployeesPerBranch}
+                        </span>
+                    </p>
                 </div>
                 <button className="btn btn-primary" onClick={openAdd}>
                     <Plus size={20} /> <span className="hidden md:inline">Nuevo Miembro</span>

@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
 import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
+import { getPlanBadgeStyles } from '../../lib/planLimits';
+import type { PlanType } from '../../lib/planLimits';
 
 // Modal de confirmación premium para borrado
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
@@ -50,7 +52,7 @@ export default function SuperAdminPanel() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '' });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free' as PlanType });
     const [isCreating, setIsCreating] = useState(false);
     const [isExistingOwner, setIsExistingOwner] = useState(false);
     const [selectedOwnerId, setSelectedOwnerId] = useState('');
@@ -164,8 +166,12 @@ export default function SuperAdminPanel() {
         );
         setIsCreating(false);
         if (res.success) {
+            // Update the plan on the new tenant
+            if (res.data?.id && newBusiness.plan !== 'free') {
+                await supabase.from('tenants').update({ plan: newBusiness.plan }).eq('id', res.data.id);
+            }
             setIsCreateModalOpen(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '' });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free' });
             setIsExistingOwner(false);
             setSelectedOwnerId('');
             showToast(
@@ -350,6 +356,11 @@ export default function SuperAdminPanel() {
                                                 return cat.toUpperCase() || 'ESTÁNDAR';
                                             })()}
                                         </span>
+                                        {(() => {
+                                            const p = (tenant.plan || 'free') as PlanType;
+                                            const b = getPlanBadgeStyles(p);
+                                            return <span className={`px-2 py-1 rounded text-[9px] font-black tracking-widest uppercase border ${b.bg} ${b.text} ${b.border}`}>{p.toUpperCase()}</span>;
+                                        })()}
                                     </div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate">
@@ -699,23 +710,39 @@ export default function SuperAdminPanel() {
                             {/* Divider */}
                             <div className="border-t border-white/5" />
 
-                            {/* ── Sección: Precio ── */}
+                            {/* ── Sección: Plan ── */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Zap size={14} className="text-amber-400" />
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Plan</span>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="relative flex-1">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400 font-black text-sm pointer-events-none">$</span>
-                                        <input
-                                            type="number" min="0" step="0.01"
-                                            className="w-full bg-white/[0.04] border border-amber-500/20 rounded-xl pl-8 pr-4 py-3 text-amber-400 font-black focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/30 transition-all outline-none text-sm"
-                                            value={newBusiness.monthlyPrice}
-                                            onChange={e => setNewBusiness({ ...newBusiness, monthlyPrice: e.target.value })}
-                                        />
-                                    </div>
-                                    <span className="text-[11px] text-slate-500 font-medium shrink-0">MXN / mes</span>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {([
+                                        { key: 'free' as PlanType, label: 'Free', price: '$0', color: 'slate' },
+                                        { key: 'pro' as PlanType, label: 'Pro', price: '$899', color: 'amber' },
+                                        { key: 'business' as PlanType, label: 'Business', price: '$1,649', color: 'violet' },
+                                    ]).map(p => {
+                                        const isActive = newBusiness.plan === p.key;
+                                        return (
+                                            <button
+                                                key={p.key}
+                                                type="button"
+                                                onClick={() => setNewBusiness({ ...newBusiness, plan: p.key, monthlyPrice: p.price.replace(/[$,]/g, '') })}
+                                                className={`p-3 rounded-xl border text-center transition-all ${isActive
+                                                    ? p.color === 'amber' ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]'
+                                                    : p.color === 'violet' ? 'border-violet-500/50 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.1)]'
+                                                    : 'border-slate-500/50 bg-slate-500/10'
+                                                    : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
+                                                }`}
+                                            >
+                                                <div className={`text-xs font-black uppercase tracking-wider ${isActive
+                                                    ? p.color === 'amber' ? 'text-amber-400' : p.color === 'violet' ? 'text-violet-400' : 'text-slate-300'
+                                                    : 'text-slate-500'
+                                                }`}>{p.label}</div>
+                                                <div className={`text-[10px] mt-1 font-bold ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>{p.price}/mes</div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

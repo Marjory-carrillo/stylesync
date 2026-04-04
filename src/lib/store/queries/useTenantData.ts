@@ -46,6 +46,7 @@ export const useTenantData = (overrideTenantId?: string) => {
                 smsProvider: (data.sms_provider as 'demo' | 'whatsapp') || 'demo',
                 brandSlug: data.brand_slug,
                 hideServicePrices: data.hide_service_prices ?? false,
+                plan: (data.plan as 'free' | 'pro' | 'business') || 'free',
             };
         },
         enabled: !!tenantId,

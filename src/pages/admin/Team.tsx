@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useStylists } from '../../lib/store/queries/useStylists';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { canAddEmployee, getPlanLimits, getPlanBadgeStyles } from '../../lib/planLimits';
 import { supabase } from '../../lib/supabaseClient';
 import { Users, Mail, Shield, Plus, Trash2, AlertCircle } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -19,6 +21,10 @@ export default function Team() {
     const { tenantId, userRole } = useAuthStore();
     const { showToast } = useUIStore();
     const { stylists } = useStylists();
+    const { data: businessConfig } = useTenantData();
+    const plan = businessConfig?.plan || 'free';
+    const limits = getPlanLimits(plan);
+    const badge = getPlanBadgeStyles(plan);
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [inviteEmail, setInviteEmail] = useState('');
@@ -53,6 +59,13 @@ export default function Team() {
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteEmail || !tenantId) return;
+
+        // Plan enforcement: check employee limit
+        const check = canAddEmployee(plan, members.length);
+        if (!check.allowed) {
+            showToast(check.message || 'Límite alcanzado', 'error');
+            return;
+        }
 
         const emailResult = z.string().email('El correo electrónico es inválido.').safeParse(inviteEmail.trim());
         if (!emailResult.success) {
@@ -238,9 +251,12 @@ export default function Team() {
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Gestión de Cuentas</p>
                             </div>
                         </div>
-                        <span className="bg-white/5 border border-white/10 text-slate-400 font-black text-[10px] px-3 py-1.5 rounded-full uppercase tracking-tighter">
-                            {members.length} {members.length === 1 ? 'Usuario' : 'Usuarios'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}>{limits.name}</span>
+                            <span className="bg-white/5 border border-white/10 text-slate-400 font-black text-[10px] px-3 py-1.5 rounded-full uppercase tracking-tighter">
+                                {members.length}/{limits.canExpandEmployees ? '∞' : limits.maxEmployeesPerBranch}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
