@@ -3,7 +3,7 @@ import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
-import { canAddEmployee, getPlanLimits, getPlanBadgeStyles } from '../../lib/planLimits';
+import { getPlanLimits, getPlanBadgeStyles } from '../../lib/planLimits';
 import { supabase } from '../../lib/supabaseClient';
 import { Users, Mail, Shield, Plus, Trash2, AlertCircle } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -59,13 +59,6 @@ export default function Team() {
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteEmail || !tenantId) return;
-
-        // Plan enforcement: check employee limit
-        const check = canAddEmployee(plan, members.length);
-        if (!check.allowed) {
-            showToast(check.message || 'Límite alcanzado', 'error');
-            return;
-        }
 
         const emailResult = z.string().email('El correo electrónico es inválido.').safeParse(inviteEmail.trim());
         if (!emailResult.success) {

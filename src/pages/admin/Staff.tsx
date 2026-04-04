@@ -4,20 +4,19 @@ import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { canAddStylist, getPlanLimits, getPlanBadgeStyles } from '../../lib/planLimits';
-import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon } from 'lucide-react';
+import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
-import { useUIStore } from '../../lib/store/uiStore';
 
 export default function Staff() {
     const { uploadStylistPhoto } = useImageUpload();
     const { stylists, addStylist, removeStylist, updateStylist, isLoading } = useStylists();
     const { data: businessConfig } = useTenantData();
-    const showToast = useUIStore(s => s.showToast);
     const plan = businessConfig?.plan || 'free';
     const limits = getPlanLimits(plan);
     const badge = getPlanBadgeStyles(plan);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [showUpgradeModal, setShowUpgradeModal] = useState<{ type: 'upgrade' | 'extra'; message: string } | null>(null);
 
     const [formName, setFormName] = useState('');
     const [formRole, setFormRole] = useState('');
@@ -30,12 +29,27 @@ export default function Staff() {
     const openAdd = () => {
         const check = canAddStylist(plan, stylists.length);
         if (!check.allowed) {
-            showToast(check.message || 'Límite alcanzado', 'error');
+            // Hard limit (Free plan) — show upgrade modal
+            setShowUpgradeModal({ type: 'upgrade', message: check.message || 'Límite alcanzado' });
             return;
         }
         if (check.message) {
-            showToast(check.message, 'info');
+            // Soft limit (Pro/Business) — warn about extra cost but allow
+            setShowUpgradeModal({ type: 'extra', message: check.message });
+            return;
         }
+        setFormError(null);
+        setEditingId(null);
+        setFormName('');
+        setFormRole('');
+        setFormPhone('');
+        setFormImage('');
+        setFormCommission(0);
+        setIsModalOpen(true);
+    };
+
+    const proceedAfterWarning = () => {
+        setShowUpgradeModal(null);
         setFormError(null);
         setEditingId(null);
         setFormName('');
@@ -268,6 +282,70 @@ export default function Staff() {
                             <button className="btn btn-ghost hover:bg-white/10" onClick={() => setIsModalOpen(false)}>Cancelar</button>
                             <button className="btn btn-primary" onClick={handleSave}>Guardar</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Upgrade / Extra Cost Modal ── */}
+            {showUpgradeModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+                    <div className="glass-panel max-w-sm w-full p-8 border border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+
+                        {/* Top gradient bar */}
+                        <div className={`absolute top-0 left-0 w-full h-1 ${showUpgradeModal.type === 'upgrade' ? 'bg-gradient-to-r from-violet-500 to-amber-500' : 'bg-gradient-to-r from-amber-500 to-emerald-500'}`} />
+
+                        {/* Icon */}
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 mx-auto ${showUpgradeModal.type === 'upgrade' ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}>
+                            {showUpgradeModal.type === 'upgrade'
+                                ? <Crown size={32} className="text-violet-400" />
+                                : <Zap size={32} className="text-amber-400" />
+                            }
+                        </div>
+
+                        <h3 className="text-xl font-black text-white text-center mb-2 uppercase tracking-tight">
+                            {showUpgradeModal.type === 'upgrade' ? 'Límite Alcanzado' : 'Empleado Adicional'}
+                        </h3>
+
+                        <p className="text-slate-400 text-center text-sm mb-6 leading-relaxed">
+                            {showUpgradeModal.message}
+                        </p>
+
+                        {showUpgradeModal.type === 'upgrade' ? (
+                            /* Hard block — must upgrade */
+                            <div className="space-y-3">
+                                <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 text-center">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-400 mb-1">Plan Pro</p>
+                                    <p className="text-2xl font-black text-white">$899<span className="text-sm font-medium text-slate-400">/mes</span></p>
+                                    <p className="text-xs text-slate-400 mt-1">Empleados ilimitados + $349 c/u extra</p>
+                                </div>
+                                <p className="text-[10px] text-slate-500 text-center">Contacta a tu administrador para hacer el upgrade.</p>
+                                <button
+                                    onClick={() => setShowUpgradeModal(null)}
+                                    className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold text-sm transition-all"
+                                >
+                                    Entendido
+                                </button>
+                            </div>
+                        ) : (
+                            /* Soft warning — allow but warn cost */
+                            <div className="space-y-3">
+                                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+                                    <p className="text-xs text-amber-400 font-bold">+$349/mes por este empleado adicional</p>
+                                </div>
+                                <button
+                                    onClick={proceedAfterWarning}
+                                    className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                                >
+                                    Continuar de todas formas <ArrowRight size={16} />
+                                </button>
+                                <button
+                                    onClick={() => setShowUpgradeModal(null)}
+                                    className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold text-sm transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
