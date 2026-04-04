@@ -51,8 +51,19 @@ export function getPlanLimits(plan: PlanType): PlanLimits {
     return PLAN_CONFIG[plan] || PLAN_CONFIG.free;
 }
 
-/** Check if an employee (stylist or team user) can be added */
-export function canAddEmployee(plan: PlanType, currentCount: number): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
+/** Returns true if the tenant is currently in a trial period */
+export function isInTrial(trialEndsAt?: string | null): boolean {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt) > new Date();
+}
+
+/** Check if an employee (stylist) can be added */
+export function canAddEmployee(plan: PlanType, currentCount: number, trialEndsAt?: string | null): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
+    // Trial period: no limits, behave as Pro
+    if (isInTrial(trialEndsAt)) {
+        return { allowed: true };
+    }
+
     const limits = getPlanLimits(plan);
 
     if (currentCount < limits.maxEmployeesPerBranch) {
@@ -77,8 +88,8 @@ export function canAddEmployee(plan: PlanType, currentCount: number): { allowed:
 }
 
 /** Check if a stylist can be added (same logic as employee) */
-export function canAddStylist(plan: PlanType, currentStylistCount: number): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
-    return canAddEmployee(plan, currentStylistCount);
+export function canAddStylist(plan: PlanType, currentStylistCount: number, trialEndsAt?: string | null): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
+    return canAddEmployee(plan, currentStylistCount, trialEndsAt);
 }
 
 /** Check if a new branch/tenant can be created for this owner */

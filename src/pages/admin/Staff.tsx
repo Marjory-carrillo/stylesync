@@ -12,8 +12,10 @@ export default function Staff() {
     const { stylists, addStylist, removeStylist, updateStylist, isLoading } = useStylists();
     const { data: businessConfig } = useTenantData();
     const plan = businessConfig?.plan || 'free';
+    const trialEndsAt = businessConfig?.trialEndsAt || null;
     const limits = getPlanLimits(plan);
     const badge = getPlanBadgeStyles(plan);
+    const inTrial = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ type: 'upgrade' | 'extra'; message: string } | null>(null);
@@ -27,7 +29,7 @@ export default function Staff() {
     const [formError, setFormError] = useState<string | null>(null);
 
     const openAdd = () => {
-        const check = canAddStylist(plan, stylists.length);
+        const check = canAddStylist(plan, stylists.length, trialEndsAt);
         if (!check.allowed) {
             // Hard limit (Free plan) — show upgrade modal
             setShowUpgradeModal({ type: 'upgrade', message: check.message || 'Límite alcanzado' });
@@ -117,15 +119,23 @@ export default function Staff() {
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         Equipo
                         {isLoading && <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>}
-                        <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}>
-                            {limits.name}
-                        </span>
+                        {inTrial ? (
+                            <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                🎁 Trial
+                            </span>
+                        ) : (
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}>
+                                {limits.name}
+                            </span>
+                        )}
                     </h2>
                     <p className="text-sm text-muted flex items-center gap-2 mt-1">
                         Gestiona a tus estilistas y personal.
-                        <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                            {stylists.length}/{limits.canExpandEmployees ? '∞' : limits.maxEmployeesPerBranch}
-                        </span>
+                        {!inTrial && (
+                            <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                                {stylists.length}/{limits.canExpandEmployees ? '∞' : limits.maxEmployeesPerBranch}
+                            </span>
+                        )}
                     </p>
                 </div>
                 <button className="btn btn-primary" onClick={openAdd}>
@@ -316,7 +326,7 @@ export default function Staff() {
                                 <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 text-center">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-violet-400 mb-1">Plan Pro</p>
                                     <p className="text-2xl font-black text-white">$899<span className="text-sm font-medium text-slate-400">/mes</span></p>
-                                    <p className="text-xs text-slate-400 mt-1">Empleados ilimitados + $349 c/u extra</p>
+                                    <p className="text-xs text-slate-400 mt-1">2 empleados incluidos + $349 c/u extra</p>
                                 </div>
                                 <p className="text-[10px] text-slate-500 text-center">Contacta a tu administrador para hacer el upgrade.</p>
                                 <button

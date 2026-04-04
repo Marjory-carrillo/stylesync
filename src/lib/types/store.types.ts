@@ -108,6 +108,7 @@ export interface BusinessConfig {
     brandSlug?: string;
     hideServicePrices?: boolean;
     plan?: 'free' | 'pro' | 'business';
+    trialEndsAt?: string | null;
 }
 
 export interface Tenant extends BusinessConfig {

@@ -47,6 +47,7 @@ export const useTenantData = (overrideTenantId?: string) => {
                 brandSlug: data.brand_slug,
                 hideServicePrices: data.hide_service_prices ?? false,
                 plan: (data.plan as 'free' | 'pro' | 'business') || 'free',
+                trialEndsAt: data.trial_ends_at || null,
             };
         },
         enabled: !!tenantId,
