@@ -37,8 +37,8 @@ export function useStripeCheckout() {
                     plan,
                     tenant_id: tenantId,
                     user_email: user?.email || undefined,
-                    success_url: `https://www.citalink.app/admin/dashboard?checkout=success&plan=${plan}`,
-                    cancel_url: `https://www.citalink.app/admin/dashboard?checkout=cancel`,
+                    success_url: `https://www.citalink.app/?checkout=success&plan=${plan}`,
+                    cancel_url: `https://www.citalink.app/?checkout=cancel`,
                 }),
             });
 

@@ -127,6 +127,17 @@ export default function Landing() {
     // Pricing annual toggle
     const [annual, setAnnual] = useState(false);
 
+    // Checkout return from Stripe
+    const [checkoutResult, setCheckoutResult] = useState<'success' | 'cancel' | null>(null);
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const status = params.get('checkout');
+        if (status === 'success' || status === 'cancel') {
+            setCheckoutResult(status as 'success' | 'cancel');
+            window.history.replaceState({}, '', '/');
+        }
+    }, []);
+
     /* ── DATA ──────────────────────── */
     const features = [
         { icon: <CalendarDays className="w-6 h-6" />, color: 'from-violet-500 to-indigo-500', title: 'Agenda Inteligente', desc: 'Clientes reservan solos, 24/7. Sin llamadas, sin papelería.' },
@@ -158,6 +169,40 @@ export default function Landing() {
 
     return (
         <div className="min-h-screen bg-[#020817] text-slate-50 font-sans overflow-x-hidden selection:bg-violet-500/30">
+
+            {/* ═══ Checkout Result Modal ═══ */}
+            {checkoutResult && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setCheckoutResult(null)} />
+                    <div className="relative bg-[#0f172a] border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center animate-fade-in">
+                        {checkoutResult === 'success' ? (
+                            <>
+                                <div className="text-6xl mb-4">🎉</div>
+                                <h2 className="text-2xl font-black text-white mb-2">¡Pago Exitoso!</h2>
+                                <p className="text-slate-400 mb-6">Tu plan se ha actualizado. Vuelve a tu dashboard para ver los cambios.</p>
+                                <button
+                                    onClick={() => setCheckoutResult(null)}
+                                    className="w-full py-3 rounded-2xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:brightness-110 transition-all shadow-lg shadow-violet-900/30"
+                                >
+                                    ✨ Entendido
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-6xl mb-4">😅</div>
+                                <h2 className="text-2xl font-black text-white mb-2">Pago Cancelado</h2>
+                                <p className="text-slate-400 mb-6">No te preocupes, puedes intentarlo cuando quieras desde tu dashboard.</p>
+                                <button
+                                    onClick={() => setCheckoutResult(null)}
+                                    className="w-full py-3 rounded-2xl font-bold bg-white/10 text-white border border-white/10 hover:bg-white/15 transition-all"
+                                >
+                                    Cerrar
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* ═══════════ NAVBAR ═══════════ */}
             <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 backdrop-blur-xl border-b ${scrolled ? 'bg-[#020817]/80 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]' : 'bg-[#020817]/40 border-white/5 shadow-[0_4px_24px_rgba(0,0,0,0.2)]'}`}>

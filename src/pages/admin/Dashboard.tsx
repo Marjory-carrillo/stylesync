@@ -314,7 +314,24 @@ export default function Dashboard() {
         <div className="animate-fade-in space-y-6 md:space-y-8">
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white mb-1">Dashboard</h2>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white">Dashboard</h2>
+                        {!isEmployee && (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                tenantPlan === 'pro'
+                                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                                    : tenantPlan === 'business'
+                                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                    : inTrial
+                                    ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                                    : 'bg-white/5 border-white/10 text-slate-500'
+                            }`}>
+                                {tenantPlan === 'pro' && '⭐ '}
+                                {tenantPlan === 'business' && '🚀 '}
+                                {inTrial ? 'Trial' : tenantPlan.toUpperCase()}
+                            </span>
+                        )}
+                    </div>
                     <p className="text-slate-400 text-xs md:text-sm">Resumen de actividad y métricas clave.</p>
                 </div>
                 <div className="glass-panel px-4 py-2 rounded-2xl flex items-center gap-2 text-xs md:text-sm text-cyan-400 whitespace-nowrap shadow-inner">
@@ -434,8 +451,8 @@ export default function Dashboard() {
             </div>
 
 
-            {/* ── Monthly Usage Card (visible para todos los planes) ── */}
-            {!isEmployee && !isLoading && (() => {
+            {/* ── Monthly Usage Card (only for Free plan or Trial) ── */}
+            {!isEmployee && !isLoading && (tenantPlan === 'free' || inTrial) && (() => {
                 const used = currentMonthStats.count;
                 const limit = monthlyApptLimit; // -1 = unlimited
                 const hasLimit = limit > 0;
