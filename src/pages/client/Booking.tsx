@@ -92,6 +92,7 @@ export default function Booking() {
     const [selectedAddOns, setSelectedAddOns] = useState<number[]>([]); // additional service IDs
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const [urgentSlotTime, setUrgentSlotTime] = useState<string | null>(null);
 
     // Add-ons computed values: duration adds up, price adds up
     const totalDuration = useMemo(() => {
@@ -601,7 +602,38 @@ export default function Booking() {
 
     // ── Normal flow ───
 
+    const isSlotUrgent = (time: string, dateStr: string) => {
+        const tZone = businessConfig?.timezone || 'America/Mexico_City';
+        const now = new Date();
+        const offsetParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: tZone,
+            timeZoneName: 'shortOffset'
+        }).formatToParts(now);
+        
+        let isoOffset = 'Z';
+        const offsetString = offsetParts.find(p => p.type === 'timeZoneName')?.value;
+        if (offsetString && offsetString !== 'GMT') {
+            isoOffset = offsetString.replace('GMT', '');
+            if (!isoOffset.includes(':')) isoOffset += ':00';
+            const sign = isoOffset[0];
+            let [h, m] = isoOffset.slice(1).split(':');
+            if (h.length === 1) h = '0' + h;
+            isoOffset = `${sign}${h}:${m}`;
+        }
+        
+        const slotDatetime = new Date(`${dateStr}T${time}${isoOffset}`);
+        const diffHours = (slotDatetime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
+        // Return true if future slot is less than or equal to 2 hours away
+        return diffHours > 0 && diffHours <= 2;
+    };
+
     const handleSelectTime = (time: string) => {
+        if (isSlotUrgent(time, selectedDate)) {
+            setUrgentSlotTime(time);
+            return;
+        }
+
         if (isUpdating) { handleUpdateTime(time); return; }
         setSelectedTime(time);
         // Solo resalta la hora, el botón "Continuar" aparecerá en el UI
@@ -1802,6 +1834,51 @@ export default function Booking() {
                 onCancel={() => setIsCancelConfirmOpen(false)}
                 danger
             />
+
+            {/* ══ URGENT SLOT MODAL ══ */}
+            {urgentSlotTime && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setUrgentSlotTime(null)} />
+                    <div className="relative bg-[#0f172a] border border-cyan-500/30 rounded-3xl w-full max-w-sm p-6 shadow-2xl text-center animate-fade-in flex flex-col items-center">
+                        <div className="w-16 h-16 bg-cyan-500/10 rounded-full flex items-center justify-center text-cyan-400 mb-4 border border-cyan-500/20">
+                            <Clock size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">Cita de Última Hora</h3>
+                        <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                            El horario de las <strong className="text-cyan-400">{format12h(urgentSlotTime)}</strong> es demasiado pronto para agendar por sistema (menos de 2 horas). 
+                            <br/><br/>
+                            Comunícate directamente con nosotros para agendar en este momento.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3 w-full">
+                            <a 
+                                href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, quisiera saber si hay disponibilidad hoy a las ${format12h(urgentSlotTime)} para un servicio.`)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-2xl font-bold transition-all shadow-lg shadow-[#25D366]/20"
+                            >
+                                <MessageSquare size={18} />
+                                Enviar WhatsApp
+                            </a>
+                            {businessConfig?.phone && (
+                                <a 
+                                    href={`tel:${businessConfig.phone.replace(/\D/g, '')}`}
+                                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl font-bold transition-all"
+                                >
+                                    <Phone size={18} />
+                                    Llamar: {businessConfig.phone}
+                                </a>
+                            )}
+                            <button 
+                                onClick={() => setUrgentSlotTime(null)}
+                                className="w-full mt-2 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                            >
+                                Volver a horarios
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

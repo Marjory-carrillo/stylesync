@@ -6,7 +6,7 @@ const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!;
 const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
-// ── Plantilla aprobada por Meta (Content SID de Twilio) ─────────────────────
+// Plantilla aprobada por Meta (Content SID de Twilio)
 // citalink_cliente_recordatorio: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio
 const TEMPLATE_RECORDATORIO = 'HXc99ae2355cd2f306973e448d922dc77f';
 
@@ -58,6 +58,28 @@ function formatDateTime(date: string, time: string): string {
     return `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} a las ${time.slice(0,5)}`;
 }
 
+/**
+ * Calcula los días calendario de diferencia entre dos fechas (en la zona horaria del negocio).
+ * Ej: booking = "2026-04-06", appointment = "2026-04-06" → 0 (mismo día)
+ *     booking = "2026-04-06", appointment = "2026-04-07" → 1 (mañana)
+ *     booking = "2026-04-06", appointment = "2026-04-08" → 2 (pasado mañana)
+ */
+function calendarDaysDiff(bookingDate: string, appointmentDate: string): number {
+    const booking = new Date(bookingDate + 'T00:00:00');
+    const appointment = new Date(appointmentDate + 'T00:00:00');
+    const diffMs = appointment.getTime() - booking.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Extrae solo la fecha YYYY-MM-DD de un timestamp ISO, ajustado a una zona horaria.
+ */
+function getDateInTimezone(isoTimestamp: string, timezone: string): string {
+    const d = new Date(isoTimestamp);
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    return parts; // Returns YYYY-MM-DD format
+}
+
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -68,11 +90,10 @@ serve(async (req: Request) => {
 
     const now = new Date();
     let reminders = 0;
+    let skipped = 0;
 
     try {
-        // ── RECORDATORIOS: citas confirmadas sin recordatorio enviado ─────────
-        // Busca citas con status='confirmada' (único estado de citas activas)
-        // que aún no tengan reminder_sent=true y sean futuras
+        // ── Buscar citas confirmadas sin recordatorio enviado ──
         const { data: pending, error: fetchError } = await supabase
             .from('appointments')
             .select('*, tenants(name, sms_provider, timezone)')
@@ -95,44 +116,81 @@ serve(async (req: Request) => {
 
             const tZone = tenant.timezone || 'America/Mexico_City';
 
-            // Deno ejecuta en UTC. Necesitamos saber qué "Offset" tiene la zona del cliente en este preciso instante de ejecución.
+            // ── Calcular el offset de la zona horaria del negocio ──
             const offsetParts = new Intl.DateTimeFormat('en-US', {
                 timeZone: tZone,
                 timeZoneName: 'shortOffset'
             }).formatToParts(now);
             
-            const offsetString = offsetParts.find(p => p.type === 'timeZoneName')?.value; // ej: "GMT-6" o "GMT-05:00" o "GMT"
+            const offsetString = offsetParts.find(p => p.type === 'timeZoneName')?.value;
             
-            // Re-ensamblar la fecha como un string ISO 8601 absoluto para que JavaScript lo parsee como tiempo real:
-            // "2024-04-03T10:00:00-06:00"
             let isoOffset = 'Z';
             if (offsetString && offsetString !== 'GMT') {
                 isoOffset = offsetString.replace('GMT', '');
-                // JS requiere HH:mm, si viene -6 o -6:00 ajustarlo.
-                if (!isoOffset.includes(':')) {
-                    isoOffset += ':00'; // de "-6" a "-6:00"
-                }
+                if (!isoOffset.includes(':')) isoOffset += ':00';
                 const sign = isoOffset[0];
                 let [h, m] = isoOffset.slice(1).split(':');
                 if (h.length === 1) h = '0' + h;
                 isoOffset = `${sign}${h}:${m}`;
             }
 
+            // Fecha/hora absoluta de la cita
             const apptDatetime = new Date(`${appt.date}T${appt.time}${isoOffset}`);
-            
-            const msUntilAppt    = apptDatetime.getTime() - now.getTime();
+            const msUntilAppt = apptDatetime.getTime() - now.getTime();
             const hoursUntilAppt = msUntilAppt / (1000 * 60 * 60);
 
             // Ignorar citas que ya pasaron
             if (hoursUntilAppt <= 0) continue;
 
-            // Ignorar citas que faltan más de 25 horas (demasiado pronto para recordar)
-            if (hoursUntilAppt > 25) continue;
+            // ── Determinar regla de recordatorio basada en días de anticipación ──
+            // Obtener la fecha de booking y la fecha de cita en la zona del negocio
+            const bookingDateLocal = getDateInTimezone(appt.created_at, tZone);
+            const appointmentDate = appt.date; // ya está en formato YYYY-MM-DD
+            const daysAhead = calendarDaysDiff(bookingDateLocal, appointmentDate);
 
-            // Ventana de recordatorio: entre 1h y 25h antes de la cita
-            const shouldSendNow = hoursUntilAppt <= 25 && hoursUntilAppt > 0;
+            // Calcular cuántas horas había entre el momento de booking y la cita
+            const bookingTime = new Date(appt.created_at);
+            const hoursGapAtBooking = (apptDatetime.getTime() - bookingTime.getTime()) / (1000 * 60 * 60);
 
-            if (!shouldSendNow) continue;
+            let reminderHoursBefore: number;
+            let ruleApplied: string;
+
+            if (daysAhead === 0) {
+                // ═══ MISMO DÍA ═══
+                if (hoursGapAtBooking < 10) {
+                    // Cita muy cercana al booking → NO enviar recordatorio
+                    console.log(`[process-reminders] SKIP cita ${appt.id}: mismo día, gap=${hoursGapAtBooking.toFixed(1)}h (<10h)`);
+                    // Marcar como enviada para no procesarla de nuevo
+                    await supabase.from('appointments').update({ reminder_sent: true }).eq('id', appt.id);
+                    skipped++;
+                    continue;
+                }
+                // Mismo día pero con ≥10h de gap → recordatorio 1h antes
+                reminderHoursBefore = 1;
+                ruleApplied = `mismo-día (gap=${hoursGapAtBooking.toFixed(1)}h) → 1h antes`;
+            } else if (daysAhead === 1) {
+                // ═══ MAÑANA ═══
+                reminderHoursBefore = 2;
+                ruleApplied = 'mañana → 2h antes';
+            } else {
+                // ═══ 2+ DÍAS (pasado mañana en adelante) ═══
+                reminderHoursBefore = 5;
+                ruleApplied = `${daysAhead} días adelante → 5h antes`;
+            }
+
+            // ── ¿Es momento de enviar? ──
+            // Ventana: desde (reminderHoursBefore + 0.5h) hasta (reminderHoursBefore - 0.5h)
+            // Esto da una ventana de 1 hora centrada en el target
+            // Con cron cada 30 min, siempre cae al menos una ejecución en la ventana
+            const windowStart = reminderHoursBefore + 0.5; // ej: 5.5h antes
+            const windowEnd   = reminderHoursBefore - 0.5; // ej: 4.5h antes
+
+            if (hoursUntilAppt > windowStart || hoursUntilAppt <= windowEnd) {
+                // Fuera de la ventana de envío
+                continue;
+            }
+
+            console.log(`[process-reminders] 🎯 Cita ${appt.id} EN VENTANA: ${hoursUntilAppt.toFixed(1)}h antes | Regla: ${ruleApplied}`);
 
             // Obtener nombre del servicio
             const { data: svc } = await supabase
@@ -161,13 +219,13 @@ serve(async (req: Request) => {
                     .update({ reminder_sent: true })
                     .eq('id', appt.id);
                 reminders++;
-                console.log(`[process-reminders] ✅ Recordatorio enviado a ${appt.client_phone} para cita ${appt.id}`);
+                console.log(`[process-reminders] ✅ Recordatorio enviado a ${appt.client_phone} para cita ${appt.id} (${ruleApplied})`);
             }
         }
 
-        console.log(`[process-reminders] ✅ Recordatorios enviados: ${reminders}`);
+        console.log(`[process-reminders] ✅ Resumen: ${reminders} enviados, ${skipped} saltados (mismo día <10h)`);
         return new Response(
-            JSON.stringify({ success: true, reminders }),
+            JSON.stringify({ success: true, reminders, skipped }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 
