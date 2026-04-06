@@ -419,6 +419,156 @@ export default function Dashboard() {
             </div>
 
 
+            {/* ── Monthly Usage Card (visible para todos los planes) ── */}
+            {!isEmployee && !isLoading && (() => {
+                const used = currentMonthStats.count;
+                const limit = monthlyApptLimit; // -1 = unlimited
+                const hasLimit = limit > 0;
+                const pct = hasLimit ? Math.min((used / limit) * 100, 100) : -1;
+                const isNear = hasLimit && pct >= 70;
+                const isFull = hasLimit && pct >= 100;
+
+                // Days remaining in month
+                const now = new Date();
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                const daysLeft = lastDay - now.getDate();
+
+                // Average daily rate
+                const dayOfMonth = now.getDate();
+                const avgPerDay = dayOfMonth > 0 ? (used / dayOfMonth) : 0;
+                const projected = Math.round(avgPerDay * lastDay);
+
+                // Colors
+                const ringColor = isFull ? 'stroke-red-500' : isNear ? 'stroke-amber-500' : 'stroke-violet-500';
+                const bgGlow = isFull ? 'from-red-600/10 via-red-600/5' : isNear ? 'from-amber-600/10 via-amber-600/5' : 'from-violet-600/10 via-violet-600/5';
+                const borderColor = isFull ? 'border-red-500/20' : isNear ? 'border-amber-500/20' : 'border-white/5';
+                const accentText = isFull ? 'text-red-400' : isNear ? 'text-amber-400' : 'text-violet-400';
+
+                // SVG ring calculations
+                const radius = 52;
+                const circumference = 2 * Math.PI * radius;
+                const dashOffset = hasLimit ? circumference - (circumference * (pct / 100)) : 0;
+
+                return (
+                    <div className={`relative overflow-hidden rounded-[2rem] border ${borderColor} bg-gradient-to-br ${bgGlow} to-transparent p-6 md:p-8 mb-8 transition-all duration-500`}>
+                        {/* Background decoration */}
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-radial from-white/[0.02] to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                            {/* Progress Ring */}
+                            {hasLimit ? (
+                                <div className="relative shrink-0">
+                                    <svg width="130" height="130" className="-rotate-90" viewBox="0 0 120 120">
+                                        <circle cx="60" cy="60" r={radius} fill="none" strokeWidth="8" stroke="rgba(255,255,255,0.05)" />
+                                        <circle
+                                            cx="60" cy="60" r={radius}
+                                            fill="none"
+                                            strokeWidth="8"
+                                            strokeLinecap="round"
+                                            className={`${ringColor} transition-all duration-1000 ease-out`}
+                                            strokeDasharray={circumference}
+                                            strokeDashoffset={dashOffset}
+                                        />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className={`text-3xl font-black tracking-tighter ${accentText}`}>{used}</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">/ {limit}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="relative shrink-0 w-[130px] h-[130px] flex items-center justify-center">
+                                    <div className="absolute inset-0 rounded-full border-[8px] border-white/5" />
+                                    <div className="absolute inset-0 rounded-full border-[8px] border-transparent border-t-violet-500 border-r-violet-500/50 animate-spin" style={{ animationDuration: '3s' }} />
+                                    <div className="flex flex-col items-center justify-center">
+                                        <span className="text-3xl font-black tracking-tighter text-violet-400">{used}</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">∞</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0 text-center md:text-left">
+                                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                                    <h3 className="text-lg md:text-xl font-black text-white tracking-tight">Citas este Mes</h3>
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                                        tenantPlan === 'pro' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                        tenantPlan === 'business' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+                                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                    }`}>
+                                        {inTrial ? '🎁 Trial' : tenantPlan === 'pro' ? '⭐ Pro' : tenantPlan === 'business' ? '🚀 Biz' : 'Free'}
+                                    </span>
+                                </div>
+
+                                {hasLimit ? (
+                                    <>
+                                        {/* Full progress bar */}
+                                        <div className="w-full max-w-md h-3 bg-white/5 rounded-full overflow-hidden mb-3">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                                                    isFull ? 'bg-gradient-to-r from-red-500 to-red-600 animate-pulse' :
+                                                    isNear ? 'bg-gradient-to-r from-amber-500 to-orange-500' :
+                                                    'bg-gradient-to-r from-violet-500 to-indigo-500'
+                                                }`}
+                                                style={{ width: `${pct}%` }}
+                                            />
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-sm">
+                                            <span className={`font-bold ${accentText}`}>
+                                                {isFull ? '⚠️ Límite alcanzado' : `${limit - used} citas restantes`}
+                                            </span>
+                                            <span className="text-slate-600 text-xs font-medium">
+                                                {daysLeft} días restantes en el mes
+                                            </span>
+                                            {!isFull && projected > limit && (
+                                                <span className="text-amber-500/80 text-xs font-bold">
+                                                    📈 Proyección: ~{projected} citas
+                                                </span>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-sm">
+                                        <span className="text-slate-400 font-medium">
+                                            <span className="text-violet-400 font-black">{used}</span> citas completadas
+                                        </span>
+                                        <span className="text-slate-600 text-xs font-medium">
+                                            {daysLeft} días restantes · Citas ilimitadas ✨
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* CTA for Free plan */}
+                            {hasLimit && (isNear || isFull) && (
+                                <div className="shrink-0">
+                                    <button
+                                        onClick={() => window.open('/#precios', '_blank')}
+                                        className={`px-6 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl ${
+                                            isFull
+                                                ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-red-900/30 hover:brightness-110'
+                                                : 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-violet-900/30 hover:brightness-110'
+                                        }`}
+                                    >
+                                        {isFull ? '🔓 Desbloquear Citas' : '⭐ Actualizar a Pro'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Full limit overlay warning */}
+                        {isFull && (
+                            <div className="mt-6 p-4 bg-red-500/5 border border-red-500/15 rounded-2xl">
+                                <p className="text-sm text-red-400/90 font-medium text-center">
+                                    Has alcanzado el límite de <strong>{limit} citas</strong> para el Plan Free este mes. 
+                                    Actualiza a <strong>Pro</strong> para citas ilimitadas por solo <strong>$899/mes</strong>.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
             {/* ── Alerts & Recovery Opportunities (deduplicado por fecha) ── */}
             {
                 (cancellationLog.length > 0 && waitingList.length > 0) && (() => {

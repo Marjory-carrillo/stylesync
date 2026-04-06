@@ -23,6 +23,8 @@ const Leads = lazy(() => import('./pages/admin/Leads'));
 const GlobalSettings = lazy(() => import('./pages/admin/GlobalSettings'));
 const Branding = lazy(() => import('./pages/admin/Branding'));
 const Landing = lazy(() => import('./pages/Landing'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Privacy = lazy(() => import('./pages/Privacy'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 import { useGlobalStore } from './lib/store/useGlobalStore';
@@ -265,6 +267,8 @@ function App() {
             <Routes>
               {/* Main Landing */}
               <Route path="/" element={<Landing />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
 
               {/* Client Routes */}
               <Route path="/reserva/:slug" element={<ClientRoute />}>
