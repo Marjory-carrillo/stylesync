@@ -160,15 +160,15 @@ export default function Landing() {
         <div className="min-h-screen bg-[#020817] text-slate-50 font-sans overflow-x-hidden selection:bg-violet-500/30">
 
             {/* ═══════════ NAVBAR ═══════════ */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#020817]/95 backdrop-blur-lg border-b border-white/5 shadow-xl' : 'bg-transparent'}`}>
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 backdrop-blur-xl border-b ${scrolled ? 'bg-[#020817]/80 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]' : 'bg-[#020817]/40 border-white/5 shadow-[0_4px_24px_rgba(0,0,0,0.2)]'}`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16 lg:h-20">
+                    <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
                         <div className="flex items-center gap-2 group cursor-pointer">
                             <div className="relative">
                                 <div className="absolute inset-0 bg-violet-500 blur-md opacity-30 group-hover:opacity-70 transition-opacity rounded-full" />
-                                <InfinityIcon className="w-7 h-7 text-violet-400 relative z-10" strokeWidth={2.5} />
+                                <InfinityIcon className="w-6 h-6 sm:w-7 sm:h-7 text-violet-400 relative z-10" strokeWidth={2.5} />
                             </div>
-                            <span className="text-xl font-black tracking-tight">Cita<span className="text-violet-400">Link</span></span>
+                            <span className="text-lg sm:text-xl font-black tracking-tight">Cita<span className="text-violet-400">Link</span></span>
                         </div>
                         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
                             <a href="#features" className="hover:text-white transition-colors">Funciones</a>
@@ -176,15 +176,15 @@ export default function Landing() {
                             <a href="#precios" className="hover:text-white transition-colors">Precios</a>
                             <a href="#testimonials" className="hover:text-white transition-colors">Testimonios</a>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
                             {user ? (
-                                <Link to={dashboardPath} className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-lg shadow-violet-500/20">
+                                <Link to={dashboardPath} className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm transition-all flex items-center gap-2 shadow-lg shadow-violet-500/20">
                                     Mi Panel <ArrowRight className="w-4 h-4" />
                                 </Link>
                             ) : (
                                 <>
-                                    <Link to="/login" className="hidden sm:block text-sm font-medium text-slate-400 hover:text-white transition-colors">Iniciar Sesión</Link>
-                                    <button onClick={() => setIsModalOpen(true)} className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-all shadow-lg shadow-violet-500/20">
+                                    <Link to="/login" className="text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-colors px-3 py-2 rounded-full hover:bg-white/5">Iniciar Sesión</Link>
+                                    <button onClick={() => setIsModalOpen(true)} className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-violet-500/20">
                                         Prueba Gratis
                                     </button>
                                 </>
