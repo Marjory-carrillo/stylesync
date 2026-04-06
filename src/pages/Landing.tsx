@@ -786,11 +786,15 @@ export default function Landing() {
                         </div>
                         {/* Redes sociales */}
                         <div className="flex gap-3">
-                            <a href="https://instagram.com/citalink.app" target="_blank" rel="noopener noreferrer"
+                            <a href="https://www.tiktok.com/@citalink.soporte" target="_blank" rel="noopener noreferrer"
+                               className="group w-10 h-10 rounded-full bg-white/5 hover:bg-black border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.17 8.17 0 004.78 1.52V6.76a4.83 4.83 0 01-1.01-.07z"/></svg>
+                            </a>
+                            <a href="https://www.instagram.com/citalink_" target="_blank" rel="noopener noreferrer"
                                className="group w-10 h-10 rounded-full bg-white/5 hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
                                 <Instagram className="w-4 h-4" />
                             </a>
-                            <a href="https://facebook.com/citalinkapp" target="_blank" rel="noopener noreferrer"
+                            <a href="https://www.facebook.com/share/1CA8fs3Upo/" target="_blank" rel="noopener noreferrer"
                                className="group w-10 h-10 rounded-full bg-white/5 hover:bg-blue-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
                                 <Facebook className="w-4 h-4" />
                             </a>
