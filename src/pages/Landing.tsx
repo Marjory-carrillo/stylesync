@@ -798,7 +798,7 @@ export default function Landing() {
                                className="group w-10 h-10 rounded-full bg-white/5 hover:bg-blue-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
                                 <Facebook className="w-4 h-4" />
                             </a>
-                            <a href="https://wa.me/5218100000000?text=Hola%2C%20quiero%20saber%20más%20sobre%20CitaLink"
+                            <a href="https://wa.me/528681239154?text=Hola%2C%20quiero%20saber%20más%20sobre%20CitaLink"
                                target="_blank" rel="noopener noreferrer"
                                className="group w-10 h-10 rounded-full bg-white/5 hover:bg-emerald-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
                                 <MessageCircle className="w-4 h-4" />
