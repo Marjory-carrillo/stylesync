@@ -554,8 +554,8 @@ export default function Dashboard() {
                                 )}
                             </div>
 
-                            {/* CTA for Free plan */}
-                            {hasLimit && (isNear || isFull) && (
+                            {/* CTA for Free plan — always visible */}
+                            {hasLimit && (
                                 <div className="shrink-0">
                                     <button
                                         onClick={() => redirectToCheckout('pro')}
