@@ -813,8 +813,8 @@ export default function Landing() {
                     <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-600">
                         <p>© {new Date().getFullYear()} CitaLink. Todos los derechos reservados.</p>
                         <div className="flex gap-6">
-                            <a href="#" className="hover:text-slate-400 transition-colors">Términos</a>
-                            <a href="#" className="hover:text-slate-400 transition-colors">Privacidad</a>
+                            <Link to="/terms" className="hover:text-slate-400 transition-colors">Términos</Link>
+                            <Link to="/privacy" className="hover:text-slate-400 transition-colors">Privacidad</Link>
                             <a href="mailto:citalink.soporte@gmail.com" className="hover:text-slate-400 transition-colors">Contacto</a>
                         </div>
                     </div>
@@ -878,7 +878,7 @@ export default function Landing() {
                                 <button disabled={submitting} type="submit" className="w-full mt-2 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold tracking-wide transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 flex items-center justify-center gap-2">
                                     {submitting ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enviando...</>) : 'Solicitar Acceso Ahora →'}
                                 </button>
-                                <p className="text-center text-xs text-slate-600">Al enviar aceptas nuestros Términos de Servicio y Aviso de Privacidad.</p>
+                                <p className="text-center text-xs text-slate-600">Al enviar aceptas nuestros <Link to="/terms" className="underline hover:text-slate-400">Términos de Servicio</Link> y <Link to="/privacy" className="underline hover:text-slate-400">Aviso de Privacidad</Link>.</p>
                             </form>
                         )}
                     </div>
