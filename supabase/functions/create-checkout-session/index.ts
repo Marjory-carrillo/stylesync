@@ -53,9 +53,7 @@ serve(async (req: Request) => {
             params.set('customer_email', user_email);
         }
 
-        // Allow 21-day trial for tenants that haven't paid before
-        // (Stripe will handle the trial period on the subscription)
-        params.set('subscription_data[trial_period_days]', '0'); // No Stripe trial — we handle trial internally
+        // No Stripe trial — we handle trial internally in our own DB
 
         const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
             method: 'POST',
