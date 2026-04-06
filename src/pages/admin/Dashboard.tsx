@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCancellationLog } from '../../lib/store/queries/useCancellationLog';
 import { useAuthStore } from '../../lib/store/authStore';
@@ -8,6 +8,7 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useStylists } from '../../lib/store/queries/useStylists';
+import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2 } from 'lucide-react';
@@ -29,6 +30,20 @@ export default function Dashboard() {
         isEmployee && userStylistId ? userStylistId : 'all'
     );
     const { showToast } = useUIStore();
+    const { redirectToCheckout, isCheckoutLoading } = useStripeCheckout();
+
+    // Handle checkout return from Stripe
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const checkoutStatus = params.get('checkout');
+        if (checkoutStatus === 'success') {
+            showToast('🎉 ¡Pago exitoso! Tu plan se actualizará en segundos.', 'success');
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (checkoutStatus === 'cancel') {
+            showToast('Pago cancelado. Puedes intentar de nuevo cuando quieras.', 'error');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, []);
 
     // Optimize: only load last 12 months for dashboard metrics
     const startDate = useMemo(() => format(subMonths(new Date(), 12), 'yyyy-MM-01'), []);
@@ -543,14 +558,15 @@ export default function Dashboard() {
                             {hasLimit && (isNear || isFull) && (
                                 <div className="shrink-0">
                                     <button
-                                        onClick={() => window.open('/#precios', '_blank')}
-                                        className={`px-6 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl ${
+                                        onClick={() => redirectToCheckout('pro')}
+                                        disabled={isCheckoutLoading}
+                                        className={`px-6 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl disabled:opacity-50 disabled:cursor-wait ${
                                             isFull
                                                 ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-red-900/30 hover:brightness-110'
                                                 : 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-violet-900/30 hover:brightness-110'
                                         }`}
                                     >
-                                        {isFull ? '🔓 Desbloquear Citas' : '⭐ Actualizar a Pro'}
+                                        {isCheckoutLoading ? '⏳ Procesando...' : isFull ? '🔓 Desbloquear Citas' : '⭐ Actualizar a Pro'}
                                     </button>
                                 </div>
                             )}
