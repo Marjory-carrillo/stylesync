@@ -69,7 +69,7 @@ export default function Terms() {
 
                     <section>
                         <h2 className="text-xl font-bold text-white mb-3">4. Periodo de Prueba</h2>
-                        <p>Los negocios registrados durante la fase inicial de CitaLink pueden recibir un período de prueba gratuito de 30 días con acceso a todas las funciones del plan Pro. Al término del período de prueba, la cuenta pasa automáticamente al plan Free. No se requiere tarjeta de crédito para el período de prueba.</p>
+                        <p>Los negocios registrados durante la fase inicial de CitaLink pueden recibir un período de prueba gratuito de 21 días con acceso a todas las funciones del plan Pro. Al término del período de prueba, la cuenta pasa automáticamente al plan Free. No se requiere tarjeta de crédito para el período de prueba.</p>
                     </section>
 
                     <section>

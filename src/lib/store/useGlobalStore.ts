@@ -37,7 +37,7 @@ export const useGlobalStore = create<GlobalState>((set) => ({
                     config: {
                         basic_plan_price: 499.00,
                         premium_plan_price: 999.00,
-                        trial_days: 14,
+                        trial_days: 21,
                         maintenance_mode: false,
                         system_email: 'soporte@citalink.app'
                     }

@@ -748,7 +748,7 @@ export default function Landing() {
                 <div ref={s6.ref} className={`relative max-w-4xl mx-auto px-4 text-center transition-all duration-700 ${s6.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-medium mb-8">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        14 días gratis — Sin tarjeta de crédito
+                        21 días gratis — Sin tarjeta de crédito
                     </div>
                     <h2 className="text-5xl md:text-6xl font-black mb-6">
                         ¿Listo para llenar<br />
@@ -832,7 +832,7 @@ export default function Landing() {
                         </button>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2.5 bg-violet-500/10 rounded-xl border border-violet-500/20"><Sparkles className="w-5 h-5 text-violet-400" /></div>
-                            <h2 className="text-2xl font-black text-white">Prueba Gratis 14 Días</h2>
+                            <h2 className="text-2xl font-black text-white">Prueba Gratis 21 Días</h2>
                         </div>
                         <p className="text-slate-400 text-sm mb-8">Sin tarjeta de crédito. Te enviamos tus accesos en menos de 24 horas.</p>
 
