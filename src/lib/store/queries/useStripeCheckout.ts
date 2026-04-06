@@ -48,8 +48,9 @@ export function useStripeCheckout() {
                 throw new Error(data.error || 'Error creando sesión de pago');
             }
 
-            // Redirect to Stripe Checkout
-            window.location.href = data.url;
+            // Open Stripe Checkout in a new tab to preserve auth session
+            window.open(data.url, '_blank');
+            showToast('💳 Se abrió la página de pago en una nueva pestaña. Completa el pago ahí.', 'success');
 
         } catch (err: any) {
             console.error('[Stripe] Checkout error:', err);
