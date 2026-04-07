@@ -638,7 +638,14 @@ export default function Booking() {
 
         if (isUpdating) { handleUpdateTime(time); return; }
         setSelectedTime(time);
-        // Solo resalta la hora, el botón "Continuar" aparecerá en el UI
+        
+        // Auto-desplazar hacia abajo para asegurar que el botón "Continuar" sea visible
+        setTimeout(() => {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }, 150);
     };
 
     // Botón "Continuar" del Step 3: envía OTP y muestra banner WhatsApp
