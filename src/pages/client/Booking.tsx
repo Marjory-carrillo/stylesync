@@ -118,6 +118,11 @@ export default function Booking() {
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
     // const [cancelError, setCancelError] = useState<string | null>(null);
 
+    // Scroll to top when step changes so the layout header is fully visible
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [step]);
+
     // Dynamically update document head (title, apple title) and manifest for this tenant
     useEffect(() => {
         if (!businessConfig) return;
@@ -215,8 +220,8 @@ export default function Booking() {
                 background_color: brandColor,
                 theme_color: brandColor,
                 icons: [
-                    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
-                    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+                    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any" },
+                    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any" }
                 ]
             };
 
@@ -766,7 +771,7 @@ export default function Booking() {
     }
 
     return (
-        <div className="container animate-fade-in" style={{ maxWidth: '520px', paddingTop: 'var(--space-xl)', paddingBottom: '3rem' }}>
+        <div className="container animate-fade-in" style={{ maxWidth: '520px', paddingTop: 'max(4rem, env(safe-area-inset-top))', paddingBottom: '3rem', minHeight: '100vh' }}>
             <PWAInstallBanner businessName={businessConfig?.name || undefined} />
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
