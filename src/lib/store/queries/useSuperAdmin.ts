@@ -98,6 +98,22 @@ export function useSuperAdmin() {
                     );
                     const fnData = await fnRes.json();
                     accountCreated = fnData.success === true;
+                    
+                    // ✅ KEY FIX: Update tenant owner_id with the real user ID
+                    // so that the auth lookup by owner_id works correctly on login
+                    if (accountCreated && fnData.userId) {
+                        await supabase
+                            .from('tenants')
+                            .update({ owner_id: fnData.userId })
+                            .eq('id', data.id);
+                        // Also update tenant_users with the real user_id if column exists
+                        await supabase
+                            .from('tenant_users')
+                            .update({ user_id: fnData.userId })
+                            .eq('tenant_id', data.id)
+                            .eq('email', ownerEmail);
+                    }
+                    
                     if (!accountCreated) console.warn('create-owner:', fnData.error);
                 } catch (err) {
                     console.warn('No se pudo crear la cuenta del dueño:', err);
