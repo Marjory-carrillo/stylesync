@@ -799,23 +799,21 @@ export default function Dashboard() {
                 </div>
 
                 {/* ── Recordatorios WhatsApp enviados ── */}
-                {!isEmployee && (
-                    <div className="glass-panel p-6 rounded-[2rem] border border-emerald-500/10 flex items-center gap-5 group hover:border-emerald-500/25 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
-                        <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
-                        <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
-                            <MessageCircle size={26} />
-                        </div>
-                        <div className="relative z-10 w-full">
-                            <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Recordatorios enviados</p>
-                            {isLoading ? <Skeleton className="h-9 w-16" /> : (
-                                <>
-                                    <p className="text-3xl font-black text-emerald-400 tracking-tighter">{remindersSentCount}</p>
-                                    <p className="text-[10px] text-slate-600 font-bold mt-0.5 leading-tight">WhatsApp automático · citas de mañana</p>
-                                </>
-                            )}
-                        </div>
+                <div className="glass-panel p-6 rounded-[2rem] border border-emerald-500/10 flex items-center gap-5 group hover:border-emerald-500/25 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
+                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
+                        <MessageCircle size={26} />
                     </div>
-                )}
+                    <div className="relative z-10 w-full">
+                        <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Recordatorios enviados</p>
+                        {isLoading ? <Skeleton className="h-9 w-16" /> : (
+                            <>
+                                <p className="text-3xl font-black text-emerald-400 tracking-tighter">{remindersSentCount}</p>
+                                <p className="text-[10px] text-slate-600 font-bold mt-0.5 leading-tight">WhatsApp automático · citas de mañana</p>
+                            </>
+                        )}
+                    </div>
+                </div>
 
                 {!isEmployee && (
                     <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-emerald-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
