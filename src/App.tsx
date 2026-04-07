@@ -102,8 +102,31 @@ const AdminRoute = () => {
     return <Navigate to="/select-business" replace />;
   }
 
-  // Usuario normal sin tenant → onboarding crear negocio
-  if (!isSuperAdmin && !tenantId) return <Navigate to="/create-business" replace />;
+  // Usuario normal sin tenant → mostrar pantalla de espera (solo SuperAdmin crea negocios)
+  if (!isSuperAdmin && !tenantId) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'radial-gradient(ellipse at 20% 50%, #0f1921 0%, #050c11 100%)' }}>
+        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-3xl p-10 text-center backdrop-blur-sm shadow-2xl">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-4xl">
+            ⏳
+          </div>
+          <h2 className="text-2xl font-black text-white mb-3">Acceso Pendiente</h2>
+          <p className="text-slate-400 mb-6 leading-relaxed">
+            Tu cuenta (<span className="text-white font-semibold">{user?.email}</span>) está registrada pero aún no ha sido asignada a un negocio.
+          </p>
+          <p className="text-sm text-slate-500 mb-8">
+            Si eres dueño de un negocio, contacta al administrador de CitaLink. Si eres empleado, pide al dueño que te agregue desde <strong className="text-slate-300">Equipo y Permisos</strong>.
+          </p>
+          <button
+            onClick={() => { import('./lib/supabaseClient').then(m => m.supabase.auth.signOut()); }}
+            className="w-full py-3 px-6 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-semibold transition-all"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return <Outlet />;
 };
@@ -142,6 +165,12 @@ const OnboardingRoute = () => {
   }
 
   if (tenantId) return <Navigate to="/admin" replace />;
+
+  // Only SuperAdmin can access /create-business
+  // Regular users without tenant → redirect to /admin (will show "Acceso Pendiente")
+  if (!isSuperAdmin && window.location.pathname === '/create-business') {
+    return <Navigate to="/admin" replace />;
+  }
 
   return <Outlet />;
 };
