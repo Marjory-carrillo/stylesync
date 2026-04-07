@@ -59,11 +59,13 @@ export default function AdminLayout() {
         <div className="flex h-screen overflow-hidden bg-[var(--color-bg)] text-slate-200">
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--color-bg-secondary)] border-b border-white/10 z-[100] px-4 flex items-center justify-between">
-                <div className="relative flex items-center justify-center w-8 h-8">
-                    <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 rounded-full"></div>
-                    <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
-                </div>
-                <span className="font-bold text-white tracking-tight">Cita<span className="text-violet-500">Link</span> Admin</span>
+                <Link to="/admin" className="flex items-center gap-2" onClick={closeMobileMenu}>
+                    <div className="relative flex items-center justify-center w-8 h-8 group">
+                        <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
+                        <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
+                    </div>
+                    <span className="font-bold text-white tracking-tight">Cita<span className="text-violet-500">Link</span> Admin</span>
+                </Link>
                 <div className="flex items-center gap-2">
                     <NotificationBell
                         notifications={notifications}
@@ -106,7 +108,7 @@ export default function AdminLayout() {
                 lg:relative lg:translate-x-0 lg:m-4 lg:rounded-[2.5rem] lg:glass-panel lg:border-none lg:flex lg:flex-col
             `}>
                 <div className="p-6 flex items-center justify-between border-b border-white/5">
-                    <div className="flex items-center gap-3">
+                    <Link to="/admin" className="flex items-center gap-3" onClick={closeMobileMenu}>
                         <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer">
                             <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
                             <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
@@ -115,7 +117,7 @@ export default function AdminLayout() {
                             <h1 className="text-lg font-black tracking-tight text-white leading-none">Cita<span className="text-violet-500">Link</span></h1>
                             <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
                         </div>
-                    </div>
+                    </Link>
                     <button
                         className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-slate-500"
                         onClick={closeMobileMenu}
