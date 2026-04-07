@@ -639,12 +639,12 @@ export default function Booking() {
         if (isUpdating) { handleUpdateTime(time); return; }
         setSelectedTime(time);
         
-        // Auto-desplazar hacia abajo para asegurar que el botón "Continuar" sea visible
+        // Auto-desplazar lo necesario para que el botón "Continuar" sea visible sin ocultar el logo
         setTimeout(() => {
-            window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: 'smooth'
-            });
+            const btn = document.getElementById('continuar-action');
+            if (btn) {
+                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }, 150);
     };
 
@@ -1476,7 +1476,7 @@ export default function Booking() {
                         )}
 
                         {availableSlots.length > 0 && selectedTime && (
-                            <div className="mt-6 space-y-3 animate-slide-up">
+                            <div id="continuar-action" className="mt-6 space-y-3 animate-slide-up">
                                 {clientError && (
                                     <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm font-medium animate-pulse text-center mb-2">
                                         {clientError}
