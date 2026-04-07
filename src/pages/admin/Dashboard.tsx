@@ -66,19 +66,8 @@ export default function Dashboard() {
     const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
     const generateReminderWhatsAppUrl = useCallback((apt: any) => {
         const svc = services.find((s: any) => s.id === apt.serviceId);
-        const biz = tenantConfig || { name: 'CitaLink', address: '', googleMapsUrl: '', reminderTemplate: '' };
-        let msg = '';
-        if ((biz as any).reminderTemplate) {
-            msg = (biz as any).reminderTemplate
-                .replace(/\[NOMBRE\]/g, apt.clientName || '')
-                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
-                .replace(/\[FECHA\]/g, apt.date || '')
-                .replace(/\[HORA\]/g, apt.time || '')
-                .replace(/\[NEGOCIO\]/g, (biz as any).name || '')
-                .replace(/\[DIRECCION\]/g, (biz as any).address || '');
-        } else {
-            msg = `Hola *${apt.clientName}*, te recordamos tu cita manana en *${(biz as any).name}*: ${svc?.name ?? ''} a las ${apt.time}. ${(biz as any).address || ''}`;
-        }
+        const biz = tenantConfig || { name: 'CitaLink', address: '', googleMapsUrl: '' };
+        const msg = `Hola *${apt.clientName}*, te recordamos tu cita mañana en *${(biz as any).name}*: ${svc?.name ?? ''} a las ${apt.time}. ${(biz as any).address || ''}`;
         return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
     }, [services, tenantConfig]);
 

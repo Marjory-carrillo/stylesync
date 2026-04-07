@@ -39,8 +39,6 @@ export const useTenantData = (overrideTenantId?: string) => {
                 bookingDaysAhead: data.booking_days_ahead,
                 commissionsEnabled: data.commissions_enabled || false,
                 enableAddons: data.enable_addons || false,
-                confirmationTemplate: data.confirmation_template || '',
-                reminderTemplate: data.reminder_template || '',
                 showDashboardMetrics: data.show_dashboard_metrics ?? true,
                 breakBetweenAppointments: data.break_between_appointments || 0,
                 smsProvider: (data.sms_provider as 'demo' | 'whatsapp') || 'demo',
@@ -72,8 +70,7 @@ export const useTenantData = (overrideTenantId?: string) => {
             if (newData.bookingDaysAhead !== undefined) payload.booking_days_ahead = newData.bookingDaysAhead;
             if (newData.commissionsEnabled !== undefined) payload.commissions_enabled = newData.commissionsEnabled;
             if (newData.enableAddons !== undefined) payload.enable_addons = newData.enableAddons;
-            if (newData.confirmationTemplate !== undefined) payload.confirmation_template = newData.confirmationTemplate;
-            if (newData.reminderTemplate !== undefined) payload.reminder_template = newData.reminderTemplate;
+
             if (newData.showDashboardMetrics !== undefined) payload.show_dashboard_metrics = newData.showDashboardMetrics;
             if (newData.breakBetweenAppointments !== undefined) payload.break_between_appointments = newData.breakBetweenAppointments;
             if (newData.hideServicePrices !== undefined) payload.hide_service_prices = newData.hideServicePrices;

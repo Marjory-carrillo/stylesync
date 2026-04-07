@@ -95,8 +95,6 @@ export interface BusinessConfig {
     commissionsEnabled?: boolean;
     enableAddons?: boolean;
     weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
-    confirmationTemplate?: string;
-    reminderTemplate?: string;
     logoUrl?: string;
     description?: string;
     primaryColor?: string;

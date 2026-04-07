@@ -49,18 +49,7 @@ export default function Appointments() {
     const generateWhatsAppUrl = useCallback((apt: any) => {
         const svc = services.find(s => s.id === apt.serviceId);
         const biz = tenantConfig as any;
-        let msg = '';
-        if (biz?.confirmationTemplate) {
-            msg = biz.confirmationTemplate
-                .replace(/\[NOMBRE\]/g, apt.clientName || '')
-                .replace(/\[SERVICIO\]/g, svc?.name || 'el servicio')
-                .replace(/\[FECHA\]/g, apt.date || '')
-                .replace(/\[HORA\]/g, apt.time || '')
-                .replace(/\[NEGOCIO\]/g, biz?.name || '')
-                .replace(/\[DIRECCION\]/g, biz?.address || '');
-        } else {
-            msg = `Hola *${apt.clientName}*, tu cita en *${biz?.name ?? 'el negocio'}* ha sido confirmada para el ${apt.date} a las ${apt.time}. Servicio: ${svc?.name ?? 'N/A'}. Direccion: ${biz?.address ?? ''}. ${biz?.googleMapsUrl ?? ''}`;
-        }
+        const msg = `Hola *${apt.clientName}*, tu cita en *${biz?.name ?? 'el negocio'}* ha sido confirmada para el ${apt.date} a las ${apt.time}. Servicio: ${svc?.name ?? 'N/A'}. Direccion: ${biz?.address ?? ''}. ${biz?.googleMapsUrl ?? ''}`;
         return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
     }, [services, tenantConfig]);
 
