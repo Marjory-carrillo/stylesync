@@ -144,11 +144,9 @@ export default function Booking() {
                 canvas.height = size;
                 const ctx = canvas.getContext('2d')!;
 
-                // Fill background with brand color
+                // Base background solid fill (required for maskable icons)
                 ctx.fillStyle = brandColor;
-                ctx.beginPath();
-                ctx.roundRect(0, 0, size, size, size * 0.18);
-                ctx.fill();
+                ctx.fillRect(0, 0, size, size);
 
                 if (!logoUrl) {
                     // No logo — just show first letter
@@ -168,22 +166,21 @@ export default function Booking() {
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => {
-                    // Draw logo centered with 25% padding
-                    const padding = size * 0.2;
-                    const maxDim = size - padding * 2;
-                    const scale = Math.min(maxDim / img.width, maxDim / img.height);
-                    const w = img.width * scale;
-                    const h = img.height * scale;
-                    const x = (size - w) / 2;
-                    const y = (size - h) / 2;
+                    // Draw logo covering the entire canvas (object-fit: cover)
+                    // This matches the booking app header UI and works perfectly with Android maskable icons
+                    const scale = Math.max(size / img.width, size / img.height);
+                    const wCover = img.width * scale;
+                    const hCover = img.height * scale;
+                    const x = (size - wCover) / 2;
+                    const y = (size - hCover) / 2;
 
-                    // White circle behind logo for contrast
-                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-                    ctx.beginPath();
-                    ctx.arc(size / 2, size / 2, maxDim / 2 + padding * 0.15, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Fill with white first in case the image has transparency
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, size, size);
 
-                    ctx.drawImage(img, x, y, w, h);
+                    // Draw image scaled to cover
+                    ctx.drawImage(img, x, y, wCover, hCover);
+                    
                     canvas.toBlob((blob) => {
                         const url = URL.createObjectURL(blob!);
                         blobURLs.push(url);
