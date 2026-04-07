@@ -1056,7 +1056,7 @@ export default function Dashboard() {
                                             <div className="flex justify-between items-start mb-3">
                                                 <div>
                                                     <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
-                                                    <div className="text-[10px] font-bold text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded inline-block">{svc?.name?.toUpperCase() ?? 'SERVICIO'}</div>
+                                                    <div className="text-[10px] font-bold text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded inline-block">{svc?.name?.toUpperCase() ?? 'SERVICIO'} {appt.additionalServices?.length ? '+ ' + appt.additionalServices.join(' + ').toUpperCase() : ''}</div>
                                                 </div>
                                                 <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>
                                             </div>
@@ -1217,7 +1217,7 @@ export default function Dashboard() {
                                                     </div>
                                                     <div className="flex flex-wrap items-center gap-3">
                                                         <div className="flex items-center gap-2 text-[10px] font-black text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 uppercase tracking-tight">
-                                                            <Scissors size={12} className="text-accent" /> {svc?.name}
+                                                            <Scissors size={12} className="text-accent" /> {svc?.name} {appt.additionalServices?.length ? '+ ' + appt.additionalServices.join(' + ') : ''}
                                                         </div>
                                                         {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
                                                             <>
@@ -1374,7 +1374,7 @@ export default function Dashboard() {
                                                         <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
                                                     </div>
                                                     <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
-                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-emerald-500/60" /> {svc?.name}</div>
+                                                        <div className="flex items-center gap-1.5 uppercase"><Scissors size={12} className="text-emerald-500/60" /> {svc?.name} {appt.additionalServices?.length ? '+ ' + appt.additionalServices.join(' + ') : ''}</div>
                                                         {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
                                                             <>
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>

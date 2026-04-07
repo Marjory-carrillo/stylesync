@@ -547,7 +547,7 @@ export default function Appointments() {
                                                             <div className="flex flex-col gap-1.5 md:min-w-[180px] mt-2 md:mt-0">
                                                                 <div className="flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 w-fit">
                                                                     <Scissors size={12} className="text-accent" />
-                                                                    <span className="tracking-tight truncate max-w-[150px]">{service?.name}</span>
+                                                                    <span className="tracking-tight truncate max-w-[200px]">{service?.name} {apt.additionalServices?.length ? '+ ' + apt.additionalServices.join(' + ') : ''}</span>
                                                                 </div>
                                                                 <div className="flex flex-wrap items-center gap-2">
                                                                     <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 px-2 uppercase tracking-widest leading-none">
