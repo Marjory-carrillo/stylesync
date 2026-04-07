@@ -22,13 +22,25 @@ export default function Login() {
     const inviteEmail = searchParams.get('email');
     const invitePw = searchParams.get('pw');
 
+    const [isInviteFlow, setIsInviteFlow] = useState(!!inviteEmail && !!invitePw);
+
     // Pre-fill credentials from magic link redirect
     useEffect(() => {
         if (inviteEmail) setEmail(inviteEmail);
         if (invitePw) setPassword(invitePw);
     }, [inviteEmail, invitePw]);
 
+    // If arriving via magic link invite, sign out the auto-session
+    // so the user can see their credentials before logging in manually
     useEffect(() => {
+        if (inviteEmail && invitePw && user) {
+            supabase.auth.signOut();
+        }
+    }, []); // run once on mount
+
+    useEffect(() => {
+        // Don't auto-redirect if we're showing invite credentials
+        if (isInviteFlow) return;
         if (user) {
             if (isSuperAdmin) {
                 navigate('/super-admin');
@@ -36,12 +48,13 @@ export default function Login() {
                 navigate('/admin');
             }
         }
-    }, [user, isSuperAdmin, navigate]);
+    }, [user, isSuperAdmin, navigate, isInviteFlow]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+        setIsInviteFlow(false); // Allow redirect after manual login
 
         try {
             // Eliminar espacios y CUALQUIER caracter invisible o erróneo que los teclados móviles/autocompletar inyecten

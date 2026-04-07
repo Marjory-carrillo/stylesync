@@ -33,6 +33,10 @@ export function useSuperAdmin() {
             if (existing) throw new Error('Este link ya ha sido ocupado.');
 
             // 2. Create Tenant — if existingOwnerId, assign to that user; otherwise SuperAdmin is the technical creator
+            // Auto-assign 21-day trial for all new businesses
+            const trialEnd = new Date();
+            trialEnd.setDate(trialEnd.getDate() + 21);
+
             const insertPayload: any = {
                 name,
                 slug,
@@ -41,6 +45,7 @@ export function useSuperAdmin() {
                 owner_id: existingOwnerId || user.id,
                 timezone: timezone || 'America/Mexico_City',
                 sms_provider: 'whatsapp',
+                trial_ends_at: trialEnd.toISOString(),
             };
             if (brandSlug) insertPayload.brand_slug = brandSlug;
 

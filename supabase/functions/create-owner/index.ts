@@ -27,34 +27,45 @@ serve(async (req: Request) => {
             );
         }
 
-        const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL')!,
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-        );
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-        // SITE_URL must be set as an Edge Function secret in Supabase Dashboard
-        // Dashboard → Edge Functions → Secrets → SITE_URL = https://cita-link.vercel.app
-        const siteUrl = (Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://cita-link.vercel.app').replace(/\/$/, '');
+        // Admin client (for user creation)
+        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+        // Regular client (for sending magic link emails — signInWithOtp actually sends the email)
+        const supabaseClient = createClient(supabaseUrl, anonKey);
+
+        const siteUrl = (Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://www.citalink.app').replace(/\/$/, '');
+        const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`;
 
         // Check if user already exists
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
         const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
         if (existingUser) {
-            // User exists — update their password and send a magic link with credentials
+            // User exists — update their password
             const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
                 existingUser.id,
                 { password, email_confirm: true }
             );
             if (updateError) throw updateError;
 
-            // Generate magic link — Supabase SMTP sends this email
-            const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`;
-            await supabaseAdmin.auth.admin.generateLink({
-                type: 'magiclink',
+            // Send magic link email (signInWithOtp ACTUALLY sends the email via Supabase SMTP)
+            const { error: otpError } = await supabaseClient.auth.signInWithOtp({
                 email,
-                options: { redirectTo },
-            }).catch(e => console.warn('[create-owner] generateLink warn (existing):', e.message));
+                options: {
+                    shouldCreateUser: false,
+                    emailRedirectTo: redirectTo,
+                },
+            });
+
+            if (otpError) {
+                console.warn('[create-owner] signInWithOtp error (existing):', otpError.message);
+            } else {
+                console.log('[create-owner] ✅ Magic link email sent to existing user:', email);
+            }
 
             return new Response(
                 JSON.stringify({ success: true, userId: existingUser.id, isExisting: true }),
@@ -63,12 +74,10 @@ serve(async (req: Request) => {
         }
 
         // ── NEW USER ─────────────────────────────────────────────────────────
-        // Crear usuario directamente con email confirmado y contraseña lista.
-        // Esto evita el estado "invited" que impide el login con contraseña.
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            email_confirm: true,          // El usuario puede hacer login de inmediato
+            email_confirm: true,
             user_metadata: {
                 business_name: businessName || '',
                 business_slug: businessSlug || '',
@@ -85,21 +94,21 @@ serve(async (req: Request) => {
 
         console.log(`[create-owner] ✅ Created ${email} → ${newUser.user.id}`);
 
-        // Enviar magic link de bienvenida para que el dueño tenga acceso rápido
-        // El redirectTo lleva email y contraseña como params para que el login los prefille
-        const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`;
-        await supabaseAdmin.auth.admin.generateLink({
-            type: 'magiclink',
+        // Send magic link email to the new user
+        // signInWithOtp uses Supabase's built-in SMTP and ACTUALLY delivers the email
+        const { error: otpError } = await supabaseClient.auth.signInWithOtp({
             email,
-            options: { redirectTo },
-        }).then(({ data: linkData, error: linkError }) => {
-            if (linkError) {
-                console.warn('[create-owner] generateLink warn:', linkError.message);
-            } else {
-                console.log('[create-owner] Magic link generated for:', email);
-                // Nota: generateLink con email_confirm=true envía el email automáticamente vía SMTP de Supabase
-            }
-        }).catch(e => console.warn('[create-owner] generateLink exception:', e.message));
+            options: {
+                shouldCreateUser: false,  // user already exists
+                emailRedirectTo: redirectTo,
+            },
+        });
+
+        if (otpError) {
+            console.warn('[create-owner] signInWithOtp error (new):', otpError.message);
+        } else {
+            console.log('[create-owner] ✅ Magic link email sent to new user:', email);
+        }
 
         return new Response(
             JSON.stringify({ success: true, userId: newUser.user.id, isExisting: false }),

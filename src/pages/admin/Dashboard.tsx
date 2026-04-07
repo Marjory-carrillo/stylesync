@@ -449,10 +449,12 @@ export default function Dashboard() {
                 const isNear = hasLimit && pct >= 70;
                 const isFull = hasLimit && pct >= 100;
 
-                // Days remaining in month
+                // Days remaining — use trial end date if in trial, otherwise month
                 const now = new Date();
                 const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                const daysLeft = lastDay - now.getDate();
+                const daysLeft = inTrial && trialEndsAt
+                    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+                    : lastDay - now.getDate();
 
                 // Average daily rate
                 const dayOfMonth = now.getDate();
@@ -539,7 +541,7 @@ export default function Dashboard() {
                                                 {isFull ? '⚠️ Límite alcanzado' : `${limit - used} citas restantes`}
                                             </span>
                                             <span className="text-slate-600 text-xs font-medium">
-                                                {daysLeft} días restantes en el mes
+                                                {daysLeft} días restantes {inTrial ? 'de Trial' : 'en el mes'}
                                             </span>
                                             {!isFull && projected > limit && (
                                                 <span className="text-amber-500/80 text-xs font-bold">
@@ -554,7 +556,7 @@ export default function Dashboard() {
                                             <span className="text-violet-400 font-black">{used}</span> citas completadas
                                         </span>
                                         <span className="text-slate-600 text-xs font-medium">
-                                            {daysLeft} días restantes · Citas ilimitadas ✨
+                                            {daysLeft} días de Trial restantes · Citas ilimitadas ✨
                                         </span>
                                     </div>
                                 )}
