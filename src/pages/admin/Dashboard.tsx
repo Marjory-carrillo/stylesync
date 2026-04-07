@@ -785,9 +785,8 @@ export default function Dashboard() {
             </div>
 
             {/* ── Top Stats Grid ── */}
-            {(businessConfig as any).showDashboardMetrics !== false && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-500/5 blur-2xl rounded-full group-hover:bg-blue-500/10 transition-all duration-700"></div>
                     <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
                         <Calendar size={26} />
@@ -815,7 +814,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {!isEmployee && (
+                {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
                     <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-emerald-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
                         <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
                         <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
@@ -891,7 +890,7 @@ export default function Dashboard() {
                     )}
                 </div>
 
-                {!isEmployee && (
+                {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
                     <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
                         <div className="absolute -left-4 -top-4 w-20 h-20 bg-pink-500/5 blur-2xl rounded-full group-hover:bg-pink-500/10 transition-all duration-700"></div>
                         <div className="flex items-center gap-4 relative z-10 mb-4">
@@ -915,7 +914,6 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
-            )}
 
             {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
