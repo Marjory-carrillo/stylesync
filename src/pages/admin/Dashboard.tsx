@@ -16,10 +16,12 @@ import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 
 export default function Dashboard() {
+    const navigate = useNavigate();
     const { t } = useTranslation();
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
     const [tomorrowOpen, setTomorrowOpen] = useState(false);
@@ -64,12 +66,7 @@ export default function Dashboard() {
 
     const { cancellationLog } = useCancellationLog();
     const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
-    const generateReminderWhatsAppUrl = useCallback((apt: any) => {
-        const svc = services.find((s: any) => s.id === apt.serviceId);
-        const biz = tenantConfig || { name: 'CitaLink', address: '', googleMapsUrl: '' };
-        const msg = `Hola *${apt.clientName}*, te recordamos tu cita mañana en *${(biz as any).name}*: ${svc?.name ?? ''} a las ${apt.time}. ${(biz as any).address || ''}`;
-        return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-    }, [services, tenantConfig]);
+
 
     const appointments = useMemo(() => {
         if (userRole === 'employee' && userStylistId) {
@@ -1043,7 +1040,6 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {tomorrowAppts.map(appt => {
                                     const svc = getServiceById(appt.serviceId);
-                                    const waUrl = generateReminderWhatsAppUrl(appt);
                                     const needsReminder = reminders.some(r => r.id === appt.id);
                                     const [h, m] = appt.time.split(':');
                                     let hh = parseInt(h);
@@ -1067,14 +1063,12 @@ export default function Dashboard() {
                                                     <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
                                                 )}
                                             </div>
-                                            <a
-                                                href={waUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="btn btn-primary w-full py-2 text-xs gap-2"
+                                            <button
+                                                onClick={() => navigate('/admin/appointments')}
+                                                className="w-full py-2.5 text-xs gap-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 hover:text-white border border-white/5 hover:border-white/10 transition-all flex items-center justify-center font-bold"
                                             >
-                                                <MessageCircle size={14} /> WhatsApp
-                                            </a>
+                                                <Calendar size={14} className="opacity-70" /> Gestionar Cita
+                                            </button>
                                         </div>
                                     );
                                 })}
