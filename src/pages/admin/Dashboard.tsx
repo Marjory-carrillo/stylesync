@@ -8,9 +8,11 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useStylists } from '../../lib/store/queries/useStylists';
+import { useSchedule } from '../../lib/store/queries/useSchedule';
 import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
+import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2 } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -54,6 +56,7 @@ export default function Dashboard() {
     const { waitingList, addToWaitingList, removeFromWaitingList } = useWaitingList();
     const { stylists } = useStylists();
     const { data: tenantConfig } = useTenantData();
+    const { schedule } = useSchedule();
     const businessConfig = tenantConfig || { slug: '', brandSlug: '' };
     const tenantPlan = (tenantConfig as any)?.plan || 'free';
     const trialEndsAt = (tenantConfig as any)?.trialEndsAt || null;
@@ -325,6 +328,17 @@ export default function Dashboard() {
                     <span className="capitalize">{new Date().toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 </div>
             </header>
+
+            {/* ── Onboarding Checklist (solo admin, desaparece cuando todo está completo) ── */}
+            {!isEmployee && tenantConfig && (
+                <OnboardingChecklist
+                    tenantId={useAuthStore.getState().tenantId || ''}
+                    stylists={stylists}
+                    services={services}
+                    tenantConfig={tenantConfig}
+                    schedule={schedule}
+                />
+            )}
 
             {/* ── Client App Link Banner ── */}
             <div className={`relative overflow-hidden rounded-[2.5rem] border p-8 md:p-12 shadow-2xl mb-12 group transition-all duration-500 ${
