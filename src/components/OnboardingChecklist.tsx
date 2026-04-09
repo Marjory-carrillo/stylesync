@@ -56,24 +56,43 @@ export function OnboardingChecklist({
             ? Object.values(schedule as Record<string, { open: boolean }>).some((d) => d.open)
             : false;
 
+        // Detect if items were manually created (not auto-seeded on tenant creation)
+        // Auto-seeded items are created within the first 3 minutes of the tenant
+        const tenantCreatedAt = tenantConfig?.createdAt ? new Date(tenantConfig.createdAt).getTime() : 0;
+        const AUTO_SEED_WINDOW_MS = 3 * 60 * 1000; // 3 minutes
+
+        const hasRealStylist = stylists.some((s) => {
+            if (!s.created_at) return true; // no timestamp = treat as real
+            const diff = new Date(s.created_at).getTime() - tenantCreatedAt;
+            return diff > AUTO_SEED_WINDOW_MS;
+        });
+
+        const hasRealService = services.some((s) => {
+            if (!s.created_at) return true;
+            const diff = new Date(s.created_at).getTime() - tenantCreatedAt;
+            return diff > AUTO_SEED_WINDOW_MS;
+        });
+
+        const hasStylistPhoto = stylists.some((s) => !!s.photo_url);
+
         return [
             {
                 id: 'stylist',
                 icon: Scissors,
-                label: 'Agrega tu primer estilista',
+                label: 'Agrega tu primer profesional',
                 description: 'Crea al menos un miembro del equipo.',
-                route: '/admin/team',
-                done: stylists.length > 0,
+                route: '/admin/staff',
+                done: hasRealStylist,
                 color: 'from-violet-500 to-purple-600',
                 glow: 'shadow-violet-500/25',
             },
             {
                 id: 'photo',
                 icon: Camera,
-                label: 'Sube la foto del estilista',
+                label: 'Sube la foto del profesional',
                 description: 'Genera confianza con una foto de perfil.',
-                route: '/admin/team',
-                done: stylists.some((s) => !!s.photo_url),
+                route: '/admin/staff',
+                done: hasStylistPhoto,
                 color: 'from-pink-500 to-rose-600',
                 glow: 'shadow-pink-500/25',
             },
@@ -93,7 +112,7 @@ export function OnboardingChecklist({
                 label: 'Configura tus servicios',
                 description: 'Agrega servicios y precios.',
                 route: '/admin/services',
-                done: services.length > 0,
+                done: hasRealService,
                 color: 'from-cyan-400 to-blue-500',
                 glow: 'shadow-cyan-500/25',
             },
@@ -112,7 +131,7 @@ export function OnboardingChecklist({
                 icon: ImageIcon,
                 label: 'Sube el logo',
                 description: 'Tu logo en la app de clientes.',
-                route: '/admin/branding',
+                route: '/admin/settings',
                 done: !!tenantConfig?.logoUrl,
                 color: 'from-indigo-400 to-violet-500',
                 glow: 'shadow-indigo-500/25',
