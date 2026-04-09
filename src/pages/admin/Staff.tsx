@@ -107,7 +107,7 @@ export default function Staff() {
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('¿Estás seguro de eliminar a este miembro del equipo?')) {
+        if (confirm('¿Estás seguro de eliminar a este profesional?')) {
             await removeStylist(id);
         }
     };
@@ -117,7 +117,7 @@ export default function Staff() {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                        Equipo
+                        Profesionales
                         {isLoading && <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>}
                         {inTrial ? (
                             <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
@@ -130,7 +130,7 @@ export default function Staff() {
                         )}
                     </h2>
                     <p className="text-sm text-muted flex items-center gap-2 mt-1">
-                        Gestiona a tus estilistas y personal.
+                        Gestiona a tus profesionales y personal.
                         {!inTrial && (
                             <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
                                 {stylists.length}/{limits.canExpandEmployees ? '∞' : limits.maxEmployeesPerBranch}
@@ -139,7 +139,7 @@ export default function Staff() {
                     </p>
                 </div>
                 <button className="btn btn-primary" onClick={openAdd}>
-                    <Plus size={20} /> <span className="hidden md:inline">Nuevo Miembro</span>
+                    <Plus size={20} /> <span className="hidden md:inline">Nuevo Profesional</span>
                 </button>
             </div>
 
@@ -189,7 +189,7 @@ export default function Staff() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
                     <div className="glass-panel w-full max-w-md p-6 rounded-xl animate-fade-in" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-white">{editingId ? 'Editar' : 'Nuevo'} Miembro</h3>
+                            <h3 className="text-xl font-bold text-white">{editingId ? 'Editar' : 'Nuevo'} Profesional</h3>
                             <button className="text-muted hover:text-white" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
                         </div>
 
@@ -217,7 +217,7 @@ export default function Staff() {
                                     type="text"
                                     value={formRole}
                                     onChange={e => setFormRole(e.target.value)}
-                                    placeholder="Ej: Estilista Senior"
+                                    placeholder="Ej: Barbero Senior"
                                     className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
                                 />
                             </div>
