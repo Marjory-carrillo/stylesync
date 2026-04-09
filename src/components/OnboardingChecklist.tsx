@@ -52,8 +52,22 @@ export function OnboardingChecklist({
     }, [dismissKey]);
 
     const tasks: Task[] = useMemo(() => {
+        // Compare against the known default schedule to detect if admin actually customized it
+        const DEFAULT_SCHEDULE = {
+            monday:    { open: true,  start: '09:00', end: '18:00' },
+            tuesday:   { open: true,  start: '09:00', end: '18:00' },
+            wednesday: { open: true,  start: '09:00', end: '18:00' },
+            thursday:  { open: true,  start: '09:00', end: '18:00' },
+            friday:    { open: true,  start: '09:00', end: '18:00' },
+            saturday:  { open: true,  start: '09:00', end: '14:00' },
+            sunday:    { open: false, start: '09:00', end: '14:00' },
+        };
         const hasScheduleCustomized = schedule
-            ? Object.values(schedule as Record<string, { open: boolean }>).some((d) => d.open)
+            ? Object.entries(DEFAULT_SCHEDULE).some(([day, def]) => {
+                const actual = (schedule as any)[day];
+                if (!actual) return false;
+                return actual.open !== def.open || actual.start !== def.start || actual.end !== def.end;
+            })
             : false;
 
         // Detect if items were manually created (not auto-seeded on tenant creation)
