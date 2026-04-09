@@ -87,7 +87,7 @@ export function OnboardingChecklist({
             return diff > AUTO_SEED_WINDOW_MS;
         });
 
-        const hasStylistPhoto = stylists.some((s) => !!s.photo_url);
+        const hasStylistPhoto = stylists.some((s) => !!(s.image || s.photo_url));
 
         return [
             {
