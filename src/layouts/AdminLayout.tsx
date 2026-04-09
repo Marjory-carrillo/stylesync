@@ -10,6 +10,7 @@ import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, L
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
+import PWAInstallBanner from '../components/PWAInstallBanner';
 
 export default function AdminLayout() {
     const { t, i18n } = useTranslation();
@@ -241,6 +242,7 @@ export default function AdminLayout() {
                 <div className="relative z-10 p-4 md:p-8 container mx-auto max-w-7xl">
                     <Outlet />
                 </div>
+                <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />
             </main>
 
             {/* Logout Modal */}
