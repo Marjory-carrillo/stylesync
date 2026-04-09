@@ -303,7 +303,7 @@ export default function AdminLayout() {
                     <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--color-primary)]/10 blur-[120px]"></div>
                 </div>
 
-                <div className="relative z-10 p-4 md:p-8 container mx-auto max-w-7xl pb-32 lg:pb-8">
+                <div className="relative z-10 p-4 md:p-8 container mx-auto max-w-7xl pb-32">
                     <Outlet />
                 </div>
                 <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />
