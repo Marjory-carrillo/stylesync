@@ -16,6 +16,19 @@ const TEMPLATE_CLIENTE_REPROGRAMACION = 'HX197821733621547516ac219bf561c65e';
 // Fallback (confirmacion_v2) — se usa si el template específico falla
 const TEMPLATE_FALLBACK = 'HXc86774c877ad719610460e035b8c7fd3';
 
+function formatDateTime(date: string, time: string, timezone = 'America/Mexico_City'): string {
+    const days   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const d = new Date(`${date}T${time}`);
+    const parts = new Intl.DateTimeFormat('es-MX', {
+        timeZone: timezone,
+        weekday: 'long', day: 'numeric', month: 'long',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(d);
+    const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
+    return `${days[d.getDay()]} ${get('day')} de ${months[d.getMonth()]} a las ${time.slice(0,5)}`;
+}
+
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -126,16 +139,17 @@ serve(async (req: Request) => {
         const adminWA = normalizeToWA(adminPhone);
         console.log('[notify-admin] sending to admin WA:', adminWA);
 
-        // Formateado combinado de fecha+hora para plantilla {{4}}
-        const days_   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-        const months_ = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-        const formatDTAdmin = (date: string, time: string) => {
-            const d = new Date(`${date}T${time}`);
-            return `${days_[d.getDay()]} ${d.getDate()} de ${months_[d.getMonth()]} a las ${time.slice(0,5)}`;
-        };
-        const fechaAdmin = formatDTAdmin(appointment.date, appointment.time);
+        // Obtener timezone del tenant para formateo correcto
+        const { data: tenantTz } = await supabaseLog
+            .from('tenants')
+            .select('timezone')
+            .eq('id', tenant_id ?? '')
+            .single()
+            .catch(() => ({ data: null }));
+        const tZone = tenantTz?.timezone || 'America/Mexico_City';
 
         // ── Notificar al admin ──────────────────────────────────────────────────
+        const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
         const adminTemplateMap: Record<string, string> = {
             new:        TEMPLATE_ADMIN_NUEVA_CITA,
             reschedule: TEMPLATE_ADMIN_REPROGRAMACION,
@@ -186,15 +200,7 @@ serve(async (req: Request) => {
         let clientSent = false;
 
         if (appointment.client_phone) {
-            const days   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-            const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-
-            const formatDT = (date: string, time: string) => {
-                const d = new Date(`${date}T${time}`);
-                return `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} a las ${time.slice(0,5)}`;
-            };
-
-            const fechaFormateada = formatDT(appointment.date, appointment.time);
+            const fechaFormateada = formatDateTime(appointment.date, appointment.time, tZone);
 
             if (event_type === 'new') {
                 // El cliente YA recibió confirmación+OTP vía verify-otp al elegir hora

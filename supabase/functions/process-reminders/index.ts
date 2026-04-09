@@ -17,9 +17,10 @@ const corsHeaders = {
 
 function normalizeToWA(phone: string): string {
     const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('521') && digits.length === 13) return `whatsapp:+${digits}`;
-    if (digits.startsWith('52') && digits.length === 12) return `whatsapp:+521${digits.slice(2)}`;
-    return `whatsapp:+521${digits.slice(-10)}`;
+    // Siempre enviamos con +52 sin el 1 intermedio (WhatsApp México)
+    if (digits.startsWith('521') && digits.length === 13) return `whatsapp:+52${digits.slice(3)}`;
+    if (digits.startsWith('52') && digits.length === 12) return `whatsapp:+${digits}`;
+    return `whatsapp:+52${digits.slice(-10)}`;
 }
 
 /** Envía mensaje usando una plantilla aprobada por Meta (ContentSid) */
@@ -51,11 +52,21 @@ async function sendTemplate(
     return res.ok;
 }
 
-function formatDateTime(date: string, time: string): string {
+function formatDateTime(date: string, time: string, timezone = 'America/Mexico_City'): string {
     const days   = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    // Parsear en la zona horaria del negocio para evitar desfase UTC
     const d = new Date(`${date}T${time}`);
-    return `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} a las ${time.slice(0,5)}`;
+    const parts = new Intl.DateTimeFormat('es-MX', {
+        timeZone: timezone,
+        weekday: 'long', day: 'numeric', month: 'long',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(d);
+    const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
+    const dayName  = days[d.getDay()];
+    const dayNum   = get('day');
+    const monthNum = d.getMonth();
+    return `${dayName} ${dayNum} de ${months[monthNum]} a las ${time.slice(0,5)}`;
 }
 
 /**
@@ -209,7 +220,7 @@ serve(async (req: Request) => {
             const ok = await sendTemplate(appt.client_phone, TEMPLATE_RECORDATORIO, {
                 '1': appt.client_name ?? 'Cliente',
                 '2': tenant.name ?? 'el negocio',
-                '3': formatDateTime(appt.date, appt.time),
+                '3': formatDateTime(appt.date, appt.time, tZone),
                 '4': serviceName,
             });
 

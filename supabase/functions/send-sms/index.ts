@@ -63,12 +63,13 @@ serve(async (req: Request) => {
         if (provider === 'whatsapp') {
             const digits = to.replace(/\D/g, '');
             let e164: string;
+            // Siempre +52 sin el 1 intermedio (WhatsApp México)
             if (digits.startsWith('521') && digits.length === 13) {
-                e164 = `+${digits}`;
+                e164 = `+52${digits.slice(3)}`;
             } else if (digits.startsWith('52') && digits.length === 12) {
-                e164 = `+521${digits.slice(2)}`;
+                e164 = `+${digits}`;
             } else {
-                e164 = `+521${digits.slice(-10)}`;
+                e164 = `+52${digits.slice(-10)}`;
             }
             const waTo = `whatsapp:${e164}`;
 
