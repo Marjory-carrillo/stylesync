@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     CheckCircle2,
-    Circle,
-    ChevronRight,
     Scissors,
     Camera,
     Clock,
@@ -12,6 +10,7 @@ import {
     ImageIcon,
     X,
     Rocket,
+    ArrowRight,
 } from 'lucide-react';
 
 interface OnboardingChecklistProps {
@@ -24,11 +23,13 @@ interface OnboardingChecklistProps {
 
 interface Task {
     id: string;
-    icon: React.ReactNode;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     label: string;
     description: string;
     route: string;
     done: boolean;
+    color: string;
+    glow: string;
 }
 
 export function OnboardingChecklist({
@@ -46,8 +47,7 @@ export function OnboardingChecklist({
 
     useEffect(() => {
         setDismissed(!!localStorage.getItem(dismissKey));
-        // mount animation
-        const t = setTimeout(() => setMounted(true), 50);
+        const t = setTimeout(() => setMounted(true), 80);
         return () => clearTimeout(t);
     }, [dismissKey]);
 
@@ -59,51 +59,63 @@ export function OnboardingChecklist({
         return [
             {
                 id: 'stylist',
-                icon: <Scissors size={16} />,
+                icon: Scissors,
                 label: 'Agrega tu primer estilista',
-                description: 'Crea al menos un miembro del equipo para que los clientes puedan agendar.',
+                description: 'Crea al menos un miembro del equipo.',
                 route: '/admin/team',
                 done: stylists.length > 0,
+                color: 'from-violet-500 to-purple-600',
+                glow: 'shadow-violet-500/25',
             },
             {
                 id: 'photo',
-                icon: <Camera size={16} />,
+                icon: Camera,
                 label: 'Sube la foto del estilista',
-                description: 'Una foto genera más confianza en tus clientes al reservar.',
+                description: 'Genera confianza con una foto de perfil.',
                 route: '/admin/team',
                 done: stylists.some((s) => !!s.photo_url),
+                color: 'from-pink-500 to-rose-600',
+                glow: 'shadow-pink-500/25',
             },
             {
                 id: 'schedule',
-                icon: <Clock size={16} />,
+                icon: Clock,
                 label: 'Personaliza tu horario',
-                description: 'Define los días y horas en que aceptas citas.',
+                description: 'Define días y horas disponibles.',
                 route: '/admin/settings',
                 done: hasScheduleCustomized,
+                color: 'from-amber-400 to-orange-500',
+                glow: 'shadow-amber-500/25',
             },
             {
                 id: 'services',
-                icon: <Sparkles size={16} />,
+                icon: Sparkles,
                 label: 'Configura tus servicios',
-                description: 'Agrega los servicios y precios que ofreces.',
+                description: 'Agrega servicios y precios.',
                 route: '/admin/services',
                 done: services.length > 0,
+                color: 'from-cyan-400 to-blue-500',
+                glow: 'shadow-cyan-500/25',
             },
             {
                 id: 'info',
-                icon: <Building2 size={16} />,
-                label: 'Completa la información del negocio',
-                description: 'Dirección y teléfono para que tus clientes te encuentren.',
+                icon: Building2,
+                label: 'Info del negocio',
+                description: 'Dirección y teléfono de contacto.',
                 route: '/admin/settings',
                 done: !!(tenantConfig?.address && tenantConfig?.phone),
+                color: 'from-emerald-400 to-teal-500',
+                glow: 'shadow-emerald-500/25',
             },
             {
                 id: 'logo',
-                icon: <ImageIcon size={16} />,
-                label: 'Sube el logo de tu negocio',
-                description: 'Tu logo aparece en la app de reservas que ven tus clientes.',
+                icon: ImageIcon,
+                label: 'Sube el logo',
+                description: 'Tu logo en la app de clientes.',
                 route: '/admin/branding',
                 done: !!tenantConfig?.logoUrl,
+                color: 'from-indigo-400 to-violet-500',
+                glow: 'shadow-indigo-500/25',
             },
         ];
     }, [stylists, services, tenantConfig, schedule]);
@@ -113,10 +125,9 @@ export function OnboardingChecklist({
     const progressPct = Math.round((completedCount / totalCount) * 100);
     const allDone = completedCount === totalCount;
 
-    // Auto-dismiss when all tasks complete
     useEffect(() => {
         if (allDone && !dismissed) {
-            const t = setTimeout(() => handleDismiss(), 2000);
+            const t = setTimeout(() => handleDismiss(), 2500);
             return () => clearTimeout(t);
         }
     }, [allDone, dismissed]);
@@ -126,99 +137,158 @@ export function OnboardingChecklist({
         setTimeout(() => {
             localStorage.setItem(dismissKey, '1');
             setDismissed(true);
-        }, 400);
+        }, 500);
     };
 
     if (dismissed) return null;
 
     return (
         <div
-            className={`relative overflow-hidden rounded-[2rem] border border-white/10 p-6 md:p-8 mb-8 shadow-2xl transition-all duration-500 ease-in-out
-                ${mounted && !leaving ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
-                ${leaving ? 'opacity-0 scale-95 pointer-events-none' : ''}
-                bg-gradient-to-br from-violet-600/10 via-[#0f172a] to-cyan-600/5`}
+            className={`relative mb-8 transition-all duration-500 ease-out
+                ${mounted && !leaving ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-6'}
+                ${leaving ? 'opacity-0 scale-95 pointer-events-none' : ''}`}
         >
-            {/* Ambient glow */}
-            <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-violet-600/10 blur-[80px] pointer-events-none" />
+            {/* Main card */}
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[#0c1428]">
 
-            {/* Header */}
-            <div className="relative z-10 flex items-start justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center shrink-0">
-                        <Rocket size={20} className="text-violet-400" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-black text-white tracking-tight">
-                            {allDone ? '🎉 ¡Todo listo!' : 'Configura tu negocio'}
-                        </h2>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            {allDone
-                                ? 'Tu negocio está listo para recibir citas.'
-                                : `${completedCount} de ${totalCount} pasos completados`}
-                        </p>
-                    </div>
-                </div>
-                <button
-                    onClick={handleDismiss}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-all shrink-0"
-                    title="Descartar"
-                >
-                    <X size={16} />
-                </button>
-            </div>
-
-            {/* Progress bar */}
-            <div className="relative z-10 mb-6">
-                <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[11px] text-slate-500 uppercase tracking-widest font-bold">Progreso</span>
-                    <span className="text-[11px] font-black text-violet-400">{progressPct}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden border border-white/5">
+                {/* Gradient header strip */}
+                <div className="relative h-2 w-full overflow-hidden bg-white/5">
                     <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 transition-all duration-700 ease-out"
+                        className="h-full bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-400 transition-all duration-1000 ease-out"
                         style={{ width: `${progressPct}%` }}
                     />
                 </div>
-            </div>
 
-            {/* Tasks grid */}
-            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {tasks.map((task) => (
-                    <button
-                        key={task.id}
-                        onClick={() => !task.done && navigate(task.route)}
-                        disabled={task.done}
-                        className={`group flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all duration-200 w-full
-                            ${task.done
-                                ? 'bg-emerald-500/5 border-emerald-500/15 cursor-default'
-                                : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07] hover:border-violet-500/30 active:scale-[0.98] cursor-pointer'
-                            }`}
-                    >
-                        {/* Check icon */}
-                        <div className={`shrink-0 transition-all duration-300 ${task.done ? 'text-emerald-400 scale-110' : 'text-slate-600'}`}>
-                            {task.done
-                                ? <CheckCircle2 size={20} />
-                                : <Circle size={20} />
-                            }
-                        </div>
+                {/* Ambient blobs */}
+                <div className="absolute top-4 right-8 w-56 h-56 rounded-full bg-violet-600/8 blur-[80px] pointer-events-none" />
+                <div className="absolute bottom-0 left-16 w-40 h-40 rounded-full bg-cyan-500/6 blur-[60px] pointer-events-none" />
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                            <div className={`text-sm font-semibold leading-tight transition-colors duration-200 truncate
-                                ${task.done ? 'text-slate-500 line-through decoration-slate-600' : 'text-slate-200 group-hover:text-white'}`}>
-                                {task.label}
+                <div className="relative z-10 p-6 md:p-8">
+
+                    {/* ── Header ── */}
+                    <div className="flex items-start justify-between gap-4 mb-7">
+                        <div className="flex items-center gap-4">
+                            {/* Animated rocket icon */}
+                            <div className="relative w-12 h-12 shrink-0">
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/30 to-cyan-500/20 blur-md" />
+                                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-600/10 border border-violet-500/20 flex items-center justify-center">
+                                    <Rocket size={22} className={`text-violet-400 ${allDone ? '' : 'animate-bounce'}`} />
+                                </div>
                             </div>
-                            {!task.done && (
-                                <div className="text-[11px] text-slate-500 mt-0.5 truncate">{task.description}</div>
-                            )}
+                            <div>
+                                <h2 className="text-xl font-black text-white tracking-tight">
+                                    {allDone ? '🎉 ¡Todo configurado!' : 'Configura tu negocio'}
+                                </h2>
+                                <p className="text-sm text-slate-400 mt-0.5">
+                                    {allDone
+                                        ? 'Tu negocio está listo para recibir citas.'
+                                        : `${completedCount} de ${totalCount} pasos •`}
+                                    {!allDone && (
+                                        <span className="ml-1 font-bold text-violet-400">{progressPct}% completado</span>
+                                    )}
+                                </p>
+                            </div>
                         </div>
+                        <button
+                            onClick={handleDismiss}
+                            className="p-2 rounded-xl text-slate-600 hover:text-slate-300 hover:bg-white/[0.06] transition-all duration-200 shrink-0 mt-0.5"
+                            title="Descartar"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
 
-                        {/* Arrow */}
-                        {!task.done && (
-                            <ChevronRight size={14} className="shrink-0 text-slate-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all duration-200" />
-                        )}
-                    </button>
-                ))}
+                    {/* ── Tasks grid ── */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {tasks.map((task, idx) => {
+                            const Icon = task.icon;
+                            return (
+                                <button
+                                    key={task.id}
+                                    onClick={() => !task.done && navigate(task.route)}
+                                    disabled={task.done}
+                                    className={`group relative text-left rounded-2xl border overflow-hidden transition-all duration-300 w-full
+                                        ${task.done
+                                            ? 'bg-emerald-500/[0.06] border-emerald-500/20 cursor-default'
+                                            : 'bg-white/[0.03] border-white/[0.07] hover:border-white/20 hover:bg-white/[0.06] active:scale-[0.98] cursor-pointer hover:shadow-lg hover:shadow-black/20'
+                                        }`}
+                                >
+                                    {/* Subtle top-left glow when pending */}
+                                    {!task.done && (
+                                        <div className={`absolute -top-4 -left-4 w-16 h-16 rounded-full bg-gradient-to-br ${task.color} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity`} />
+                                    )}
+
+                                    <div className="relative p-4">
+                                        <div className="flex items-start justify-between gap-3 mb-3">
+                                            {/* Step number + icon */}
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300
+                                                ${task.done
+                                                    ? 'bg-emerald-500/15 border border-emerald-500/20'
+                                                    : `bg-gradient-to-br ${task.color} opacity-90 shadow-lg ${task.glow}`
+                                                }`}
+                                            >
+                                                {task.done
+                                                    ? <CheckCircle2 size={18} className="text-emerald-400" />
+                                                    : <Icon size={16} className="text-white" />
+                                                }
+                                            </div>
+
+                                            {/* Step counter badge */}
+                                            <span className={`text-[10px] font-black tabular-nums px-2 py-0.5 rounded-full border transition-colors
+                                                ${task.done
+                                                    ? 'text-emerald-500/60 border-emerald-500/10 bg-emerald-500/5'
+                                                    : 'text-slate-600 border-white/[0.06] bg-white/[0.03]'
+                                                }`}>
+                                                {String(idx + 1).padStart(2, '0')}
+                                            </span>
+                                        </div>
+
+                                        <div className={`text-sm font-bold leading-tight mb-1 transition-colors
+                                            ${task.done ? 'text-slate-500' : 'text-slate-200 group-hover:text-white'}`}>
+                                            {task.label}
+                                        </div>
+                                        <div className={`text-[11px] leading-relaxed transition-colors
+                                            ${task.done ? 'text-slate-700' : 'text-slate-500 group-hover:text-slate-400'}`}>
+                                            {task.description}
+                                        </div>
+
+                                        {/* Action hint */}
+                                        {!task.done && (
+                                            <div className="flex items-center gap-1 mt-3 text-[10px] font-bold text-slate-600 group-hover:text-violet-400 transition-colors">
+                                                <span>Configurar</span>
+                                                <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* ── Footer progress ── */}
+                    {!allDone && (
+                        <div className="mt-6 pt-5 border-t border-white/[0.05] flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {tasks.map((t) => (
+                                    <div
+                                        key={t.id}
+                                        className={`h-1.5 rounded-full transition-all duration-500 ${
+                                            t.done
+                                                ? 'w-6 bg-gradient-to-r from-emerald-400 to-teal-400'
+                                                : 'w-4 bg-white/10'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                            <button
+                                onClick={handleDismiss}
+                                className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors whitespace-nowrap font-medium"
+                            >
+                                Descartar guía
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
