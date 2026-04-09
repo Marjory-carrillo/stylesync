@@ -141,18 +141,15 @@ export default function Booking() {
         const logoUrl = businessConfig.logoUrl;
         const brandColor = businessConfig.primaryColor || '#7c3aed';
 
-        // Genera un ícono en canvas: fondo de color del negocio + logo centrado con padding
-        // Esto hace que el ícono se vea como una app real (recuadro lleno de color)
+        // Genera un ícono en canvas para la PWA
+        // Con logo: fondo blanco + logo llenando todo el cuadro (el OS pone esquinas redondeadas)
+        // Sin logo: fondo del color del negocio + inicial en blanco
         const generateIcon = (size: number): Promise<string> => {
             return new Promise((resolve) => {
                 const canvas = document.createElement('canvas');
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d')!;
-
-                // 1. Fondo sólido con color del negocio
-                ctx.fillStyle = brandColor;
-                ctx.fillRect(0, 0, size, size);
 
                 const finalize = () => {
                     canvas.toBlob((blob) => {
@@ -163,17 +160,19 @@ export default function Booking() {
                 };
 
                 if (logoUrl) {
-                    // 2a. Si hay logo: dibujarlo centrado con 15% de padding
+                    // Fondo blanco para que no se vea ningún color extra
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, size, size);
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
                     img.onload = () => {
-                        const padding = size * 0.15;
-                        const logoSize = size - padding * 2;
-                        ctx.drawImage(img, padding, padding, logoSize, logoSize);
+                        // Logo llena todo el canvas — el OS aplica las esquinas
+                        ctx.drawImage(img, 0, 0, size, size);
                         finalize();
                     };
                     img.onerror = () => {
-                        // Si falla la carga del logo, poner la inicial
+                        ctx.fillStyle = brandColor;
+                        ctx.fillRect(0, 0, size, size);
                         ctx.fillStyle = '#ffffff';
                         ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
                         ctx.textAlign = 'center';
@@ -183,7 +182,9 @@ export default function Booking() {
                     };
                     img.src = logoUrl;
                 } else {
-                    // 2b. Sin logo: inicial del negocio en blanco
+                    // Sin logo: fondo del color del negocio + inicial
+                    ctx.fillStyle = brandColor;
+                    ctx.fillRect(0, 0, size, size);
                     ctx.fillStyle = '#ffffff';
                     ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
                     ctx.textAlign = 'center';
