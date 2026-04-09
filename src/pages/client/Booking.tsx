@@ -141,88 +141,72 @@ export default function Booking() {
         const logoUrl = businessConfig.logoUrl;
         const brandColor = businessConfig.primaryColor || '#7c3aed';
 
-        // Generate a proper app icon: logo centered on brand-colored background
-        const generateAppIcon = (size: number): Promise<string> => {
+        // Genera un ícono en canvas: fondo de color del negocio + logo centrado con padding
+        // Esto hace que el ícono se vea como una app real (recuadro lleno de color)
+        const generateIcon = (size: number): Promise<string> => {
             return new Promise((resolve) => {
                 const canvas = document.createElement('canvas');
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d')!;
 
-                // Base background solid fill (required for maskable icons)
+                // 1. Fondo sólido con color del negocio
                 ctx.fillStyle = brandColor;
                 ctx.fillRect(0, 0, size, size);
 
-                if (!logoUrl) {
-                    // No logo — just show first letter
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(bName.charAt(0).toUpperCase(), size / 2, size / 2);
+                const finalize = () => {
                     canvas.toBlob((blob) => {
                         const url = URL.createObjectURL(blob!);
                         blobURLs.push(url);
                         resolve(url);
                     }, 'image/png');
-                    return;
+                };
+
+                if (logoUrl) {
+                    // 2a. Si hay logo: dibujarlo centrado con 15% de padding
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        const padding = size * 0.15;
+                        const logoSize = size - padding * 2;
+                        ctx.drawImage(img, padding, padding, logoSize, logoSize);
+                        finalize();
+                    };
+                    img.onerror = () => {
+                        // Si falla la carga del logo, poner la inicial
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(bName.charAt(0).toUpperCase(), size / 2, size / 2);
+                        finalize();
+                    };
+                    img.src = logoUrl;
+                } else {
+                    // 2b. Sin logo: inicial del negocio en blanco
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(bName.charAt(0).toUpperCase(), size / 2, size / 2);
+                    finalize();
                 }
-
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    // Draw logo covering the entire canvas (object-fit: cover)
-                    // This matches the booking app header UI and works perfectly with Android maskable icons
-                    const scale = Math.max(size / img.width, size / img.height);
-                    const wCover = img.width * scale;
-                    const hCover = img.height * scale;
-                    const x = (size - wCover) / 2;
-                    const y = (size - hCover) / 2;
-
-                    // Fill with white first in case the image has transparency
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, size, size);
-
-                    // Draw image scaled to cover
-                    ctx.drawImage(img, x, y, wCover, hCover);
-                    
-                    canvas.toBlob((blob) => {
-                        const url = URL.createObjectURL(blob!);
-                        blobURLs.push(url);
-                        resolve(url);
-                    }, 'image/png');
-                };
-                img.onerror = () => {
-                    // Fallback: letter icon
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = `bold ${size * 0.45}px Inter, system-ui, sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(bName.charAt(0).toUpperCase(), size / 2, size / 2);
-                    canvas.toBlob((blob) => {
-                        const url = URL.createObjectURL(blob!);
-                        blobURLs.push(url);
-                        resolve(url);
-                    }, 'image/png');
-                };
-                img.src = logoUrl;
             });
         };
 
-        // Generate icons and set manifest
-        Promise.all([generateAppIcon(192), generateAppIcon(512)]).then(([icon192, icon512]) => {
+        Promise.all([generateIcon(192), generateIcon(512)]).then(([icon192, icon512]) => {
             const manifest = {
                 name: title,
                 short_name: bName,
                 description: `Reserva tu cita en ${bName}`,
                 start_url: `/reserva/${slug}`,
-                display: "standalone",
+                display: 'standalone',
                 background_color: brandColor,
                 theme_color: brandColor,
                 icons: [
-                    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any" },
-                    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any" }
-                ]
+                    { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable any' },
+                    { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'maskable any' },
+                ],
             };
 
             const stringManifest = JSON.stringify(manifest);
@@ -231,11 +215,9 @@ export default function Booking() {
             blobURLs.push(manifestURL);
 
             let manifestElem = document.querySelector('#pwa-manifest') as HTMLLinkElement;
-            if (manifestElem) {
-                manifestElem.href = manifestURL;
-            }
+            if (manifestElem) manifestElem.href = manifestURL;
 
-            // Set apple-touch-icon for iOS home screen
+            // apple-touch-icon para iOS: usar el icon de 512px generado
             let appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
             if (!appleIcon) {
                 appleIcon = document.createElement('link');
