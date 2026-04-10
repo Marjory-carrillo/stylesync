@@ -117,9 +117,9 @@ serve(async (req: Request) => {
                 if (tenant_id) {
                     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
                     await supabase.from('sms_logs').insert({
-                        tenant_id, phone: to, provider: 'whatsapp',
+                        tenant_id, phone_to: to, provider: 'whatsapp',
                         status: 'failed', error_message: twilioData.message ?? 'Twilio error',
-                    }).catch(() => { });
+                    }).then(r => { if (r.error) console.warn('[send-sms] sms_logs error:', r.error.message); });
                 }
                 return new Response(
                     JSON.stringify({ success: false, error: twilioData.message, provider, twilioCode: twilioData.code }),
@@ -135,10 +135,10 @@ serve(async (req: Request) => {
             try {
                 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
                 await supabase.from('sms_logs').insert({
-                    tenant_id, phone: to, provider,
+                    tenant_id, phone_to: to, provider,
                     status: provider === 'whatsapp' ? 'sent' : 'demo',
                     ...(messageSid && { twilio_sid: messageSid }),
-                }).catch(() => { });
+                }).then(r => { if (r.error) console.warn('[send-sms] sms_logs error:', r.error.message); });
             } catch (_) { }
         }
 

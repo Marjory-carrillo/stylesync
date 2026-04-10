@@ -191,7 +191,7 @@ serve(async (req: Request) => {
         if (adminSent && tenant_id) {
             await supabaseLog.from('sms_logs').insert({
                 tenant_id,
-                phone: adminPhone,
+                phone_to: adminPhone,
                 message_type: `admin_${event_type}`,
                 provider: 'whatsapp',
                 status: 'sent',
@@ -238,7 +238,7 @@ serve(async (req: Request) => {
             if (clientSent && tenant_id) {
                 await supabaseLog.from('sms_logs').insert({
                     tenant_id,
-                    phone: appointment.client_phone,
+                    phone_to: appointment.client_phone,
                     message_type: `client_${event_type}`,
                     provider: 'whatsapp',
                     status: 'sent',
