@@ -777,6 +777,11 @@ export default function Booking() {
                     <h2 className="text-2xl font-black text-white tracking-tight">
                         {step === 10 ? 'Tu Cita' : (businessConfig?.name || 'Reserva online')}
                     </h2>
+                    {step !== 10 && businessConfig?.description && (
+                        <p className="text-sm text-slate-400 mt-2 max-w-sm mx-auto leading-relaxed">
+                            {businessConfig.description}
+                        </p>
+                    )}
                 </div>
             )}
 
