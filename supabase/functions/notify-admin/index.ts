@@ -140,13 +140,15 @@ serve(async (req: Request) => {
         console.log('[notify-admin] sending to admin WA:', adminWA);
 
         // Obtener timezone del tenant para formateo correcto
-        const { data: tenantTz } = await supabaseLog
-            .from('tenants')
-            .select('timezone')
-            .eq('id', tenant_id ?? '')
-            .single()
-            .catch(() => ({ data: null }));
-        const tZone = tenantTz?.timezone || 'America/Mexico_City';
+        let tZone = 'America/Mexico_City';
+        try {
+            const { data: tenantTz } = await supabaseLog
+                .from('tenants')
+                .select('timezone')
+                .eq('id', tenant_id ?? '')
+                .single();
+            if (tenantTz?.timezone) tZone = tenantTz.timezone;
+        } catch (_) { /* usar timezone por defecto */ }
 
         // ── Notificar al admin ──────────────────────────────────────────────────
         const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
