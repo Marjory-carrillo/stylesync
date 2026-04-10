@@ -1,6 +1,6 @@
 // @ts-nocheck — Deno runtime (Supabase Edge Functions)
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const STRIPE_SECRET_KEY    = Deno.env.get('STRIPE_SECRET_KEY')!;
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
