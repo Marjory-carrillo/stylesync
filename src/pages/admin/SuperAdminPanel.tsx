@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import {
     Building2, Trash2, Search, ChevronRight,
@@ -13,7 +13,7 @@ import { useUIStore } from '../../lib/store/uiStore';
 import { getPlanBadgeStyles } from '../../lib/planLimits';
 import type { PlanType } from '../../lib/planLimits';
 
-// Modal de confirmaciÃ³n premium para borrado
+// Modal de confirmación premium para borrado
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
     if (!isOpen) return null;
     return (
@@ -25,14 +25,14 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => 
                 </div>
                 <h3 className="text-2xl font-black text-white text-center mb-2 uppercase tracking-tight">Â¿Eliminar Negocio?</h3>
                 <p className="text-slate-400 text-center mb-8 leading-relaxed">
-                    EstÃ¡s a punto de eliminar <span className="text-white font-bold">"{tenantName}"</span>. Esta acciÃ³n es irreversible y borrarÃ¡ todos los datos asociados.
+                    Estás a punto de eliminar <span className="text-white font-bold">"{tenantName}"</span>. Esta acción es irreversible y borrará todos los datos asociados.
                 </p>
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={onConfirm}
                         className="w-full py-4 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black uppercase tracking-widest transition-all shadow-lg shadow-red-500/20"
                     >
-                        Confirmar EliminaciÃ³n
+                        Confirmar Eliminación
                     </button>
                     <button
                         onClick={onClose}
@@ -121,14 +121,14 @@ export default function SuperAdminPanel() {
         try {
             const since = subMonths(new Date(), 1).toISOString();
 
-            // Citas en los Ãºltimos 30 dÃ­as
+            // Citas en los últimos 30 días
             const { count: apptCount } = await supabase
                 .from('appointments')
                 .select('*', { count: 'exact', head: true })
                 .gte('date', since.split('T')[0]);
             setAppointmentsLast30(apptCount || 0);
 
-            // Total clientes Ãºnicos (por nÃºmero de telÃ©fono)
+            // Total clientes únicos (por número de teléfono)
             const { data: phones } = await supabase
                 .from('appointments')
                 .select('client_phone');
@@ -177,10 +177,10 @@ export default function SuperAdminPanel() {
             setSelectedOwnerId('');
             showToast(
                 isExistingOwner
-                    ? `Sucursal creada y asignada al dueÃ±o existente.`
+                    ? `Sucursal creada y asignada al dueño existente.`
                     : res.accountCreated
                         ? `Negocio creado. Cuenta creada para ${newBusiness.ownerEmail}`
-                        : 'Negocio creado. La cuenta del dueÃ±o no se pudo crear automÃ¡ticamente.',
+                        : 'Negocio creado. La cuenta del dueño no se pudo crear automáticamente.',
                 'success'
             );
             fetchAllTenants();
@@ -222,7 +222,7 @@ export default function SuperAdminPanel() {
                             <h1 className="text-4xl font-black text-white tracking-tighter">CitaLink <span className="text-accent font-light italic">HQ</span></h1>
                             <span className="bg-accent text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full tracking-widest uppercase mb-1">Central</span>
                         </div>
-                        <p className="text-slate-400 text-sm font-medium tracking-wide">Panel de Control Global y DesempeÃ±o de Plataforma</p>
+                        <p className="text-slate-400 text-sm font-medium tracking-wide">Panel de Control Global y Desempeño de Plataforma</p>
                     </div>
                 </div>
 
@@ -247,7 +247,7 @@ export default function SuperAdminPanel() {
                 />
                 <StatCard
                     icon={<Calendar size={24} />}
-                    title="Citas (Ãºltimos 30d)"
+                    title="Citas (últimos 30d)"
                     value={appointmentsLast30 !== null ? appointmentsLast30 : '...'}
                     color="text-emerald-400"
                     sub="En toda la plataforma"
@@ -258,7 +258,7 @@ export default function SuperAdminPanel() {
                     title="Clientes Ãšnicos"
                     value={uniqueClients !== null ? uniqueClients : '...'}
                     color="text-violet-400"
-                    sub="Por telÃ©fono registrado"
+                    sub="Por teléfono registrado"
                     delay="2"
                 />
                 <StatCard
@@ -271,20 +271,20 @@ export default function SuperAdminPanel() {
                 />
             </div>
 
-            {/* DistribuciÃ³n por CategorÃ­a */}
+            {/* Distribución por Categoría */}
             <div className="glass-panel p-6 border border-white/5">
                 <h3 className="text-white font-black text-xl mb-6 flex items-center gap-2 uppercase tracking-tight">
                     <BarChart3 className="text-violet-400" size={20} />
-                    DistribuciÃ³n por CategorÃ­a
+                    Distribución por Categoría
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {(() => {
                         const categories = [
-                            { id: 'barbershop', label: 'BarberÃ­as', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+                            { id: 'barbershop', label: 'Barberías', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
                             { id: 'beauty_salon', label: 'Salones', color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
                             { id: 'nail_bar', label: "Nail's", color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
                             { id: 'spa', label: 'Spas', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-                            { id: 'consulting', label: 'ClÃ­nicas', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+                            { id: 'consulting', label: 'Clínicas', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
                             { id: 'other', label: 'Otros', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' }
                         ];
                         const legacyMap: Record<string, string> = { 'salon': 'beauty_salon', 'clinic': 'consulting', 'barber': 'barbershop' };
@@ -436,7 +436,7 @@ export default function SuperAdminPanel() {
                                     {/* Controls row â€” wrap on small screens */}
                                     <div className="flex flex-wrap items-center gap-2">
 
-                                        {/* MensajerÃ­a */}
+                                        {/* Mensajería */}
                                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/5">
                                             <div className="flex flex-col items-start">
                                                 <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">WA</span>
@@ -452,7 +452,8 @@ export default function SuperAdminPanel() {
                                                             if (tenant.sms_provider === p) return;
                                                             const { error } = await supabase.from('tenants').update({ sms_provider: p }).eq('id', tenant.id);
                                                             if (error) { showToast("Error: " + error.message, 'error'); }
-                                                            else { fetchAllTenants(); showToast(`MensajerÃ­a â†’ ${p === 'whatsapp' ? 'ðŸ’¬ WhatsApp' : 'Demo'} para ${tenant.name}`, 'info'); }
+                                                             else { fetchAllTenants(); showToast(`Mensajería → ${p === 'whatsapp' ? '💬 WhatsApp' : 'Demo'} para ${tenant.name}`, 'info'); }
+
                                                         }}
                                                         className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
                                                             tenant.sms_provider === p
@@ -460,7 +461,7 @@ export default function SuperAdminPanel() {
                                                                 : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
                                                         }`}
                                                     >
-                                                        {p === 'demo' ? 'ðŸ”µ' : 'ðŸ’¬'}
+                                                        {p === 'demo' ? '🔵' : '💬'}
                                                     </button>
                                                 ))}
                                             </div>
@@ -484,7 +485,7 @@ export default function SuperAdminPanel() {
                                                             if ((tenant.plan || 'free') === p) return;
                                                             const { error } = await supabase.from('tenants').update({ plan: p }).eq('id', tenant.id);
                                                             if (error) { showToast('Error: ' + error.message, 'error'); }
-                                                            else { fetchAllTenants(); showToast(`Plan â†’ ${p === 'pro' ? 'â­ Pro' : p === 'business' ? 'ðŸš€ Business' : 'Free'} para ${tenant.name}`, 'success'); }
+                                                            else { fetchAllTenants(); showToast(`Plan → ${p === 'pro' ? '⭐ Pro' : p === 'business' ? '🚀 Business' : 'Free'} para ${tenant.name}`, 'success'); }
                                                         }}
                                                         className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
                                                             (tenant.plan || 'free') === p
@@ -494,7 +495,7 @@ export default function SuperAdminPanel() {
                                                                 : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
                                                         }`}
                                                     >
-                                                        {p === 'free' ? 'F' : p === 'pro' ? 'â­' : 'ðŸš€'}
+                                                        {p === 'free' ? 'F' : p === 'pro' ? '⭐' : '🚀'}
                                                     </button>
                                                 ))}
                                             </div>
@@ -529,7 +530,7 @@ export default function SuperAdminPanel() {
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-black text-white tracking-tight">Nuevo Negocio</h3>
-                                        <p className="text-slate-500 text-[11px] mt-0.5">ConfiguraciÃ³n rÃ¡pida de instancia SaaS</p>
+                                        <p className="text-slate-500 text-[11px] mt-0.5">Configuración rápida de instancia SaaS</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setIsCreateModalOpen(false)} className="p-2.5 hover:bg-white/5 rounded-xl transition-colors border border-transparent hover:border-white/10">
@@ -540,7 +541,7 @@ export default function SuperAdminPanel() {
 
                         <form onSubmit={handleCreateBusiness} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
 
-                            {/* â”€â”€ SecciÃ³n: Negocio â”€â”€ */}
+                            {/* â”€â”€ Sección: Negocio â”€â”€ */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Building2 size={14} className="text-blue-400" />
@@ -553,7 +554,7 @@ export default function SuperAdminPanel() {
                                     <input
                                         required type="text"
                                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
-                                        placeholder="Ej. BarberÃ­a El Rey"
+                                        placeholder="Ej. Barbería El Rey"
                                         value={newBusiness.name}
                                         onChange={e => {
                                             const name = e.target.value;
@@ -598,7 +599,7 @@ export default function SuperAdminPanel() {
                                                 onChange={e => setNewBusiness({ ...newBusiness, brandSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
                                             />
                                         </div>
-                                        <p className="text-[10px] text-violet-400/60 ml-1">Los clientes verÃ¡n todas las sucursales en un solo link.</p>
+                                        <p className="text-[10px] text-violet-400/60 ml-1">Los clientes verán todas las sucursales en un solo link.</p>
                                     </div>
                                 )}
 
@@ -611,26 +612,26 @@ export default function SuperAdminPanel() {
                                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
                                     >
                                         <option value="America/Mexico_City" className="bg-slate-900">Hora Central (CDMX, Monterrey)</option>
-                                        <option value="America/Tijuana" className="bg-slate-900">Hora del PacÃ­fico (Tijuana, Mexicali)</option>
-                                        <option value="America/Mazatlan" className="bg-slate-900">Hora de la MontaÃ±a (MazatlÃ¡n, CuliacÃ¡n)</option>
-                                        <option value="America/Cancun" className="bg-slate-900">Hora del Este (CancÃºn)</option>
-                                        <option value="America/Bogota" className="bg-slate-900">Colombia / PerÃº / Ecuador</option>
+                                        <option value="America/Tijuana" className="bg-slate-900">Hora del Pacífico (Tijuana, Mexicali)</option>
+                                        <option value="America/Mazatlan" className="bg-slate-900">Hora de la Montaña (Mazatlán, Culiacán)</option>
+                                        <option value="America/Cancun" className="bg-slate-900">Hora del Este (Cancún)</option>
+                                        <option value="America/Bogota" className="bg-slate-900">Colombia / Perú / Ecuador</option>
                                         <option value="America/Santiago" className="bg-slate-900">Chile</option>
                                         <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">Argentina</option>
-                                        <option value="Europe/Madrid" className="bg-slate-900">EspaÃ±a (PenÃ­nsula)</option>
+                                        <option value="Europe/Madrid" className="bg-slate-900">España (Península)</option>
                                     </select>
                                 </div>
 
-                                {/* CategorÃ­a */}
+                                {/* Categoría */}
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-400 ml-1">CategorÃ­a</label>
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">Categoría</label>
                                     <div className="grid grid-cols-3 gap-1.5">
                                         {[
-                                            { id: 'barbershop', label: 'BarberÃ­a', icon: <Scissors size={16} />, color: 'amber' },
-                                            { id: 'beauty_salon', label: 'SalÃ³n', icon: <Sparkles size={16} />, color: 'pink' },
+                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={16} />, color: 'amber' },
+                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={16} />, color: 'pink' },
                                             { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={16} />, color: 'rose' },
                                             { id: 'spa', label: 'Spa', icon: <Flower2 size={16} />, color: 'emerald' },
-                                            { id: 'consulting', label: 'ClÃ­nica', icon: <Briefcase size={16} />, color: 'blue' },
+                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={16} />, color: 'blue' },
                                             { id: 'other', label: 'Otro', icon: <MoreHorizontal size={16} />, color: 'slate' },
                                         ].map(cat => {
                                             const isSelected = newBusiness.category === cat.id;
@@ -660,12 +661,12 @@ export default function SuperAdminPanel() {
                             {/* Divider */}
                             <div className="border-t border-white/5" />
 
-                            {/* â”€â”€ SecciÃ³n: Acceso del DueÃ±o â”€â”€ */}
+                            {/* â”€â”€ Sección: Acceso del Dueño â”€â”€ */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between mb-1">
                                     <div className="flex items-center gap-2">
                                         <Users size={14} className="text-emerald-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del DueÃ±o</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del Dueño</span>
                                     </div>
                                     {/* Toggle: Existing Owner */}
                                     <button
@@ -678,21 +679,21 @@ export default function SuperAdminPanel() {
                                         }`}
                                     >
                                         <Building2 size={10} />
-                                        {isExistingOwner ? 'DueÃ±o Existente' : '+ Nueva Cuenta'}
+                                        {isExistingOwner ? 'Dueño Existente' : '+ Nueva Cuenta'}
                                     </button>
                                 </div>
 
                                 {isExistingOwner ? (
                                     /* Existing Owner Selector */
                                     <div className="space-y-2">
-                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Seleccionar DueÃ±o Existente</label>
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Seleccionar Dueño Existente</label>
                                         <select
                                             required
                                             value={selectedOwnerId}
                                             onChange={e => setSelectedOwnerId(e.target.value)}
                                             className="w-full bg-white/[0.04] border border-violet-500/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/30 transition-all outline-none text-sm appearance-none"
                                         >
-                                            <option value="" className="bg-slate-900">â€” Elegir un dueÃ±o â€”</option>
+                                            <option value="" className="bg-slate-900">â€” Elegir un dueño â€”</option>
                                             {(() => {
                                                 // Get unique owners from existing tenants
                                                 const ownerMap = new Map<string, { id: string; name: string }>(); 
@@ -703,19 +704,19 @@ export default function SuperAdminPanel() {
                                                 });
                                                 return Array.from(ownerMap.values()).map(owner => (
                                                     <option key={owner.id} value={owner.id} className="bg-slate-900">
-                                                        DueÃ±o de: {owner.name}
+                                                        Dueño de: {owner.name}
                                                     </option>
                                                 ));
                                             })()}
                                         </select>
-                                        <p className="text-[10px] text-violet-400/70 ml-1">ðŸ“Ž La nueva sucursal aparecerÃ¡ en el panel del dueÃ±o seleccionado.</p>
+                                        <p className="text-[10px] text-violet-400/70 ml-1">ðŸ“Ž La nueva sucursal aparecerá en el panel del dueño seleccionado.</p>
                                     </div>
                                 ) : (
                                     /* New Owner: Email + Password */
                                     <>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div className="space-y-1.5">
-                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Correo ElectrÃ³nico</label>
+                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Correo Electrónico</label>
                                                 <input
                                                     required type="email"
                                                     className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
@@ -725,17 +726,17 @@ export default function SuperAdminPanel() {
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[11px] font-bold text-slate-400 ml-1">ContraseÃ±a</label>
+                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Contraseña</label>
                                                 <input
                                                     required type="password" minLength={6}
                                                     className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
-                                                    placeholder="MÃ­n. 6 caracteres"
+                                                    placeholder="Mín. 6 caracteres"
                                                     value={newBusiness.ownerPassword}
                                                     onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
                                                 />
                                             </div>
                                         </div>
-                                        <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueÃ±o usarÃ¡ estas credenciales para acceder a su panel de administraciÃ³n.</p>
+                                        <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueño usará estas credenciales para acceder a su panel de administración.</p>
                                     </>
                                 )}
                             </div>
@@ -743,7 +744,7 @@ export default function SuperAdminPanel() {
                             {/* Divider */}
                             <div className="border-t border-white/5" />
 
-                            {/* â”€â”€ SecciÃ³n: Plan â”€â”€ */}
+                            {/* â”€â”€ Sección: Plan â”€â”€ */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Zap size={14} className="text-amber-400" />
@@ -782,11 +783,11 @@ export default function SuperAdminPanel() {
                             {/* Trial Toggle */}
                             <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                                 <div>
-                                    <p className="text-xs font-bold text-white">PerÃ­odo de prueba (21 dÃ­as)</p>
+                                    <p className="text-xs font-bold text-white">Período de prueba (21 días)</p>
                                     <p className="text-[10px] text-slate-500 mt-0.5">
                                         {newBusiness.noTrial
                                             ? 'El negocio inicia directamente en el plan seleccionado.'
-                                            : 'El negocio tendrÃ¡ acceso completo durante 21 dÃ­as gratis.'}
+                                            : 'El negocio tendrá acceso completo durante 21 días gratis.'}
                                     </p>
                                 </div>
                                 <button

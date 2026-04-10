@@ -1631,7 +1631,11 @@ export default function Booking() {
                         {bookingResult && !bookingResult.success && (
                             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 mb-6 flex items-center gap-3">
                                 <AlertTriangle size={20} />
-                                <span>{bookingResult.error}</span>
+                                <span>
+                                    {bookingResult.error === 'MONTHLY_LIMIT_REACHED'
+                                        ? 'Lo sentimos, este establecimiento ha alcanzado su límite de reservaciones este mes.'
+                                        : bookingResult.error}
+                                </span>
                             </div>
                         )}
 

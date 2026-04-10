@@ -7,8 +7,8 @@ const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
 // Plantilla aprobada por Meta (Content SID de Twilio)
-// citalink_cliente_recordatorio: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio
-const TEMPLATE_RECORDATORIO = 'HXc99ae2355cd2f306973e448d922dc77f';
+// citalink_cliente_recordatorio_v2: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=link
+const TEMPLATE_RECORDATORIO = 'HX2f0c7fb1f9554c71ce7799d432b408eb';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -118,7 +118,7 @@ serve(async (req: Request) => {
         // ── Buscar citas confirmadas sin recordatorio enviado ──
         const { data: pending, error: fetchError } = await supabase
             .from('appointments')
-            .select('*, tenants(name, sms_provider, timezone)')
+            .select('*, tenants(name, sms_provider, timezone, slug)')
             .eq('status', 'confirmada')
             .eq('reminder_sent', false);
 
@@ -226,13 +226,14 @@ serve(async (req: Request) => {
             const serviceName = (svc?.name ?? 'Servicio') +
                 (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '');
 
-            // Variables de la plantilla citalink_cliente_recordatorio:
-            // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio
+            // Variables de la plantilla citalink_cliente_recordatorio_v2:
+            // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio, {{5}} = link
             const ok = await sendTemplate(appt.client_phone, TEMPLATE_RECORDATORIO, {
                 '1': appt.client_name ?? 'Cliente',
                 '2': tenant.name ?? 'el negocio',
                 '3': formatDateTime(appt.date, appt.time, tZone),
                 '4': serviceName,
+                '5': `https://app.citalink.app/reserva/${tenant.slug}`,
             });
 
             if (ok) {
