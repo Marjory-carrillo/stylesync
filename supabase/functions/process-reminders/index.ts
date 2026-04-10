@@ -94,9 +94,20 @@ function getDateInTimezone(isoTimestamp: string, timezone: string): string {
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+    const serviceKey = Deno.env.get('APP_SERVICE_KEY')!;
     const supabase = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        serviceKey,
+        {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false,
+            },
+            global: {
+                headers: { Authorization: `Bearer ${serviceKey}` },
+            },
+        }
     );
 
     const now = new Date();
@@ -231,6 +242,14 @@ serve(async (req: Request) => {
                     .eq('id', appt.id);
                 reminders++;
                 console.log(`[process-reminders] ✅ Recordatorio enviado a ${appt.client_phone} para cita ${appt.id} (${ruleApplied})`);
+
+                // ── Registrar en sms_logs para conteo en SuperAdmin ──────────
+                await supabase.from('sms_logs').insert({
+                    tenant_id: appt.tenant_id,
+                    phone_to: appt.client_phone,
+                    provider: 'whatsapp',
+                    status: 'sent',
+                }).catch((e: any) => console.warn('[process-reminders] sms_logs insert error:', e?.message));
             }
         }
 
