@@ -191,9 +191,9 @@ serve(async (req: Request) => {
                 reminderHoursBefore = 1;
                 ruleApplied = `mismo-día (gap=${hoursGapAtBooking.toFixed(1)}h) → 1h antes`;
             } else if (daysAhead === 1) {
-                // ═══ MAÑANA ═══
-                reminderHoursBefore = 2;
-                ruleApplied = 'mañana → 2h antes';
+                // ═══ MAÑANA ═══ (mismo comportamiento que 2+ días)
+                reminderHoursBefore = 5;
+                ruleApplied = 'mañana → 5h antes';
             } else {
                 // ═══ 2+ DÍAS (pasado mañana en adelante) ═══
                 reminderHoursBefore = 5;
