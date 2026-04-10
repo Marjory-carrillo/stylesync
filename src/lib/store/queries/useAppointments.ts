@@ -13,14 +13,22 @@ async function notifyAdmin(
     businessName?: string,
 ) {
     try {
-        await supabase.functions.invoke('notify-admin', {
-            body: {
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+        const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+        await fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ANON_KEY}`,
+                'apikey': ANON_KEY,
+            },
+            body: JSON.stringify({
                 tenant_id: tenantId,
                 event_type: eventType,
                 appointment,
                 ...(adminPhone   ? { admin_phone:   adminPhone   } : {}),
                 ...(businessName ? { business_name: businessName } : {}),
-            },
+            }),
         });
     } catch (_) { /* fire-and-forget */ }
 }
