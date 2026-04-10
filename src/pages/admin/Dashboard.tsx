@@ -137,7 +137,7 @@ export default function Dashboard() {
         });
     }, [tomorrowAppts]);
 
-    // Recordatorios enviados hoy (citas de mañana con reminder_sent = true)
+    // Recordatorios enviados (con reminder_sent = true)
     const remindersSentCount = useMemo(() => {
         return tomorrowAppts.filter(a => (a as any).reminderSent === true).length;
     }, [tomorrowAppts]);
@@ -902,7 +902,7 @@ export default function Dashboard() {
                         {isLoading ? <Skeleton className="h-9 w-16" /> : (
                             <>
                                 <p className="text-3xl font-black text-emerald-400 tracking-tighter">{remindersSentCount}</p>
-                                <p className="text-[10px] text-slate-600 font-bold mt-0.5 leading-tight">WhatsApp automático · citas de mañana</p>
+                                <p className="text-[10px] text-slate-600 font-bold mt-0.5 leading-tight">WhatsApp automático · el mismo día de la cita</p>
                             </>
                         )}
                     </div>
