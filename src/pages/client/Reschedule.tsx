@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import {
     Calendar, Clock, CheckCircle, AlertTriangle, Phone,
-    ChevronRight, ArrowLeft, Loader2, User, Scissors, Sparkles
+    ChevronRight, ArrowLeft, Loader2, User, Scissors, Sparkles, RefreshCw
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -27,6 +27,7 @@ interface AppointmentData {
         primary_color: string | null;
         timezone: string;
         sms_provider: string;
+        phone: string | null;
     };
     services: { name: string; duration: number; price: number } | null;
     stylists: { name: string } | null;
@@ -40,10 +41,11 @@ interface ScheduleDay {
     breakEnd?: string;
 }
 
-type Step = 'phone' | 'details' | 'date' | 'time' | 'confirm' | 'success' | 'error';
+type Step = 'phone' | 'details' | 'select' | 'success' | 'error';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const STEP_ORDER: Step[] = ['phone', 'details', 'date', 'time', 'confirm', 'success'];
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  as string;
+const ANON_KEY      = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function format12h(timeStr: string) {
@@ -63,15 +65,16 @@ function formatDateNice(dateStr: string) {
 export default function Reschedule() {
     const { id: appointmentId } = useParams<{ id: string }>();
 
-    const [step, setStep] = useState<Step>('phone');
-    const [phone, setPhone] = useState('');
+    const [step, setStep]           = useState<Step>('phone');
+    const [phone, setPhone]         = useState('');
     const [phoneError, setPhoneError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [appt, setAppt] = useState<AppointmentData | null>(null);
-    const [schedule, setSchedule] = useState<Record<string, ScheduleDay>>({});
+    const [appt, setAppt]           = useState<AppointmentData | null>(null);
+    const [schedule, setSchedule]   = useState<Record<string, ScheduleDay>>({});
     const [existingAppts, setExistingAppts] = useState<any[]>([]);
-    const [blockedSlots, setBlockedSlots] = useState<any[]>([]);
-    const [errorMsg, setErrorMsg] = useState('');
+    const [blockedSlots, setBlockedSlots]   = useState<any[]>([]);
+    const [errorMsg, setErrorMsg]   = useState('');
+
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
@@ -79,7 +82,6 @@ export default function Reschedule() {
     useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
     const brandColor = appt?.tenants?.primary_color ?? '#7c3aed';
-    const stepIndex = STEP_ORDER.indexOf(step);
 
     // ── Step 1: Verify phone ─────────────────────────────────────────────────
     const handleVerifyPhone = async () => {
@@ -93,11 +95,13 @@ export default function Reschedule() {
         try {
             const { data, error } = await supabase
                 .from('appointments')
-                .select(`id, client_name, client_phone, date, time, status,
+                .select(`
+                    id, client_name, client_phone, date, time, status,
                     service_id, stylist_id, tenant_id,
-                    tenants(name, slug, logo_url, primary_color, timezone, sms_provider),
+                    tenants(name, slug, logo_url, primary_color, timezone, sms_provider, phone),
                     services(name, duration, price),
-                    stylists(name)`)
+                    stylists(name)
+                `)
                 .eq('id', appointmentId!)
                 .single();
 
@@ -127,7 +131,6 @@ export default function Reschedule() {
             setAppt(data as any);
 
             const [schedRes, apptsRes, blockedRes] = await Promise.all([
-                // schedule_config stores the weekly schedule as a JSON object
                 supabase.from('schedule_config').select('schedule').eq('tenant_id', data.tenant_id).maybeSingle(),
                 supabase.from('appointments')
                     .select('id, date, time, service_id, stylist_id, status')
@@ -140,10 +143,8 @@ export default function Reschedule() {
             ]);
 
             if (schedRes.data?.schedule) {
-                // schedule is already { monday: { open, start, end }, ... }
                 setSchedule(schedRes.data.schedule as Record<string, ScheduleDay>);
             } else {
-                // fallback: all weekdays open 9-18, saturday 9-14, sunday closed
                 setSchedule({
                     monday:    { open: true,  start: '09:00', end: '18:00' },
                     tuesday:   { open: true,  start: '09:00', end: '18:00' },
@@ -157,7 +158,8 @@ export default function Reschedule() {
 
             setExistingAppts(apptsRes.data ?? []);
             setBlockedSlots(blockedRes.data ?? []);
-            setSelectedDate(''); // clear so user must pick a date from the grid
+            setSelectedDate('');
+            setSelectedTime(null);
             setStep('details');
         } finally {
             setIsLoading(false);
@@ -166,7 +168,7 @@ export default function Reschedule() {
 
     // ── Available dates ───────────────────────────────────────────────────────
     const availableDates = useMemo(() => {
-        const dates: { dateStr: string; label: string; dayName: string }[] = [];
+        const dates: { dateStr: string; label: string; dayName: string; isToday: boolean }[] = [];
         const today = format(new Date(), 'yyyy-MM-dd');
         for (let i = 0; i < 28 && dates.length < 14; i++) {
             const d = addDays(new Date(), i);
@@ -178,6 +180,7 @@ export default function Reschedule() {
                 dateStr,
                 label: i === 0 ? 'Hoy' : format(d, 'd MMM', { locale: es }),
                 dayName: { sunday: 'Dom', monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié', thursday: 'Jue', friday: 'Vie', saturday: 'Sáb' }[dayKey] ?? dayKey,
+                isToday: i === 0,
             });
         }
         return dates;
@@ -218,7 +221,7 @@ export default function Reschedule() {
         return getSmartSlots(baseDate, duration, daySchedule.start, daySchedule.end, dayAppts, dayBlocked, 10);
     }, [selectedDate, appt, schedule, existingAppts, blockedSlots]);
 
-    // ── Confirm reschedule ────────────────────────────────────────────────────
+    // ── Confirm reschedule + notify ───────────────────────────────────────────
     const handleConfirm = async () => {
         if (!appt || !selectedDate || !selectedTime) return;
         setIsConfirming(true);
@@ -231,6 +234,30 @@ export default function Reschedule() {
             });
             if (error) throw error;
             if (!data?.success) throw new Error(data?.error ?? 'Error al reagendar');
+
+            // ── Notificar al admin y al cliente vía WhatsApp ──────────────────
+            fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${ANON_KEY}`,
+                    'apikey': ANON_KEY,
+                },
+                body: JSON.stringify({
+                    tenant_id:     appt.tenant_id,
+                    event_type:    'reschedule',
+                    admin_phone:   appt.tenants.phone ?? undefined,
+                    business_name: appt.tenants.name,
+                    appointment: {
+                        client_name:  appt.client_name,
+                        client_phone: appt.client_phone,
+                        service_name: appt.services?.name ?? 'Servicio',
+                        date:         selectedDate,
+                        time:         selectedTime,
+                    },
+                }),
+            }).catch(() => { /* fire-and-forget */ });
+
             setStep('success');
         } catch (err: any) {
             setErrorMsg(err.message ?? 'Ocurrió un error. Intenta de nuevo.');
@@ -247,131 +274,124 @@ export default function Reschedule() {
         <div style={{
             minHeight: '100vh',
             background: 'radial-gradient(ellipse at 30% 0%, #0f1729 0%, #050c15 55%, #000 100%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
             padding: '2rem 1rem 5rem',
             fontFamily: "'Inter', 'system-ui', sans-serif",
         }}>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
                 @keyframes spin { to { transform: rotate(360deg); } }
-                @keyframes fadeSlideUp {
-                    from { opacity: 0; transform: translateY(16px); }
+                @keyframes fadeUp {
+                    from { opacity: 0; transform: translateY(14px); }
                     to   { opacity: 1; transform: translateY(0); }
                 }
-                @keyframes pulse-glow {
-                    0%, 100% { box-shadow: 0 0 20px -4px var(--brand); }
-                    50%      { box-shadow: 0 0 40px -4px var(--brand); }
-                }
                 @keyframes scaleIn {
-                    from { opacity: 0; transform: scale(0.92); }
+                    from { opacity: 0; transform: scale(0.93); }
                     to   { opacity: 1; transform: scale(1); }
                 }
+                @keyframes slideDown {
+                    from { opacity: 0; transform: translateY(-8px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes glowPulse {
+                    0%, 100% { box-shadow: 0 0 20px -6px var(--glow); }
+                    50%      { box-shadow: 0 0 40px -4px var(--glow); }
+                }
                 * { box-sizing: border-box; }
-                input:focus { outline: none; }
                 input::placeholder { color: #475569; }
-                button:active { transform: scale(0.97) !important; }
+                button { transition: transform 0.15s ease, opacity 0.2s; }
+                button:active { transform: scale(0.96); }
             `}</style>
 
             <div style={{ width: '100%', maxWidth: '460px' }}>
 
                 {/* ── Header ── */}
-                <div style={{ textAlign: 'center', marginBottom: '2rem', animation: 'fadeSlideUp 0.4s ease' }}>
+                <div style={{ textAlign: 'center', marginBottom: '1.75rem', animation: 'fadeUp 0.4s ease' }}>
                     {appt?.tenants?.logo_url ? (
                         <div style={{
-                            width: '76px', height: '76px', borderRadius: '20px',
-                            overflow: 'hidden', margin: '0 auto 1rem',
-                            border: '2px solid rgba(255,255,255,0.12)',
-                            boxShadow: `0 0 40px -8px ${brandColor}66`,
+                            width: '72px', height: '72px', borderRadius: '18px',
+                            overflow: 'hidden', margin: '0 auto 0.9rem',
+                            border: '2px solid rgba(255,255,255,0.1)',
+                            boxShadow: `0 0 36px -8px ${brandColor}66`,
                         }}>
                             <img src={appt.tenants.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                     ) : (
                         <div style={{
-                            width: '56px', height: '56px', borderRadius: '16px',
-                            background: `${brandColor}22`, border: `1.5px solid ${brandColor}44`,
+                            width: '52px', height: '52px', borderRadius: '14px',
+                            background: `${brandColor}1a`, border: `1.5px solid ${brandColor}40`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            margin: '0 auto 1rem',
+                            margin: '0 auto 0.9rem',
                         }}>
-                            <Sparkles size={24} color={brandColor} />
+                            <Sparkles size={22} color={brandColor} />
                         </div>
                     )}
-                    <h1 style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 900, margin: '0 0 0.2rem', letterSpacing: '-0.02em' }}>
+                    <h1 style={{ color: '#fff', fontSize: '1.35rem', fontWeight: 900, margin: '0 0 0.2rem', letterSpacing: '-0.02em' }}>
                         {appt?.tenants?.name ?? 'CitaLink'}
                     </h1>
-                    <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+                    <p style={{ color: '#475569', fontSize: '0.72rem', margin: 0, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>
                         Reagendar Cita
                     </p>
                 </div>
 
-                {/* ── Step Indicator (only steps 2-5) ── */}
-                {step !== 'phone' && step !== 'success' && step !== 'error' && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        gap: '0', marginBottom: '1.75rem',
-                        animation: 'fadeSlideUp 0.3s ease',
-                    }}>
-                        {(['details', 'date', 'time', 'confirm'] as Step[]).map((s, i) => {
-                            const idx = STEP_ORDER.indexOf(s);
-                            const isDone = stepIndex > idx;
-                            const isCurrent = step === s;
-                            const labels = ['Cita', 'Fecha', 'Hora', 'Confirmar'];
-                            return (
-                                <div key={s} style={{ display: 'flex', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                        <div style={{
-                                            width: '28px', height: '28px', borderRadius: '50%',
-                                            background: isDone ? brandColor : isCurrent ? `${brandColor}33` : 'rgba(255,255,255,0.05)',
-                                            border: `2px solid ${isDone || isCurrent ? brandColor : 'rgba(255,255,255,0.1)'}`,
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            transition: 'all 0.3s ease',
-                                        }}>
-                                            {isDone
-                                                ? <CheckCircle size={14} color="#fff" />
-                                                : <span style={{ fontSize: '0.7rem', fontWeight: 800, color: isCurrent ? brandColor : '#475569' }}>{i + 1}</span>
-                                            }
-                                        </div>
-                                        <span style={{
-                                            fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
-                                            letterSpacing: '0.05em',
-                                            color: isCurrent ? brandColor : isDone ? '#94a3b8' : '#334155',
-                                            transition: 'color 0.3s ease',
-                                        }}>{labels[i]}</span>
-                                    </div>
-                                    {i < 3 && (
-                                        <div style={{
-                                            width: '40px', height: '2px', margin: '0 2px 16px',
-                                            background: isDone ? brandColor : 'rgba(255,255,255,0.06)',
-                                            transition: 'background 0.3s ease',
-                                        }} />
-                                    )}
-                                </div>
-                            );
-                        })}
+                {/* ── Progress bar ── */}
+                {step !== 'success' && step !== 'error' && (
+                    <div style={{ marginBottom: '1.5rem', animation: 'fadeUp 0.3s ease' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {(['phone', 'details', 'select'] as Step[]).map((s, i) => {
+                                const stepIdx = ['phone', 'details', 'select'].indexOf(step);
+                                const done = i < stepIdx;
+                                const active = s === step;
+                                return (
+                                    <div key={s} style={{
+                                        flex: 1, height: '3px', borderRadius: '999px',
+                                        background: done || active
+                                            ? `linear-gradient(90deg, ${brandColor}, ${brandColor}99)`
+                                            : 'rgba(255,255,255,0.06)',
+                                        transition: 'background 0.4s ease',
+                                    }} />
+                                );
+                            })}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                            {['Verificar', 'Cita actual', 'Reagendar'].map((label, i) => {
+                                const stepIdx = ['phone', 'details', 'select'].indexOf(step);
+                                return (
+                                    <span key={label} style={{
+                                        fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+                                        letterSpacing: '0.06em',
+                                        color: i <= stepIdx ? brandColor : '#334155',
+                                        transition: 'color 0.3s ease',
+                                    }}>{label}</span>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
 
-                {/* ── STEP: phone ── */}
+                {/* ══ STEP: phone ══ */}
                 {step === 'phone' && (
-                    <div style={{ ...card, animation: 'fadeSlideUp 0.35s ease' }}>
+                    <div style={{ ...card, animation: 'fadeUp 0.35s ease' }}>
                         <div style={{
-                            width: '48px', height: '48px', borderRadius: '14px',
-                            background: `${brandColor}18`, border: `1.5px solid ${brandColor}33`,
+                            width: '46px', height: '46px', borderRadius: '13px',
+                            background: `${brandColor}18`, border: `1.5px solid ${brandColor}30`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            marginBottom: '1.25rem',
+                            marginBottom: '1.1rem',
                         }}>
-                            <Phone size={22} color={brandColor} />
+                            <Phone size={20} color={brandColor} />
                         </div>
 
-                        <p style={{ color: '#fff', fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.3rem' }}>
+                        <p style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', margin: '0 0 0.25rem' }}>
                             Verifica tu identidad
                         </p>
-                        <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 1.5rem', lineHeight: 1.5 }}>
+                        <p style={{ color: '#475569', fontSize: '0.83rem', margin: '0 0 1.5rem', lineHeight: 1.5 }}>
                             Ingresa el número con el que hiciste tu reserva
                         </p>
 
                         <div style={{ position: 'relative' }}>
+                            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>
+                                <Phone size={15} />
+                            </span>
                             <input
                                 type="tel"
                                 value={phone}
@@ -381,25 +401,22 @@ export default function Reschedule() {
                                 maxLength={15}
                                 autoFocus
                                 style={{
-                                    width: '100%', padding: '0.9rem 1rem 0.9rem 3rem',
+                                    width: '100%', padding: '0.875rem 1rem 0.875rem 2.75rem',
                                     background: 'rgba(255,255,255,0.05)',
                                     border: `1.5px solid ${phoneError ? '#f87171' : 'rgba(255,255,255,0.1)'}`,
-                                    borderRadius: '14px', color: '#fff', fontSize: '1.05rem',
-                                    fontFamily: 'inherit', letterSpacing: '0.1em',
+                                    borderRadius: '13px', color: '#fff', fontSize: '1rem',
+                                    fontFamily: 'inherit', letterSpacing: '0.08em', outline: 'none',
                                     transition: 'border-color 0.2s',
                                 }}
                             />
-                            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>
-                                <Phone size={16} />
-                            </span>
                         </div>
 
                         {phoneError && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                color: '#f87171', fontSize: '0.8rem', marginTop: '0.6rem',
-                                padding: '0.5rem 0.75rem',
-                                background: 'rgba(248,113,113,0.08)', borderRadius: '8px',
+                                color: '#f87171', fontSize: '0.78rem', marginTop: '0.5rem',
+                                padding: '0.5rem 0.75rem', borderRadius: '8px',
+                                background: 'rgba(248,113,113,0.08)',
                                 border: '1px solid rgba(248,113,113,0.2)',
                             }}>
                                 <AlertTriangle size={13} /> {phoneError}
@@ -409,268 +426,303 @@ export default function Reschedule() {
                         <button
                             onClick={handleVerifyPhone}
                             disabled={isLoading || phone.replace(/\D/g, '').length < 10}
-                            style={{ ...primaryBtn(brandColor), marginTop: '1.25rem' }}
+                            style={{ ...primaryBtn(brandColor), marginTop: '1.1rem' }}
                         >
                             {isLoading
-                                ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Verificando...</>
-                                : <>Continuar <ChevronRight size={18} /></>
+                                ? <><Loader2 size={17} style={{ animation: 'spin 1s linear infinite' }} /> Verificando...</>
+                                : <>Continuar <ChevronRight size={17} /></>
                             }
                         </button>
                     </div>
                 )}
 
-                {/* ── STEP: details ── */}
+                {/* ══ STEP: details ══ */}
                 {step === 'details' && appt && (
-                    <div style={{ ...card, animation: 'fadeSlideUp 0.35s ease' }}>
-                        <p style={stepTitle}>Tu cita actual</p>
+                    <div style={{ ...card, animation: 'fadeUp 0.35s ease' }}>
+                        <p style={sectionLabel}>Tu cita actual</p>
 
                         <div style={{
-                            background: 'rgba(255,255,255,0.02)',
+                            background: 'rgba(255,255,255,0.025)',
                             border: '1px solid rgba(255,255,255,0.07)',
                             borderRadius: '14px', padding: '1.1rem',
                             marginBottom: '1.5rem',
-                            display: 'flex', flexDirection: 'column', gap: '0.9rem',
+                            display: 'flex', flexDirection: 'column', gap: '0.85rem',
                         }}>
-                            <InfoRow icon={<User size={15} />}     label="Cliente"     value={appt.client_name}             color={brandColor} />
-                            <InfoRow icon={<Scissors size={15} />} label="Servicio"    value={appt.services?.name ?? '—'}   color={brandColor} />
-                            {appt.stylists && <InfoRow icon={<User size={15} />} label="Profesional" value={appt.stylists.name} color={brandColor} />}
+                            <InfoRow icon={<User size={14} />}     label="Cliente"     value={appt.client_name}               color={brandColor} />
+                            <InfoRow icon={<Scissors size={14} />} label="Servicio"    value={appt.services?.name ?? '—'}     color={brandColor} />
+                            {appt.stylists && <InfoRow icon={<User size={14} />} label="Profesional" value={appt.stylists.name} color={brandColor} />}
                             <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
-                            <InfoRow icon={<Calendar size={15} />} label="Fecha"       value={formatDateNice(appt.date)}    color={brandColor} />
-                            <InfoRow icon={<Clock size={15} />}    label="Hora"        value={format12h(appt.time.slice(0, 5))} color={brandColor} />
+                            <InfoRow icon={<Calendar size={14} />} label="Fecha"       value={formatDateNice(appt.date)}      color={brandColor} />
+                            <InfoRow icon={<Clock size={14} />}    label="Hora"        value={format12h(appt.time.slice(0, 5))} color={brandColor} />
                         </div>
 
-                        <button onClick={() => setStep('date')} style={primaryBtn(brandColor)}>
-                            Elegir nueva fecha <ChevronRight size={18} />
+                        <button onClick={() => setStep('select')} style={primaryBtn(brandColor)}>
+                            Elegir nueva fecha <ChevronRight size={17} />
                         </button>
                     </div>
                 )}
 
-                {/* ── STEP: date ── */}
-                {step === 'date' && appt && (
-                    <div style={{ ...card, animation: 'fadeSlideUp 0.35s ease' }}>
-                        <BackBtn onClick={() => setStep('details')} color={brandColor} />
-                        <p style={stepTitle}>Elige una fecha</p>
+                {/* ══ STEP: select (date + time + confirm — todo en uno) ══ */}
+                {step === 'select' && appt && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', animation: 'fadeUp 0.35s ease' }}>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.55rem', marginBottom: '1.5rem' }}>
-                            {availableDates.map(({ dateStr, label, dayName }) => {
-                                const isSelected = selectedDate === dateStr;
-                                return (
-                                    <button
-                                        key={dateStr}
-                                        onClick={() => { setSelectedDate(dateStr); setSelectedTime(null); }}
-                                        style={{
-                                            display: 'flex', flexDirection: 'column',
-                                            alignItems: 'center', justifyContent: 'center',
-                                            gap: '0.15rem', padding: '0.85rem 0.5rem',
-                                            borderRadius: '14px', cursor: 'pointer',
-                                            border: `1.5px solid ${isSelected ? brandColor : 'rgba(255,255,255,0.07)'}`,
-                                            background: isSelected ? `${brandColor}22` : 'rgba(255,255,255,0.03)',
-                                            transition: 'all 0.2s ease',
-                                            boxShadow: isSelected ? `0 0 20px -6px ${brandColor}88` : 'none',
-                                            fontFamily: 'inherit',
-                                        }}
-                                    >
-                                        <span style={{ fontSize: '0.65rem', color: isSelected ? brandColor : '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                                            {dayName}
-                                        </span>
-                                        <span style={{ fontSize: '0.95rem', fontWeight: 800, color: isSelected ? '#fff' : '#94a3b8' }}>
-                                            {label}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <button onClick={() => setStep('time')} disabled={!selectedDate} style={primaryBtn(brandColor)}>
-                            Ver horarios <ChevronRight size={18} />
+                        {/* Back button */}
+                        <button onClick={() => { setStep('details'); setSelectedDate(''); setSelectedTime(null); }}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                background: 'none', border: 'none', color: '#475569',
+                                cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
+                                padding: '0', fontFamily: 'inherit',
+                            }}
+                        >
+                            <ArrowLeft size={14} /> Volver a detalles
                         </button>
-                    </div>
-                )}
 
-                {/* ── STEP: time ── */}
-                {step === 'time' && appt && (
-                    <div style={{ ...card, animation: 'fadeSlideUp 0.35s ease' }}>
-                        <BackBtn onClick={() => setStep('date')} color={brandColor} />
-                        <p style={stepTitle}>
-                            Horarios · <span style={{ color: brandColor, textTransform: 'capitalize' }}>
-                                {formatDateNice(selectedDate)}
-                            </span>
-                        </p>
-
-                        {availableSlots.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '2.5rem 0' }}>
-                                <div style={{
-                                    width: '56px', height: '56px', borderRadius: '50%',
-                                    background: 'rgba(255,255,255,0.04)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    margin: '0 auto 1rem',
-                                }}>
-                                    <Calendar size={24} color="#334155" />
-                                </div>
-                                <p style={{ color: '#475569', margin: '0 0 1.25rem', fontSize: '0.9rem' }}>
-                                    No hay horarios disponibles este día
-                                </p>
-                                <button onClick={() => setStep('date')} style={ghostBtn}>
-                                    <ArrowLeft size={15} /> Elegir otro día
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.55rem', marginBottom: '1.5rem' }}>
-                                    {availableSlots.map(slot => {
-                                        const isSelected = selectedTime === slot;
+                        {/* ── Date card ── */}
+                        <div style={card}>
+                            <p style={sectionLabel}>Elige una fecha</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                                {availableDates.length === 0 ? (
+                                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '1.5rem 0', color: '#334155' }}>
+                                        <Calendar size={28} style={{ margin: '0 auto 0.5rem', opacity: 0.4 }} />
+                                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No hay fechas disponibles</p>
+                                    </div>
+                                ) : (
+                                    availableDates.map(({ dateStr, label, dayName, isToday }) => {
+                                        const isSelected = selectedDate === dateStr;
                                         return (
                                             <button
-                                                key={slot}
-                                                onClick={() => setSelectedTime(slot)}
+                                                key={dateStr}
+                                                onClick={() => { setSelectedDate(dateStr); setSelectedTime(null); }}
                                                 style={{
-                                                    padding: '0.75rem 0.5rem',
-                                                    borderRadius: '12px', cursor: 'pointer',
+                                                    display: 'flex', flexDirection: 'column',
+                                                    alignItems: 'center', justifyContent: 'center',
+                                                    gap: '0.1rem', padding: '0.75rem 0.4rem',
+                                                    borderRadius: '13px', cursor: 'pointer',
+                                                    fontFamily: 'inherit',
                                                     border: `1.5px solid ${isSelected ? brandColor : 'rgba(255,255,255,0.07)'}`,
-                                                    background: isSelected ? `${brandColor}22` : 'rgba(255,255,255,0.03)',
-                                                    color: isSelected ? '#fff' : '#94a3b8',
-                                                    fontWeight: isSelected ? 800 : 500,
-                                                    fontSize: '0.9rem', fontFamily: 'inherit',
-                                                    transition: 'all 0.2s ease',
+                                                    background: isSelected ? `${brandColor}20` : 'rgba(255,255,255,0.03)',
                                                     boxShadow: isSelected ? `0 0 18px -6px ${brandColor}88` : 'none',
+                                                    transition: 'all 0.18s ease',
                                                 }}
                                             >
-                                                {format12h(slot)}
+                                                <span style={{
+                                                    fontSize: '0.6rem', fontWeight: 800,
+                                                    letterSpacing: '0.07em', textTransform: 'uppercase',
+                                                    color: isSelected ? brandColor : '#475569',
+                                                }}>
+                                                    {dayName}
+                                                </span>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isSelected ? '#fff' : '#94a3b8' }}>
+                                                    {label}
+                                                </span>
+                                                {isToday && (
+                                                    <span style={{ fontSize: '0.55rem', fontWeight: 900, color: isSelected ? '#fff' : brandColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        HOY
+                                                    </span>
+                                                )}
                                             </button>
                                         );
-                                    })}
+                                    })
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ── Time card — aparece al seleccionar fecha ── */}
+                        {selectedDate && (
+                            <div style={{ ...card, animation: 'slideDown 0.25s ease' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
+                                    <p style={{ ...sectionLabel, marginBottom: 0 }}>Horarios disponibles</p>
+                                    <span style={{
+                                        fontSize: '0.7rem', fontWeight: 700, color: brandColor,
+                                        background: `${brandColor}15`, borderRadius: '999px',
+                                        padding: '0.2rem 0.6rem', textTransform: 'capitalize',
+                                    }}>
+                                        {formatDateNice(selectedDate).split(' ').slice(0, 3).join(' ')}
+                                    </span>
                                 </div>
 
-                                <button
-                                    onClick={() => setStep('confirm')}
-                                    disabled={!selectedTime}
-                                    style={primaryBtn(brandColor)}
-                                >
-                                    Confirmar hora <ChevronRight size={18} />
+                                {availableSlots.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                                        <div style={{
+                                            width: '48px', height: '48px', borderRadius: '50%',
+                                            background: 'rgba(255,255,255,0.04)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            margin: '0 auto 0.75rem',
+                                        }}>
+                                            <Clock size={22} color="#334155" />
+                                        </div>
+                                        <p style={{ color: '#475569', margin: '0 0 1rem', fontSize: '0.85rem' }}>
+                                            Sin horarios disponibles este día
+                                        </p>
+                                        <button
+                                            onClick={() => { setSelectedDate(''); setSelectedTime(null); }}
+                                            style={ghostBtn}
+                                        >
+                                            <RefreshCw size={13} /> Cambiar fecha
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                                        {availableSlots.map(slot => {
+                                            const isSelected = selectedTime === slot;
+                                            return (
+                                                <button
+                                                    key={slot}
+                                                    onClick={() => setSelectedTime(isSelected ? null : slot)}
+                                                    style={{
+                                                        padding: '0.7rem 0.4rem',
+                                                        borderRadius: '11px', cursor: 'pointer',
+                                                        border: `1.5px solid ${isSelected ? brandColor : 'rgba(255,255,255,0.07)'}`,
+                                                        background: isSelected ? `${brandColor}20` : 'rgba(255,255,255,0.02)',
+                                                        color: isSelected ? '#fff' : '#94a3b8',
+                                                        fontWeight: isSelected ? 800 : 500,
+                                                        fontSize: '0.875rem', fontFamily: 'inherit',
+                                                        boxShadow: isSelected ? `0 0 16px -6px ${brandColor}88` : 'none',
+                                                        transition: 'all 0.18s ease',
+                                                    }}
+                                                >
+                                                    {format12h(slot)}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ── Confirm panel — aparece al seleccionar hora ── */}
+                        {selectedDate && selectedTime && (
+                            <div style={{ ...card, animation: 'slideDown 0.25s ease', border: `1.5px solid ${brandColor}33` }}>
+                                <p style={{ ...sectionLabel, color: brandColor, marginBottom: '1rem' }}>✦ Nuevo horario</p>
+
+                                {/* Antes → Después */}
+                                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                                    {/* Antes */}
+                                    <div style={{
+                                        flex: 1, background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                        borderRadius: '12px', padding: '0.85rem 0.75rem',
+                                    }}>
+                                        <p style={{ color: '#334155', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 0.5rem' }}>
+                                            Antes
+                                        </p>
+                                        <p style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 700, margin: '0 0 0.15rem' }}>
+                                            {format12h(appt!.time.slice(0, 5))}
+                                        </p>
+                                        <p style={{ color: '#334155', fontSize: '0.72rem', margin: 0, textTransform: 'capitalize', lineHeight: 1.4 }}>
+                                            {formatDateNice(appt!.date)}
+                                        </p>
+                                    </div>
+
+                                    {/* Arrow */}
+                                    <div style={{ display: 'flex', alignItems: 'center', color: brandColor, paddingBottom: '0.5rem' }}>
+                                        <ChevronRight size={18} />
+                                    </div>
+
+                                    {/* Después */}
+                                    <div style={{
+                                        flex: 1, background: `${brandColor}0d`,
+                                        border: `1.5px solid ${brandColor}33`,
+                                        borderRadius: '12px', padding: '0.85rem 0.75rem',
+                                    }}>
+                                        <p style={{ color: brandColor, fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 0.5rem' }}>
+                                            Nuevo
+                                        </p>
+                                        <p style={{ color: '#fff', fontSize: '0.82rem', fontWeight: 800, margin: '0 0 0.15rem' }}>
+                                            {format12h(selectedTime)}
+                                        </p>
+                                        <p style={{ color: '#94a3b8', fontSize: '0.72rem', margin: 0, textTransform: 'capitalize', lineHeight: 1.4 }}>
+                                            {formatDateNice(selectedDate)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button onClick={handleConfirm} disabled={isConfirming} style={primaryBtn(brandColor)}>
+                                    {isConfirming
+                                        ? <><Loader2 size={17} style={{ animation: 'spin 1s linear infinite' }} /> Procesando...</>
+                                        : <><CheckCircle size={17} /> Confirmar cambio</>
+                                    }
                                 </button>
-                            </>
+                                <button onClick={() => setSelectedTime(null)} style={{ ...ghostBtn, marginTop: '0.5rem' }}>
+                                    Elegir otra hora
+                                </button>
+                            </div>
                         )}
                     </div>
                 )}
 
-                {/* ── STEP: confirm ── */}
-                {step === 'confirm' && appt && (
-                    <div style={{ ...card, animation: 'fadeSlideUp 0.35s ease' }}>
-                        <BackBtn onClick={() => setStep('time')} color={brandColor} />
-                        <p style={stepTitle}>Confirma el cambio</p>
-
-                        {/* Before */}
-                        <div style={{
-                            background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.07)',
-                            borderRadius: '14px', padding: '1rem',
-                            marginBottom: '0.75rem',
-                        }}>
-                            <p style={{ color: '#475569', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.75rem' }}>
-                                Cita actual
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                <InfoRow icon={<Scissors size={14} />} label="Servicio" value={appt.services?.name ?? '—'} color="#475569" />
-                                <InfoRow icon={<Calendar size={14} />} label="Fecha"    value={formatDateNice(appt.date)}   color="#475569" />
-                                <InfoRow icon={<Clock size={14} />}    label="Hora"     value={format12h(appt.time.slice(0,5))} color="#475569" />
-                            </div>
-                        </div>
-
-                        {/* After */}
-                        <div style={{
-                            background: `${brandColor}0d`,
-                            border: `1.5px solid ${brandColor}33`,
-                            borderRadius: '14px', padding: '1rem',
-                            marginBottom: '1.5rem',
-                        }}>
-                            <p style={{ color: brandColor, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.75rem' }}>
-                                ✦ Nuevo horario
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                <InfoRow icon={<Calendar size={14} />} label="Fecha" value={formatDateNice(selectedDate)}     color={brandColor} />
-                                <InfoRow icon={<Clock size={14} />}    label="Hora"  value={format12h(selectedTime!)}         color={brandColor} />
-                            </div>
-                        </div>
-
-                        <button onClick={handleConfirm} disabled={isConfirming} style={primaryBtn(brandColor)}>
-                            {isConfirming
-                                ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Procesando...</>
-                                : <><CheckCircle size={18} /> Confirmar cambio</>
-                            }
-                        </button>
-                        <button onClick={() => setStep('details')} style={{ ...ghostBtn, marginTop: '0.6rem' }}>
-                            Cancelar
-                        </button>
-                    </div>
-                )}
-
-                {/* ── STEP: success ── */}
+                {/* ══ STEP: success ══ */}
                 {step === 'success' && appt && (
                     <div style={{ ...card, textAlign: 'center', animation: 'scaleIn 0.4s ease' }}>
                         <div style={{
-                            width: '80px', height: '80px', borderRadius: '50%',
-                            background: `${brandColor}18`,
-                            border: `2px solid ${brandColor}44`,
+                            width: '78px', height: '78px', borderRadius: '50%',
+                            background: `${brandColor}18`, border: `2px solid ${brandColor}44`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 1.5rem',
-                            animation: 'pulse-glow 2s infinite',
-                        } as any}>
-                            <CheckCircle size={40} color={brandColor} />
+                            animation: 'glowPulse 2.5s infinite',
+                        } as React.CSSProperties}>
+                            <CheckCircle size={38} color={brandColor} />
                         </div>
 
-                        <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 900, margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
+                        <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 900, margin: '0 0 0.4rem', letterSpacing: '-0.02em' }}>
                             ¡Reagendado!
                         </h2>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.75rem', lineHeight: 1.6 }}>
-                            Tu cita fue cambiada exitosamente.
+                        <p style={{ color: '#475569', fontSize: '0.875rem', marginBottom: '1.75rem', lineHeight: 1.6 }}>
+                            Tu cita fue cambiada exitosamente.<br />Recibirás un mensaje de confirmación.
                         </p>
 
                         <div style={{
-                            background: `${brandColor}0d`,
-                            border: `1.5px solid ${brandColor}2a`,
-                            borderRadius: '16px', padding: '1.25rem',
-                            marginBottom: '1.5rem',
+                            background: `${brandColor}0d`, border: `1.5px solid ${brandColor}2a`,
+                            borderRadius: '15px', padding: '1.25rem', marginBottom: '1.25rem',
                         }}>
-                            <p style={{ color: '#fff', fontWeight: 800, margin: '0 0 0.3rem', fontSize: '1.15rem', letterSpacing: '-0.01em' }}>
+                            <p style={{ color: '#fff', fontWeight: 900, margin: '0 0 0.3rem', fontSize: '1.2rem', letterSpacing: '-0.01em' }}>
                                 {selectedTime && format12h(selectedTime)}
                             </p>
-                            <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.9rem', textTransform: 'capitalize' }}>
+                            <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.875rem', textTransform: 'capitalize' }}>
                                 {selectedDate && formatDateNice(selectedDate)}
                             </p>
+                            {appt.services && (
+                                <p style={{ color: '#475569', margin: '0.5rem 0 0', fontSize: '0.78rem' }}>
+                                    {appt.services.name}
+                                </p>
+                            )}
                         </div>
 
-                        <p style={{ color: '#334155', fontSize: '0.8rem' }}>
-                            Recibirás un recordatorio antes de tu cita.
+                        <p style={{ color: '#1e293b', fontSize: '0.75rem' }}>
+                            Se enviará un recordatorio antes de tu cita.
                         </p>
                     </div>
                 )}
 
-                {/* ── STEP: error ── */}
+                {/* ══ STEP: error ══ */}
                 {step === 'error' && (
                     <div style={{ ...card, textAlign: 'center', animation: 'scaleIn 0.4s ease' }}>
                         <div style={{
-                            width: '72px', height: '72px', borderRadius: '50%',
-                            background: 'rgba(239,68,68,0.1)',
-                            border: '1.5px solid rgba(239,68,68,0.25)',
+                            width: '70px', height: '70px', borderRadius: '50%',
+                            background: 'rgba(239,68,68,0.1)', border: '1.5px solid rgba(239,68,68,0.25)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 1.5rem',
                         }}>
-                            <AlertTriangle size={34} color="#f87171" />
+                            <AlertTriangle size={32} color="#f87171" />
                         </div>
                         <h2 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem' }}>
                             Algo salió mal
                         </h2>
-                        <p style={{ color: '#64748b', marginBottom: '1.75rem', lineHeight: 1.6, fontSize: '0.9rem' }}>
+                        <p style={{ color: '#475569', marginBottom: '1.75rem', lineHeight: 1.6, fontSize: '0.875rem' }}>
                             {errorMsg}
                         </p>
-                        <button onClick={() => { setStep('phone'); setErrorMsg(''); }} style={primaryBtn('#7c3aed')}>
+                        <button
+                            onClick={() => { setStep('phone'); setErrorMsg(''); setPhone(''); }}
+                            style={primaryBtn('#7c3aed')}
+                        >
                             Intentar de nuevo
                         </button>
                     </div>
                 )}
 
                 {/* Footer */}
-                <p style={{ textAlign: 'center', color: '#1e293b', fontSize: '0.72rem', marginTop: '2rem', letterSpacing: '0.05em' }}>
+                <p style={{ textAlign: 'center', color: '#1e293b', fontSize: '0.7rem', marginTop: '2rem', letterSpacing: '0.04em' }}>
                     Powered by <span style={{ color: '#334155', fontWeight: 700 }}>CitaLink</span>
                 </p>
             </div>
@@ -681,30 +733,11 @@ export default function Reschedule() {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function InfoRow({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <span style={{ color, flexShrink: 0, opacity: 0.9 }}>{icon}</span>
-            {label && <span style={{ color: '#475569', fontSize: '0.82rem', minWidth: '72px', fontWeight: 500 }}>{label}</span>}
-            <span style={{ color: '#e2e8f0', fontSize: '0.9rem', fontWeight: 700 }}>{value}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{ color, flexShrink: 0 }}>{icon}</span>
+            {label && <span style={{ color: '#475569', fontSize: '0.8rem', minWidth: '72px', fontWeight: 500 }}>{label}</span>}
+            <span style={{ color: '#e2e8f0', fontSize: '0.875rem', fontWeight: 700 }}>{value}</span>
         </div>
-    );
-}
-
-function BackBtn({ onClick, color }: { onClick: () => void; color: string }) {
-    return (
-        <button onClick={onClick} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '8px', color: '#64748b',
-            cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-            padding: '0.4rem 0.75rem', marginBottom: '1.25rem',
-            fontFamily: 'inherit', transition: 'color 0.2s, border-color 0.2s',
-        }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = color; (e.currentTarget as HTMLButtonElement).style.borderColor = `${color}44`; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
-        >
-            <ArrowLeft size={14} /> Volver
-        </button>
     );
 }
 
@@ -712,44 +745,36 @@ function BackBtn({ onClick, color }: { onClick: () => void; color: string }) {
 const card: React.CSSProperties = {
     background: 'rgba(255,255,255,0.025)',
     border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: '22px',
-    padding: '1.75rem 1.5rem',
+    borderRadius: '20px',
+    padding: '1.5rem 1.35rem',
     backdropFilter: 'blur(20px)',
-    boxShadow: '0 4px 40px rgba(0,0,0,0.4)',
+    boxShadow: '0 4px 40px rgba(0,0,0,0.35)',
 };
 
-const stepTitle: React.CSSProperties = {
-    color: '#94a3b8',
-    fontSize: '0.72rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    marginBottom: '1.1rem',
-    marginTop: 0,
+const sectionLabel: React.CSSProperties = {
+    color: '#475569', fontSize: '0.68rem', fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.1em',
+    marginBottom: '0.9rem', marginTop: 0,
 };
 
 const primaryBtn = (color: string): React.CSSProperties => ({
-    width: '100%', padding: '0.95rem',
-    background: `linear-gradient(135deg, ${color}, ${color}cc)`,
-    color: '#fff',
-    border: 'none', borderRadius: '14px',
-    fontSize: '0.95rem', fontWeight: 800,
+    width: '100%', padding: '0.9rem',
+    background: `linear-gradient(135deg, ${color} 0%, ${color}bb 100%)`,
+    color: '#fff', border: 'none', borderRadius: '13px',
+    fontSize: '0.92rem', fontWeight: 800,
     cursor: 'pointer', display: 'flex',
-    alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+    alignItems: 'center', justifyContent: 'center', gap: '0.45rem',
     fontFamily: 'inherit',
-    boxShadow: `0 4px 20px -4px ${color}66`,
+    boxShadow: `0 4px 18px -4px ${color}55`,
     letterSpacing: '0.01em',
-    transition: 'opacity 0.2s, box-shadow 0.2s',
 });
 
 const ghostBtn: React.CSSProperties = {
-    width: '100%', padding: '0.85rem',
+    width: '100%', padding: '0.8rem',
     background: 'rgba(255,255,255,0.04)',
-    color: '#475569',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: '14px', fontSize: '0.88rem', fontWeight: 600,
+    color: '#475569', border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '13px', fontSize: '0.85rem', fontWeight: 600,
     cursor: 'pointer', display: 'flex',
     alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
     fontFamily: 'inherit',
-    transition: 'background 0.2s',
 };
