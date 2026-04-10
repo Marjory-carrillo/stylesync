@@ -127,7 +127,8 @@ export default function Reschedule() {
             setAppt(data as any);
 
             const [schedRes, apptsRes, blockedRes] = await Promise.all([
-                supabase.from('schedule').select('*').eq('tenant_id', data.tenant_id).single(),
+                // schedule_config stores the weekly schedule as a JSON object
+                supabase.from('schedule_config').select('schedule').eq('tenant_id', data.tenant_id).maybeSingle(),
                 supabase.from('appointments')
                     .select('id, date, time, service_id, stylist_id, status')
                     .eq('tenant_id', data.tenant_id)
@@ -138,24 +139,25 @@ export default function Reschedule() {
                     .eq('tenant_id', data.tenant_id),
             ]);
 
-            if (schedRes.data) {
-                const raw = schedRes.data;
-                const days: Record<string, ScheduleDay> = {};
-                DAY_KEYS.forEach(d => {
-                    days[d] = {
-                        open:       raw[`${d}_open`]        ?? false,
-                        start:      raw[`${d}_start`]       ?? '09:00',
-                        end:        raw[`${d}_end`]         ?? '18:00',
-                        breakStart: raw[`${d}_break_start`] ?? undefined,
-                        breakEnd:   raw[`${d}_break_end`]   ?? undefined,
-                    };
+            if (schedRes.data?.schedule) {
+                // schedule is already { monday: { open, start, end }, ... }
+                setSchedule(schedRes.data.schedule as Record<string, ScheduleDay>);
+            } else {
+                // fallback: all weekdays open 9-18, saturday 9-14, sunday closed
+                setSchedule({
+                    monday:    { open: true,  start: '09:00', end: '18:00' },
+                    tuesday:   { open: true,  start: '09:00', end: '18:00' },
+                    wednesday: { open: true,  start: '09:00', end: '18:00' },
+                    thursday:  { open: true,  start: '09:00', end: '18:00' },
+                    friday:    { open: true,  start: '09:00', end: '18:00' },
+                    saturday:  { open: true,  start: '09:00', end: '14:00' },
+                    sunday:    { open: false, start: '09:00', end: '14:00' },
                 });
-                setSchedule(days);
             }
 
             setExistingAppts(apptsRes.data ?? []);
             setBlockedSlots(blockedRes.data ?? []);
-            setSelectedDate(data.date);
+            setSelectedDate(''); // clear so user must pick a date from the grid
             setStep('details');
         } finally {
             setIsLoading(false);
