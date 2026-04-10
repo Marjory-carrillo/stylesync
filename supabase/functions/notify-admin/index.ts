@@ -192,6 +192,7 @@ serve(async (req: Request) => {
                 phone: adminPhone,
                 message_type: `admin_${event_type}`,
                 provider: 'whatsapp',
+                status: 'sent',
             }).then(r => { if (r.error) console.warn('[notify-admin] sms_logs insert error (admin):', r.error.message); });
         }
 
@@ -238,6 +239,7 @@ serve(async (req: Request) => {
                     phone: appointment.client_phone,
                     message_type: `client_${event_type}`,
                     provider: 'whatsapp',
+                    status: 'sent',
                 }).then(r => { if (r.error) console.warn('[notify-admin] sms_logs insert error (client):', r.error.message); });
             }
         }

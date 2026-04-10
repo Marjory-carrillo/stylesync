@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+﻿import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import {
     Building2, Trash2, Search, ChevronRight,
@@ -13,7 +13,7 @@ import { useUIStore } from '../../lib/store/uiStore';
 import { getPlanBadgeStyles } from '../../lib/planLimits';
 import type { PlanType } from '../../lib/planLimits';
 
-// Modal de confirmación premium para borrado
+// Modal de confirmaciÃ³n premium para borrado
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
     if (!isOpen) return null;
     return (
@@ -23,16 +23,16 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => 
                 <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-6 mx-auto">
                     <AlertTriangle size={32} />
                 </div>
-                <h3 className="text-2xl font-black text-white text-center mb-2 uppercase tracking-tight">¿Eliminar Negocio?</h3>
+                <h3 className="text-2xl font-black text-white text-center mb-2 uppercase tracking-tight">Â¿Eliminar Negocio?</h3>
                 <p className="text-slate-400 text-center mb-8 leading-relaxed">
-                    Estás a punto de eliminar <span className="text-white font-bold">"{tenantName}"</span>. Esta acción es irreversible y borrará todos los datos asociados.
+                    EstÃ¡s a punto de eliminar <span className="text-white font-bold">"{tenantName}"</span>. Esta acciÃ³n es irreversible y borrarÃ¡ todos los datos asociados.
                 </p>
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={onConfirm}
                         className="w-full py-4 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black uppercase tracking-widest transition-all shadow-lg shadow-red-500/20"
                     >
-                        Confirmar Eliminación
+                        Confirmar EliminaciÃ³n
                     </button>
                     <button
                         onClick={onClose}
@@ -89,7 +89,7 @@ export default function SuperAdminPanel() {
                 .eq('provider', 'whatsapp');
             setTotalSmsCount(count || 0);
 
-            // Conteos por tenant — solo WhatsApp, con fecha para semana/mes
+            // Conteos por tenant â€” solo WhatsApp, con fecha para semana/mes
             const { data: logsData, error } = await supabase
                 .from('sms_logs')
                 .select('tenant_id, created_at')
@@ -121,14 +121,14 @@ export default function SuperAdminPanel() {
         try {
             const since = subMonths(new Date(), 1).toISOString();
 
-            // Citas en los últimos 30 días
+            // Citas en los Ãºltimos 30 dÃ­as
             const { count: apptCount } = await supabase
                 .from('appointments')
                 .select('*', { count: 'exact', head: true })
                 .gte('date', since.split('T')[0]);
             setAppointmentsLast30(apptCount || 0);
 
-            // Total clientes únicos (por número de teléfono)
+            // Total clientes Ãºnicos (por nÃºmero de telÃ©fono)
             const { data: phones } = await supabase
                 .from('appointments')
                 .select('client_phone');
@@ -177,10 +177,10 @@ export default function SuperAdminPanel() {
             setSelectedOwnerId('');
             showToast(
                 isExistingOwner
-                    ? `Sucursal creada y asignada al dueño existente.`
+                    ? `Sucursal creada y asignada al dueÃ±o existente.`
                     : res.accountCreated
                         ? `Negocio creado. Cuenta creada para ${newBusiness.ownerEmail}`
-                        : 'Negocio creado. La cuenta del dueño no se pudo crear automáticamente.',
+                        : 'Negocio creado. La cuenta del dueÃ±o no se pudo crear automÃ¡ticamente.',
                 'success'
             );
             fetchAllTenants();
@@ -222,7 +222,7 @@ export default function SuperAdminPanel() {
                             <h1 className="text-4xl font-black text-white tracking-tighter">CitaLink <span className="text-accent font-light italic">HQ</span></h1>
                             <span className="bg-accent text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full tracking-widest uppercase mb-1">Central</span>
                         </div>
-                        <p className="text-slate-400 text-sm font-medium tracking-wide">Panel de Control Global y Desempeño de Plataforma</p>
+                        <p className="text-slate-400 text-sm font-medium tracking-wide">Panel de Control Global y DesempeÃ±o de Plataforma</p>
                     </div>
                 </div>
 
@@ -247,7 +247,7 @@ export default function SuperAdminPanel() {
                 />
                 <StatCard
                     icon={<Calendar size={24} />}
-                    title="Citas (últimos 30d)"
+                    title="Citas (Ãºltimos 30d)"
                     value={appointmentsLast30 !== null ? appointmentsLast30 : '...'}
                     color="text-emerald-400"
                     sub="En toda la plataforma"
@@ -255,10 +255,10 @@ export default function SuperAdminPanel() {
                 />
                 <StatCard
                     icon={<Users size={24} />}
-                    title="Clientes Únicos"
+                    title="Clientes Ãšnicos"
                     value={uniqueClients !== null ? uniqueClients : '...'}
                     color="text-violet-400"
-                    sub="Por teléfono registrado"
+                    sub="Por telÃ©fono registrado"
                     delay="2"
                 />
                 <StatCard
@@ -271,20 +271,20 @@ export default function SuperAdminPanel() {
                 />
             </div>
 
-            {/* Distribución por Categoría */}
+            {/* DistribuciÃ³n por CategorÃ­a */}
             <div className="glass-panel p-6 border border-white/5">
                 <h3 className="text-white font-black text-xl mb-6 flex items-center gap-2 uppercase tracking-tight">
                     <BarChart3 className="text-violet-400" size={20} />
-                    Distribución por Categoría
+                    DistribuciÃ³n por CategorÃ­a
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {(() => {
                         const categories = [
-                            { id: 'barbershop', label: 'Barberías', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+                            { id: 'barbershop', label: 'BarberÃ­as', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
                             { id: 'beauty_salon', label: 'Salones', color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
                             { id: 'nail_bar', label: "Nail's", color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
                             { id: 'spa', label: 'Spas', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-                            { id: 'consulting', label: 'Clínicas', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+                            { id: 'consulting', label: 'ClÃ­nicas', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
                             { id: 'other', label: 'Otros', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' }
                         ];
                         const legacyMap: Record<string, string> = { 'salon': 'beauty_salon', 'clinic': 'consulting', 'barber': 'barbershop' };
@@ -331,71 +331,97 @@ export default function SuperAdminPanel() {
                         {filteredTenants.map((tenant, idx) => (
                             <div
                                 key={tenant.id}
-                                className="glass-card flex items-center p-5 border-white/5 hover:border-accent/20 hover:bg-white/5 transition-all duration-300 group"
+                                className="glass-card flex flex-col p-4 sm:p-5 border-white/5 hover:border-accent/20 hover:bg-white/5 transition-all duration-300 group"
                                 style={{ animationDelay: `${idx * 0.05}s` }}
                             >
-                                <div className="w-16 h-16 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-2xl group-hover:scale-105 transition-transform">
-                                    {tenant.logoUrl ? (
-                                        <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Building2 size={24} className="text-slate-600 group-hover:text-accent transition-colors" />
-                                    )}
-                                </div>
-
-                                <div className="flex-1 min-w-0 ml-5">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="text-lg font-black text-white truncate uppercase tracking-tight">{tenant.name}</h3>
-                                        <span className="px-2.5 py-1 rounded bg-white/5 text-[9px] font-black tracking-widest uppercase text-slate-400 border border-white/5 shadow-inner">
-                                            {(() => {
-                                                const cat = tenant.category?.toLowerCase() || '';
-                                                if (cat === 'barbershop' || cat === 'barber') return 'BARBERÍA';
-                                                if (cat === 'beauty_salon' || cat === 'salon') return 'SALÓN';
-                                                if (cat === 'nail_bar') return "NAIL'S";
-                                                if (cat === 'spa') return 'SPA';
-                                                if (cat === 'consulting' || cat === 'clinic') return 'CLÍNICA';
-                                                if (cat === 'other') return 'OTRO';
-                                                return cat.toUpperCase() || 'ESTÁNDAR';
-                                            })()}
-                                        </span>
-                                        {(() => {
-                                            const p = (tenant.plan || 'free') as PlanType;
-                                            const b = getPlanBadgeStyles(p);
-                                            return <span className={`px-2 py-1 rounded text-[9px] font-black tracking-widest uppercase border ${b.bg} ${b.text} ${b.border}`}>{p.toUpperCase()}</span>;
-                                        })()}
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate">
-                                            citalink.app/{tenant.slug}
-                                        </span>
-                                        {tenant.brand_slug && (
-                                            <span className="flex items-center gap-1 text-[9px] font-black text-violet-400 px-2 py-0.5 bg-violet-500/10 rounded border border-violet-500/25 uppercase tracking-wider">
-                                                <Building2 size={9} />
-                                                {(() => {
-                                                    const siblings = allTenants.filter(t => t.brand_slug === tenant.brand_slug);
-                                                    return `${siblings.length} sucursales`;
-                                                })()}
-                                            </span>
+                                {/* â”€â”€ Top row: logo + info + action buttons â”€â”€ */}
+                                <div className="flex items-start gap-3 sm:gap-4">
+                                    {/* Logo */}
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-xl group-hover:scale-105 transition-transform">
+                                        {tenant.logoUrl ? (
+                                            <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Building2 size={22} className="text-slate-600 group-hover:text-accent transition-colors" />
                                         )}
                                     </div>
 
-                                    {/* WhatsApp Stats: Week / Month / Total */}
-                                    <div className="flex items-center gap-1.5 mt-2">
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                            <h3 className="text-base sm:text-lg font-black text-white truncate uppercase tracking-tight max-w-[140px] sm:max-w-[200px]">{tenant.name}</h3>
+                                            <span className="px-2 py-0.5 rounded bg-white/5 text-[8px] sm:text-[9px] font-black tracking-widest uppercase text-slate-400 border border-white/5 shadow-inner shrink-0">
+                                                {(() => {
+                                                    const cat = tenant.category?.toLowerCase() || '';
+                                                    if (cat === 'barbershop' || cat === 'barber') return 'BARBERÃA';
+                                                    if (cat === 'beauty_salon' || cat === 'salon') return 'SALÃ“N';
+                                                    if (cat === 'nail_bar') return "NAIL'S";
+                                                    if (cat === 'spa') return 'SPA';
+                                                    if (cat === 'consulting' || cat === 'clinic') return 'CLÃNICA';
+                                                    if (cat === 'other') return 'OTRO';
+                                                    return cat.toUpperCase() || 'ESTÃNDAR';
+                                                })()}
+                                            </span>
+                                            {(() => {
+                                                const p = (tenant.plan || 'free') as PlanType;
+                                                const b = getPlanBadgeStyles(p);
+                                                return <span className={`px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 ${b.bg} ${b.text} ${b.border}`}>{p.toUpperCase()}</span>;
+                                            })()}
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-[10px] sm:text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate max-w-[160px] sm:max-w-none">
+                                                citalink.app/{tenant.slug}
+                                            </span>
+                                            {tenant.brand_slug && (
+                                                <span className="flex items-center gap-1 text-[8px] font-black text-violet-400 px-2 py-0.5 bg-violet-500/10 rounded border border-violet-500/25 uppercase tracking-wider shrink-0">
+                                                    <Building2 size={8} />
+                                                    {allTenants.filter(t => t.brand_slug === tenant.brand_slug).length} suc.
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Action buttons â€” always top-right */}
+                                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                                        <button
+                                            onClick={async () => {
+                                                await switchTenant(tenant.id);
+                                                navigate('/admin');
+                                            }}
+                                            className="btn btn-primary p-2.5 sm:p-3 rounded-xl shadow-none hover:shadow-accent/40"
+                                            title="Administrar Negocio"
+                                        >
+                                            <ChevronRight size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(tenant)}
+                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* â”€â”€ Bottom row: stats + controls â”€â”€ */}
+                                <div className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
+
+                                    {/* WA Stats */}
+                                    <div className="flex items-center gap-1.5">
                                         {(() => {
                                             const stats = smsCountsByTenant[tenant.id] || { total: 0, week: 0, month: 0 };
                                             return (
                                                 <>
                                                     <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="WA esta semana">
-                                                        <Calendar size={10} className="text-emerald-400" />
+                                                        <Calendar size={9} className="text-emerald-400" />
                                                         <span className="text-[10px] font-black text-emerald-400">{stats.week}</span>
                                                         <span className="text-[8px] text-emerald-400/60 font-bold">SEM</span>
                                                     </div>
                                                     <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20" title="WA este mes">
-                                                        <BarChart3 size={10} className="text-blue-400" />
+                                                        <BarChart3 size={9} className="text-blue-400" />
                                                         <span className="text-[10px] font-black text-blue-400">{stats.month}</span>
                                                         <span className="text-[8px] text-blue-400/60 font-bold">MES</span>
                                                     </div>
                                                     <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="WA totales">
-                                                        <Zap size={10} className="text-emerald-400" />
+                                                        <Zap size={9} className="text-emerald-400" />
                                                         <span className="text-[10px] font-black text-emerald-400">{stats.total}</span>
                                                         <span className="text-[8px] text-emerald-400/60 font-bold">TOT</span>
                                                     </div>
@@ -403,124 +429,84 @@ export default function SuperAdminPanel() {
                                             );
                                         })()}
                                     </div>
-                                </div>
 
-                                <div className="flex flex-col items-end gap-3 ml-4">
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={async () => {
-                                                await switchTenant(tenant.id);
-                                                navigate('/admin');
-                                            }}
-                                            className="btn btn-primary p-3 rounded-xl shadow-none hover:shadow-accent/40"
-                                            title="Administrar Negocio"
-                                        >
-                                            <ChevronRight size={20} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteClick(tenant)}
-                                            className="p-3 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
-                                        >
-                                            <Trash2 size={20} />
-                                        </button>
+                                    {/* Spacer */}
+                                    <div className="flex-1" />
+
+                                    {/* Controls row â€” wrap on small screens */}
+                                    <div className="flex flex-wrap items-center gap-2">
+
+                                        {/* MensajerÃ­a */}
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/5">
+                                            <div className="flex flex-col items-start">
+                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">WA</span>
+                                                <span className={`text-[9px] font-bold leading-none ${tenant.sms_provider === 'whatsapp' ? 'text-emerald-400' : 'text-amber-500/70'}`}>
+                                                    {tenant.sms_provider === 'whatsapp' ? 'ON' : 'DEMO'}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                {(['demo', 'whatsapp'] as const).map((p) => (
+                                                    <button
+                                                        key={p}
+                                                        onClick={async () => {
+                                                            if (tenant.sms_provider === p) return;
+                                                            const { error } = await supabase.from('tenants').update({ sms_provider: p }).eq('id', tenant.id);
+                                                            if (error) { showToast("Error: " + error.message, 'error'); }
+                                                            else { fetchAllTenants(); showToast(`MensajerÃ­a â†’ ${p === 'whatsapp' ? 'ðŸ’¬ WhatsApp' : 'Demo'} para ${tenant.name}`, 'info'); }
+                                                        }}
+                                                        className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
+                                                            tenant.sms_provider === p
+                                                                ? p === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                                                : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
+                                                        }`}
+                                                    >
+                                                        {p === 'demo' ? 'ðŸ”µ' : 'ðŸ’¬'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Plan */}
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/5">
+                                            <div className="flex flex-col items-start">
+                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
+                                                <span className={`text-[9px] font-bold leading-none ${
+                                                    tenant.plan === 'business' ? 'text-violet-400' : tenant.plan === 'pro' ? 'text-amber-400' : 'text-slate-500'
+                                                }`}>
+                                                    {(tenant.plan || 'free').toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                {(['free', 'pro', 'business'] as const).map((p) => (
+                                                    <button
+                                                        key={p}
+                                                        onClick={async () => {
+                                                            if ((tenant.plan || 'free') === p) return;
+                                                            const { error } = await supabase.from('tenants').update({ plan: p }).eq('id', tenant.id);
+                                                            if (error) { showToast('Error: ' + error.message, 'error'); }
+                                                            else { fetchAllTenants(); showToast(`Plan â†’ ${p === 'pro' ? 'â­ Pro' : p === 'business' ? 'ðŸš€ Business' : 'Free'} para ${tenant.name}`, 'success'); }
+                                                        }}
+                                                        className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
+                                                            (tenant.plan || 'free') === p
+                                                                ? p === 'business' ? 'bg-violet-500/20 text-violet-400 border border-violet-500/40'
+                                                                : p === 'pro' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                                                : 'bg-slate-500/20 text-slate-400 border border-slate-500/40'
+                                                                : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
+                                                        }`}
+                                                    >
+                                                        {p === 'free' ? 'F' : p === 'pro' ? 'â­' : 'ðŸš€'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
                                     </div>
-
-                                    {/* WhatsApp Provider Selector */}
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
-                                        <div className="flex flex-col items-start mr-1">
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Mensajería</span>
-                                            <span className={`text-[10px] font-bold ${
-                                                tenant.sms_provider === 'whatsapp' ? 'text-emerald-400'
-                                                : 'text-amber-500/70'
-                                            }`}>
-                                                {tenant.sms_provider === 'whatsapp' ? 'WHATSAPP' : 'DEMO'}
-                                            </span>
-                                        </div>
-                                        <div className="flex gap-1">
-                                            {(['demo', 'whatsapp'] as const).map((p) => (
-                                                <button
-                                                    key={p}
-                                                    onClick={async () => {
-                                                        if (tenant.sms_provider === p) return;
-                                                        const { error } = await supabase
-                                                            .from('tenants')
-                                                            .update({ sms_provider: p })
-                                                            .eq('id', tenant.id);
-                                                        if (error) {
-                                                            showToast("Error: " + error.message, 'error');
-                                                        } else {
-                                                            fetchAllTenants();
-                                                            const labels = { demo: 'Demo', whatsapp: '💬 WhatsApp' };
-                                                            showToast(`Mensajería → ${labels[p]} para ${tenant.name}`, 'info');
-                                                        }
-                                                    }}
-                                                    className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all ${
-                                                        tenant.sms_provider === p
-                                                            ? p === 'whatsapp'
-                                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                                                : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                                            : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
-                                                    }`}
-                                                >
-                                                    {p === 'demo' ? '🔵 Demo' : '💬 WA'}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Plan Selector */}
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
-                                        <div className="flex flex-col items-start mr-1">
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
-                                            <span className={`text-[10px] font-bold ${
-                                                tenant.plan === 'business' ? 'text-violet-400'
-                                                : tenant.plan === 'pro' ? 'text-amber-400'
-                                                : 'text-slate-500'
-                                            }`}>
-                                                {(tenant.plan || 'free').toUpperCase()}
-                                            </span>
-                                        </div>
-                                        <div className="flex gap-1">
-                                            {(['free', 'pro', 'business'] as const).map((p) => (
-                                                <button
-                                                    key={p}
-                                                    onClick={async () => {
-                                                        if ((tenant.plan || 'free') === p) return;
-                                                        const { error } = await supabase
-                                                            .from('tenants')
-                                                            .update({ plan: p })
-                                                            .eq('id', tenant.id);
-                                                        if (error) {
-                                                            showToast('Error: ' + error.message, 'error');
-                                                        } else {
-                                                            fetchAllTenants();
-                                                            const labels = { free: 'Free', pro: '⭐ Pro', business: '🚀 Business' };
-                                                            showToast(`Plan → ${labels[p]} para ${tenant.name}`, 'success');
-                                                        }
-                                                    }}
-                                                    className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all ${
-                                                        (tenant.plan || 'free') === p
-                                                            ? p === 'business'
-                                                                ? 'bg-violet-500/20 text-violet-400 border border-violet-500/40'
-                                                                : p === 'pro'
-                                                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                                                    : 'bg-slate-500/20 text-slate-400 border border-slate-500/40'
-                                                            : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
-                                                    }`}
-                                                >
-                                                    {p === 'free' ? 'Free' : p === 'pro' ? '⭐ Pro' : '🚀 Biz'}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
-
             {/* Modals */}
             <DeleteConfirmModal
                 isOpen={isDeleteModalOpen}
@@ -543,7 +529,7 @@ export default function SuperAdminPanel() {
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-black text-white tracking-tight">Nuevo Negocio</h3>
-                                        <p className="text-slate-500 text-[11px] mt-0.5">Configuración rápida de instancia SaaS</p>
+                                        <p className="text-slate-500 text-[11px] mt-0.5">ConfiguraciÃ³n rÃ¡pida de instancia SaaS</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setIsCreateModalOpen(false)} className="p-2.5 hover:bg-white/5 rounded-xl transition-colors border border-transparent hover:border-white/10">
@@ -554,7 +540,7 @@ export default function SuperAdminPanel() {
 
                         <form onSubmit={handleCreateBusiness} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
 
-                            {/* ── Sección: Negocio ── */}
+                            {/* â”€â”€ SecciÃ³n: Negocio â”€â”€ */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Building2 size={14} className="text-blue-400" />
@@ -567,7 +553,7 @@ export default function SuperAdminPanel() {
                                     <input
                                         required type="text"
                                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
-                                        placeholder="Ej. Barbería El Rey"
+                                        placeholder="Ej. BarberÃ­a El Rey"
                                         value={newBusiness.name}
                                         onChange={e => {
                                             const name = e.target.value;
@@ -612,7 +598,7 @@ export default function SuperAdminPanel() {
                                                 onChange={e => setNewBusiness({ ...newBusiness, brandSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
                                             />
                                         </div>
-                                        <p className="text-[10px] text-violet-400/60 ml-1">Los clientes verán todas las sucursales en un solo link.</p>
+                                        <p className="text-[10px] text-violet-400/60 ml-1">Los clientes verÃ¡n todas las sucursales en un solo link.</p>
                                     </div>
                                 )}
 
@@ -625,26 +611,26 @@ export default function SuperAdminPanel() {
                                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
                                     >
                                         <option value="America/Mexico_City" className="bg-slate-900">Hora Central (CDMX, Monterrey)</option>
-                                        <option value="America/Tijuana" className="bg-slate-900">Hora del Pacífico (Tijuana, Mexicali)</option>
-                                        <option value="America/Mazatlan" className="bg-slate-900">Hora de la Montaña (Mazatlán, Culiacán)</option>
-                                        <option value="America/Cancun" className="bg-slate-900">Hora del Este (Cancún)</option>
-                                        <option value="America/Bogota" className="bg-slate-900">Colombia / Perú / Ecuador</option>
+                                        <option value="America/Tijuana" className="bg-slate-900">Hora del PacÃ­fico (Tijuana, Mexicali)</option>
+                                        <option value="America/Mazatlan" className="bg-slate-900">Hora de la MontaÃ±a (MazatlÃ¡n, CuliacÃ¡n)</option>
+                                        <option value="America/Cancun" className="bg-slate-900">Hora del Este (CancÃºn)</option>
+                                        <option value="America/Bogota" className="bg-slate-900">Colombia / PerÃº / Ecuador</option>
                                         <option value="America/Santiago" className="bg-slate-900">Chile</option>
                                         <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">Argentina</option>
-                                        <option value="Europe/Madrid" className="bg-slate-900">España (Península)</option>
+                                        <option value="Europe/Madrid" className="bg-slate-900">EspaÃ±a (PenÃ­nsula)</option>
                                     </select>
                                 </div>
 
-                                {/* Categoría */}
+                                {/* CategorÃ­a */}
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-400 ml-1">Categoría</label>
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">CategorÃ­a</label>
                                     <div className="grid grid-cols-3 gap-1.5">
                                         {[
-                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={16} />, color: 'amber' },
-                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={16} />, color: 'pink' },
+                                            { id: 'barbershop', label: 'BarberÃ­a', icon: <Scissors size={16} />, color: 'amber' },
+                                            { id: 'beauty_salon', label: 'SalÃ³n', icon: <Sparkles size={16} />, color: 'pink' },
                                             { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={16} />, color: 'rose' },
                                             { id: 'spa', label: 'Spa', icon: <Flower2 size={16} />, color: 'emerald' },
-                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={16} />, color: 'blue' },
+                                            { id: 'consulting', label: 'ClÃ­nica', icon: <Briefcase size={16} />, color: 'blue' },
                                             { id: 'other', label: 'Otro', icon: <MoreHorizontal size={16} />, color: 'slate' },
                                         ].map(cat => {
                                             const isSelected = newBusiness.category === cat.id;
@@ -674,12 +660,12 @@ export default function SuperAdminPanel() {
                             {/* Divider */}
                             <div className="border-t border-white/5" />
 
-                            {/* ── Sección: Acceso del Dueño ── */}
+                            {/* â”€â”€ SecciÃ³n: Acceso del DueÃ±o â”€â”€ */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between mb-1">
                                     <div className="flex items-center gap-2">
                                         <Users size={14} className="text-emerald-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del Dueño</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del DueÃ±o</span>
                                     </div>
                                     {/* Toggle: Existing Owner */}
                                     <button
@@ -692,21 +678,21 @@ export default function SuperAdminPanel() {
                                         }`}
                                     >
                                         <Building2 size={10} />
-                                        {isExistingOwner ? 'Dueño Existente' : '+ Nueva Cuenta'}
+                                        {isExistingOwner ? 'DueÃ±o Existente' : '+ Nueva Cuenta'}
                                     </button>
                                 </div>
 
                                 {isExistingOwner ? (
                                     /* Existing Owner Selector */
                                     <div className="space-y-2">
-                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Seleccionar Dueño Existente</label>
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Seleccionar DueÃ±o Existente</label>
                                         <select
                                             required
                                             value={selectedOwnerId}
                                             onChange={e => setSelectedOwnerId(e.target.value)}
                                             className="w-full bg-white/[0.04] border border-violet-500/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/30 transition-all outline-none text-sm appearance-none"
                                         >
-                                            <option value="" className="bg-slate-900">— Elegir un dueño —</option>
+                                            <option value="" className="bg-slate-900">â€” Elegir un dueÃ±o â€”</option>
                                             {(() => {
                                                 // Get unique owners from existing tenants
                                                 const ownerMap = new Map<string, { id: string; name: string }>(); 
@@ -717,19 +703,19 @@ export default function SuperAdminPanel() {
                                                 });
                                                 return Array.from(ownerMap.values()).map(owner => (
                                                     <option key={owner.id} value={owner.id} className="bg-slate-900">
-                                                        Dueño de: {owner.name}
+                                                        DueÃ±o de: {owner.name}
                                                     </option>
                                                 ));
                                             })()}
                                         </select>
-                                        <p className="text-[10px] text-violet-400/70 ml-1">📎 La nueva sucursal aparecerá en el panel del dueño seleccionado.</p>
+                                        <p className="text-[10px] text-violet-400/70 ml-1">ðŸ“Ž La nueva sucursal aparecerÃ¡ en el panel del dueÃ±o seleccionado.</p>
                                     </div>
                                 ) : (
                                     /* New Owner: Email + Password */
                                     <>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div className="space-y-1.5">
-                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Correo Electrónico</label>
+                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Correo ElectrÃ³nico</label>
                                                 <input
                                                     required type="email"
                                                     className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
@@ -739,17 +725,17 @@ export default function SuperAdminPanel() {
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Contraseña</label>
+                                                <label className="text-[11px] font-bold text-slate-400 ml-1">ContraseÃ±a</label>
                                                 <input
                                                     required type="password" minLength={6}
                                                     className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
-                                                    placeholder="Mín. 6 caracteres"
+                                                    placeholder="MÃ­n. 6 caracteres"
                                                     value={newBusiness.ownerPassword}
                                                     onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
                                                 />
                                             </div>
                                         </div>
-                                        <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueño usará estas credenciales para acceder a su panel de administración.</p>
+                                        <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueÃ±o usarÃ¡ estas credenciales para acceder a su panel de administraciÃ³n.</p>
                                     </>
                                 )}
                             </div>
@@ -757,7 +743,7 @@ export default function SuperAdminPanel() {
                             {/* Divider */}
                             <div className="border-t border-white/5" />
 
-                            {/* ── Sección: Plan ── */}
+                            {/* â”€â”€ SecciÃ³n: Plan â”€â”€ */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Zap size={14} className="text-amber-400" />
@@ -796,11 +782,11 @@ export default function SuperAdminPanel() {
                             {/* Trial Toggle */}
                             <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                                 <div>
-                                    <p className="text-xs font-bold text-white">Período de prueba (21 días)</p>
+                                    <p className="text-xs font-bold text-white">PerÃ­odo de prueba (21 dÃ­as)</p>
                                     <p className="text-[10px] text-slate-500 mt-0.5">
                                         {newBusiness.noTrial
                                             ? 'El negocio inicia directamente en el plan seleccionado.'
-                                            : 'El negocio tendrá acceso completo durante 21 días gratis.'}
+                                            : 'El negocio tendrÃ¡ acceso completo durante 21 dÃ­as gratis.'}
                                     </p>
                                 </div>
                                 <button

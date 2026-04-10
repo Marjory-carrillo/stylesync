@@ -246,9 +246,10 @@ serve(async (req: Request) => {
                 // ── Registrar en sms_logs para conteo en SuperAdmin ──────────
                 await supabase.from('sms_logs').insert({
                     tenant_id: appt.tenant_id,
-                    phone_to: appt.client_phone,
+                    phone: appt.client_phone,
                     provider: 'whatsapp',
                     status: 'sent',
+                    message_type: 'reminder',
                 }).catch((e: any) => console.warn('[process-reminders] sms_logs insert error:', e?.message));
             }
         }
