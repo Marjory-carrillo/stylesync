@@ -26,6 +26,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Reschedule = lazy(() => import('./pages/client/Reschedule'));
 
 import { useGlobalStore } from './lib/store/useGlobalStore';
 import { Settings as SettingsIcon } from 'lucide-react';
@@ -298,6 +299,9 @@ function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+
+              {/* Self-Reschedule (fully public, no auth) */}
+              <Route path="/reagendar/:id" element={<Reschedule />} />
 
               {/* Client Routes */}
               <Route path="/reserva/:slug" element={<ClientRoute />}>
