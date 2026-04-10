@@ -108,7 +108,7 @@ export default function Settings() {
     const { schedule, saveSchedule } = useSchedule();
 
     const { announcements, addAnnouncement, removeAnnouncement } = useAnnouncements();
-    const { blockedSlots, addBlockedSlot, removeBlockedSlot } = useBlockedSlots();
+    const { blockedSlots, addBlockedSlot, addBlockedSlots, isAddingBatch, removeBlockedSlot } = useBlockedSlots();
     const { stylists, updateStylist } = useStylists();
 
 
@@ -130,6 +130,9 @@ export default function Settings() {
     const [blockReason, setBlockReason] = useState('');
     const [isAllDay, setIsAllDay] = useState(false);
     const [infoError, setInfoError] = useState('');
+    // Recurrence
+    const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
+    const [repeatCount, setRepeatCount] = useState(4);
 
     // Formatter for 12h time
     const format12h = (timeStr: string) => {
@@ -180,19 +183,42 @@ export default function Settings() {
         setNewAnnouncementType('info');
     };
 
-    const handleAddBlockedSlot = (e: React.FormEvent) => {
+    /** Genera array de fechas YYYY-MM-DD para bloqueo recurrente */
+    const generateRecurringDates = (startDate: string, type: 'none' | 'weekly' | 'monthly', count: number): string[] => {
+        const dates: string[] = [startDate];
+        if (type === 'none') return dates;
+        const base = new Date(startDate + 'T12:00:00'); // mediodía para evitar DST
+        for (let i = 1; i < count; i++) {
+            const d = new Date(base);
+            if (type === 'weekly') d.setDate(base.getDate() + i * 7);
+            if (type === 'monthly') d.setMonth(base.getMonth() + i);
+            dates.push(d.toISOString().slice(0, 10));
+        }
+        return dates;
+    };
+
+    const handleAddBlockedSlot = async (e: React.FormEvent) => {
         e.preventDefault();
         const start = isAllDay ? '00:00' : blockStart;
         const end = isAllDay ? '23:59' : blockEnd;
-
         if (!blockDate || !start || !end) return;
-        addBlockedSlot({ date: blockDate, startTime: start, endTime: end, reason: blockReason });
+
+        const dates = generateRecurringDates(blockDate, recurrence, repeatCount);
+        const slots = dates.map(date => ({ date, startTime: start, endTime: end, reason: blockReason }));
+
+        if (slots.length === 1) {
+            await addBlockedSlot(slots[0]);
+        } else {
+            await addBlockedSlots(slots);
+        }
 
         setBlockDate('');
         setBlockStart('');
         setBlockEnd('');
         setBlockReason('');
         setIsAllDay(false);
+        setRecurrence('none');
+        setRepeatCount(4);
     };
 
     const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -782,6 +808,59 @@ export default function Settings() {
                             </div>
                         </div>
 
+                        {/* Recurrence UI */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl border border-white/5">
+                            <div>
+                                <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">Recurrencia</label>
+                                <div className="relative z-[15]">
+                                    <CustomSelect
+                                        value={recurrence}
+                                        onChange={(val) => setRecurrence(val as 'none' | 'weekly' | 'monthly')}
+                                        options={[
+                                            { value: 'none', label: 'Una sola vez' },
+                                            { value: 'weekly', label: 'Cada semana' },
+                                            { value: 'monthly', label: 'Cada mes' }
+                                        ]}
+                                        buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
+                                        dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] py-1 z-[100]"
+                                    />
+                                </div>
+                            </div>
+                            {recurrence !== 'none' && (
+                                <div>
+                                    <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">
+                                        Repetir por
+                                    </label>
+                                    <div className="relative z-[15]">
+                                        <CustomSelect
+                                            value={String(repeatCount)}
+                                            onChange={(val) => setRepeatCount(Number(val))}
+                                            options={
+                                                recurrence === 'weekly' 
+                                                ? [
+                                                    { value: '2', label: '2 semanas' },
+                                                    { value: '3', label: '3 semanas' },
+                                                    { value: '4', label: '4 semanas (1 mes)' },
+                                                    { value: '8', label: '8 semanas (2 meses)' },
+                                                    { value: '12', label: '12 semanas (3 meses)' },
+                                                    { value: '24', label: '24 semanas (6 meses)' }
+                                                  ]
+                                                : [
+                                                    { value: '2', label: '2 meses' },
+                                                    { value: '3', label: '3 meses' },
+                                                    { value: '4', label: '4 meses' },
+                                                    { value: '6', label: '6 meses' },
+                                                    { value: '12', label: '12 meses' }
+                                                  ]
+                                            }
+                                            buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
+                                            dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] py-1 z-[100]"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <input
                             type="text"
                             placeholder="Razón (Opcional)"
@@ -789,8 +868,12 @@ export default function Settings() {
                             value={blockReason}
                             onChange={e => setBlockReason(e.target.value)}
                         />
-                        <button type="submit" className="w-full btn bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 border border-red-500/20 flex justify-center items-center gap-2">
-                            <Lock size={18} /> Bloquear Horario
+                        <button 
+                            type="submit" 
+                            disabled={isAddingBatch}
+                            className="w-full btn bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 border border-red-500/20 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Lock size={18} /> {isAddingBatch ? 'Bloqueando...' : 'Bloquear Horario'}
                         </button>
                     </form>
 
