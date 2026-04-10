@@ -63,6 +63,19 @@ export default function Dashboard() {
     const inTrial = isInTrial(trialEndsAt);
     const planLimits = getPlanLimits(tenantPlan);
     const monthlyApptLimit = (!inTrial && planLimits.maxAppointmentsPerMonth > 0) ? planLimits.maxAppointmentsPerMonth : -1;
+
+    // Count non-cancelled appointments in the current calendar month
+    const monthlyApptCount = useMemo(() => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        return allAppointments.filter(a => {
+            if (a.status === 'cancelada') return false;
+            const d = new Date(a.date + 'T00:00:00');
+            return d.getFullYear() === year && d.getMonth() === month;
+        }).length;
+    }, [allAppointments]);
+
     const [linkType, setLinkType] = useState<'branch' | 'brand'>('branch');
 
     const isLoading = apptsPending || svcsLoading;
@@ -338,6 +351,76 @@ export default function Dashboard() {
                     tenantConfig={tenantConfig}
                     schedule={schedule}
                 />
+            )}
+
+            {/* ── Monthly Appointment Counter (Free plan only) ── */}
+            {!isEmployee && !inTrial && tenantPlan === 'free' && monthlyApptLimit > 0 && (
+                (() => {
+                    const used = monthlyApptCount;
+                    const limit = monthlyApptLimit;
+                    const pct = Math.min(100, Math.round((used / limit) * 100));
+                    const remaining = limit - used;
+                    const isWarning = remaining <= 5 && remaining > 0;
+                    const isExhausted = remaining <= 0;
+                    const barColor = isExhausted
+                        ? 'from-red-500 to-red-600'
+                        : isWarning
+                        ? 'from-amber-400 to-orange-500'
+                        : 'from-cyan-400 to-blue-500';
+                    const bgColor = isExhausted
+                        ? 'border-red-500/20 bg-red-500/5'
+                        : isWarning
+                        ? 'border-amber-500/20 bg-amber-500/5'
+                        : 'border-white/8 bg-white/3';
+                    return (
+                        <div className={`glass-panel rounded-2xl p-5 border mb-6 ${bgColor}`}>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className={`p-1.5 rounded-lg ${
+                                        isExhausted ? 'bg-red-500/15' : isWarning ? 'bg-amber-500/15' : 'bg-cyan-500/15'
+                                    }`}>
+                                        <Activity size={16} className={isExhausted ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-cyan-400'} />
+                                    </div>
+                                    <span className="text-sm font-bold text-white">Citas este mes</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                                        isExhausted ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                                        : isWarning ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                        : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+                                    }`}>
+                                        {isExhausted ? 'LÍMITE ALCANZADO' : isWarning ? `¡Solo ${remaining} restantes!` : `Plan Free`}
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-2xl font-black text-white">{used}</span>
+                                    <span className="text-slate-500 font-bold">/{limit}</span>
+                                </div>
+                            </div>
+                            <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-700`}
+                                    style={{ width: `${pct}%` }}
+                                />
+                            </div>
+                            {(isWarning || isExhausted) && (
+                                <div className="mt-3 flex items-center justify-between">
+                                    <p className={`text-xs ${isExhausted ? 'text-red-400' : 'text-amber-400'}`}>
+                                        {isExhausted
+                                            ? 'Los clientes no pueden reservar nuevas citas este mes.'
+                                            : `Quedan ${remaining} citas disponibles para tus clientes.`
+                                        }
+                                    </p>
+                                    <button
+                                        onClick={() => redirectToCheckout('pro')}
+                                        disabled={isCheckoutLoading}
+                                        className="ml-4 shrink-0 px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-violet-500 to-purple-600 text-white border border-violet-500/30 hover:opacity-90 transition-opacity"
+                                    >
+                                        Actualizar a Pro →
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()
             )}
 
             {/* ── Client App Link Banner ── */}
