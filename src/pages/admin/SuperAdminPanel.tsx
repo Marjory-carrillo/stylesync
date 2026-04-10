@@ -52,7 +52,7 @@ export default function SuperAdminPanel() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free' as PlanType });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free' as PlanType, noTrial: false });
     const [isCreating, setIsCreating] = useState(false);
     const [isExistingOwner, setIsExistingOwner] = useState(false);
     const [selectedOwnerId, setSelectedOwnerId] = useState('');
@@ -162,7 +162,8 @@ export default function SuperAdminPanel() {
             newBusiness.ownerPassword,
             newBusiness.timezone,
             isExistingOwner && selectedOwnerId ? selectedOwnerId : undefined,
-            isExistingOwner && newBusiness.brandSlug ? newBusiness.brandSlug : undefined
+            isExistingOwner && newBusiness.brandSlug ? newBusiness.brandSlug : undefined,
+            newBusiness.noTrial
         );
         setIsCreating(false);
         if (res.success) {
@@ -171,7 +172,7 @@ export default function SuperAdminPanel() {
                 await supabase.from('tenants').update({ plan: newBusiness.plan }).eq('id', res.data.id);
             }
             setIsCreateModalOpen(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free' });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free', noTrial: false });
             setIsExistingOwner(false);
             setSelectedOwnerId('');
             showToast(
@@ -790,6 +791,29 @@ export default function SuperAdminPanel() {
                                         );
                                     })}
                                 </div>
+                            </div>
+
+                            {/* Trial Toggle */}
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                <div>
+                                    <p className="text-xs font-bold text-white">Período de prueba (21 días)</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                        {newBusiness.noTrial
+                                            ? 'El negocio inicia directamente en el plan seleccionado.'
+                                            : 'El negocio tendrá acceso completo durante 21 días gratis.'}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setNewBusiness({ ...newBusiness, noTrial: !newBusiness.noTrial })}
+                                    className={`relative w-10 h-5 rounded-full transition-all shrink-0 ml-4 ${
+                                        newBusiness.noTrial ? 'bg-slate-700' : 'bg-accent'
+                                    }`}
+                                >
+                                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
+                                        newBusiness.noTrial ? 'left-0.5' : 'left-5'
+                                    }`} />
+                                </button>
                             </div>
 
                             {/* Error */}
