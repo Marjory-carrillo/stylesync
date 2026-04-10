@@ -41,7 +41,7 @@ interface ScheduleDay {
     breakEnd?: string;
 }
 
-type Step = 'phone' | 'details' | 'select' | 'success' | 'error';
+type Step = 'phone' | 'details' | 'select' | 'cancel_confirm' | 'success' | 'cancel_success' | 'error';
 
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  as string;
@@ -78,6 +78,7 @@ export default function Reschedule() {
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
@@ -220,6 +221,51 @@ export default function Reschedule() {
 
         return getSmartSlots(baseDate, duration, daySchedule.start, daySchedule.end, dayAppts, dayBlocked, 10);
     }, [selectedDate, appt, schedule, existingAppts, blockedSlots]);
+
+    // ── Cancel appointment ────────────────────────────────────────────────────
+    const handleCancel = async () => {
+        if (!appt) return;
+        setIsCancelling(true);
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .update({ status: 'cancelada' })
+                .eq('id', appt.id)
+                .eq('client_phone', appt.client_phone); // safety check
+
+            if (error) throw error;
+
+            // Notificar al admin y al cliente vía WhatsApp
+            fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${ANON_KEY}`,
+                    'apikey': ANON_KEY,
+                },
+                body: JSON.stringify({
+                    tenant_id:     appt.tenant_id,
+                    event_type:    'cancel',
+                    admin_phone:   appt.tenants.phone ?? undefined,
+                    business_name: appt.tenants.name,
+                    appointment: {
+                        client_name:  appt.client_name,
+                        client_phone: appt.client_phone,
+                        service_name: appt.services?.name ?? 'Servicio',
+                        date:         appt.date,
+                        time:         appt.time,
+                    },
+                }),
+            }).catch(() => { /* fire-and-forget */ });
+
+            setStep('cancel_success');
+        } catch (err: any) {
+            setErrorMsg(err.message ?? 'No se pudo cancelar. Intenta de nuevo.');
+            setStep('error');
+        } finally {
+            setIsCancelling(false);
+        }
+    };
 
     // ── Confirm reschedule + notify ───────────────────────────────────────────
     const handleConfirm = async () => {
@@ -459,6 +505,120 @@ export default function Reschedule() {
                         <button onClick={() => setStep('select')} style={primaryBtn(brandColor)}>
                             Elegir nueva fecha <ChevronRight size={17} />
                         </button>
+
+                        {/* Cancelar cita */}
+                        <button
+                            onClick={() => setStep('cancel_confirm')}
+                            style={{
+                                ...ghostBtn,
+                                marginTop: '0.5rem',
+                                color: '#f87171',
+                                borderColor: 'rgba(248,113,113,0.2)',
+                            }}
+                        >
+                            Cancelar cita
+                        </button>
+                    </div>
+                )}
+
+                {/* ══ STEP: cancel_confirm ══ */}
+                {step === 'cancel_confirm' && appt && (
+                    <div style={{ ...card, animation: 'fadeUp 0.35s ease' }}>
+                        <button
+                            onClick={() => setStep('details')}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                background: 'none', border: 'none', color: '#475569',
+                                cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
+                                padding: '0 0 1rem', fontFamily: 'inherit',
+                            }}
+                        >
+                            <ArrowLeft size={14} /> Volver
+                        </button>
+
+                        <div style={{
+                            width: '56px', height: '56px', borderRadius: '50%',
+                            background: 'rgba(239,68,68,0.1)', border: '1.5px solid rgba(239,68,68,0.25)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            marginBottom: '1rem',
+                        }}>
+                            <AlertTriangle size={26} color="#f87171" />
+                        </div>
+
+                        <p style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', margin: '0 0 0.3rem' }}>
+                            ¿Cancelar esta cita?
+                        </p>
+                        <p style={{ color: '#475569', fontSize: '0.83rem', margin: '0 0 1.25rem', lineHeight: 1.5 }}>
+                            Esta acción no se puede deshacer. Se notificará al negocio por WhatsApp.
+                        </p>
+
+                        {/* Resumen de la cita a cancelar */}
+                        <div style={{
+                            background: 'rgba(239,68,68,0.06)',
+                            border: '1px solid rgba(239,68,68,0.15)',
+                            borderRadius: '13px', padding: '1rem',
+                            marginBottom: '1.25rem',
+                            display: 'flex', flexDirection: 'column', gap: '0.7rem',
+                        }}>
+                            <InfoRow icon={<Scissors size={14} />} label="Servicio" value={appt.services?.name ?? '—'}      color="#f87171" />
+                            <InfoRow icon={<Calendar size={14} />} label="Fecha"    value={formatDateNice(appt.date)}         color="#f87171" />
+                            <InfoRow icon={<Clock size={14} />}    label="Hora"     value={format12h(appt.time.slice(0, 5))}  color="#f87171" />
+                        </div>
+
+                        <button
+                            onClick={handleCancel}
+                            disabled={isCancelling}
+                            style={{
+                                ...primaryBtn('#ef4444'),
+                                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                boxShadow: '0 4px 18px -4px rgba(239,68,68,0.4)',
+                            }}
+                        >
+                            {isCancelling
+                                ? <><Loader2 size={17} style={{ animation: 'spin 1s linear infinite' }} /> Cancelando...</>
+                                : <>Sí, cancelar mi cita</>
+                            }
+                        </button>
+                        <button onClick={() => setStep('details')} style={{ ...ghostBtn, marginTop: '0.5rem' }}>
+                            No, mantener mi cita
+                        </button>
+                    </div>
+                )}
+
+                {/* ══ STEP: cancel_success ══ */}
+                {step === 'cancel_success' && appt && (
+                    <div style={{ ...card, textAlign: 'center', animation: 'scaleIn 0.4s ease' }}>
+                        <div style={{
+                            width: '72px', height: '72px', borderRadius: '50%',
+                            background: 'rgba(239,68,68,0.1)', border: '1.5px solid rgba(239,68,68,0.3)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 1.5rem',
+                        }}>
+                            <CheckCircle size={36} color="#f87171" />
+                        </div>
+
+                        <h2 style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 900, margin: '0 0 0.4rem', letterSpacing: '-0.02em' }}>
+                            Cita cancelada
+                        </h2>
+                        <p style={{ color: '#475569', fontSize: '0.875rem', marginBottom: '1.75rem', lineHeight: 1.6 }}>
+                            Tu cita fue cancelada exitosamente.<br />
+                            Se notificó al negocio por WhatsApp.
+                        </p>
+
+                        <div style={{
+                            background: 'rgba(239,68,68,0.06)',
+                            border: '1px solid rgba(239,68,68,0.15)',
+                            borderRadius: '14px', padding: '1.1rem', marginBottom: '1.25rem',
+                            display: 'flex', flexDirection: 'column', gap: '0.6rem',
+                        }}>
+                            <InfoRow icon={<Scissors size={14} />} label="Servicio" value={appt.services?.name ?? '—'}      color="#f87171" />
+                            <InfoRow icon={<Calendar size={14} />} label="Fecha"    value={formatDateNice(appt.date)}         color="#94a3b8" />
+                            <InfoRow icon={<Clock size={14} />}    label="Hora"     value={format12h(appt.time.slice(0, 5))}  color="#94a3b8" />
+                        </div>
+
+                        <p style={{ color: '#1e293b', fontSize: '0.78rem' }}>
+                            Para agendar una nueva cita visita la página del negocio.
+                        </p>
                     </div>
                 )}
 
