@@ -8,7 +8,7 @@ const TWILIO_FROM_SMS       = TWILIO_FROM_WA.replace('whatsapp:', '');        //
 const TWILIO_WA_TEMPLATE    = Deno.env.get('TWILIO_WA_TEMPLATE_SID') ?? ''; // HXxxxxxx — cuando esté aprobado
 
 const SUPABASE_URL       = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_KEY       = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_KEY       = Deno.env.get('APP_SERVICE_KEY')!;
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',

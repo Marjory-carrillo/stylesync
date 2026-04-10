@@ -98,7 +98,7 @@ serve(async (req: Request) => {
         // Supabase client for logging
         const supabaseLog = createClient(
             Deno.env.get('SUPABASE_URL')!,
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+            Deno.env.get('APP_SERVICE_KEY')!
         );
 
         console.log('[notify-admin] received tenant_id:', tenant_id, '| event:', event_type, '| direct_phone:', directPhone);
@@ -110,7 +110,7 @@ serve(async (req: Request) => {
         if (!adminPhone) {
             const supabase = createClient(
                 Deno.env.get('SUPABASE_URL')!,
-                Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+                Deno.env.get('APP_SERVICE_KEY')!
             );
 
             const { data: tenant, error: tenantError } = await supabase

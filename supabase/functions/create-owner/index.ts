@@ -28,7 +28,7 @@ serve(async (req: Request) => {
         }
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const serviceRoleKey = Deno.env.get('APP_SERVICE_KEY')!;
         const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
         // Admin client (for user creation)

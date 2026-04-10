@@ -41,7 +41,7 @@ serve(async (req: Request) => {
             try {
                 const supabase = createClient(
                     Deno.env.get('SUPABASE_URL')!,
-                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+                    Deno.env.get('APP_SERVICE_KEY')!
                 );
                 const { data: tenant } = await supabase
                     .from('tenants')
@@ -115,7 +115,7 @@ serve(async (req: Request) => {
 
             if (!twilioRes.ok) {
                 if (tenant_id) {
-                    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+                    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('APP_SERVICE_KEY')!);
                     await supabase.from('sms_logs').insert({
                         tenant_id, phone_to: to, provider: 'whatsapp',
                         status: 'failed', error_message: twilioData.message ?? 'Twilio error',
@@ -133,7 +133,7 @@ serve(async (req: Request) => {
         // Log a BD (best effort)
         if (tenant_id) {
             try {
-                const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+                const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('APP_SERVICE_KEY')!);
                 await supabase.from('sms_logs').insert({
                     tenant_id, phone_to: to, provider,
                     status: provider === 'whatsapp' ? 'sent' : 'demo',
