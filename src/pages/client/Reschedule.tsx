@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { format, addDays, parse } from 'date-fns';
@@ -79,6 +79,17 @@ export default function Reschedule() {
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+
+    const timeCardRef = useRef<HTMLDivElement>(null);
+
+    // ── Auto-scroll to time card when a date is selected ──────────────────
+    useEffect(() => {
+        if (selectedDate && timeCardRef.current) {
+            setTimeout(() => {
+                timeCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100); // small delay to let the DOM render the card
+        }
+    }, [selectedDate]);
 
     useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
@@ -219,7 +230,16 @@ export default function Reschedule() {
             });
         }
 
-        return getSmartSlots(baseDate, duration, daySchedule.start, daySchedule.end, dayAppts, dayBlocked, 10);
+        const slots = getSmartSlots(baseDate, duration, daySchedule.start, daySchedule.end, dayAppts, dayBlocked, 10);
+
+        // Excluir el horario actual de la cita cuando se ve el mismo día
+        // (no tiene sentido "reagendar" a la misma hora)
+        const currentTime = appt.time?.slice(0, 5);
+        if (selectedDate === appt.date && currentTime) {
+            return slots.filter(s => s !== currentTime);
+        }
+
+        return slots;
     }, [selectedDate, appt, schedule, existingAppts, blockedSlots]);
 
     // ── Cancel appointment ────────────────────────────────────────────────────
@@ -690,7 +710,7 @@ export default function Reschedule() {
 
                         {/* ── Time card — aparece al seleccionar fecha ── */}
                         {selectedDate && (
-                            <div style={{ ...card, animation: 'slideDown 0.25s ease' }}>
+                            <div ref={timeCardRef} style={{ ...card, animation: 'slideDown 0.25s ease' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
                                     <p style={{ ...sectionLabel, marginBottom: 0 }}>Horarios disponibles</p>
                                     <span style={{
