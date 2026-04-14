@@ -397,13 +397,18 @@ export default function Settings() {
                                 )}
 
                                 {!hasStripeCustomer && tenantPlan !== 'free' && (
-                                    <p className="text-xs text-slate-600 text-center italic">Sin suscripción de Stripe vinculada</p>
+                                    <div className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <span className="text-xs font-bold text-emerald-400">Plan activo</span>
+                                    </div>
                                 )}
 
                                 <p className="text-[11px] text-slate-600 text-center">
                                     {hasStripeCustomer
                                         ? 'Cancela, cambia de plan o actualiza tu tarjeta'
-                                        : 'Actualiza tu plan para desbloquear citas ilimitadas'}
+                                        : tenantPlan === 'free'
+                                        ? 'Actualiza tu plan para desbloquear citas ilimitadas'
+                                        : 'Tu plan fue activado por el administrador'}
                                 </p>
                             </div>
                         </div>
