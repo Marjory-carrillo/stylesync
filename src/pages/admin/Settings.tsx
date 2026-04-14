@@ -10,11 +10,13 @@ import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import ColorThief from 'colorthief';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2 } from 'lucide-react';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles } from 'lucide-react';
 import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
 import DatePickerInput from '../../components/DatePickerInput';
+import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
+import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 
 // Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -101,9 +103,16 @@ export default function Settings() {
     const { uploadLogo } = useImageUpload();
     const { userRole } = useAuthStore();
     const { showToast } = useUIStore();
+    const { redirectToCheckout, isCheckoutLoading, openBillingPortal, isPortalLoading } = useStripeCheckout();
 
     const { data: tenantConfig, updateTenantData: updateBusinessConfig } = useTenantData();
     const businessConfig = tenantConfig || {} as any;
+    const tenantPlan = (tenantConfig as any)?.plan || 'free';
+    const trialEndsAt = (tenantConfig as any)?.trialEndsAt || null;
+    const inTrial = isInTrial(trialEndsAt);
+    const planLimits = getPlanLimits(tenantPlan);
+    const hasStripeCustomer = !!(tenantConfig as any)?.stripeCustomerId;
+    const isEmployee = userRole === 'employee';
 
     const { schedule, saveSchedule } = useSchedule();
 
@@ -272,6 +281,135 @@ export default function Settings() {
                 <h2 className="text-2xl font-bold text-white">Configuración</h2>
                 <p className="text-sm text-muted">Administra la información de tu negocio y preferencias.</p>
             </div>
+
+            {/* ── Suscripción y Facturación (solo admin) ── */}
+            {!isEmployee && (
+                <section className="glass-panel rounded-2xl border border-white/5 overflow-hidden mb-2">
+                    <div className="p-6">
+                        <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-6">
+                            <div className="p-2 rounded-lg bg-violet-500/10 text-violet-500">
+                                <CreditCard size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white">Suscripción y Facturación</h3>
+                                <p className="text-xs text-slate-500">Gestiona tu plan, método de pago y facturas</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-6">
+                            {/* Plan Info Card */}
+                            <div className={`flex-1 rounded-2xl p-6 border transition-all ${
+                                tenantPlan === 'business'
+                                    ? 'bg-gradient-to-br from-violet-600/10 via-purple-600/5 to-fuchsia-600/10 border-violet-500/20'
+                                    : tenantPlan === 'pro'
+                                    ? 'bg-gradient-to-br from-amber-600/10 via-orange-600/5 to-yellow-600/10 border-amber-500/20'
+                                    : inTrial
+                                    ? 'bg-gradient-to-br from-blue-600/10 via-cyan-600/5 to-blue-600/10 border-blue-500/20'
+                                    : 'bg-white/[0.02] border-white/5'
+                            }`}>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-xl ${
+                                            tenantPlan === 'business' ? 'bg-violet-500/15' :
+                                            tenantPlan === 'pro' ? 'bg-amber-500/15' :
+                                            'bg-slate-500/15'
+                                        }`}>
+                                            {tenantPlan === 'business' ? <Sparkles size={20} className="text-violet-400" /> :
+                                             tenantPlan === 'pro' ? <Crown size={20} className="text-amber-400" /> :
+                                             <CreditCard size={20} className="text-slate-400" />}
+                                        </div>
+                                        <div>
+                                            <span className={`text-sm font-black uppercase tracking-wider ${
+                                                tenantPlan === 'business' ? 'text-violet-400' :
+                                                tenantPlan === 'pro' ? 'text-amber-400' :
+                                                'text-slate-400'
+                                            }`}>
+                                                {inTrial ? '🎁 Trial Activo' : `Plan ${tenantPlan.charAt(0).toUpperCase() + tenantPlan.slice(1)}`}
+                                            </span>
+                                            <p className="text-2xl font-black text-white tracking-tight">
+                                                ${planLimits.price.toLocaleString()}
+                                                <span className="text-sm font-medium text-slate-500">/mes MXN</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Plan Details */}
+                                <div className="grid grid-cols-3 gap-3 mb-5">
+                                    <div className="bg-black/20 rounded-xl p-3 text-center">
+                                        <span className="text-lg font-black text-white">{planLimits.maxBranches === -1 ? '∞' : planLimits.maxBranches}</span>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sucursales</p>
+                                    </div>
+                                    <div className="bg-black/20 rounded-xl p-3 text-center">
+                                        <span className="text-lg font-black text-white">{planLimits.maxEmployeesPerBranch}</span>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empleados</p>
+                                    </div>
+                                    <div className="bg-black/20 rounded-xl p-3 text-center">
+                                        <span className="text-lg font-black text-white">{planLimits.maxAppointmentsPerMonth === -1 ? '∞' : planLimits.maxAppointmentsPerMonth}</span>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Citas/mes</p>
+                                    </div>
+                                </div>
+
+                                {/* Trial info */}
+                                {inTrial && trialEndsAt && (
+                                    <div className="bg-blue-500/5 border border-blue-500/15 rounded-xl p-3 mb-4">
+                                        <p className="text-xs text-blue-400 font-medium">
+                                            ⏳ Trial termina el <strong>{new Date(trialEndsAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-col gap-3 md:w-64 justify-center">
+                                {hasStripeCustomer && (
+                                    <button
+                                        onClick={openBillingPortal}
+                                        disabled={isPortalLoading}
+                                        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-xl shadow-violet-900/20 hover:brightness-110 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+                                    >
+                                        {isPortalLoading ? (
+                                            <><span className="animate-spin">⏳</span> Abriendo...</>
+                                        ) : (
+                                            <><ExternalLink size={16} /> Gestionar Suscripción</>
+                                        )}
+                                    </button>
+                                )}
+
+                                {tenantPlan === 'free' && !inTrial && (
+                                    <button
+                                        onClick={() => redirectToCheckout('pro')}
+                                        disabled={isCheckoutLoading}
+                                        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xl shadow-amber-900/20 hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
+                                    >
+                                        ⭐ Actualizar a Pro — $899/mes
+                                    </button>
+                                )}
+
+                                {tenantPlan === 'pro' && (
+                                    <button
+                                        onClick={() => redirectToCheckout('business')}
+                                        disabled={isCheckoutLoading}
+                                        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-black text-sm bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+                                    >
+                                        🚀 Escalar a Business — $1,649/mes
+                                    </button>
+                                )}
+
+                                {!hasStripeCustomer && tenantPlan !== 'free' && (
+                                    <p className="text-xs text-slate-600 text-center italic">Sin suscripción de Stripe vinculada</p>
+                                )}
+
+                                <p className="text-[11px] text-slate-600 text-center">
+                                    {hasStripeCustomer
+                                        ? 'Cancela, cambia de plan o actualiza tu tarjeta'
+                                        : 'Actualiza tu plan para desbloquear citas ilimitadas'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 

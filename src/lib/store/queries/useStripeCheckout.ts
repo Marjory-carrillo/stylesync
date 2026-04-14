@@ -4,13 +4,56 @@ import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
 
 /**
- * Hook to handle Stripe checkout flow.
- * Call `redirectToCheckout(plan)` to open Stripe payment page.
+ * Hook to handle Stripe checkout & billing portal.
+ * - `redirectToCheckout(plan)` → open Stripe payment page
+ * - `openBillingPortal()` → open Stripe Customer Portal (manage subscription)
  */
 export function useStripeCheckout() {
     const [isLoading, setIsLoading] = useState(false);
+    const [isPortalLoading, setIsPortalLoading] = useState(false);
     const { tenantId } = useAuthStore();
     const { showToast } = useUIStore();
+
+    const openBillingPortal = async () => {
+        if (!tenantId) {
+            showToast('Error: No se encontró tu negocio', 'error');
+            return;
+        }
+
+        setIsPortalLoading(true);
+        try {
+            const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+            const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/create-portal-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${ANON_KEY}`,
+                    'apikey': ANON_KEY,
+                },
+                body: JSON.stringify({
+                    tenant_id: tenantId,
+                    return_url: window.location.href,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.url) {
+                throw new Error(data.error || 'Error abriendo el portal de facturación');
+            }
+
+            window.open(data.url, '_blank');
+            showToast('📋 Se abrió el portal de facturación en una nueva pestaña.', 'success');
+
+        } catch (err: any) {
+            console.error('[Stripe] Portal error:', err);
+            showToast(`Error: ${err.message}`, 'error');
+        } finally {
+            setIsPortalLoading(false);
+        }
+    };
 
     const redirectToCheckout = async (plan: 'pro' | 'business') => {
         if (!tenantId) {
@@ -60,5 +103,5 @@ export function useStripeCheckout() {
         }
     };
 
-    return { redirectToCheckout, isCheckoutLoading: isLoading };
+    return { redirectToCheckout, isCheckoutLoading: isLoading, openBillingPortal, isPortalLoading };
 }

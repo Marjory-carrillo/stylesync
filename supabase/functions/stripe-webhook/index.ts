@@ -56,6 +56,36 @@ async function getSubscription(subscriptionId: string) {
     return res.json();
 }
 
+// ── Sync plan across all branches with the same brand_slug ──
+async function syncBrandSiblings(supabase: any, tenantId: string, plan: string) {
+    try {
+        // Get the brand_slug of the updated tenant
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('brand_slug')
+            .eq('id', tenantId)
+            .single();
+
+        if (!tenant?.brand_slug) return; // No brand = single location, nothing to sync
+
+        // Update ALL tenants with the same brand_slug
+        const { data: updated, error } = await supabase
+            .from('tenants')
+            .update({ plan })
+            .eq('brand_slug', tenant.brand_slug)
+            .neq('id', tenantId) // Don't re-update the one we already changed
+            .select('id, slug');
+
+        if (error) {
+            console.error('[stripe-webhook] Brand sync error:', error.message);
+        } else if (updated?.length > 0) {
+            console.log(`[stripe-webhook] 🔄 Synced ${updated.length} sibling(s) to plan=${plan}:`, updated.map((t: any) => t.slug));
+        }
+    } catch (e: any) {
+        console.error('[stripe-webhook] Brand sync exception:', e.message);
+    }
+}
+
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -68,9 +98,15 @@ serve(async (req: Request) => {
         const body = await req.text();
         const sigHeader = req.headers.get('stripe-signature') || '';
 
-        // TODO: Re-enable signature verification for production
-        // For now, skip verification during test mode to debug the flow
-        console.log('[stripe-webhook] Received event, sig present:', !!sigHeader);
+        // Verify Stripe signature (REQUIRED in production)
+        const isValid = await verifyStripeSignature(body, sigHeader, STRIPE_WEBHOOK_SECRET);
+        if (!isValid) {
+            console.error('[stripe-webhook] ❌ Invalid signature');
+            return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+                status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        console.log('[stripe-webhook] ✅ Signature verified');
 
         const event = JSON.parse(body);
         console.log('[stripe-webhook] Event:', event.type, event.id);
@@ -109,6 +145,8 @@ serve(async (req: Request) => {
                     console.error('[stripe-webhook] DB update error:', error.message);
                 } else {
                     console.log(`[stripe-webhook] ✅ Tenant ${tenantId} upgraded to ${plan}`);
+                    // Sync sibling branches to the same plan
+                    await syncBrandSiblings(supabase, tenantId, plan);
                 }
                 break;
             }
@@ -135,6 +173,7 @@ serve(async (req: Request) => {
                     if (plan) updateData.plan = plan;
 
                     await supabase.from('tenants').update(updateData).eq('id', tenantId);
+                    if (plan) await syncBrandSiblings(supabase, tenantId, plan);
                 } else if (status === 'past_due' || status === 'unpaid') {
                     // Payment failed — downgrade to free after grace period
                     console.warn(`[stripe-webhook] Subscription ${status} for tenant ${tenantId}`);
@@ -145,6 +184,7 @@ serve(async (req: Request) => {
                         plan: 'free',
                         stripe_subscription_id: null,
                     }).eq('id', tenantId);
+                    await syncBrandSiblings(supabase, tenantId, 'free');
                     console.log(`[stripe-webhook] ⬇️ Tenant ${tenantId} downgraded to free (canceled)`);
                 }
                 break;
@@ -164,6 +204,7 @@ serve(async (req: Request) => {
                     stripe_subscription_id: null,
                 }).eq('id', tenantId);
 
+                await syncBrandSiblings(supabase, tenantId, 'free');
                 console.log(`[stripe-webhook] ⬇️ Tenant ${tenantId} downgraded to free (deleted)`);
                 break;
             }
