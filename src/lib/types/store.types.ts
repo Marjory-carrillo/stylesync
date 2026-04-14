@@ -107,6 +107,8 @@ export interface BusinessConfig {
     hideServicePrices?: boolean;
     plan?: 'free' | 'pro' | 'business';
     trialEndsAt?: string | null;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
     createdAt?: string | null;
 }
 
