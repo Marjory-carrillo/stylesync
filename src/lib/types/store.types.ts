@@ -109,6 +109,8 @@ export interface BusinessConfig {
     trialEndsAt?: string | null;
     stripeCustomerId?: string | null;
     stripeSubscriptionId?: string | null;
+    extraEmployeesPaid?: number;
+    extraBranchesPaid?: number;
     createdAt?: string | null;
 }
 

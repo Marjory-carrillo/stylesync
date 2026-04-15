@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
-import { canAddStylist, getPlanLimits, getPlanBadgeStyles } from '../../lib/planLimits';
+import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees } from '../../lib/planLimits';
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
 
@@ -15,7 +15,10 @@ export default function Staff() {
     const trialEndsAt = businessConfig?.trialEndsAt || null;
     const limits = getPlanLimits(plan);
     const badge = getPlanBadgeStyles(plan);
+    const extraEmployeesPaid = businessConfig?.extraEmployeesPaid || 0;
+    const extraBranchesPaid = businessConfig?.extraBranchesPaid || 0;
     const inTrial = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
+    const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid, extraBranchesPaid);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ type: 'upgrade' | 'extra'; message: string } | null>(null);
@@ -29,7 +32,7 @@ export default function Staff() {
     const [formError, setFormError] = useState<string | null>(null);
 
     const openAdd = () => {
-        const check = canAddStylist(plan, stylists.length, trialEndsAt);
+        const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid, extraBranchesPaid);
         if (!check.allowed) {
             // Hard limit (Free plan) — show upgrade modal
             setShowUpgradeModal({ type: 'upgrade', message: check.message || 'Límite alcanzado' });
@@ -133,7 +136,7 @@ export default function Staff() {
                         Gestiona a tus profesionales y personal.
                         {!inTrial && (
                             <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                                {stylists.length}/{limits.canExpandEmployees ? '∞' : limits.maxEmployeesPerBranch}
+                                {stylists.length}/{limits.canExpandEmployees ? (effectiveMaxEmployees > limits.maxEmployeesPerBranch ? effectiveMaxEmployees : '∞') : limits.maxEmployeesPerBranch}
                             </span>
                         )}
                     </p>

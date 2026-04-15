@@ -47,6 +47,7 @@ serve(async (req: Request) => {
             'metadata[plan]': plan,
             'subscription_data[metadata][tenant_id]': tenant_id,
             'subscription_data[metadata][plan]': plan,
+            'allow_promotion_codes': 'true',
         });
 
         if (user_email) {

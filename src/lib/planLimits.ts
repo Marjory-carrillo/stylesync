@@ -61,16 +61,46 @@ export function isInTrial(trialEndsAt?: string | null): boolean {
     return new Date(trialEndsAt) > new Date();
 }
 
+/**
+ * Calculate the effective max employees considering paid add-ons.
+ * Each extra branch includes 2 professionals.
+ * extraEmployeesPaid = individual extra professionals purchased.
+ * extraBranchesPaid = extra branches purchased (each adds 2 professionals to total pool).
+ */
+export function getEffectiveMaxEmployees(
+    plan: PlanType,
+    extraEmployeesPaid: number = 0,
+    extraBranchesPaid: number = 0,
+): number {
+    const limits = getPlanLimits(plan);
+    const totalBranches = limits.maxBranches + extraBranchesPaid;
+    // Base employees = 2 per branch (included) + individual extras
+    return (limits.maxEmployeesPerBranch * totalBranches) + extraEmployeesPaid;
+}
+
+/** Calculate effective max branches considering paid add-ons */
+export function getEffectiveMaxBranches(plan: PlanType, extraBranchesPaid: number = 0): number {
+    const limits = getPlanLimits(plan);
+    return limits.maxBranches + extraBranchesPaid;
+}
+
 /** Check if an employee (stylist) can be added */
-export function canAddEmployee(plan: PlanType, currentCount: number, trialEndsAt?: string | null): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
+export function canAddEmployee(
+    plan: PlanType,
+    currentCount: number,
+    trialEndsAt?: string | null,
+    extraEmployeesPaid: number = 0,
+    extraBranchesPaid: number = 0,
+): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
     // Trial period: no limits, behave as Pro
     if (isInTrial(trialEndsAt)) {
         return { allowed: true };
     }
 
     const limits = getPlanLimits(plan);
+    const effectiveMax = getEffectiveMaxEmployees(plan, extraEmployeesPaid, extraBranchesPaid);
 
-    if (currentCount < limits.maxEmployeesPerBranch) {
+    if (currentCount < effectiveMax) {
         return { allowed: true };
     }
 
@@ -92,20 +122,31 @@ export function canAddEmployee(plan: PlanType, currentCount: number, trialEndsAt
 }
 
 /** Check if a stylist can be added (same logic as employee) */
-export function canAddStylist(plan: PlanType, currentStylistCount: number, trialEndsAt?: string | null): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
-    return canAddEmployee(plan, currentStylistCount, trialEndsAt);
+export function canAddStylist(
+    plan: PlanType,
+    currentStylistCount: number,
+    trialEndsAt?: string | null,
+    extraEmployeesPaid: number = 0,
+    extraBranchesPaid: number = 0,
+): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
+    return canAddEmployee(plan, currentStylistCount, trialEndsAt, extraEmployeesPaid, extraBranchesPaid);
 }
 
 /** Check if a new branch/tenant can be created for this owner */
-export function canAddBranch(plan: PlanType, currentBranchCount: number): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
+export function canAddBranch(
+    plan: PlanType,
+    currentBranchCount: number,
+    extraBranchesPaid: number = 0,
+): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
     const limits = getPlanLimits(plan);
+    const effectiveMax = getEffectiveMaxBranches(plan, extraBranchesPaid);
 
-    if (currentBranchCount < limits.maxBranches) {
+    if (currentBranchCount < effectiveMax) {
         return { allowed: true };
     }
 
     if (limits.canExpandBranches) {
-        return { allowed: true, message: `Sucursal adicional: +$${limits.extraBranchPrice}/mes` };
+        return { allowed: true, message: `Sucursal adicional: +$${limits.extraBranchPrice}/mes (incluye 2 profesionales)` };
     }
 
     // Can't expand

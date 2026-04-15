@@ -48,6 +48,8 @@ export const useTenantData = (overrideTenantId?: string) => {
                 trialEndsAt: data.trial_ends_at || null,
                 stripeCustomerId: data.stripe_customer_id || null,
                 stripeSubscriptionId: data.stripe_subscription_id || null,
+                extraEmployeesPaid: data.extra_employees_paid || 0,
+                extraBranchesPaid: data.extra_branches_paid || 0,
                 createdAt: data.created_at || null,
             };
         },
