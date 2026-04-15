@@ -376,7 +376,7 @@ export default function Settings() {
                                     </button>
                                 )}
 
-                                {tenantPlan === 'free' && !inTrial && (
+                                {(tenantPlan === 'free' || inTrial) && !hasStripeCustomer && (
                                     <button
                                         onClick={() => redirectToCheckout('pro')}
                                         disabled={isCheckoutLoading}
@@ -386,7 +386,7 @@ export default function Settings() {
                                     </button>
                                 )}
 
-                                {tenantPlan === 'pro' && (
+                                {(tenantPlan === 'free' || inTrial) && !hasStripeCustomer && (
                                     <button
                                         onClick={() => redirectToCheckout('business')}
                                         disabled={isCheckoutLoading}
