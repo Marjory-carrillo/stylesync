@@ -16,9 +16,8 @@ export default function Staff() {
     const limits = getPlanLimits(plan);
     const badge = getPlanBadgeStyles(plan);
     const extraEmployeesPaid = businessConfig?.extraEmployeesPaid || 0;
-    const extraBranchesPaid = businessConfig?.extraBranchesPaid || 0;
     const inTrial = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
-    const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid, extraBranchesPaid);
+    const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ type: 'upgrade' | 'extra'; message: string } | null>(null);
@@ -32,7 +31,7 @@ export default function Staff() {
     const [formError, setFormError] = useState<string | null>(null);
 
     const openAdd = () => {
-        const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid, extraBranchesPaid);
+        const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid);
         if (!check.allowed) {
             // Hard limit (Free plan) — show upgrade modal
             setShowUpgradeModal({ type: 'upgrade', message: check.message || 'Límite alcanzado' });
@@ -136,7 +135,7 @@ export default function Staff() {
                         Gestiona a tus profesionales y personal.
                         {!inTrial && (
                             <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                                {stylists.length}/{limits.canExpandEmployees ? (effectiveMaxEmployees > limits.maxEmployeesPerBranch ? effectiveMaxEmployees : '∞') : limits.maxEmployeesPerBranch}
+                                {stylists.length}/{inTrial ? '∞' : effectiveMaxEmployees}
                             </span>
                         )}
                     </p>

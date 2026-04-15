@@ -62,20 +62,18 @@ export function isInTrial(trialEndsAt?: string | null): boolean {
 }
 
 /**
- * Calculate the effective max employees considering paid add-ons.
- * Each extra branch includes 2 professionals.
- * extraEmployeesPaid = individual extra professionals purchased.
- * extraBranchesPaid = extra branches purchased (each adds 2 professionals to total pool).
+ * Calculate the effective max employees PER BRANCH considering paid add-ons.
+ * Base = 2 per branch (included in all plans).
+ * extraEmployeesPaid = individual extra professionals purchased via Stripe.
+ * This is a PER-BRANCH limit — extra branches don't affect it.
  */
 export function getEffectiveMaxEmployees(
     plan: PlanType,
     extraEmployeesPaid: number = 0,
-    extraBranchesPaid: number = 0,
 ): number {
     const limits = getPlanLimits(plan);
-    const totalBranches = limits.maxBranches + extraBranchesPaid;
-    // Base employees = 2 per branch (included) + individual extras
-    return (limits.maxEmployeesPerBranch * totalBranches) + extraEmployeesPaid;
+    // Per branch: 2 included + paid extras
+    return limits.maxEmployeesPerBranch + extraEmployeesPaid;
 }
 
 /** Calculate effective max branches considering paid add-ons */
@@ -84,13 +82,12 @@ export function getEffectiveMaxBranches(plan: PlanType, extraBranchesPaid: numbe
     return limits.maxBranches + extraBranchesPaid;
 }
 
-/** Check if an employee (stylist) can be added */
+/** Check if an employee (stylist) can be added to THIS branch */
 export function canAddEmployee(
     plan: PlanType,
     currentCount: number,
     trialEndsAt?: string | null,
     extraEmployeesPaid: number = 0,
-    extraBranchesPaid: number = 0,
 ): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
     // Trial period: no limits, behave as Pro
     if (isInTrial(trialEndsAt)) {
@@ -98,27 +95,27 @@ export function canAddEmployee(
     }
 
     const limits = getPlanLimits(plan);
-    const effectiveMax = getEffectiveMaxEmployees(plan, extraEmployeesPaid, extraBranchesPaid);
+    const effectiveMax = getEffectiveMaxEmployees(plan, extraEmployeesPaid);
 
     if (currentCount < effectiveMax) {
         return { allowed: true };
     }
 
     if (limits.canExpandEmployees) {
-        // Pro/Business can add more but at extra cost
-        return { allowed: true, message: `Empleado adicional: +$${limits.extraEmployeePrice}/mes` };
+        // Pro/Business: at limit, need to buy extra via Stripe portal
+        return { allowed: false, message: `Has alcanzado tu límite de ${effectiveMax} profesionales. Agrega un Profesional Extra ($${limits.extraEmployeePrice}/mes) desde el portal de facturación.` };
     }
 
     // Free plan — hard cap
     if (plan === 'free') {
         return {
             allowed: false,
-            message: `El plan Free solo permite ${limits.maxEmployeesPerBranch} empleados. Actualiza a Pro para agregar más.`,
+            message: `El plan Free solo permite ${limits.maxEmployeesPerBranch} profesionales. Actualiza a Pro para agregar más.`,
             upgradeTo: 'pro',
         };
     }
 
-    return { allowed: false, message: 'Límite de empleados alcanzado.' };
+    return { allowed: false, message: 'Límite de profesionales alcanzado.' };
 }
 
 /** Check if a stylist can be added (same logic as employee) */
@@ -127,9 +124,8 @@ export function canAddStylist(
     currentStylistCount: number,
     trialEndsAt?: string | null,
     extraEmployeesPaid: number = 0,
-    extraBranchesPaid: number = 0,
 ): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
-    return canAddEmployee(plan, currentStylistCount, trialEndsAt, extraEmployeesPaid, extraBranchesPaid);
+    return canAddEmployee(plan, currentStylistCount, trialEndsAt, extraEmployeesPaid);
 }
 
 /** Check if a new branch/tenant can be created for this owner */

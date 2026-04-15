@@ -26,8 +26,7 @@ export default function Team() {
     const limits = getPlanLimits(plan);
     const badge = getPlanBadgeStyles(plan);
     const extraEmployeesPaid = businessConfig?.extraEmployeesPaid || 0;
-    const extraBranchesPaid = businessConfig?.extraBranchesPaid || 0;
-    const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid, extraBranchesPaid);
+    const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid);
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [inviteEmail, setInviteEmail] = useState('');
@@ -250,7 +249,7 @@ export default function Team() {
                         <div className="flex items-center gap-2">
                             <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}>{limits.name}</span>
                             <span className="bg-white/5 border border-white/10 text-slate-400 font-black text-[10px] px-3 py-1.5 rounded-full uppercase tracking-tighter">
-                                {members.length}/{limits.canExpandEmployees ? (effectiveMaxEmployees > limits.maxEmployeesPerBranch ? effectiveMaxEmployees : '∞') : limits.maxEmployeesPerBranch}
+                                {members.length}/{effectiveMaxEmployees}
                             </span>
                         </div>
                     </div>
