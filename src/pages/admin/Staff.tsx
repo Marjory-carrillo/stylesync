@@ -4,8 +4,9 @@ import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees } from '../../lib/planLimits';
-import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight } from 'lucide-react';
+import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight, ExternalLink } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
+import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 
 export default function Staff() {
     const { uploadStylistPhoto } = useImageUpload();
@@ -16,6 +17,8 @@ export default function Staff() {
     const limits = getPlanLimits(plan);
     const badge = getPlanBadgeStyles(plan);
     const extraEmployeesPaid = businessConfig?.extraEmployeesPaid || 0;
+    const hasStripeCustomer = !!(businessConfig as any)?.stripeCustomerId;
+    const { openBillingPortal, isPortalLoading, redirectToCheckout, isCheckoutLoading } = useStripeCheckout();
     const inTrial = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
     const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -321,19 +324,46 @@ export default function Staff() {
                         </p>
 
                         {showUpgradeModal.type === 'upgrade' ? (
-                            /* Hard block — must upgrade */
+                            /* Hard block — must upgrade or buy extra */
                             <div className="space-y-3">
-                                <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 text-center">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-400 mb-1">Plan Pro</p>
-                                    <p className="text-2xl font-black text-white">$899<span className="text-sm font-medium text-slate-400">/mes</span></p>
-                                    <p className="text-xs text-slate-400 mt-1">2 empleados incluidos + $349 c/u extra</p>
-                                </div>
-                                <p className="text-[10px] text-slate-500 text-center">Contacta a tu administrador para hacer el upgrade.</p>
+                                {hasStripeCustomer ? (
+                                    /* Has Stripe subscription — send to portal to add extras */
+                                    <>
+                                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-1">Profesional Extra</p>
+                                            <p className="text-2xl font-black text-white">+$349<span className="text-sm font-medium text-slate-400">/mes</span></p>
+                                            <p className="text-xs text-slate-400 mt-1">Agrega profesionales desde tu portal de facturación</p>
+                                        </div>
+                                        <button
+                                            onClick={() => { setShowUpgradeModal(null); openBillingPortal(); }}
+                                            disabled={isPortalLoading}
+                                            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-sm uppercase tracking-wider transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            <ExternalLink size={16} /> Agregar Profesional Extra
+                                        </button>
+                                    </>
+                                ) : (
+                                    /* No Stripe — needs to subscribe first */
+                                    <>
+                                        <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 text-center">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-violet-400 mb-1">Plan Pro</p>
+                                            <p className="text-2xl font-black text-white">$899<span className="text-sm font-medium text-slate-400">/mes</span></p>
+                                            <p className="text-xs text-slate-400 mt-1">2 profesionales incluidos + $349 c/u extra</p>
+                                        </div>
+                                        <button
+                                            onClick={() => { setShowUpgradeModal(null); redirectToCheckout('pro'); }}
+                                            disabled={isCheckoutLoading}
+                                            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-black text-sm uppercase tracking-wider transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            ⭐ Actualizar a Pro
+                                        </button>
+                                    </>
+                                )}
                                 <button
                                     onClick={() => setShowUpgradeModal(null)}
                                     className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold text-sm transition-all"
                                 >
-                                    Entendido
+                                    Cancelar
                                 </button>
                             </div>
                         ) : (
