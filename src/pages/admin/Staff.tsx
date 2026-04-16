@@ -133,11 +133,9 @@ export default function Staff() {
                     </h2>
                     <p className="text-sm text-muted flex items-center gap-2 mt-1">
                         Gestiona a tus profesionales y personal.
-                        {!inTrial && (
-                            <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                                {stylists.length}/{inTrial ? '∞' : effectiveMaxEmployees}
-                            </span>
-                        )}
+                        <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                            {stylists.length}/{inTrial ? 2 : effectiveMaxEmployees}
+                        </span>
                     </p>
                 </div>
                 <button className="btn btn-primary" onClick={openAdd}>

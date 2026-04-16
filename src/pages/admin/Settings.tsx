@@ -380,9 +380,10 @@ export default function Settings() {
                                     <button
                                         onClick={() => redirectToCheckout('pro')}
                                         disabled={isCheckoutLoading}
-                                        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xl shadow-amber-900/20 hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
+                                        className="group flex flex-col items-center gap-1 px-5 py-4 rounded-2xl font-black text-sm bg-gradient-to-br from-amber-500 to-orange-600 text-white border border-amber-400/30 hover:from-amber-400 hover:to-orange-500 transition-all duration-200 active:scale-95 disabled:opacity-50"
                                     >
-                                        ⭐ Actualizar a Pro — $899/mes
+                                        <span className="flex items-center gap-2 text-[15px]">⭐ Actualizar a Pro</span>
+                                        <span className="text-[11px] font-semibold text-white/80">$899/mes — 1 sucursal, citas ilimitadas</span>
                                     </button>
                                 )}
 
@@ -390,9 +391,10 @@ export default function Settings() {
                                     <button
                                         onClick={() => redirectToCheckout('business')}
                                         disabled={isCheckoutLoading}
-                                        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-black text-sm bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+                                        className="group flex flex-col items-center gap-1 px-5 py-4 rounded-2xl font-black text-sm bg-gradient-to-br from-violet-600 to-purple-700 text-white border border-violet-400/30 hover:from-violet-500 hover:to-purple-600 transition-all duration-200 active:scale-95 disabled:opacity-50"
                                     >
-                                        🚀 Escalar a Business — $1,649/mes
+                                        <span className="flex items-center gap-2 text-[15px]">🚀 Escalar a Business</span>
+                                        <span className="text-[11px] font-semibold text-white/80">$1,649/mes — 2 sucursales, citas ilimitadas</span>
                                     </button>
                                 )}
 

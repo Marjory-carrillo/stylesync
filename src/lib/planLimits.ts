@@ -89,9 +89,17 @@ export function canAddEmployee(
     trialEndsAt?: string | null,
     extraEmployeesPaid: number = 0,
 ): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
-    // Trial period: no limits, behave as Pro
+    // Trial period: same 2 per branch limit, but with Pro-level features (unlimited appointments)
     if (isInTrial(trialEndsAt)) {
-        return { allowed: true };
+        const baseMax = getPlanLimits('free').maxEmployeesPerBranch; // always 2
+        if (currentCount < baseMax) {
+            return { allowed: true };
+        }
+        return {
+            allowed: false,
+            message: `Durante el trial solo puedes tener ${baseMax} profesionales por sucursal. Actualiza tu plan para agregar más.`,
+            upgradeTo: 'pro',
+        };
     }
 
     const limits = getPlanLimits(plan);
