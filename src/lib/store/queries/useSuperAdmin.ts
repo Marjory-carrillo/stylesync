@@ -33,9 +33,9 @@ export function useSuperAdmin() {
             if (existing) throw new Error('Este link ya ha sido ocupado.');
 
             // 2. Create Tenant — if existingOwnerId, assign to that user; otherwise SuperAdmin is the technical creator
-            // Auto-assign 21-day trial for all new businesses (unless noTrial is set)
+            // Auto-assign 30-day trial for all new businesses (unless noTrial is set)
             const trialEnd = new Date();
-            trialEnd.setDate(trialEnd.getDate() + 21);
+            trialEnd.setDate(trialEnd.getDate() + 30);
 
             const insertPayload: any = {
                 name,

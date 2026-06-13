@@ -783,11 +783,11 @@ export default function SuperAdminPanel() {
                             {/* Trial Toggle */}
                             <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                                 <div>
-                                    <p className="text-xs font-bold text-white">Período de prueba (21 días)</p>
+                                    <p className="text-xs font-bold text-white">Período de prueba (30 días)</p>
                                     <p className="text-[10px] text-slate-500 mt-0.5">
                                         {newBusiness.noTrial
                                             ? 'El negocio inicia directamente en el plan seleccionado.'
-                                            : 'El negocio tendrá acceso completo durante 21 días gratis.'}
+                                            : 'El negocio tendrá acceso completo durante 30 días gratis.'}
                                     </p>
                                 </div>
                                 <button
