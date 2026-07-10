@@ -303,6 +303,8 @@ export default function Settings() {
                                     ? 'bg-gradient-to-br from-violet-600/10 via-purple-600/5 to-fuchsia-600/10 border-violet-500/20'
                                     : tenantPlan === 'pro'
                                     ? 'bg-gradient-to-br from-amber-600/10 via-orange-600/5 to-yellow-600/10 border-amber-500/20'
+                                    : tenantPlan === 'lite'
+                                    ? 'bg-gradient-to-br from-teal-600/10 via-emerald-600/5 to-teal-600/10 border-teal-500/20'
                                     : inTrial
                                     ? 'bg-gradient-to-br from-blue-600/10 via-cyan-600/5 to-blue-600/10 border-blue-500/20'
                                     : 'bg-white/[0.02] border-white/5'
@@ -312,19 +314,22 @@ export default function Settings() {
                                         <div className={`p-2 rounded-xl ${
                                             tenantPlan === 'business' ? 'bg-violet-500/15' :
                                             tenantPlan === 'pro' ? 'bg-amber-500/15' :
+                                            tenantPlan === 'lite' ? 'bg-teal-500/15' :
                                             'bg-slate-500/15'
                                         }`}>
                                             {tenantPlan === 'business' ? <Sparkles size={20} className="text-violet-400" /> :
                                              tenantPlan === 'pro' ? <Crown size={20} className="text-amber-400" /> :
+                                             tenantPlan === 'lite' ? <Shield size={20} className="text-teal-400" /> :
                                              <CreditCard size={20} className="text-slate-400" />}
                                         </div>
                                         <div>
                                             <span className={`text-sm font-black uppercase tracking-wider ${
                                                 tenantPlan === 'business' ? 'text-violet-400' :
                                                 tenantPlan === 'pro' ? 'text-amber-400' :
+                                                tenantPlan === 'lite' ? 'text-teal-400' :
                                                 'text-slate-400'
                                             }`}>
-                                                {inTrial ? '🎁 Trial Activo' : `Plan ${tenantPlan.charAt(0).toUpperCase() + tenantPlan.slice(1)}`}
+                                                {inTrial ? '🎁 Trial Activo' : `Plan ${tenantPlan === 'lite' ? 'Esencial' : tenantPlan.charAt(0).toUpperCase() + tenantPlan.slice(1)}`}
                                             </span>
                                             <p className="text-2xl font-black text-white tracking-tight">
                                                 ${planLimits.price.toLocaleString()}
@@ -378,23 +383,34 @@ export default function Settings() {
 
                                 {(tenantPlan === 'free' || inTrial) && !hasStripeCustomer && (
                                     <button
-                                        onClick={() => redirectToCheckout('pro')}
+                                        onClick={() => redirectToCheckout('lite')}
                                         disabled={isCheckoutLoading}
-                                        className="group flex flex-col items-center gap-1 px-5 py-4 rounded-2xl font-black text-sm bg-gradient-to-br from-amber-500 to-orange-600 text-white border border-amber-400/30 hover:from-amber-400 hover:to-orange-500 transition-all duration-200 active:scale-95 disabled:opacity-50"
+                                        className="group flex flex-col items-center gap-1 px-5 py-3 rounded-2xl font-black text-sm bg-gradient-to-br from-teal-500 to-emerald-600 text-white border border-teal-400/30 hover:from-teal-400 hover:to-emerald-500 transition-all duration-200 active:scale-95 disabled:opacity-50"
                                     >
-                                        <span className="flex items-center gap-2 text-[15px]">⭐ Actualizar a Pro</span>
-                                        <span className="text-[11px] font-semibold text-white/80">$899/mes — 1 sucursal, citas ilimitadas</span>
+                                        <span className="flex items-center gap-2 text-[14px]">💼 Actualizar a Esencial</span>
+                                        <span className="text-[10px] font-semibold text-white/80">$349/mes — 1 profesional, citas ilimitadas</span>
                                     </button>
                                 )}
 
-                                {(tenantPlan === 'free' || inTrial) && !hasStripeCustomer && (
+                                {(tenantPlan === 'free' || tenantPlan === 'lite' || inTrial) && !hasStripeCustomer && (
+                                    <button
+                                        onClick={() => redirectToCheckout('pro')}
+                                        disabled={isCheckoutLoading}
+                                        className="group flex flex-col items-center gap-1 px-5 py-3 rounded-2xl font-black text-sm bg-gradient-to-br from-amber-500 to-orange-600 text-white border border-amber-400/30 hover:from-amber-400 hover:to-orange-500 transition-all duration-200 active:scale-95 disabled:opacity-50"
+                                    >
+                                        <span className="flex items-center gap-2 text-[14px]">⭐ Actualizar a Pro</span>
+                                        <span className="text-[10px] font-semibold text-white/80">$649/mes — 2 profesionales, citas ilimitadas</span>
+                                    </button>
+                                )}
+
+                                {(tenantPlan === 'free' || tenantPlan === 'lite' || tenantPlan === 'pro' || inTrial) && !hasStripeCustomer && (
                                     <button
                                         onClick={() => redirectToCheckout('business')}
                                         disabled={isCheckoutLoading}
-                                        className="group flex flex-col items-center gap-1 px-5 py-4 rounded-2xl font-black text-sm bg-gradient-to-br from-violet-600 to-purple-700 text-white border border-violet-400/30 hover:from-violet-500 hover:to-purple-600 transition-all duration-200 active:scale-95 disabled:opacity-50"
+                                        className="group flex flex-col items-center gap-1 px-5 py-3 rounded-2xl font-black text-sm bg-gradient-to-br from-violet-600 to-purple-700 text-white border border-violet-400/30 hover:from-violet-500 hover:to-purple-600 transition-all duration-200 active:scale-95 disabled:opacity-50"
                                     >
-                                        <span className="flex items-center gap-2 text-[15px]">🚀 Escalar a Business</span>
-                                        <span className="text-[11px] font-semibold text-white/80">$1,649/mes — 2 sucursales, citas ilimitadas</span>
+                                        <span className="flex items-center gap-2 text-[14px]">🚀 Escalar a Business</span>
+                                        <span className="text-[10px] font-semibold text-white/80">$1,249/mes — 2 sucursales, citas ilimitadas</span>
                                     </button>
                                 )}
 

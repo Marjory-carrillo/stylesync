@@ -105,7 +105,7 @@ export interface BusinessConfig {
     timezone?: string; // IANA timezone, e.g. 'America/Mexico_City'
     brandSlug?: string;
     hideServicePrices?: boolean;
-    plan?: 'free' | 'pro' | 'business';
+    plan?: 'free' | 'lite' | 'pro' | 'business';
     trialEndsAt?: string | null;
     stripeCustomerId?: string | null;
     stripeSubscriptionId?: string | null;

@@ -44,7 +44,7 @@ export const useTenantData = (overrideTenantId?: string) => {
                 smsProvider: (data.sms_provider as 'demo' | 'whatsapp') || 'demo',
                 brandSlug: data.brand_slug,
                 hideServicePrices: data.hide_service_prices ?? false,
-                plan: (data.plan as 'free' | 'pro' | 'business') || 'free',
+                plan: (data.plan as 'free' | 'lite' | 'pro' | 'business') || 'free',
                 trialEndsAt: data.trial_ends_at || null,
                 stripeCustomerId: data.stripe_customer_id || null,
                 stripeSubscriptionId: data.stripe_subscription_id || null,

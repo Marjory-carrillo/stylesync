@@ -2,6 +2,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY')!;
+const STRIPE_PRICE_LITE = Deno.env.get('STRIPE_PRICE_LITE')!;
 const STRIPE_PRICE_PRO  = Deno.env.get('STRIPE_PRICE_PRO')!;
 const STRIPE_PRICE_BUSINESS = Deno.env.get('STRIPE_PRICE_BUSINESS')!;
 
@@ -23,7 +24,8 @@ serve(async (req: Request) => {
             );
         }
 
-        const priceId = plan === 'pro' ? STRIPE_PRICE_PRO
+        const priceId = plan === 'lite' ? STRIPE_PRICE_LITE
+                      : plan === 'pro' ? STRIPE_PRICE_PRO
                       : plan === 'business' ? STRIPE_PRICE_BUSINESS
                       : null;
 

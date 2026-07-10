@@ -1,6 +1,6 @@
 // Plan limits and enforcement for CitaLink subscription tiers
 
-export type PlanType = 'free' | 'pro' | 'business';
+export type PlanType = 'free' | 'lite' | 'pro' | 'business';
 
 export interface PlanLimits {
     name: string;
@@ -26,27 +26,38 @@ const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
         extraBranchPrice: 0,
         extraEmployeePrice: 0,
     },
+    lite: {
+        name: 'Esencial',
+        price: 349,
+        maxBranches: 1,
+        maxEmployeesPerBranch: 1,
+        maxAppointmentsPerMonth: -1,
+        canExpandBranches: false,
+        canExpandEmployees: false,
+        extraBranchPrice: 0,
+        extraEmployeePrice: 0,
+    },
     pro: {
         name: 'Pro',
-        price: 899,
+        price: 649,
         maxBranches: 1,
         maxEmployeesPerBranch: 2,
         maxAppointmentsPerMonth: -1,
         canExpandBranches: false,
         canExpandEmployees: true,
         extraBranchPrice: 0,
-        extraEmployeePrice: 349,
+        extraEmployeePrice: 249,
     },
     business: {
         name: 'Business',
-        price: 1649,
+        price: 1249,
         maxBranches: 2,
         maxEmployeesPerBranch: 2,
         maxAppointmentsPerMonth: -1,
         canExpandBranches: true,
         canExpandEmployees: true,
-        extraBranchPrice: 749,
-        extraEmployeePrice: 349,
+        extraBranchPrice: 599,
+        extraEmployeePrice: 249,
     },
 };
 
@@ -72,7 +83,7 @@ export function getEffectiveMaxEmployees(
     extraEmployeesPaid: number = 0,
 ): number {
     const limits = getPlanLimits(plan);
-    // Per branch: 2 included + paid extras
+    // Per branch: base included + paid extras
     return limits.maxEmployeesPerBranch + extraEmployeesPaid;
 }
 
@@ -123,6 +134,15 @@ export function canAddEmployee(
         };
     }
 
+    // Lite plan — hard cap
+    if (plan === 'lite') {
+        return {
+            allowed: false,
+            message: `El plan Esencial solo permite ${limits.maxEmployeesPerBranch} profesional. Actualiza a Pro para agregar más.`,
+            upgradeTo: 'pro',
+        };
+    }
+
     return { allowed: false, message: 'Límite de profesionales alcanzado.' };
 }
 
@@ -162,6 +182,14 @@ export function canAddBranch(
         };
     }
 
+    if (plan === 'lite') {
+        return {
+            allowed: false,
+            message: 'El plan Esencial solo permite 1 sucursal. Actualiza a Business para tener múltiples sucursales.',
+            upgradeTo: 'business',
+        };
+    }
+
     if (plan === 'pro') {
         return {
             allowed: false,
@@ -176,6 +204,8 @@ export function canAddBranch(
 /** Plan badge colors for UI */
 export function getPlanBadgeStyles(plan: PlanType): { bg: string; text: string; border: string; glow: string } {
     switch (plan) {
+        case 'lite':
+            return { bg: 'bg-teal-500/10', text: 'text-teal-400', border: 'border-teal-500/20', glow: 'shadow-teal-500/10' };
         case 'pro':
             return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'shadow-amber-500/10' };
         case 'business':

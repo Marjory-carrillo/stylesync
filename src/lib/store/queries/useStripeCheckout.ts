@@ -55,7 +55,7 @@ export function useStripeCheckout() {
         }
     };
 
-    const redirectToCheckout = async (plan: 'pro' | 'business') => {
+    const redirectToCheckout = async (plan: 'lite' | 'pro' | 'business') => {
         if (!tenantId) {
             showToast('Error: No se encontró tu negocio', 'error');
             return;
