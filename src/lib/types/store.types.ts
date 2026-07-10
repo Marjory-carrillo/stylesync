@@ -18,6 +18,7 @@ export interface Stylist {
     phone: string;
     image?: string;
     commissionRate?: number; // percentage (0-100)
+    schedule?: WeekSchedule | null; // custom working schedule
 }
 
 export interface Appointment {

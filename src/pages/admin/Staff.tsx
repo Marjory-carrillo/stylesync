@@ -7,6 +7,27 @@ import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmploy
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight, ExternalLink } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
 import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
+import type { WeekSchedule } from '../../lib/types/store.types';
+
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+const DAY_LABELS: Record<string, string> = {
+    monday: 'Lunes',
+    tuesday: 'Martes',
+    wednesday: 'Miércoles',
+    thursday: 'Jueves',
+    friday: 'Viernes',
+    saturday: 'Sábado',
+    sunday: 'Domingo'
+};
+const DEFAULT_STAFF_SCHEDULE: WeekSchedule = {
+    monday: { open: true, start: '09:00', end: '18:00', breakStart: '13:00', breakEnd: '14:00' },
+    tuesday: { open: true, start: '09:00', end: '18:00', breakStart: '13:00', breakEnd: '14:00' },
+    wednesday: { open: true, start: '09:00', end: '18:00', breakStart: '13:00', breakEnd: '14:00' },
+    thursday: { open: true, start: '09:00', end: '18:00', breakStart: '13:00', breakEnd: '14:00' },
+    friday: { open: true, start: '09:00', end: '18:00', breakStart: '13:00', breakEnd: '14:00' },
+    saturday: { open: true, start: '09:00', end: '18:00', breakStart: '13:00', breakEnd: '14:00' },
+    sunday: { open: false, start: '09:00', end: '18:00', breakStart: '13:00', breakEnd: '14:00' }
+};
 
 export default function Staff() {
     const { uploadStylistPhoto } = useImageUpload();
@@ -32,6 +53,9 @@ export default function Staff() {
     const [formCommission, setFormCommission] = useState<number>(0);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'profile' | 'schedule'>('profile');
+    const [formUseCustomSchedule, setFormUseCustomSchedule] = useState(false);
+    const [formSchedule, setFormSchedule] = useState<WeekSchedule>(DEFAULT_STAFF_SCHEDULE);
 
     const openAdd = () => {
         const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid);
@@ -52,6 +76,9 @@ export default function Staff() {
         setFormPhone('');
         setFormImage('');
         setFormCommission(0);
+        setActiveTab('profile');
+        setFormUseCustomSchedule(false);
+        setFormSchedule(DEFAULT_STAFF_SCHEDULE);
         setIsModalOpen(true);
     };
 
@@ -64,6 +91,9 @@ export default function Staff() {
         setFormPhone('');
         setFormImage('');
         setFormCommission(0);
+        setActiveTab('profile');
+        setFormUseCustomSchedule(false);
+        setFormSchedule(DEFAULT_STAFF_SCHEDULE);
         setIsModalOpen(true);
     };
 
@@ -77,6 +107,14 @@ export default function Staff() {
         setFormPhone(stylist.phone);
         setFormImage(stylist.image || '');
         setFormCommission(stylist.commissionRate || 0);
+        setActiveTab('profile');
+        if (stylist.schedule && typeof stylist.schedule === 'object' && Object.keys(stylist.schedule).length > 0) {
+            setFormUseCustomSchedule(true);
+            setFormSchedule(stylist.schedule as WeekSchedule);
+        } else {
+            setFormUseCustomSchedule(false);
+            setFormSchedule(DEFAULT_STAFF_SCHEDULE);
+        }
         setIsModalOpen(true);
     };
 
@@ -86,7 +124,8 @@ export default function Staff() {
             role: formRole,
             phone: formPhone || '',
             image: formImage || '',
-            commissionRate: formCommission
+            commissionRate: formCommission,
+            schedule: formUseCustomSchedule ? formSchedule : null
         });
 
         if (!result.success) {
@@ -100,7 +139,8 @@ export default function Staff() {
             role: result.data.role,
             phone: result.data.phone || '',
             image: result.data.image || '',
-            commissionRate: result.data.commissionRate
+            commissionRate: result.data.commissionRate,
+            schedule: formUseCustomSchedule ? formSchedule : null
         };
 
         if (editingId !== null) {
@@ -190,10 +230,28 @@ export default function Staff() {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
-                    <div className="glass-panel w-full max-w-md p-6 rounded-xl animate-fade-in" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="glass-panel w-full max-w-lg p-6 rounded-xl animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-bold text-white">{editingId ? 'Editar' : 'Nuevo'} Profesional</h3>
                             <button className="text-muted hover:text-white" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
+                        </div>
+
+                        {/* Tabs Navigation */}
+                        <div className="flex gap-4 border-b border-white/10 mb-6">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('profile')}
+                                className={`pb-2 font-bold text-sm border-b-2 transition-all ${activeTab === 'profile' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                            >
+                                Perfil
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('schedule')}
+                                className={`pb-2 font-bold text-sm border-b-2 transition-all ${activeTab === 'schedule' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                            >
+                                Horario de Trabajo
+                            </button>
                         </div>
 
                         {formError && (
@@ -203,97 +261,221 @@ export default function Staff() {
                             </div>
                         )}
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Nombre</label>
-                                <input
-                                    type="text"
-                                    value={formName}
-                                    onChange={e => setFormName(e.target.value)}
-                                    placeholder="Ej: Ana García"
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Rol / Cargo</label>
-                                <input
-                                    type="text"
-                                    value={formRole}
-                                    onChange={e => setFormRole(e.target.value)}
-                                    placeholder="Ej: Barbero Senior"
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Teléfono</label>
-                                <input
-                                    type="text"
-                                    value={formPhone}
-                                    onChange={e => setFormPhone(e.target.value)}
-                                    placeholder="555-0000"
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">% Comisión (Nómina)</label>
-                                <div className="relative">
+                        {activeTab === 'profile' && (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-medium text-muted mb-1 block">Nombre</label>
                                     <input
-                                        type="number"
-                                        min="0" max="100"
-                                        value={formCommission}
-                                        onChange={e => setFormCommission(Number(e.target.value))}
-                                        placeholder="0"
-                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors pr-10"
+                                        type="text"
+                                        value={formName}
+                                        onChange={e => setFormName(e.target.value)}
+                                        placeholder="Ej: Ana García"
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">%</span>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted mb-1 block">Rol / Cargo</label>
+                                    <input
+                                        type="text"
+                                        value={formRole}
+                                        onChange={e => setFormRole(e.target.value)}
+                                        placeholder="Ej: Barbero Senior"
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted mb-1 block">Teléfono</label>
+                                    <input
+                                        type="text"
+                                        value={formPhone}
+                                        onChange={e => setFormPhone(e.target.value)}
+                                        placeholder="555-0000"
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted mb-1 block">% Comisión (Nómina)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min="0" max="100"
+                                            value={formCommission}
+                                            onChange={e => setFormCommission(Number(e.target.value))}
+                                            placeholder="0"
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors pr-10"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">%</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-muted mb-1 block">URL de Foto</label>
+                                    <input
+                                        type="text"
+                                        value={formImage}
+                                        onChange={e => setFormImage(e.target.value)}
+                                        placeholder="https://..."
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                    />
+                                    <div className="mt-2 text-xs text-muted">O sube una imagen:</div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                            {formImage ? (
+                                                <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <ImageIcon size={20} className="text-muted" />
+                                            )}
+                                        </div>
+                                        <label className="btn btn-sm bg-white/5 hover:bg-white/10 text-white cursor-pointer flex items-center gap-2 border border-white/10">
+                                            <Upload size={14} />
+                                            {uploadingImage ? 'Subiendo...' : 'Subir Foto'}
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                disabled={uploadingImage}
+                                                onChange={async (e) => {
+                                                    if (e.target.files && e.target.files[0]) {
+                                                        setUploadingImage(true);
+                                                        try {
+                                                            const url = await uploadStylistPhoto(e.target.files[0]);
+                                                            if (url) setFormImage(url);
+                                                        } finally {
+                                                            setUploadingImage(false);
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">URL de Foto</label>
-                                <input
-                                    type="text"
-                                    value={formImage}
-                                    onChange={e => setFormImage(e.target.value)}
-                                    placeholder="https://..."
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
-                                />
-                                <div className="mt-2 text-xs text-muted">O sube una imagen:</div>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                        {formImage ? (
-                                            <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <ImageIcon size={20} className="text-muted" />
-                                        )}
-                                    </div>
-                                    <label className="btn btn-sm bg-white/5 hover:bg-white/10 text-white cursor-pointer flex items-center gap-2 border border-white/10">
-                                        <Upload size={14} />
-                                        {uploadingImage ? 'Subiendo...' : 'Subir Foto'}
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*"
-                                            disabled={uploadingImage}
-                                            onChange={async (e) => {
-                                                if (e.target.files && e.target.files[0]) {
-                                                    setUploadingImage(true);
-                                                    try {
-                                                        const url = await uploadStylistPhoto(e.target.files[0]);
-                                                        if (url) setFormImage(url);
-                                                    } finally {
-                                                        setUploadingImage(false);
-                                                    }
-                                                }
-                                            }}
-                                        />
+                        )}
+
+                        {activeTab === 'schedule' && (
+                            <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10 mb-2">
+                                    <input
+                                        type="checkbox"
+                                        id="useCustomSchedule"
+                                        checked={formUseCustomSchedule}
+                                        onChange={e => setFormUseCustomSchedule(e.target.checked)}
+                                        className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
+                                    />
+                                    <label htmlFor="useCustomSchedule" className="text-sm font-semibold text-white cursor-pointer select-none">
+                                        Personalizar horario de este profesional
                                     </label>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="flex justify-end gap-3 mt-8">
-                            <button className="btn btn-ghost hover:bg-white/10" onClick={() => setIsModalOpen(false)}>Cancelar</button>
-                            <button className="btn btn-primary" onClick={handleSave}>Guardar</button>
+                                {!formUseCustomSchedule ? (
+                                    <div className="p-4 bg-white/5 border border-dashed border-white/10 rounded-xl text-center text-slate-400 text-xs leading-relaxed space-y-1">
+                                        <p className="font-bold text-slate-300">Respaldo Activo (Fallback)</p>
+                                        <p>Este profesional heredará automáticamente el horario general de apertura y descanso configurado para el salón.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {DAYS.map(day => {
+                                            const daySched = formSchedule[day] || { open: false, start: '09:00', end: '18:00' };
+                                            return (
+                                                <div key={day} className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-bold text-white">{DAY_LABELS[day]}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-slate-400">{daySched.open ? 'Laborable' : 'Descanso'}</span>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={daySched.open}
+                                                                onChange={e => {
+                                                                    const open = e.target.checked;
+                                                                    setFormSchedule(prev => ({
+                                                                        ...prev,
+                                                                        [day]: { ...daySched, open }
+                                                                    }));
+                                                                }}
+                                                                className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {daySched.open && (
+                                                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                                                            <div className="space-y-1">
+                                                                <span className="text-[10px] uppercase font-bold text-slate-500">Horario de Trabajo</span>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={daySched.start}
+                                                                        onChange={e => {
+                                                                            const start = e.target.value;
+                                                                            setFormSchedule(prev => ({
+                                                                                ...prev,
+                                                                                [day]: { ...daySched, start }
+                                                                            }));
+                                                                        }}
+                                                                        placeholder="09:00"
+                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                    />
+                                                                    <span className="text-slate-500 text-xs">a</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={daySched.end}
+                                                                        onChange={e => {
+                                                                            const end = e.target.value;
+                                                                            setFormSchedule(prev => ({
+                                                                                ...prev,
+                                                                                [day]: { ...daySched, end }
+                                                                            }));
+                                                                        }}
+                                                                        placeholder="18:00"
+                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-1">
+                                                                <span className="text-[10px] uppercase font-bold text-slate-500">Comida / Descanso</span>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={daySched.breakStart || ''}
+                                                                        onChange={e => {
+                                                                            const breakStart = e.target.value || undefined;
+                                                                            setFormSchedule(prev => ({
+                                                                                ...prev,
+                                                                                [day]: { ...daySched, breakStart }
+                                                                            }));
+                                                                        }}
+                                                                        placeholder="13:00"
+                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                    />
+                                                                    <span className="text-slate-500 text-xs">a</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={daySched.breakEnd || ''}
+                                                                        onChange={e => {
+                                                                            const breakEnd = e.target.value || undefined;
+                                                                            setFormSchedule(prev => ({
+                                                                                ...prev,
+                                                                                [day]: { ...daySched, breakEnd }
+                                                                            }));
+                                                                        }}
+                                                                        placeholder="14:00"
+                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-3 mt-6 border-t border-white/10 pt-4">
+                            <button type="button" className="btn btn-ghost hover:bg-white/10" onClick={() => setIsModalOpen(false)}>Cancelar</button>
+                            <button type="button" className="btn btn-primary" onClick={handleSave}>Guardar</button>
                         </div>
                     </div>
                 </div>

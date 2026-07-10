@@ -324,19 +324,18 @@ export default function Booking() {
                 end: parse(b.endTime.slice(0, 5), 'HH:mm', baseDate)
             }));
 
-        // Add Lunch Break if configured
-        if (selectedDateSchedule.breakStart && selectedDateSchedule.breakEnd) {
-            relevantBlockedSlots.push({
-                start: parse(selectedDateSchedule.breakStart, 'HH:mm', baseDate),
-                end: parse(selectedDateSchedule.breakEnd, 'HH:mm', baseDate)
-            });
-        }
-
         const stylistsToCheck = selectedStylist ? [selectedStylist] : stylists;
         const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
         // Fallback: if no stylists exist (MVP), treat as generic resource with ID '0'
         if (stylistsToCheck.length === 0) {
-            const slots = getSmartSlots(baseDate, totalDuration, selectedDateSchedule.start, selectedDateSchedule.end, dateAppointments, relevantBlockedSlots, bufferMinutes);
+            const fallbackBlockedSlots = [...relevantBlockedSlots];
+            if (selectedDateSchedule.breakStart && selectedDateSchedule.breakEnd) {
+                fallbackBlockedSlots.push({
+                    start: parse(selectedDateSchedule.breakStart, 'HH:mm', baseDate),
+                    end: parse(selectedDateSchedule.breakEnd, 'HH:mm', baseDate)
+                });
+            }
+            const slots = getSmartSlots(baseDate, totalDuration, selectedDateSchedule.start, selectedDateSchedule.end, dateAppointments, fallbackBlockedSlots, bufferMinutes);
             slots.forEach(slot => {
                 metadata[slot] = ['0'];
             });
@@ -344,6 +343,25 @@ export default function Booking() {
         }
 
         stylistsToCheck.forEach(stylist => {
+            const dayKey = DAY_KEYS[new Date(selectedDate + 'T00:00:00').getDay()];
+            const stylistSchedule = (stylist.schedule && typeof stylist.schedule === 'object' && Object.keys(stylist.schedule).length > 0)
+                ? (stylist.schedule as any)
+                : null;
+            const stylistDateSchedule = stylistSchedule && stylistSchedule[dayKey]
+                ? stylistSchedule[dayKey]
+                : selectedDateSchedule;
+
+            // If stylist is closed on this day, skip them
+            if (!stylistDateSchedule.open) return;
+
+            const stylistBlockedSlots = [...relevantBlockedSlots];
+            if (stylistDateSchedule.breakStart && stylistDateSchedule.breakEnd) {
+                stylistBlockedSlots.push({
+                    start: parse(stylistDateSchedule.breakStart, 'HH:mm', baseDate),
+                    end: parse(stylistDateSchedule.breakEnd, 'HH:mm', baseDate)
+                });
+            }
+
             const stylistApps = appointments
                 .filter(a => a.date === selectedDate && a.status !== 'cancelada' && String(a.stylistId) === String(stylist.id))
                 .map(a => {
@@ -353,7 +371,7 @@ export default function Booking() {
                     return { id: a.id, stylistId: String(a.stylistId), start, end };
                 });
 
-            const slots = getSmartSlots(baseDate, totalDuration, selectedDateSchedule.start, selectedDateSchedule.end, stylistApps, relevantBlockedSlots, bufferMinutes);
+            const slots = getSmartSlots(baseDate, totalDuration, stylistDateSchedule.start, stylistDateSchedule.end, stylistApps, stylistBlockedSlots, bufferMinutes);
 
             slots.forEach(slot => {
                 if (!metadata[slot]) metadata[slot] = [];

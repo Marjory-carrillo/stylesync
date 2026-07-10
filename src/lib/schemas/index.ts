@@ -58,6 +58,7 @@ export const stylistSchema = z.object({
     phone: z.preprocess((val) => typeof val === 'string' ? sanitize(val) : val, z.string().regex(/^\+?[0-9]{8,15}$/, 'Número de teléfono inválido').optional().or(z.literal(''))),
     image: z.string().url('URL de imagen inválida').optional().or(z.literal('')),
     commissionRate: z.number().min(0).max(100).optional(),
+    schedule: z.any().optional().nullable(),
 });
 
 export type StylistInput = z.infer<typeof stylistSchema>;
