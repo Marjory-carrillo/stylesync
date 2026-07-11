@@ -131,6 +131,20 @@ export interface DaySchedule {
 
 export type WeekSchedule = Record<string, DaySchedule>;
 
+export interface QuotingItem {
+    id: string;
+    name: string;
+    price: number;
+    unit?: string;
+}
+
+export interface QuotingCategory {
+    id: string;
+    name: string;
+    type: 'radio' | 'checkbox' | 'number';
+    items: QuotingItem[];
+}
+
 export interface Announcement {
     id: string;
     message: string;

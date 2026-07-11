@@ -9,6 +9,7 @@ import { useSchedule } from '../../lib/store/queries/useSchedule';
 import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
+import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
 import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles } from 'lucide-react';
 import { businessConfigSchema } from '../../lib/schemas';
@@ -119,7 +120,12 @@ export default function Settings() {
     const { announcements, addAnnouncement, removeAnnouncement } = useAnnouncements();
     const { blockedSlots, addBlockedSlot, addBlockedSlots, isAddingBatch, removeBlockedSlot } = useBlockedSlots();
     const { stylists, updateStylist } = useStylists();
+    const { config: quoterConfig, saveConfig: saveQuoterConfig, isSaving: isSavingQuoter } = useNailCalculator();
+    const [localQuoterConfig, setLocalQuoterConfig] = useState(quoterConfig);
 
+    useEffect(() => {
+        setLocalQuoterConfig(quoterConfig);
+    }, [quoterConfig]);
 
     const updateStylistCommissionRate = async (id: number, rate: number) => {
         await updateStylist({ id, data: { commissionRate: rate } });
@@ -1062,6 +1068,129 @@ export default function Settings() {
                         )}
                     </div>
                 </section>
+
+                {/* ── Nail Calculator Config Module (Section 7 - Only for Nail Bars) ── */}
+                {userRole === 'owner' && businessConfig.category === 'nail_bar' && (
+                    <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10]">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                                    <Sparkles size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Configuración del Cotizador de Uñas</h3>
+                                    <p className="text-xs text-slate-500">Configura las técnicas, largos, estilos y complementos para tu cotizador automático.</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    await saveQuoterConfig(localQuoterConfig);
+                                }}
+                                disabled={isSavingQuoter}
+                                className="btn btn-primary btn-sm flex items-center gap-2"
+                            >
+                                <Save size={16} />
+                                {isSavingQuoter ? 'Guardando...' : 'Guardar Precios'}
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {localQuoterConfig.map((category, catIdx) => (
+                                <div key={category.id} className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">{category.name}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newItem = {
+                                                    id: Date.now().toString(),
+                                                    name: 'Nueva Opción',
+                                                    price: 0
+                                                };
+                                                const updatedConfig = [...localQuoterConfig];
+                                                updatedConfig[catIdx] = {
+                                                    ...category,
+                                                    items: [...category.items, newItem]
+                                                };
+                                                setLocalQuoterConfig(updatedConfig);
+                                            }}
+                                            className="text-xs text-accent hover:text-white font-bold flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
+                                        >
+                                            <Plus size={14} /> Añadir Opción
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {category.items.map((item, itemIdx) => (
+                                            <div key={item.id} className="flex gap-2 items-center bg-slate-950/30 p-2.5 rounded-lg border border-white/5">
+                                                <input
+                                                    type="text"
+                                                    value={item.name}
+                                                    onChange={e => {
+                                                        const updatedConfig = [...localQuoterConfig];
+                                                        const updatedItems = [...category.items];
+                                                        updatedItems[itemIdx] = { ...item, name: e.target.value };
+                                                        updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                        setLocalQuoterConfig(updatedConfig);
+                                                    }}
+                                                    placeholder="Nombre de la opción"
+                                                    className="flex-1 bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-accent"
+                                                />
+                                                <div className="relative w-28">
+                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-bold">$</span>
+                                                    <input
+                                                        type="number"
+                                                        value={item.price}
+                                                        onChange={e => {
+                                                            const updatedConfig = [...localQuoterConfig];
+                                                            const updatedItems = [...category.items];
+                                                            updatedItems[itemIdx] = { ...item, price: Number(e.target.value) };
+                                                            updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                            setLocalQuoterConfig(updatedConfig);
+                                                        }}
+                                                        placeholder="0"
+                                                        className="w-full text-right bg-slate-900 border border-white/10 rounded-lg pl-6 pr-3 py-1.5 text-xs text-white focus:border-accent"
+                                                    />
+                                                </div>
+                                                {category.id === 'styles' && (
+                                                    <select
+                                                        value={item.unit || ''}
+                                                        onChange={e => {
+                                                            const updatedConfig = [...localQuoterConfig];
+                                                            const updatedItems = [...category.items];
+                                                            updatedItems[itemIdx] = { ...item, unit: e.target.value || undefined };
+                                                            updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                            setLocalQuoterConfig(updatedConfig);
+                                                        }}
+                                                        className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] text-white focus:border-accent w-24"
+                                                    >
+                                                        <option value="">Fijo</option>
+                                                        <option value="por uña">Por uña</option>
+                                                        <option value="por pieza">Por pieza</option>
+                                                    </select>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updatedConfig = [...localQuoterConfig];
+                                                        const updatedItems = category.items.filter(i => i.id !== item.id);
+                                                        updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                        setLocalQuoterConfig(updatedConfig);
+                                                    }}
+                                                    className="p-2 hover:bg-red-500/10 rounded-lg text-slate-500 hover:text-red-500 transition-colors"
+                                                    title="Eliminar"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* ── Commissions Module (Section 6) ── */}
                 {userRole === 'owner' && (

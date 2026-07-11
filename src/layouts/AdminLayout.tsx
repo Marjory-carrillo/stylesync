@@ -6,7 +6,7 @@ import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useRealtimeNotifications } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus } from 'lucide-react';
+import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator } from 'lucide-react';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
@@ -206,6 +206,13 @@ export default function AdminLayout() {
                         <Calendar size={18} />
                         <span>{t('nav.appointments')}</span>
                     </Link>
+
+                    {businessConfig?.category === 'nail_bar' && (
+                        <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
+                            <Calculator size={18} />
+                            <span>Cotizador de Uñas</span>
+                        </Link>
+                    )}
 
                     {!isEmployee && (
                         <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')}>

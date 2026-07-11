@@ -15,6 +15,7 @@ import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useBlockedPhones } from '../../lib/store/queries/useBlockedPhones';
 import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
+import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -25,7 +26,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Minus, Plus, Sparkles } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -94,6 +95,23 @@ export default function Booking() {
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [urgentSlotTime, setUrgentSlotTime] = useState<string | null>(null);
 
+    const { config: nailQuoterConfig } = useNailCalculator();
+    const sizeCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'sizes'), [nailQuoterConfig]);
+    const styleCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'styles'), [nailQuoterConfig]);
+    const extrasCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'extras'), [nailQuoterConfig]);
+
+    const [nailSize, setNailSize] = useState<{ id: string; name: string; price: number } | null>(null);
+    const [nailStyles, setNailStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
+    const [nailExtras, setNailExtras] = useState<Record<string, boolean>>({});
+    const [showNailQuoterFlow, setShowNailQuoterFlow] = useState(false);
+
+    useEffect(() => {
+        const sizeCat = nailQuoterConfig?.find(c => c.id === 'sizes');
+        if (sizeCat && sizeCat.items.length > 0 && !nailSize) {
+            setNailSize({ id: sizeCat.items[0].id, name: sizeCat.items[0].name, price: sizeCat.items[0].price });
+        }
+    }, [nailQuoterConfig, nailSize]);
+
     // Add-ons computed values: duration adds up, price adds up
     const totalDuration = useMemo(() => {
         const base = selectedService?.duration ?? 0;
@@ -104,14 +122,44 @@ export default function Booking() {
         return base + extras;
     }, [selectedService, selectedAddOns, services]);
 
+    const nailTotalPrice = useMemo(() => {
+        if (!selectedService) return 0;
+        let sum = selectedService.price;
+        if (nailSize) sum += nailSize.price;
+
+        const styleCat = nailQuoterConfig?.find(c => c.id === 'styles');
+        if (styleCat) {
+            styleCat.items.forEach(item => {
+                const sel = nailStyles[item.id];
+                if (sel?.checked) {
+                    sum += item.price * (item.unit ? sel.qty : 1);
+                }
+            });
+        }
+
+        const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+        if (extrasCat) {
+            extrasCat.items.forEach(item => {
+                if (nailExtras[item.id]) {
+                    sum += item.price;
+                }
+            });
+        }
+
+        return sum;
+    }, [nailQuoterConfig, selectedService, nailSize, nailStyles, nailExtras]);
+
     const totalPrice = useMemo(() => {
+        if (businessConfig?.category === 'nail_bar') {
+            return nailTotalPrice;
+        }
         const base = selectedService?.price ?? 0;
         const extras = selectedAddOns.reduce((sum, id) => {
             const svc = services.find(s => s.id === id);
             return sum + (svc?.price ?? 0);
         }, 0);
         return base + extras;
-    }, [selectedService, selectedAddOns, services]);
+    }, [businessConfig, nailTotalPrice, selectedService, selectedAddOns, services]);
     const [bookingResult, setBookingResult] = useState<{ success: boolean; error?: string } | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
@@ -467,10 +515,35 @@ export default function Booking() {
         const assignedStylistId = selectedStylist ? selectedStylist.id : (availableStylists[0] ?? null);
 
         // Build combined service name (main + add-ons)
-        const addOnNames = selectedAddOns
-            .map(id => services.find(s => s.id === id)?.name)
-            .filter(Boolean);
-        const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '');
+        let addOnNames: string[] = [];
+        if (businessConfig?.category === 'nail_bar') {
+            if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
+            const styleCat = nailQuoterConfig.find(c => c.id === 'styles');
+            if (styleCat) {
+                styleCat.items.forEach(item => {
+                    const sel = nailStyles[item.id];
+                    if (sel?.checked) {
+                        const qtyText = item.unit ? ` (${sel.qty} ${item.unit})` : '';
+                        addOnNames.push(`Diseño: ${item.name}${qtyText} (+$${item.price * (item.unit ? sel.qty : 1)} MXN)`);
+                    }
+                });
+            }
+            const extrasCat = nailQuoterConfig.find(c => c.id === 'extras');
+            if (extrasCat) {
+                extrasCat.items.forEach(item => {
+                    if (nailExtras[item.id]) {
+                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN)`);
+                    }
+                });
+            }
+            addOnNames.push(`Cotización Estimada: $${nailTotalPrice} MXN`);
+        } else {
+            addOnNames = selectedAddOns
+                .map(id => services.find(s => s.id === id)?.name)
+                .filter(Boolean) as string[];
+        }
+
+        const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.filter(n => !n.startsWith('Cotización')).join(' + ') : '');
 
         const result = await addAppointment({
             clientName: clientName.trim(),
@@ -1244,61 +1317,256 @@ export default function Booking() {
                 {/* ══ STEP 22: Service ══ */}
                 {step === 22 && (
                     <div className="animate-slide-up">
-                        <div className="mb-6 text-center">
-                            <p className="text-sm text-accent font-medium mb-1">Paso 2 de 4</p>
-                            <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                ¿Qué te gustaría hacerte hoy?
-                            </h3>
-                        </div>
+                        {showNailQuoterFlow && selectedService ? (
+                            // ── NAIL CUSTOMIZATION WIZARD ──
+                            <div className="space-y-6">
+                                <div className="text-center mb-6">
+                                    <p className="text-sm text-accent font-medium mb-1">Personaliza tu diseño</p>
+                                    <h3 className="text-xl font-bold text-white flex items-center justify-center gap-2">
+                                        <Sparkles className="text-accent text-yellow-500" size={20} /> {selectedService.name}
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1">Precio base: ${selectedService.price} MXN</p>
+                                </div>
 
-                        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
-                            {services.filter(s => !s.isAddon).map((service: Service) => (
-                                <div
-                                    key={service.id}
-                                    className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
-                                    onClick={() => {
-                                        setSelectedService(service);
-                                        const hasAddons = services.some(s => s.isAddon);
-                                        if (businessConfig?.enableAddons && hasAddons) {
-                                            setStep(23);
-                                        } else {
-                                            setStep(25);
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-center gap-3 p-3">
-                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
-                                            {service.image ? (
-                                                <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                    <Calendar size={24} />
-                                                </div>
-                                            )}
+                                {/* Sizes Category */}
+                                {sizeCategory && (
+                                    <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
+                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> {sizeCategory.name}
+                                        </h4>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                            {sizeCategory.items.map((item: any) => (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    onClick={() => setNailSize({ id: item.id, name: item.name, price: item.price })}
+                                                    className={`py-3 px-2 rounded-xl text-xs font-bold border transition-all duration-300 ${
+                                                        nailSize?.id === item.id
+                                                            ? 'bg-cyan-400/10 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                                                            : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
+                                                    }`}
+                                                >
+                                                    <p>{item.name}</p>
+                                                    <span className="text-[10px] text-cyan-400/70 font-semibold block mt-0.5">
+                                                        {item.price === 0 ? 'Sin costo' : `+$${item.price}`}
+                                                    </span>
+                                                </button>
+                                            ))}
                                         </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
-                                                {service.name}
-                                            </h4>
-                                            <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
-                                                {!businessConfig?.hideServicePrices && (
-                                                    <span className="text-cyan-400 font-bold">${service.price}</span>
-                                                )}
-                                                <span className="text-muted flex items-center gap-1">
-                                                    <Clock size={12} /> {service.duration} min
-                                                </span>
-                                            </div>
+                                    </div>
+                                )}
+
+                                {/* Styles Category */}
+                                {styleCategory && (
+                                    <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
+                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> {styleCategory.name}
+                                        </h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            {styleCategory.items.map((item: any) => {
+                                                const selection = nailStyles[item.id] || { checked: false, qty: 1 };
+                                                const hasUnit = !!item.unit;
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        className={`p-3 rounded-xl border transition-all duration-300 flex items-center justify-between gap-3 ${
+                                                            selection.checked
+                                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-white'
+                                                                : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
+                                                        }`}
+                                                    >
+                                                        <label className="flex items-center gap-3 cursor-pointer select-none flex-1">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selection.checked}
+                                                                onChange={e => {
+                                                                    const checked = e.target.checked;
+                                                                    setNailStyles(prev => ({
+                                                                        ...prev,
+                                                                        [item.id]: { ...selection, checked }
+                                                                    }));
+                                                                }}
+                                                                className="w-4 h-4 rounded text-emerald-500 border-white/10 focus:ring-emerald-500 bg-slate-900 cursor-pointer"
+                                                            />
+                                                            <div className="text-left">
+                                                                <p className="text-xs font-semibold">{item.name}</p>
+                                                                <p className="text-[10px] text-emerald-400 font-bold mt-0.5">
+                                                                    ${item.price} {item.unit ? <span className="text-slate-500 font-normal">c/u</span> : ''}
+                                                                </p>
+                                                            </div>
+                                                        </label>
+
+                                                        {selection.checked && hasUnit && (
+                                                            <div className="flex items-center gap-1.5 bg-slate-950/50 rounded-lg p-1 border border-white/5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const qty = Math.max(1, selection.qty - 1);
+                                                                        setNailStyles(prev => ({
+                                                                            ...prev,
+                                                                            [item.id]: { ...selection, qty }
+                                                                        }));
+                                                                    }}
+                                                                    className="w-5.5 h-5.5 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white text-[10px]"
+                                                                >
+                                                                    <Minus size={10} />
+                                                                </button>
+                                                                <span className="text-[10px] font-bold w-4 text-center text-white">{selection.qty}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const qty = Math.min(10, selection.qty + 1);
+                                                                        setNailStyles(prev => ({
+                                                                            ...prev,
+                                                                            [item.id]: { ...selection, qty }
+                                                                        }));
+                                                                    }}
+                                                                    className="w-5.5 h-5.5 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white text-[10px]"
+                                                                >
+                                                                    <Plus size={10} />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        {selectedService?.id === service.id && (
-                                            <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
-                                                <CheckCircle size={14} className="text-slate-900" />
-                                            </div>
-                                        )}
+                                    </div>
+                                )}
+
+                                {/* Extras Category */}
+                                {extrasCategory && (
+                                    <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
+                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span> {extrasCategory.name}
+                                        </h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                            {extrasCategory.items.map((item: any) => {
+                                                const isChecked = !!nailExtras[item.id];
+                                                return (
+                                                    <label
+                                                        key={item.id}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all duration-300 ${
+                                                            isChecked
+                                                                ? 'bg-violet-500/10 border-violet-500/30 text-white'
+                                                                : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
+                                                        }`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={e => {
+                                                                const val = e.target.checked;
+                                                                setNailExtras(prev => ({
+                                                                    ...prev,
+                                                                    [item.id]: val
+                                                                }));
+                                                            }}
+                                                            className="w-4 h-4 rounded text-violet-500 border-white/10 focus:ring-violet-500 bg-slate-900 cursor-pointer"
+                                                        />
+                                                        <div className="text-left flex-1 min-w-0">
+                                                            <p className="text-xs font-semibold truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-violet-400 font-bold mt-0.5">${item.price}</p>
+                                                        </div>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Total and Action Footer */}
+                                <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="text-left">
+                                        <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">Total estimado</span>
+                                        <p className="text-2xl font-black text-white">${totalPrice} <span className="text-xs font-semibold text-slate-400">MXN</span></p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNailQuoterFlow(false)}
+                                            className="btn btn-ghost border border-white/10 text-white px-5"
+                                        >
+                                            Volver
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowNailQuoterFlow(false);
+                                                setStep(2);
+                                            }}
+                                            className="btn btn-primary shadow-glow px-6 flex items-center gap-2"
+                                        >
+                                            <span>Siguiente</span>
+                                            <ChevronRight size={16} />
+                                        </button>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro {professionalLabel.toLowerCase()}</button>
+                            </div>
+                        ) : (
+                            // ── STANDARD SERVICE SELECTION LIST ──
+                            <>
+                                <div className="mb-6 text-center">
+                                    <p className="text-sm text-accent font-medium mb-1">Paso 2 de 4</p>
+                                    <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                        ¿Qué te gustaría hacerte hoy?
+                                    </h3>
+                                </div>
+
+                                <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
+                                    {services.filter(s => !s.isAddon).map((service: Service) => (
+                                        <div
+                                            key={service.id}
+                                            className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
+                                            onClick={() => {
+                                                setSelectedService(service);
+                                                if (businessConfig?.category === 'nail_bar') {
+                                                    setShowNailQuoterFlow(true);
+                                                } else {
+                                                    const hasAddons = services.some(s => s.isAddon);
+                                                    if (businessConfig?.enableAddons && hasAddons) {
+                                                        setStep(23);
+                                                    } else {
+                                                        setStep(25);
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3 p-3">
+                                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
+                                                    {service.image ? (
+                                                        <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                            <Calendar size={24} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 text-left">
+                                                    <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
+                                                        {service.name}
+                                                    </h4>
+                                                    <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
+                                                        {!businessConfig?.hideServicePrices && (
+                                                            <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                        )}
+                                                        <span className="text-muted flex items-center gap-1">
+                                                            <Clock size={12} /> {service.duration} min
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                {selectedService?.id === service.id && (
+                                                    <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
+                                                        <CheckCircle size={14} className="text-slate-900" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro {professionalLabel.toLowerCase()}</button>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -1802,6 +2070,32 @@ export default function Booking() {
                             })()}
 
                             {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
+                            {businessConfig?.category === 'nail_bar' && (
+                                <a
+                                    href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(
+                                        `Hola, acabo de agendar una cita en ${businessConfig?.name || 'CitaLink'}.\n\n` +
+                                        `📅 Fecha: ${selectedDate ? format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMM', { locale: es }) : '---'}\n` +
+                                        `⏰ Hora: ${format12h(selectedTime)}\n` +
+                                        `💅 Detalle de diseño:\n` +
+                                        `  - Técnica base: ${selectedService?.name}\n` +
+                                        (nailSize ? `  - Largo: ${nailSize.name}\n` : '') +
+                                        (Object.keys(nailStyles).some(id => nailStyles[id]?.checked) ? `  - Diseños: ${Object.keys(nailStyles).filter(id => nailStyles[id]?.checked).map(id => {
+                                            const item = nailQuoterConfig?.find(c => c.id === 'styles')?.items.find(i => i.id === id);
+                                            const sel = nailStyles[id];
+                                            return `${item?.name}${item?.unit ? ` (x${sel.qty})` : ''}`;
+                                        }).join(', ')}\n` : '') +
+                                        (Object.keys(nailExtras).some(id => nailExtras[id]) ? `  - Extras: ${Object.keys(nailExtras).filter(id => nailExtras[id]).map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name).join(', ')}\n` : '') +
+                                        `\n💵 Cotización Estimada: $${totalPrice} MXN\n\n` +
+                                        `👉 Adjunto la foto del diseño de uña que quiero para confirmar.`
+                                    )}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full py-4 mb-3 rounded-[2.5rem] bg-[#25D366] hover:bg-[#20bd5a] text-white font-black uppercase tracking-[0.1em] shadow-lg flex items-center justify-center gap-2 text-sm hover:scale-[1.01] active:scale-95 transition-all duration-300"
+                                >
+                                    <MessageSquare size={16} />
+                                    Enviar Foto de Diseño
+                                </a>
+                            )}
                             <button
                                 onClick={resetBooking}
                                 className="w-full py-5 rounded-[2.5rem] bg-gradient-to-r from-accent to-blue-600 hover:scale-[1.02] active:scale-95 transition-all duration-300 text-slate-900 font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3"
