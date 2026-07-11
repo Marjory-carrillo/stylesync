@@ -398,26 +398,62 @@ export default function SuperAdminPanel() {
     const planCounts = useMemo(() => {
         const counts = { all: allTenants.length, free: 0, lite: 0, pro: 0, business: 0, trial: 0, trial_expired: 0, at_risk: 0 };
         const now = new Date();
+
+        // Agrupar por negocio único usando brand_slug, owner_id o id de tenant
+        const businesses: Record<string, { plan: PlanType; isTrial: boolean; hasTrialEnds: boolean; tenantIds: string[] }> = {};
+
         allTenants.forEach(t => {
-            const p = t.plan || 'free';
+            const p = (t.plan || 'free') as PlanType;
+            const isTrial = t.trial_ends_at ? new Date(t.trial_ends_at) > now : false;
+            const key = t.brand_slug || t.owner_id || t.id;
+
+            if (!businesses[key]) {
+                businesses[key] = {
+                    plan: p,
+                    isTrial,
+                    hasTrialEnds: !!t.trial_ends_at,
+                    tenantIds: [t.id]
+                };
+            } else {
+                const currentRank = getPlanRank(businesses[key].plan);
+                const newRank = getPlanRank(p);
+                if (newRank > currentRank) {
+                    businesses[key].plan = p;
+                }
+                businesses[key].isTrial = businesses[key].isTrial && isTrial;
+                businesses[key].hasTrialEnds = businesses[key].hasTrialEnds || !!t.trial_ends_at;
+                businesses[key].tenantIds.push(t.id);
+            }
+        });
+
+        function getPlanRank(p: PlanType) {
+            if (p === 'business') return 3;
+            if (p === 'pro') return 2;
+            if (p === 'lite') return 1;
+            return 0;
+        }
+
+        Object.values(businesses).forEach(biz => {
+            const p = biz.plan;
             if (p === 'free') counts.free++;
             else if (p === 'lite') counts.lite++;
             else if (p === 'pro') counts.pro++;
             else if (p === 'business') counts.business++;
             
-            const isTrial = t.trial_ends_at ? new Date(t.trial_ends_at) > now : false;
-            if (isTrial) {
+            if (biz.isTrial) {
                 counts.trial++;
-            } else if (t.trial_ends_at && p === 'free') {
+            } else if (biz.hasTrialEnds && p === 'free') {
                 counts.trial_expired++;
             }
 
-            const isTrialExpired = t.trial_ends_at ? new Date(t.trial_ends_at) <= now && p === 'free' : false;
-            const apptCount = appointmentsByTenant[t.id] || 0;
-            if (isTrialExpired || apptCount === 0) {
+            // At Risk: Trial expired + free, OR 0 appointments in last 30d across all branches
+            const isTrialExpired = biz.hasTrialEnds && !biz.isTrial && p === 'free';
+            const totalAppts = biz.tenantIds.reduce((sum, tid) => sum + (appointmentsByTenant[tid] || 0), 0);
+            if (isTrialExpired || totalAppts === 0) {
                 counts.at_risk++;
             }
         });
+
         return counts;
     }, [allTenants, appointmentsByTenant]);
 
@@ -447,21 +483,44 @@ export default function SuperAdminPanel() {
                 
             if (!matchesSearch) return false;
 
+            // Resolve the tenant's business-level plan and trial status
+            const key = t.brand_slug || t.owner_id || t.id;
+            const siblings = allTenants.filter(x => (x.brand_slug || x.owner_id || x.id) === key);
+            
+            let resolvedPlan: PlanType = 'free';
+            let resolvedIsTrial = true;
+            let resolvedHasTrialEnds = false;
+            let resolvedTotalAppts = 0;
+
+            function getPlanRank(p: PlanType) {
+                if (p === 'business') return 3;
+                if (p === 'pro') return 2;
+                if (p === 'lite') return 1;
+                return 0;
+            }
+
+            siblings.forEach(s => {
+                const sp = (s.plan || 'free') as PlanType;
+                const strial = s.trial_ends_at ? new Date(s.trial_ends_at) > now : false;
+                if (getPlanRank(sp) > getPlanRank(resolvedPlan)) {
+                    resolvedPlan = sp;
+                }
+                resolvedIsTrial = resolvedIsTrial && strial;
+                resolvedHasTrialEnds = resolvedHasTrialEnds || !!s.trial_ends_at;
+                resolvedTotalAppts += appointmentsByTenant[s.id] || 0;
+            });
+
             // Plan filter
             if (filterPlan !== 'all') {
-                const plan = t.plan || 'free';
-                const isTrial = t.trial_ends_at ? new Date(t.trial_ends_at) > now : false;
-                
                 if (filterPlan === 'trial') {
-                    if (!isTrial) return false;
+                    if (!resolvedIsTrial) return false;
                 } else if (filterPlan === 'trial_expired') {
-                    if (isTrial || !t.trial_ends_at || plan !== 'free') return false;
+                    if (resolvedIsTrial || !resolvedHasTrialEnds || resolvedPlan !== 'free') return false;
                 } else if (filterPlan === 'at_risk') {
-                    const isTrialExpired = t.trial_ends_at ? new Date(t.trial_ends_at) <= now && plan === 'free' : false;
-                    const apptCount = appointmentsByTenant[t.id] || 0;
-                    if (!isTrialExpired && apptCount > 0) return false;
+                    const isTrialExpired = resolvedHasTrialEnds && !resolvedIsTrial && resolvedPlan === 'free';
+                    if (!isTrialExpired && resolvedTotalAppts > 0) return false;
                 } else {
-                    if (plan !== filterPlan) return false;
+                    if (resolvedPlan !== filterPlan) return false;
                 }
             }
 
@@ -492,10 +551,34 @@ export default function SuperAdminPanel() {
         let activeTrials = 0;
 
         const now = new Date();
+        const businesses: Record<string, { plan: PlanType; isTrial: boolean }> = {};
 
         allTenants.forEach(tenant => {
-            const plan = tenant.plan || 'free';
+            const plan = (tenant.plan || 'free') as PlanType;
             const isTrial = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) > now : false;
+            const key = tenant.brand_slug || tenant.owner_id || tenant.id;
+
+            if (!businesses[key]) {
+                businesses[key] = { plan, isTrial };
+            } else {
+                const currentRank = getPlanRank(businesses[key].plan);
+                const newRank = getPlanRank(plan);
+                if (newRank > currentRank) {
+                    businesses[key].plan = plan;
+                }
+                businesses[key].isTrial = businesses[key].isTrial && isTrial;
+            }
+        });
+
+        function getPlanRank(p: PlanType) {
+            if (p === 'business') return 3;
+            if (p === 'pro') return 2;
+            if (p === 'lite') return 1;
+            return 0;
+        }
+
+        Object.values(businesses).forEach(biz => {
+            const { plan, isTrial } = biz;
 
             if (isTrial) {
                 activeTrials++;
