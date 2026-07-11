@@ -1,14 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import { Calculator, Copy, Share2, Printer, Sparkles, Plus, Minus } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
+import html2canvas from 'html2canvas';
 
 export default function Quoter() {
     const { showToast } = useUIStore();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || {} as any;
     const { config, isLoading } = useNailCalculator();
+    
+    const ticketRef = useRef<HTMLDivElement>(null);
 
     // Selection states
     const [selectedBaseId, setSelectedBaseId] = useState<string>('');
@@ -135,6 +138,58 @@ export default function Quoter() {
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownloadImage = async () => {
+        if (!ticketRef.current) return;
+        try {
+            const element = ticketRef.current;
+            const canvas = await html2canvas(element, {
+                backgroundColor: '#0f172a',
+                scale: 2,
+                logging: false,
+                useCORS: true
+            });
+            
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `cotizacion-${businessConfig.name?.replace(/\s+/g, '-').toLowerCase() || 'nail-design'}.png`;
+            link.href = dataUrl;
+            link.click();
+            showToast('Imagen descargada con éxito 🎨', 'success');
+        } catch (error) {
+            console.error('Error generating image:', error);
+            showToast('Error al generar la imagen', 'error');
+        }
+    };
+
+    const handleCopyImage = async () => {
+        if (!ticketRef.current) return;
+        try {
+            const element = ticketRef.current;
+            const canvas = await html2canvas(element, {
+                backgroundColor: '#0f172a',
+                scale: 2,
+                logging: false,
+                useCORS: true
+            });
+            
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]).then(() => {
+                        showToast('¡Imagen de ticket copiada al portapapeles! 📋 Lista para pegar en WhatsApp.', 'success');
+                    }).catch(err => {
+                        console.error('Clipboard write error:', err);
+                        showToast('No se pudo copiar la imagen al portapapeles. Prueba a descargarla.', 'error');
+                    });
+                }
+            }, 'image/png');
+        } catch (error) {
+            console.error('Error generating image:', error);
+            showToast('Error al generar la imagen', 'error');
+        }
     };
 
     if (isLoading) {
@@ -379,7 +434,7 @@ export default function Quoter() {
                 <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-4">
                     
                     {/* The Ticket card */}
-                    <div id="printable-quote-card" className="glass-panel p-6 border border-white/10 rounded-3xl shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#0f172a] to-[#1e293b]/70">
+                    <div ref={ticketRef} id="printable-quote-card" className="glass-panel p-6 border border-white/10 rounded-3xl shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#0f172a] to-[#1e293b]/70">
                         {/* Branded elements */}
                         <div className="text-center pb-6 border-b border-dashed border-white/10 space-y-3">
                             <div className="w-16 h-16 rounded-full mx-auto overflow-hidden bg-slate-800 border border-white/10 flex items-center justify-center">
@@ -432,31 +487,50 @@ export default function Quoter() {
                     </div>
 
                     {/* Actions button group */}
-                    <div className="grid grid-cols-3 gap-3">
-                        <button
-                            type="button"
-                            onClick={handleCopy}
-                            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
-                        >
-                            <Copy size={18} />
-                            Copiar Texto
-                        </button>
+                    <div className="space-y-3">
                         <button
                             type="button"
                             onClick={handleShareWhatsApp}
-                            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-all text-xs font-bold"
+                            className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-all text-white font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-500/20"
                         >
                             <Share2 size={18} />
-                            WhatsApp
+                            Compartir en WhatsApp (Texto)
                         </button>
-                        <button
-                            type="button"
-                            onClick={handlePrint}
-                            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
-                        >
-                            <Printer size={18} />
-                            Imprimir
-                        </button>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCopy}
+                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
+                            >
+                                <Copy size={16} />
+                                Copiar Texto
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCopyImage}
+                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 transition-all text-xs font-bold"
+                            >
+                                <Copy size={16} />
+                                Copiar Imagen
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDownloadImage}
+                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
+                            >
+                                <Sparkles size={16} />
+                                Descargar PNG
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handlePrint}
+                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
+                            >
+                                <Printer size={16} />
+                                Imprimir
+                            </button>
+                        </div>
                     </div>
 
                 </div>
