@@ -551,7 +551,7 @@ export default function SuperAdminPanel() {
         let activeTrials = 0;
 
         const now = new Date();
-        const businesses: Record<string, { plan: PlanType; isTrial: boolean }> = {};
+        const businesses: Record<string, { plan: PlanType; isTrial: boolean; totalExtraEmployees: number; totalExtraBranches: number }> = {};
 
         allTenants.forEach(tenant => {
             const plan = (tenant.plan || 'free') as PlanType;
@@ -559,7 +559,12 @@ export default function SuperAdminPanel() {
             const key = tenant.brand_slug || tenant.owner_id || tenant.id;
 
             if (!businesses[key]) {
-                businesses[key] = { plan, isTrial };
+                businesses[key] = {
+                    plan,
+                    isTrial,
+                    totalExtraEmployees: tenant.extra_employees_paid || 0,
+                    totalExtraBranches: tenant.extra_branches_paid || 0
+                };
             } else {
                 const currentRank = getPlanRank(businesses[key].plan);
                 const newRank = getPlanRank(plan);
@@ -567,6 +572,8 @@ export default function SuperAdminPanel() {
                     businesses[key].plan = plan;
                 }
                 businesses[key].isTrial = businesses[key].isTrial && isTrial;
+                businesses[key].totalExtraEmployees += tenant.extra_employees_paid || 0;
+                businesses[key].totalExtraBranches = Math.max(businesses[key].totalExtraBranches, tenant.extra_branches_paid || 0);
             }
         });
 
@@ -578,22 +585,35 @@ export default function SuperAdminPanel() {
         }
 
         Object.values(businesses).forEach(biz => {
-            const { plan, isTrial } = biz;
+            const { plan, isTrial, totalExtraEmployees, totalExtraBranches } = biz;
 
             if (isTrial) {
                 activeTrials++;
             }
 
+            let basePrice = 0;
             if (plan === 'free') {
                 freeCount++;
             } else if (plan === 'pro') {
                 proCount++;
-                if (!isTrial) totalMrr += 649;
+                if (!isTrial) basePrice = 649;
             } else if (plan === 'business') {
                 businessCount++;
-                if (!isTrial) totalMrr += 1249;
+                if (!isTrial) basePrice = 1249;
             } else if (plan === 'lite') {
-                if (!isTrial) totalMrr += 349;
+                if (!isTrial) basePrice = 349;
+            }
+
+            if (!isTrial) {
+                totalMrr += basePrice;
+                // Sumar profesionales extra: Pro y Business permiten profesionales adicionales pagados ($249 MXN/mes c/u)
+                if (plan === 'pro' || plan === 'business') {
+                    totalMrr += totalExtraEmployees * 249;
+                }
+                // Sumar sucursales extra: Business permite sucursales adicionales pagadas ($599 MXN/mes c/u)
+                if (plan === 'business') {
+                    totalMrr += totalExtraBranches * 599;
+                }
             }
         });
 
@@ -935,6 +955,16 @@ export default function SuperAdminPanel() {
                                                 const b = getPlanBadgeStyles(p);
                                                 return <span className={`px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 ${b.bg} ${b.text} ${b.border}`}>{p.toUpperCase()}</span>;
                                             })()}
+                                            {tenant.extra_employees_paid > 0 && (
+                                                <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.05)]">
+                                                    +{tenant.extra_employees_paid} PROF. EXTRA
+                                                </span>
+                                            )}
+                                            {tenant.extra_branches_paid > 0 && (
+                                                <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_12px_rgba(147,51,234,0.05)]">
+                                                    +{tenant.extra_branches_paid} SUC. EXTRA
+                                                </span>
+                                            )}
                                             {(() => {
                                                 if (!tenant.trial_ends_at) return null;
                                                 const ends = new Date(tenant.trial_ends_at);
