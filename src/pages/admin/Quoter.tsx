@@ -146,9 +146,21 @@ export default function Quoter() {
             const element = ticketRef.current;
             const canvas = await html2canvas(element, {
                 backgroundColor: '#0f172a',
-                scale: 2,
+                scale: 3,
                 logging: false,
-                useCORS: true
+                useCORS: true,
+                onclone: (clonedDoc) => {
+                    const clonedEl = clonedDoc.getElementById('printable-quote-card');
+                    if (clonedEl) {
+                        clonedEl.style.background = '#0f172a';
+                        clonedEl.style.backgroundImage = 'none';
+                        clonedEl.style.backdropFilter = 'none';
+                        clonedEl.style.width = '380px';
+                        clonedEl.style.borderRadius = '24px';
+                        clonedEl.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+                        clonedEl.style.boxShadow = 'none';
+                    }
+                }
             });
             
             const dataUrl = canvas.toDataURL('image/png');
@@ -169,9 +181,21 @@ export default function Quoter() {
             const element = ticketRef.current;
             const canvas = await html2canvas(element, {
                 backgroundColor: '#0f172a',
-                scale: 2,
+                scale: 3,
                 logging: false,
-                useCORS: true
+                useCORS: true,
+                onclone: (clonedDoc) => {
+                    const clonedEl = clonedDoc.getElementById('printable-quote-card');
+                    if (clonedEl) {
+                        clonedEl.style.background = '#0f172a';
+                        clonedEl.style.backgroundImage = 'none';
+                        clonedEl.style.backdropFilter = 'none';
+                        clonedEl.style.width = '380px';
+                        clonedEl.style.borderRadius = '24px';
+                        clonedEl.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+                        clonedEl.style.boxShadow = 'none';
+                    }
+                }
             });
             
             canvas.toBlob((blob) => {
