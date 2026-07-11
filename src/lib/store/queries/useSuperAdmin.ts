@@ -150,6 +150,23 @@ export function useSuperAdmin() {
         }
     });
 
+    const updateTenantMutation = useMutation({
+        mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+            if (!isSuperAdmin) throw new Error('No autorizado');
+            const { data, error } = await supabase
+                .from('tenants')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw new Error(error.message);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    });
+
     const switchTenant = async (id: string, callback?: () => void) => {
         if (!isSuperAdmin) return;
         localStorage.setItem('citalink_tenant_id', id);
@@ -174,6 +191,14 @@ export function useSuperAdmin() {
             try {
                 await deleteTenantMutation.mutateAsync(id);
                 return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err.message };
+            }
+        },
+        updateTenant: async (id: string, payload: any): Promise<{ success: boolean; data?: any; error?: string }> => {
+            try {
+                const res = await updateTenantMutation.mutateAsync({ id, payload });
+                return { success: true, data: res };
             } catch (err: any) {
                 return { success: false, error: err.message };
             }

@@ -4,7 +4,8 @@ import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
-    Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal
+    Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
+    DollarSign, Pencil
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -46,12 +47,253 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => 
     );
 };
 
+const PlanConfirmModal = ({ isOpen, onClose, onConfirm, details }: any) => {
+    if (!isOpen || !details) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="glass-panel max-w-md w-full p-8 border border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-transparent"></div>
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 mb-6 mx-auto">
+                    <AlertTriangle size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-white text-center mb-2 uppercase tracking-tight">¿Cambiar Plan?</h3>
+                <p className="text-slate-400 text-center mb-6 leading-relaxed">
+                    Estás a punto de cambiar el plan de <span className="text-white font-bold">"{details.tenantName}"</span>:
+                    <br />
+                    <span className="text-slate-500 line-through font-bold">{details.from.toUpperCase()}</span>
+                    <span className="text-white font-bold mx-2">➔</span>
+                    <span className="text-amber-400 font-extrabold">{details.to.toUpperCase()}</span>
+                </p>
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={onConfirm}
+                        className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20 animate-pulse-soft"
+                    >
+                        Confirmar Cambio
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold uppercase tracking-widest transition-all"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SmsConfirmModal = ({ isOpen, onClose, onConfirm, details }: any) => {
+    if (!isOpen || !details) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="glass-panel max-w-md w-full p-8 border border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-transparent"></div>
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-6 mx-auto">
+                    <Zap size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-white text-center mb-2 uppercase tracking-tight">¿Cambiar WhatsApp?</h3>
+                <p className="text-slate-400 text-center mb-6 leading-relaxed">
+                    ¿Deseas cambiar el modo de WhatsApp para <span className="text-white font-bold">"{details.tenantName}"</span>?
+                    <br />
+                    <span className="text-slate-500 line-through font-bold">{details.from.toUpperCase()}</span>
+                    <span className="text-white font-bold mx-2">➔</span>
+                    <span className="text-emerald-400 font-extrabold">{details.to.toUpperCase()}</span>
+                </p>
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={onConfirm}
+                        className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 animate-pulse-soft"
+                    >
+                        Confirmar Cambio
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold uppercase tracking-widest transition-all"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
+    const [name, setName] = useState(tenant.name || '');
+    const [slug, setSlug] = useState(tenant.slug || '');
+    const [category, setCategory] = useState(tenant.category || 'barbershop');
+    const [timezone, setTimezone] = useState(tenant.timezone || 'America/Mexico_City');
+    const [trialEndsAt, setTrialEndsAt] = useState(
+        tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toISOString().split('T')[0] : ''
+    );
+    const [isSaving, setIsSaving] = useState(false);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        const payload: any = {
+            name,
+            slug,
+            category,
+            timezone,
+            trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
+        };
+        await onSave(tenant.id, payload);
+        setIsSaving(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+            <div className="w-full max-w-xl bg-[#0a0f1a] border border-white/[0.08] rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden animate-scale-in">
+                {/* Header */}
+                <div className="relative p-6 pb-5 border-b border-white/5 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/5 to-transparent" />
+                    <div className="relative flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <Pencil size={20} className="text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-white tracking-tight">Editar Negocio</h3>
+                                <p className="text-slate-500 text-[11px] mt-0.5">Modificar parámetros de la sucursal</p>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="p-2.5 hover:bg-white/5 rounded-xl transition-colors border border-transparent hover:border-white/10">
+                            <X size={18} className="text-slate-500" />
+                        </button>
+                    </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+                    <div className="space-y-4">
+                        {/* Nombre */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Nombre Comercial</label>
+                            <input
+                                required type="text"
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Slug */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">URL Personalizada</label>
+                            <div className="flex">
+                                <div className="bg-white/[0.03] border border-white/[0.08] border-r-0 rounded-l-xl px-3.5 py-3 text-slate-500 text-xs font-medium shrink-0 flex items-center">citalink.app/</div>
+                                <input
+                                    required type="text"
+                                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-r-xl px-3 py-3 text-white font-mono text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none"
+                                    value={slug}
+                                    onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                                />
+                            </div>
+                            {slug !== tenant.slug && (
+                                <p className="text-[10px] text-amber-500/80 ml-1 mt-1">
+                                    ⚠️ Cambiar el link de reserva dejará inactivo el enlace anterior del cliente.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Zona Horaria */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Zona Horaria</label>
+                            <select
+                                value={timezone}
+                                onChange={e => setTimezone(e.target.value)}
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
+                            >
+                                <option value="America/Mexico_City" className="bg-slate-900">Hora Central (CDMX, Monterrey)</option>
+                                <option value="America/Tijuana" className="bg-slate-900">Hora del Pacífico (Tijuana, Mexicali)</option>
+                                <option value="America/Mazatlan" className="bg-slate-900">Hora de la Montaña (Mazatlán, Culiacán)</option>
+                                <option value="America/Cancun" className="bg-slate-900">Hora del Este (Cancún)</option>
+                                <option value="America/Bogota" className="bg-slate-900">Colombia / Perú / Ecuador</option>
+                                <option value="America/Santiago" className="bg-slate-900">Chile</option>
+                                <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">Argentina</option>
+                                <option value="Europe/Madrid" className="bg-slate-900">España (Península)</option>
+                            </select>
+                        </div>
+
+                        {/* Categoría */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Categoría</label>
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {[
+                                    { id: 'barbershop', label: 'Barbería', icon: <Scissors size={16} />, color: 'amber' },
+                                    { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={16} />, color: 'pink' },
+                                    { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={16} />, color: 'rose' },
+                                    { id: 'spa', label: 'Spa', icon: <Flower2 size={16} />, color: 'emerald' },
+                                    { id: 'consulting', label: 'Clínica', icon: <Briefcase size={16} />, color: 'blue' },
+                                    { id: 'other', label: 'Otro', icon: <MoreHorizontal size={16} />, color: 'slate' },
+                                ].map(cat => {
+                                    const isSelected = category === cat.id;
+                                    const colorMap: Record<string, string> = {
+                                        amber: isSelected ? 'border-amber-400/50 bg-amber-400/10 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.1)]' : 'border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-amber-400',
+                                        pink: isSelected ? 'border-pink-400/50 bg-pink-400/10 text-pink-400 shadow-[0_0_12px_rgba(244,114,182,0.1)]' : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
+                                        rose: isSelected ? 'border-rose-400/50 bg-rose-400/10 text-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.1)]' : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
+                                        emerald: isSelected ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.1)]' : 'border-white/5 text-slate-500 hover:border-emerald-400/30 hover:text-emerald-400',
+                                        blue: isSelected ? 'border-blue-400/50 bg-blue-400/10 text-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.1)]' : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
+                                        slate: isSelected ? 'border-slate-400/50 bg-slate-400/10 text-slate-300' : 'border-white/5 text-slate-500 hover:border-slate-400/30 hover:text-slate-400',
+                                    };
+                                    return (
+                                        <button
+                                            key={cat.id} type="button"
+                                            onClick={() => setCategory(cat.id)}
+                                            className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border transition-all duration-200 cursor-pointer bg-white/[0.02] ${colorMap[cat.color]}`}
+                                        >
+                                            {cat.icon}
+                                            <span className="text-[9px] font-bold uppercase tracking-wider leading-none">{cat.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Expiración del Trial */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Vencimiento Período de Prueba</label>
+                            <input
+                                type="date"
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                value={trialEndsAt}
+                                onChange={e => setTrialEndsAt(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Submit */}
+                    <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="w-full py-4 rounded-2xl font-black text-white text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2.5 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        {isSaving ? (
+                            <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> Guardando...</>
+                        ) : (
+                            <><Pencil size={16} /> Guardar Cambios</>
+                        )}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 export default function SuperAdminPanel() {
-    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant } = useSuperAdmin();
+    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant } = useSuperAdmin();
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
+    const [filterCategory, setFilterCategory] = useState<string>('all');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<any>(null);
+    const [pendingPlanChange, setPendingPlanChange] = useState<{ tenantId: string; tenantName: string; from: PlanType; to: PlanType } | null>(null);
+    const [pendingSmsChange, setPendingSmsChange] = useState<{ tenantId: string; tenantName: string; from: 'demo' | 'whatsapp'; to: 'demo' | 'whatsapp' } | null>(null);
+    const [tenantToEdit, setTenantToEdit] = useState<any>(null);
     const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free' as PlanType, noTrial: false });
     const [isCreating, setIsCreating] = useState(false);
     const [isExistingOwner, setIsExistingOwner] = useState(false);
@@ -59,6 +301,7 @@ export default function SuperAdminPanel() {
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, { total: number; week: number; month: number }>>({});
     const [appointmentsLast30, setAppointmentsLast30] = useState<number | null>(null);
+    const [appointmentsByTenant, setAppointmentsByTenant] = useState<Record<string, number>>({});
     const [uniqueClients, setUniqueClients] = useState<number | null>(null);
     const showToast = useUIStore(s => s.showToast);
     const navigate = useNavigate();
@@ -119,14 +362,27 @@ export default function SuperAdminPanel() {
 
     const fetchAppointmentMetrics = async () => {
         try {
-            const since = subMonths(new Date(), 1).toISOString();
+            const since = subMonths(new Date(), 1).toISOString().split('T')[0];
 
             // Citas en los últimos 30 días
-            const { count: apptCount } = await supabase
+            const { data: apptData, error } = await supabase
                 .from('appointments')
-                .select('*', { count: 'exact', head: true })
-                .gte('date', since.split('T')[0]);
-            setAppointmentsLast30(apptCount || 0);
+                .select('tenant_id, client_phone, date')
+                .gte('date', since);
+
+            if (error) throw error;
+
+            const apptCount = apptData?.length || 0;
+            setAppointmentsLast30(apptCount);
+
+            // Calculate appointments by tenant
+            const apptCounts: Record<string, number> = {};
+            apptData?.forEach(appt => {
+                if (appt.tenant_id) {
+                    apptCounts[appt.tenant_id] = (apptCounts[appt.tenant_id] || 0) + 1;
+                }
+            });
+            setAppointmentsByTenant(apptCounts);
 
             // Total clientes únicos (por número de teléfono)
             const { data: phones } = await supabase
@@ -139,15 +395,127 @@ export default function SuperAdminPanel() {
         }
     };
 
+    const planCounts = useMemo(() => {
+        const counts = { all: allTenants.length, free: 0, lite: 0, pro: 0, business: 0, trial: 0, trial_expired: 0, at_risk: 0 };
+        const now = new Date();
+        allTenants.forEach(t => {
+            const p = t.plan || 'free';
+            if (p === 'free') counts.free++;
+            else if (p === 'lite') counts.lite++;
+            else if (p === 'pro') counts.pro++;
+            else if (p === 'business') counts.business++;
+            
+            const isTrial = t.trial_ends_at ? new Date(t.trial_ends_at) > now : false;
+            if (isTrial) {
+                counts.trial++;
+            } else if (t.trial_ends_at && p === 'free') {
+                counts.trial_expired++;
+            }
+
+            const isTrialExpired = t.trial_ends_at ? new Date(t.trial_ends_at) <= now && p === 'free' : false;
+            const apptCount = appointmentsByTenant[t.id] || 0;
+            if (isTrialExpired || apptCount === 0) {
+                counts.at_risk++;
+            }
+        });
+        return counts;
+    }, [allTenants, appointmentsByTenant]);
+
+    const categoryCounts = useMemo(() => {
+        const counts: Record<string, number> = { all: allTenants.length, barbershop: 0, beauty_salon: 0, nail_bar: 0, spa: 0, consulting: 0, other: 0 };
+        const legacyMap: Record<string, string> = { 'salon': 'beauty_salon', 'clinic': 'consulting', 'barber': 'barbershop' };
+        const knownKeys = ['barbershop', 'beauty_salon', 'nail_bar', 'spa', 'consulting'];
+        
+        allTenants.forEach(t => {
+            const cat = legacyMap[t.category || ''] || t.category || 'other';
+            if (knownKeys.includes(cat)) {
+                counts[cat] = (counts[cat] || 0) + 1;
+            } else {
+                counts.other = (counts.other || 0) + 1;
+            }
+        });
+        return counts;
+    }, [allTenants]);
+
     const filteredTenants = useMemo(() => {
-        return allTenants.filter(t =>
-            t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.category?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [allTenants, searchTerm]);
+        const now = new Date();
+        return allTenants.filter(t => {
+            // Search term
+            const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                t.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                t.category?.toLowerCase().includes(searchTerm.toLowerCase());
+                
+            if (!matchesSearch) return false;
+
+            // Plan filter
+            if (filterPlan !== 'all') {
+                const plan = t.plan || 'free';
+                const isTrial = t.trial_ends_at ? new Date(t.trial_ends_at) > now : false;
+                
+                if (filterPlan === 'trial') {
+                    if (!isTrial) return false;
+                } else if (filterPlan === 'trial_expired') {
+                    if (isTrial || !t.trial_ends_at || plan !== 'free') return false;
+                } else if (filterPlan === 'at_risk') {
+                    const isTrialExpired = t.trial_ends_at ? new Date(t.trial_ends_at) <= now && plan === 'free' : false;
+                    const apptCount = appointmentsByTenant[t.id] || 0;
+                    if (!isTrialExpired && apptCount > 0) return false;
+                } else {
+                    if (plan !== filterPlan) return false;
+                }
+            }
+
+            // Category filter
+            if (filterCategory !== 'all') {
+                const legacyMap: Record<string, string> = { 'salon': 'beauty_salon', 'clinic': 'consulting', 'barber': 'barbershop' };
+                const cat = legacyMap[t.category || ''] || t.category || 'other';
+                const knownKeys = ['barbershop', 'beauty_salon', 'nail_bar', 'spa', 'consulting'];
+                
+                if (filterCategory === 'other') {
+                    if (knownKeys.includes(cat)) return false;
+                } else {
+                    if (cat !== filterCategory) return false;
+                }
+            }
+
+            return true;
+        });
+    }, [allTenants, searchTerm, filterPlan, filterCategory, appointmentsByTenant]);
 
     const newThisMonth = allTenants.filter(t => isAfter(new Date(t.created_at || ''), subMonths(new Date(), 1))).length;
+
+    const mrrInfo = useMemo(() => {
+        let totalMrr = 0;
+        let freeCount = 0;
+        let proCount = 0;
+        let businessCount = 0;
+        let activeTrials = 0;
+
+        const now = new Date();
+
+        allTenants.forEach(tenant => {
+            const plan = tenant.plan || 'free';
+            const isTrial = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) > now : false;
+
+            if (isTrial) {
+                activeTrials++;
+            }
+
+            if (plan === 'free') {
+                freeCount++;
+            } else if (plan === 'pro') {
+                proCount++;
+                if (!isTrial) totalMrr += 649;
+            } else if (plan === 'business') {
+                businessCount++;
+                if (!isTrial) totalMrr += 1249;
+            } else if (plan === 'lite') {
+                if (!isTrial) totalMrr += 349;
+            }
+        });
+
+        return { totalMrr, freeCount, proCount, businessCount, activeTrials };
+    }, [allTenants]);
 
 
     const handleCreateBusiness = async (e: React.FormEvent) => {
@@ -207,6 +575,32 @@ export default function SuperAdminPanel() {
         }
     };
 
+    const confirmPlanChange = async () => {
+        if (!pendingPlanChange) return;
+        const { tenantId, to, tenantName } = pendingPlanChange;
+        const { error } = await supabase.from('tenants').update({ plan: to }).eq('id', tenantId);
+        if (error) {
+            showToast('Error: ' + error.message, 'error');
+        } else {
+            fetchAllTenants();
+            showToast(`Plan → ${to === 'pro' ? '⭐ Pro' : to === 'business' ? '🚀 Business' : 'Free'} para ${tenantName}`, 'success');
+        }
+        setPendingPlanChange(null);
+    };
+
+    const confirmSmsChange = async () => {
+        if (!pendingSmsChange) return;
+        const { tenantId, to, tenantName } = pendingSmsChange;
+        const { error } = await supabase.from('tenants').update({ sms_provider: to }).eq('id', tenantId);
+        if (error) {
+            showToast("Error: " + error.message, 'error');
+        } else {
+            fetchAllTenants();
+            showToast(`Mensajería → ${to === 'whatsapp' ? '💬 WhatsApp' : 'Demo'} para ${tenantName}`, 'info');
+        }
+        setPendingSmsChange(null);
+    };
+
     return (
         <div className="animate-fade-in flex flex-col gap-8 h-full pb-10">
             {/* HQ Header */}
@@ -236,14 +630,38 @@ export default function SuperAdminPanel() {
             </header>
 
             {/* Core Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <StatCard
                     icon={<Building2 size={24} />}
                     title="Negocios Totales"
                     value={allTenants.length}
                     color="text-blue-400"
-                    sub={`${newThisMonth} nuevos este mes`}
+                    sub={
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{newThisMonth} nuevos este mes</span>
+                            {planCounts.at_risk > 0 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFilterPlan('at_risk');
+                                        document.getElementById('tenants-table')?.scrollIntoView({ behavior: 'smooth' });
+                                    }}
+                                    className="px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 font-extrabold uppercase text-[8px] transition-all border border-red-500/20 tracking-tighter"
+                                >
+                                    ⚠️ {planCounts.at_risk} EN RIESGO
+                                </button>
+                            )}
+                        </div>
+                    }
                     delay="0"
+                />
+                <StatCard
+                    icon={<DollarSign size={24} />}
+                    title="MRR Estimado"
+                    value={`$${mrrInfo.totalMrr.toLocaleString()} MXN`}
+                    color="text-emerald-400"
+                    sub={`${mrrInfo.proCount} Pro · ${mrrInfo.businessCount} Biz · ${mrrInfo.activeTrials} Trials`}
+                    delay="1"
                 />
                 <StatCard
                     icon={<Calendar size={24} />}
@@ -251,15 +669,15 @@ export default function SuperAdminPanel() {
                     value={appointmentsLast30 !== null ? appointmentsLast30 : '...'}
                     color="text-emerald-400"
                     sub="En toda la plataforma"
-                    delay="1"
+                    delay="2"
                 />
                 <StatCard
                     icon={<Users size={24} />}
-                    title="Clientes Ãšnicos"
+                    title="Clientes Únicos"
                     value={uniqueClients !== null ? uniqueClients : '...'}
                     color="text-violet-400"
                     sub="Por teléfono registrado"
-                    delay="2"
+                    delay="3"
                 />
                 <StatCard
                     icon={<Zap size={24} />}
@@ -267,7 +685,7 @@ export default function SuperAdminPanel() {
                     value={totalSmsCount !== null ? totalSmsCount : '...'}
                     color="text-emerald-400"
                     sub="Mensajes WhatsApp enviados"
-                    delay="3"
+                    delay="4"
                 />
             </div>
 
@@ -311,18 +729,86 @@ export default function SuperAdminPanel() {
 
             {/* Tenant Management Table */}
             <div id="tenants-table" className="glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl">
-                <div className="p-6 border-b border-white/5 bg-white/[0.03] flex justify-between items-center">
-                    <div className="relative group max-w-xl w-full">
-                        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                            <Search className="text-slate-500 group-focus-within:text-accent transition-colors" size={20} />
+                <div className="p-6 border-b border-white/5 bg-white/[0.03] flex flex-col gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
+                        <div className="relative group max-w-xl w-full">
+                            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                                <Search className="text-slate-500 group-focus-within:text-accent transition-colors" size={20} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Buscar proveedor o slug..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-black/40 border border-white/5 text-white rounded-xl py-4 pl-14 pr-6 focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/40 transition-all font-medium placeholder:text-slate-600"
+                            />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Buscar proveedor o slug..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-black/40 border border-white/5 text-white rounded-xl py-4 pl-14 pr-6 focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/40 transition-all font-medium placeholder:text-slate-600"
-                        />
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex flex-col gap-3 pt-2 border-t border-white/5">
+                        {/* Plan Filters */}
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">Plan:</span>
+                            {([
+                                { key: 'all', label: 'Todos' },
+                                { key: 'free', label: 'Free' },
+                                { key: 'lite', label: 'Lite' },
+                                { key: 'pro', label: 'Pro' },
+                                { key: 'business', label: 'Business' },
+                                { key: 'trial', label: 'Trial Activo' },
+                                { key: 'trial_expired', label: 'Trial Vencido' },
+                                { key: 'at_risk', label: '⚠️ En Riesgo' },
+                            ] as const).map(p => {
+                                const isActive = filterPlan === p.key;
+                                const count = planCounts[p.key];
+                                return (
+                                    <button
+                                        key={p.key}
+                                        type="button"
+                                        onClick={() => setFilterPlan(p.key)}
+                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                                            isActive
+                                                ? 'bg-accent/20 text-accent border-accent/30 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                                                : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        {p.label} <span className="opacity-60 font-mono ml-0.5">({count})</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Category Filters */}
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">Categoría:</span>
+                            {([
+                                { key: 'all', label: 'Todas' },
+                                { key: 'barbershop', label: 'Barberías' },
+                                { key: 'beauty_salon', label: 'Salones' },
+                                { key: 'nail_bar', label: "Nail's" },
+                                { key: 'spa', label: 'Spas' },
+                                { key: 'consulting', label: 'Clínicas' },
+                                { key: 'other', label: 'Otros' },
+                            ] as const).map(c => {
+                                const isActive = filterCategory === c.key;
+                                const count = categoryCounts[c.key];
+                                return (
+                                    <button
+                                        key={c.key}
+                                        type="button"
+                                        onClick={() => setFilterCategory(c.key)}
+                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                                            isActive
+                                                ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                                : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        {c.label} <span className="opacity-60 font-mono ml-0.5">({count})</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
@@ -334,7 +820,7 @@ export default function SuperAdminPanel() {
                                 className="glass-card flex flex-col p-4 sm:p-5 border-white/5 hover:border-accent/20 hover:bg-white/5 transition-all duration-300 group"
                                 style={{ animationDelay: `${idx * 0.05}s` }}
                             >
-                                {/* â”€â”€ Top row: logo + info + action buttons â”€â”€ */}
+                                {/* —— Top row: logo + info + action buttons —— */}
                                 <div className="flex items-start gap-3 sm:gap-4">
                                     {/* Logo */}
                                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-xl group-hover:scale-105 transition-transform">
@@ -352,19 +838,41 @@ export default function SuperAdminPanel() {
                                             <span className="px-2 py-0.5 rounded bg-white/5 text-[8px] sm:text-[9px] font-black tracking-widest uppercase text-slate-400 border border-white/5 shadow-inner shrink-0">
                                                 {(() => {
                                                     const cat = tenant.category?.toLowerCase() || '';
-                                                    if (cat === 'barbershop' || cat === 'barber') return 'BARBERÃA';
-                                                    if (cat === 'beauty_salon' || cat === 'salon') return 'SALÃ“N';
+                                                    if (cat === 'barbershop' || cat === 'barber') return 'BARBERÍA';
+                                                    if (cat === 'beauty_salon' || cat === 'salon') return 'SALÓN';
                                                     if (cat === 'nail_bar') return "NAIL'S";
                                                     if (cat === 'spa') return 'SPA';
-                                                    if (cat === 'consulting' || cat === 'clinic') return 'CLÃNICA';
+                                                    if (cat === 'consulting' || cat === 'clinic') return 'CLÍNICA';
                                                     if (cat === 'other') return 'OTRO';
-                                                    return cat.toUpperCase() || 'ESTÃNDAR';
+                                                    return cat.toUpperCase() || 'ESTÁNDAR';
                                                 })()}
                                             </span>
                                             {(() => {
                                                 const p = (tenant.plan || 'free') as PlanType;
                                                 const b = getPlanBadgeStyles(p);
                                                 return <span className={`px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 ${b.bg} ${b.text} ${b.border}`}>{p.toUpperCase()}</span>;
+                                            })()}
+                                            {(() => {
+                                                if (!tenant.trial_ends_at) return null;
+                                                const ends = new Date(tenant.trial_ends_at);
+                                                const now = new Date();
+                                                const diffTime = ends.getTime() - now.getTime();
+                                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                
+                                                if (diffDays > 0) {
+                                                    return (
+                                                        <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.05)]">
+                                                            TRIAL · {diffDays} {diffDays === 1 ? 'DÍA' : 'DÍAS'}
+                                                        </span>
+                                                    );
+                                                } else if (tenant.plan === 'free' || !tenant.plan) {
+                                                    return (
+                                                        <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_12px_rgba(239,68,68,0.05)]">
+                                                            TRIAL VENCIDO
+                                                        </span>
+                                                    );
+                                                }
+                                                return null;
                                             })()}
                                         </div>
                                         <div className="flex items-center gap-2 flex-wrap">
@@ -379,9 +887,17 @@ export default function SuperAdminPanel() {
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Action buttons â€” always top-right */}
+ 
+                                    {/* Action buttons — always top-right */}
                                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTenantToEdit(tenant)}
+                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-400 hover:text-accent transition-colors border border-transparent hover:border-accent/20"
+                                            title="Editar Parámetros"
+                                        >
+                                            <Pencil size={18} />
+                                        </button>
                                         <button
                                             onClick={async () => {
                                                 await switchTenant(tenant.id);
@@ -400,12 +916,12 @@ export default function SuperAdminPanel() {
                                         </button>
                                     </div>
                                 </div>
-
-                                {/* â”€â”€ Bottom row: stats + controls â”€â”€ */}
+ 
+                                {/* —— Bottom row: stats + controls —— */}
                                 <div className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
-
-                                    {/* WA Stats */}
-                                    <div className="flex items-center gap-1.5">
+ 
+                                    {/* WA Stats + Activity */}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                         {(() => {
                                             const stats = smsCountsByTenant[tenant.id] || { total: 0, week: 0, month: 0 };
                                             return (
@@ -428,12 +944,41 @@ export default function SuperAdminPanel() {
                                                 </>
                                             );
                                         })()}
+
+                                        {/* Activity Citas (últimos 30 días) */}
+                                        {(() => {
+                                            const apptCount = appointmentsByTenant[tenant.id] || 0;
+                                            if (apptCount > 5) {
+                                                return (
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="Citas en los últimos 30 días">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                        <span className="text-[10px] font-black text-emerald-400">{apptCount}</span>
+                                                        <span className="text-[8px] text-emerald-400/60 font-bold">CITAS</span>
+                                                    </div>
+                                                );
+                                            } else if (apptCount > 0) {
+                                                return (
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20" title="Citas en los últimos 30 días">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                        <span className="text-[10px] font-black text-amber-400">{apptCount}</span>
+                                                        <span className="text-[8px] text-amber-400/60 font-bold">CITAS</span>
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 rounded-lg border border-red-500/20" title="Sin citas en los últimos 30 días">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                                        <span className="text-[10px] font-black text-red-400 font-mono">INACTIVO</span>
+                                                    </div>
+                                                );
+                                            }
+                                        })()}
                                     </div>
 
                                     {/* Spacer */}
                                     <div className="flex-1" />
 
-                                    {/* Controls row â€” wrap on small screens */}
+                                    {/* Controls row — wrap on small screens */}
                                     <div className="flex flex-wrap items-center gap-2">
 
                                         {/* Mensajería */}
@@ -448,12 +993,15 @@ export default function SuperAdminPanel() {
                                                 {(['demo', 'whatsapp'] as const).map((p) => (
                                                     <button
                                                         key={p}
-                                                        onClick={async () => {
+                                                        type="button"
+                                                        onClick={() => {
                                                             if (tenant.sms_provider === p) return;
-                                                            const { error } = await supabase.from('tenants').update({ sms_provider: p }).eq('id', tenant.id);
-                                                            if (error) { showToast("Error: " + error.message, 'error'); }
-                                                             else { fetchAllTenants(); showToast(`Mensajería → ${p === 'whatsapp' ? '💬 WhatsApp' : 'Demo'} para ${tenant.name}`, 'info'); }
-
+                                                            setPendingSmsChange({
+                                                                tenantId: tenant.id,
+                                                                tenantName: tenant.name,
+                                                                from: tenant.sms_provider || 'demo',
+                                                                to: p
+                                                            });
                                                         }}
                                                         className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
                                                             tenant.sms_provider === p
@@ -481,11 +1029,16 @@ export default function SuperAdminPanel() {
                                                 {(['free', 'pro', 'business'] as const).map((p) => (
                                                     <button
                                                         key={p}
-                                                        onClick={async () => {
-                                                            if ((tenant.plan || 'free') === p) return;
-                                                            const { error } = await supabase.from('tenants').update({ plan: p }).eq('id', tenant.id);
-                                                            if (error) { showToast('Error: ' + error.message, 'error'); }
-                                                            else { fetchAllTenants(); showToast(`Plan → ${p === 'pro' ? '⭐ Pro' : p === 'business' ? '🚀 Business' : 'Free'} para ${tenant.name}`, 'success'); }
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const currentPlan = (tenant.plan || 'free') as PlanType;
+                                                            if (currentPlan === p) return;
+                                                            setPendingPlanChange({
+                                                                tenantId: tenant.id,
+                                                                tenantName: tenant.name,
+                                                                from: currentPlan,
+                                                                to: p
+                                                            });
                                                         }}
                                                         className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
                                                             (tenant.plan || 'free') === p
@@ -500,7 +1053,6 @@ export default function SuperAdminPanel() {
                                                 ))}
                                             </div>
                                         </div>
-
                                     </div>
                                 </div>
                             </div>
@@ -515,6 +1067,38 @@ export default function SuperAdminPanel() {
                 onConfirm={confirmDelete}
                 tenantName={tenantToDelete?.name}
             />
+
+            <PlanConfirmModal
+                isOpen={!!pendingPlanChange}
+                onClose={() => setPendingPlanChange(null)}
+                onConfirm={confirmPlanChange}
+                details={pendingPlanChange}
+            />
+
+            <SmsConfirmModal
+                isOpen={!!pendingSmsChange}
+                onClose={() => setPendingSmsChange(null)}
+                onConfirm={confirmSmsChange}
+                details={pendingSmsChange}
+            />
+
+            {tenantToEdit && (
+                <EditBusinessModal
+                    isOpen={!!tenantToEdit}
+                    onClose={() => setTenantToEdit(null)}
+                    tenant={tenantToEdit}
+                    onSave={async (id: string, payload: any) => {
+                        const res = await updateTenant(id, payload);
+                        if (res.success) {
+                            showToast('Negocio actualizado exitosamente', 'success');
+                            setTenantToEdit(null);
+                            fetchAllTenants();
+                        } else {
+                            showToast(res.error || 'Error al actualizar negocio', 'error');
+                        }
+                    }}
+                />
+            )}
 
             {/* Create Business Modal */}
             {isCreateModalOpen && (
@@ -753,8 +1337,8 @@ export default function SuperAdminPanel() {
                                 <div className="grid grid-cols-3 gap-2">
                                     {([
                                         { key: 'free' as PlanType, label: 'Free', price: '$0', color: 'slate' },
-                                        { key: 'pro' as PlanType, label: 'Pro', price: '$899', color: 'amber' },
-                                        { key: 'business' as PlanType, label: 'Business', price: '$1,649', color: 'violet' },
+                                        { key: 'pro' as PlanType, label: 'Pro', price: '$649', color: 'amber' },
+                                        { key: 'business' as PlanType, label: 'Business', price: '$1,249', color: 'violet' },
                                     ]).map(p => {
                                         const isActive = newBusiness.plan === p.key;
                                         return (
@@ -826,7 +1410,7 @@ export default function SuperAdminPanel() {
     );
 }
 
-function StatCard({ icon, title, value, color, sub, delay }: { icon: any, title: string, value: any, color: string, sub: string, delay: string }) {
+function StatCard({ icon, title, value, color, sub, delay }: { icon: any, title: string, value: any, color: string, sub: React.ReactNode, delay: string }) {
     return (
         <div
             className="animate-scale-in glass-card p-6 border border-white/5 flex flex-col gap-4 group hover:bg-white/[0.04]"
