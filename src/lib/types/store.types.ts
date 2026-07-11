@@ -9,6 +9,7 @@ export interface Service {
     duration: number; // minutes
     image?: string;
     isAddon?: boolean; // if true, shown only as add-on; not in main service list
+    enableQuoter?: boolean; // if true, nail quoter is enabled for this service
 }
 
 export interface Stylist {

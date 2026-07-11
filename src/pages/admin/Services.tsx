@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useServices } from '../../lib/store/queries/useServices';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -12,6 +13,9 @@ export default function Services() {
     const { t } = useTranslation();
     const { uploadServiceImage } = useImageUpload();
     const { services, addService, removeService, updateService, isLoading } = useServices();
+    const { data: tenantConfig } = useTenantData();
+    const businessConfig = tenantConfig || {} as any;
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formName, setFormName] = useState('');
@@ -19,6 +23,7 @@ export default function Services() {
     const [formPrice, setFormPrice] = useState('');
     const [formImage, setFormImage] = useState('');
     const [formIsAddon, setFormIsAddon] = useState(false);
+    const [formEnableQuoter, setFormEnableQuoter] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
     const [formError, setFormError] = useState<string | null>(null);
@@ -31,6 +36,7 @@ export default function Services() {
         setFormPrice('');
         setFormImage('');
         setFormIsAddon(false);
+        setFormEnableQuoter(false);
         setIsModalOpen(true);
     };
 
@@ -44,6 +50,7 @@ export default function Services() {
         setFormPrice(String(svc.price));
         setFormImage(svc.image || '');
         setFormIsAddon(svc.isAddon ?? false);
+        setFormEnableQuoter(svc.enableQuoter ?? false);
         setIsModalOpen(true);
     };
 
@@ -54,6 +61,7 @@ export default function Services() {
             price: Number(formPrice),
             image: formImage || '',
             isAddon: formIsAddon,
+            enableQuoter: formEnableQuoter,
         });
 
         if (!result.success) {
@@ -291,6 +299,29 @@ export default function Services() {
                                     </div>
                                 </label>
                             </div>
+
+                            {/* enableQuoter Toggle (Only for Nail Bars) */}
+                            {businessConfig.category === 'nail_bar' && !formIsAddon && (
+                                <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                    <label className="flex items-start justify-between cursor-pointer group">
+                                        <div>
+                                            <div className="font-medium text-white group-hover:text-accent transition-colors">Activar Cotizador de Uñas</div>
+                                            <div className="text-xs text-muted mt-1 w-5/6">
+                                                Activa la calculadora interactiva (técnica, largo, estilos, cristales) para este servicio en la app de reservas.
+                                            </div>
+                                        </div>
+                                        <div className="relative inline-flex items-center h-6 w-11 rounded-full flex-shrink-0 transition-colors duration-200 mt-1" style={{ backgroundColor: formEnableQuoter ? 'var(--color-accent)' : '#334155' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only" 
+                                                checked={formEnableQuoter}
+                                                onChange={(e) => setFormEnableQuoter(e.target.checked)}
+                                            />
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${formEnableQuoter ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </div>
+                                    </label>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex justify-end gap-3 mt-8">

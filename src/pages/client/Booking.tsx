@@ -150,7 +150,7 @@ export default function Booking() {
     }, [nailQuoterConfig, selectedService, nailSize, nailStyles, nailExtras]);
 
     const totalPrice = useMemo(() => {
-        if (businessConfig?.category === 'nail_bar') {
+        if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
             return nailTotalPrice;
         }
         const base = selectedService?.price ?? 0;
@@ -516,7 +516,7 @@ export default function Booking() {
 
         // Build combined service name (main + add-ons)
         let addOnNames: string[] = [];
-        if (businessConfig?.category === 'nail_bar') {
+        if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
             const styleCat = nailQuoterConfig.find(c => c.id === 'styles');
             if (styleCat) {
@@ -1520,7 +1520,7 @@ export default function Booking() {
                                             className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
                                             onClick={() => {
                                                 setSelectedService(service);
-                                                if (businessConfig?.category === 'nail_bar') {
+                                                if (businessConfig?.category === 'nail_bar' && service.enableQuoter) {
                                                     setShowNailQuoterFlow(true);
                                                 } else {
                                                     const hasAddons = services.some(s => s.isAddon);
@@ -2069,8 +2069,8 @@ export default function Booking() {
                                 );
                             })()}
 
-                            {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
-                            {businessConfig?.category === 'nail_bar' && (
+                             {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
+                            {businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter && (
                                 <a
                                     href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(
                                         `Hola, acabo de agendar una cita en ${businessConfig?.name || 'CitaLink'}.\n\n` +

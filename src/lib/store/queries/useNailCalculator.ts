@@ -6,21 +6,6 @@ import type { QuotingCategory } from '../../types/store.types';
 
 const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
     {
-      id: "base_services",
-      name: "Servicio Base (Técnica)",
-      type: "radio",
-      items: [
-        { id: "1", name: "Gel Semipermanente (Manos)", price: 120 },
-        { id: "2", name: "Gel Semipermanente con diseño(Manos)", price: 160 },
-        { id: "3", name: "Gel Semipermanente (Pies)", price: 150 },
-        { id: "4", name: "nivelación rubber", price: 170 },
-        { id: "5", name: "Baño de Acrílico (Sobre uña natural)", price: 250 },
-        { id: "6", name: "Softgel (Incluye color base)", price: 250 },
-        { id: "7", name: "Uñas Acrílicas (Set Nuevo)", price: 300 },
-        { id: "8", name: "Acripie (Acrílico en pies)", price: 230 }
-      ]
-    },
-    {
       id: "sizes",
       name: "Tamaño (Largo)",
       type: "radio",
