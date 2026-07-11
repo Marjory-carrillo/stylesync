@@ -1493,7 +1493,12 @@ export default function Booking() {
                                             type="button"
                                             onClick={() => {
                                                 setShowNailQuoterFlow(false);
-                                                setStep(2);
+                                                const hasAddons = services.some(s => s.isAddon);
+                                                if (businessConfig?.enableAddons && hasAddons) {
+                                                    setStep(23);
+                                                } else {
+                                                    setStep(25);
+                                                }
                                             }}
                                             className="btn btn-primary shadow-glow px-6 flex items-center gap-2"
                                         >
