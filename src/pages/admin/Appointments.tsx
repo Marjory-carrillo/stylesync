@@ -168,7 +168,7 @@ export default function Appointments() {
         if (!apt) return;
 
         const svc = getServiceById(apt.serviceId);
-        const addOnNames = apt.additionalServices ?? [];
+        const addOnNames = (apt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
         const serviceName = svc ? svc.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '') : 'Servicio';
 
         await cancelAppointment({ id: apt.id, serviceName });
@@ -547,7 +547,29 @@ export default function Appointments() {
                                                             <div className="flex flex-col gap-1.5 md:min-w-[180px] mt-2 md:mt-0">
                                                                 <div className="flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 w-fit">
                                                                     <Scissors size={12} className="text-accent" />
-                                                                    <span className="tracking-tight truncate max-w-[200px]">{service?.name} {apt.additionalServices?.length ? '+ ' + apt.additionalServices.join(' + ') : ''}</span>
+                                                                    <span className="tracking-tight truncate max-w-[200px]">
+                                                                        {service?.name} {(() => {
+                                                                            const clean = (apt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
+                                                                            return clean.length ? ' + ' + clean.join(' + ') : '';
+                                                                        })()}
+                                                                    </span>
+                                                                    {(() => {
+                                                                        const refItem = (apt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
+                                                                        if (refItem) {
+                                                                            const url = refItem.replace('Referencia: ', '');
+                                                                            return (
+                                                                                <a
+                                                                                    href={url}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="ml-1 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider"
+                                                                                >
+                                                                                    👁️ Diseño
+                                                                                </a>
+                                                                            );
+                                                                        }
+                                                                        return null;
+                                                                    })()}
                                                                 </div>
                                                                 <div className="flex flex-wrap items-center gap-2">
                                                                     <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 px-2 uppercase tracking-widest leading-none">

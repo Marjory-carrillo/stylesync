@@ -26,10 +26,11 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Minus, Plus, Sparkles } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Minus, Plus, Sparkles, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
+import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 export default function Booking() {
     const { slug } = useParams();
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
@@ -104,6 +105,9 @@ export default function Booking() {
     const [nailStyles, setNailStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [nailExtras, setNailExtras] = useState<Record<string, boolean>>({});
     const [showNailQuoterFlow, setShowNailQuoterFlow] = useState(false);
+    const { uploadNailDesign } = useImageUpload();
+    const [nailDesignUrl, setNailDesignUrl] = useState<string>('');
+    const [uploadingDesign, setUploadingDesign] = useState(false);
 
     useEffect(() => {
         const sizeCat = nailQuoterConfig?.find(c => c.id === 'sizes');
@@ -536,6 +540,9 @@ export default function Booking() {
                     }
                 });
             }
+            if (nailDesignUrl) {
+                addOnNames.push(`Referencia: ${nailDesignUrl}`);
+            }
             addOnNames.push(`Cotización Estimada: $${nailTotalPrice} MXN`);
         } else {
             addOnNames = selectedAddOns
@@ -543,7 +550,7 @@ export default function Booking() {
                 .filter(Boolean) as string[];
         }
 
-        const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.filter(n => !n.startsWith('Cotización')).join(' + ') : '');
+        const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.filter(n => !n.startsWith('Cotización') && !n.startsWith('Referencia:')).join(' + ') : '');
 
         const result = await addAppointment({
             clientName: clientName.trim(),
@@ -1474,6 +1481,61 @@ export default function Booking() {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Reference Photo Upload */}
+                                <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
+                                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Foto de Referencia (Opcional)
+                                    </h4>
+                                    <p className="text-[11px] text-slate-400">Sube una foto del diseño que te gustaría para tu manicura.</p>
+                                    
+                                    <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                                        <div className="w-14 h-14 rounded-lg bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                            {nailDesignUrl ? (
+                                                <img src={nailDesignUrl} alt="Referencia" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <ImageIcon className="text-slate-600" size={20} />
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex gap-2">
+                                                <label className="btn btn-secondary py-2 px-3 text-xs cursor-pointer flex items-center gap-2 rounded-xl">
+                                                    <Upload size={14} />
+                                                    {uploadingDesign ? 'Subiendo...' : 'Subir Foto'}
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (!file) return;
+                                                            setUploadingDesign(true);
+                                                            try {
+                                                                const url = await uploadNailDesign(file);
+                                                                if (url) {
+                                                                    setNailDesignUrl(url);
+                                                                }
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                            }
+                                                            setUploadingDesign(false);
+                                                        }}
+                                                        disabled={uploadingDesign}
+                                                    />
+                                                </label>
+                                                {nailDesignUrl && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 p-2 rounded-xl border border-white/10"
+                                                        onClick={() => setNailDesignUrl('')}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 {/* Total and Action Footer */}
                                 <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

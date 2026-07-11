@@ -52,5 +52,9 @@ export const useImageUpload = () => {
         uploadImage(file, 'logos', 'tenants'),
         [uploadImage]);
 
-    return { uploadServiceImage, uploadStylistPhoto, uploadLogo };
+    const uploadNailDesign = useCallback((file: File) =>
+        uploadImage(file, 'services', 'nail_designs'),
+        [uploadImage]);
+
+    return { uploadServiceImage, uploadStylistPhoto, uploadLogo, uploadNailDesign };
 };
