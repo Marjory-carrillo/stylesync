@@ -25,7 +25,8 @@ export const useStylists = () => {
             // Map db columns to frontend interface
             return data.map(st => ({
                 ...st,
-                commissionRate: st.commission_rate
+                commissionRate: st.commission_rate,
+                serviceIds: st.service_ids
             })) as Stylist[];
         },
         enabled: !!tenantId,
@@ -38,9 +39,11 @@ export const useStylists = () => {
             const payload = {
                 ...stylist,
                 tenant_id: tenantId,
-                commission_rate: stylist.commissionRate
+                commission_rate: stylist.commissionRate,
+                service_ids: stylist.serviceIds
             };
             delete (payload as any).commissionRate; // remove camelCase
+            delete (payload as any).serviceIds;
 
             const { data, error } = await supabase
                 .from('stylists')
@@ -66,6 +69,10 @@ export const useStylists = () => {
             if (payload.commissionRate !== undefined) {
                 (payload as any).commission_rate = payload.commissionRate;
                 delete payload.commissionRate;
+            }
+            if (payload.serviceIds !== undefined) {
+                (payload as any).service_ids = payload.serviceIds;
+                delete payload.serviceIds;
             }
 
             const { error } = await supabase

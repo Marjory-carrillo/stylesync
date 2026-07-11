@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { useServices } from '../../lib/store/queries/useServices';
 import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees } from '../../lib/planLimits';
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight, ExternalLink } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
@@ -53,9 +54,11 @@ export default function Staff() {
     const [formCommission, setFormCommission] = useState<number>(0);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'profile' | 'schedule'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'schedule' | 'services'>('profile');
     const [formUseCustomSchedule, setFormUseCustomSchedule] = useState(false);
     const [formSchedule, setFormSchedule] = useState<WeekSchedule>(DEFAULT_STAFF_SCHEDULE);
+    const [formServiceIds, setFormServiceIds] = useState<number[]>([]);
+    const { services } = useServices();
 
     const openAdd = () => {
         const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid);
@@ -79,6 +82,7 @@ export default function Staff() {
         setActiveTab('profile');
         setFormUseCustomSchedule(false);
         setFormSchedule(DEFAULT_STAFF_SCHEDULE);
+        setFormServiceIds([]);
         setIsModalOpen(true);
     };
 
@@ -94,6 +98,7 @@ export default function Staff() {
         setActiveTab('profile');
         setFormUseCustomSchedule(false);
         setFormSchedule(DEFAULT_STAFF_SCHEDULE);
+        setFormServiceIds([]);
         setIsModalOpen(true);
     };
 
@@ -115,6 +120,7 @@ export default function Staff() {
             setFormUseCustomSchedule(false);
             setFormSchedule(DEFAULT_STAFF_SCHEDULE);
         }
+        setFormServiceIds(stylist.serviceIds || []);
         setIsModalOpen(true);
     };
 
@@ -125,7 +131,8 @@ export default function Staff() {
             phone: formPhone || '',
             image: formImage || '',
             commissionRate: formCommission,
-            schedule: formUseCustomSchedule ? formSchedule : null
+            schedule: formUseCustomSchedule ? formSchedule : null,
+            serviceIds: formServiceIds
         });
 
         if (!result.success) {
@@ -140,7 +147,8 @@ export default function Staff() {
             phone: result.data.phone || '',
             image: result.data.image || '',
             commissionRate: result.data.commissionRate,
-            schedule: formUseCustomSchedule ? formSchedule : null
+            schedule: formUseCustomSchedule ? formSchedule : null,
+            serviceIds: formServiceIds
         };
 
         if (editingId !== null) {
@@ -251,6 +259,13 @@ export default function Staff() {
                                 className={`pb-2 font-bold text-sm border-b-2 transition-all ${activeTab === 'schedule' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
                             >
                                 Horario de Trabajo
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('services')}
+                                className={`pb-2 font-bold text-sm border-b-2 transition-all ${activeTab === 'services' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                            >
+                                Servicios Asignados
                             </button>
                         </div>
 
@@ -470,6 +485,85 @@ export default function Staff() {
                                         })}
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {activeTab === 'services' && (
+                            <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="p-4 bg-white/5 border border-dashed border-white/10 rounded-xl text-center text-slate-400 text-xs leading-relaxed">
+                                    <p className="font-bold text-slate-300 mb-1">Especialización de Servicios</p>
+                                    <p>Selecciona los servicios que este profesional puede realizar. Si no marcas ninguno, se asumirá que está capacitado para realizar <strong>todos</strong> los servicios.</p>
+                                </div>
+
+                                {/* Standard Services Group */}
+                                <div className="space-y-2">
+                                    <h4 className="text-xs uppercase font-bold tracking-wider text-accent">Servicios principales</h4>
+                                    {services.filter(s => !s.isAddon).length === 0 ? (
+                                        <p className="text-xs text-slate-500 italic pl-1">No hay servicios principales creados.</p>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {services.filter(s => !s.isAddon).map(service => {
+                                                const isChecked = formServiceIds.includes(Number(service.id));
+                                                return (
+                                                    <label key={service.id} className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-colors select-none">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={() => {
+                                                                const sId = Number(service.id);
+                                                                if (isChecked) {
+                                                                    setFormServiceIds(prev => prev.filter(id => id !== sId));
+                                                                } else {
+                                                                    setFormServiceIds(prev => [...prev, sId]);
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
+                                                        />
+                                                        <div className="text-left">
+                                                            <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
+                                                            <p className="text-xs text-slate-400 font-medium">${service.price} MXN • {service.duration} min</p>
+                                                        </div>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Addon Services Group */}
+                                <div className="space-y-2 pt-2 border-t border-white/5">
+                                    <h4 className="text-xs uppercase font-bold tracking-wider text-emerald-400">Servicios adicionales (Add-ons)</h4>
+                                    {services.filter(s => s.isAddon).length === 0 ? (
+                                        <p className="text-xs text-slate-500 italic pl-1">No hay servicios adicionales creados.</p>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {services.filter(s => s.isAddon).map(service => {
+                                                const isChecked = formServiceIds.includes(Number(service.id));
+                                                return (
+                                                    <label key={service.id} className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-colors select-none">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={() => {
+                                                                const sId = Number(service.id);
+                                                                if (isChecked) {
+                                                                    setFormServiceIds(prev => prev.filter(id => id !== sId));
+                                                                } else {
+                                                                    setFormServiceIds(prev => [...prev, sId]);
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
+                                                        />
+                                                        <div className="text-left">
+                                                            <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
+                                                            <p className="text-xs text-slate-400 font-medium">${service.price} MXN • {service.duration} min</p>
+                                                        </div>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

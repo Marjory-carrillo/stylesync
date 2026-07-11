@@ -304,6 +304,14 @@ export default function Booking() {
             });
     }, [appointments, selectedDate, selectedStylist, services, baseDate]);
 
+    const filteredStylists = useMemo(() => {
+        if (!selectedService) return stylists;
+        return stylists.filter(stylist => {
+            if (!stylist.serviceIds || stylist.serviceIds.length === 0) return true;
+            return stylist.serviceIds.includes(Number(selectedService.id));
+        });
+    }, [stylists, selectedService]);
+
     // ── Multi-Stylist Logic: Availability Map ──
     // Maps each time slot to a list of available stylist IDs. 
     // This allows us to assign a specific stylist even when "Any" is selected.
@@ -324,7 +332,11 @@ export default function Booking() {
                 end: parse(b.endTime.slice(0, 5), 'HH:mm', baseDate)
             }));
 
-        const stylistsToCheck = selectedStylist ? [selectedStylist] : stylists;
+        const capableStylists = stylists.filter(s => {
+            if (!s.serviceIds || s.serviceIds.length === 0) return true;
+            return s.serviceIds.includes(Number(selectedService.id));
+        });
+        const stylistsToCheck = selectedStylist ? [selectedStylist] : capableStylists;
         const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
         // Fallback: if no stylists exist (MVP), treat as generic resource with ID '0'
         if (stylistsToCheck.length === 0) {
@@ -1197,7 +1209,7 @@ export default function Booking() {
                             </div>
 
                             {/* Stylists List */}
-                            {stylists.map((stylist: Stylist) => (
+                            {filteredStylists.map((stylist: Stylist) => (
                                 <div
                                     key={stylist.id}
                                     className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist?.id === stylist.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
@@ -1302,7 +1314,12 @@ export default function Booking() {
                         {/* Add-on chips */}
                         <div className="flex flex-col gap-2">
                             {services
-                                .filter(s => s.isAddon && s.id !== selectedService.id)
+                                .filter(s => {
+                                    if (!s.isAddon || s.id === selectedService.id) return false;
+                                    if (!selectedStylist) return true;
+                                    if (!selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) return true;
+                                    return selectedStylist.serviceIds.includes(Number(s.id));
+                                })
                                 .map((s: Service) => {
                                     const isSelected = selectedAddOns.includes(s.id);
                                     return (

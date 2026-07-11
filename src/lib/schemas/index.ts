@@ -59,6 +59,7 @@ export const stylistSchema = z.object({
     image: z.string().url('URL de imagen inválida').optional().or(z.literal('')),
     commissionRate: z.number().min(0).max(100).optional(),
     schedule: z.any().optional().nullable(),
+    serviceIds: z.array(z.number()).optional().nullable(),
 });
 
 export type StylistInput = z.infer<typeof stylistSchema>;

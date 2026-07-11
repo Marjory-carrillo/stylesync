@@ -19,6 +19,7 @@ export interface Stylist {
     image?: string;
     commissionRate?: number; // percentage (0-100)
     schedule?: WeekSchedule | null; // custom working schedule
+    serviceIds?: number[] | null; // IDs of services assigned to this stylist
 }
 
 export interface Appointment {
