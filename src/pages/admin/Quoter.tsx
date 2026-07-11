@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
-import { useServices } from '../../lib/store/queries/useServices';
 import { Calculator, Copy, Share2, Printer, Sparkles, Plus, Minus } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 
@@ -9,10 +8,7 @@ export default function Quoter() {
     const { showToast } = useUIStore();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || {} as any;
-    const { config, isLoading: isConfigLoading } = useNailCalculator();
-    const { services, isLoading: isServicesLoading } = useServices();
-
-    const isLoading = isConfigLoading || isServicesLoading;
+    const { config, isLoading } = useNailCalculator();
 
     // Selection states
     const [selectedBaseId, setSelectedBaseId] = useState<string>('');
@@ -20,34 +16,34 @@ export default function Quoter() {
     const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [selectedExtras, setSelectedExtras] = useState<Record<string, boolean>>({});
 
-    // Filter main services that have the quoter enabled
-    const selectableBaseServices = useMemo(() => services.filter(s => !s.isAddon && s.enableQuoter), [services]);
-
     // Categorized config items
+    const baseCategory = useMemo(() => config.find(c => c.id === 'base_services'), [config]);
     const sizeCategory = useMemo(() => config.find(c => c.id === 'sizes'), [config]);
     const styleCategory = useMemo(() => config.find(c => c.id === 'styles'), [config]);
     const extrasCategory = useMemo(() => config.find(c => c.id === 'extras'), [config]);
 
     // Set initial base and size on config load
     useMemo(() => {
-        if (selectableBaseServices.length > 0 && !selectedBaseId) {
-            setSelectedBaseId(String(selectableBaseServices[0].id));
+        if (baseCategory && baseCategory.items.length > 0 && !selectedBaseId) {
+            setSelectedBaseId(baseCategory.items[0].id);
         }
         if (sizeCategory && sizeCategory.items.length > 0 && !selectedSizeId) {
             setSelectedSizeId(sizeCategory.items[0].id);
         }
-    }, [selectableBaseServices, sizeCategory, selectedBaseId, selectedSizeId]);
+    }, [config, baseCategory, sizeCategory, selectedBaseId, selectedSizeId]);
 
     // Calculate details and prices
     const quoteBreakdown = useMemo(() => {
         const items: { name: string; price: number; detail?: string }[] = [];
         let total = 0;
 
-        // Base service (from real database)
-        const baseItem = selectableBaseServices.find(s => String(s.id) === selectedBaseId);
-        if (baseItem) {
-            items.push({ name: baseItem.name, price: baseItem.price });
-            total += baseItem.price;
+        // Base service
+        if (baseCategory) {
+            const baseItem = baseCategory.items.find(i => i.id === selectedBaseId);
+            if (baseItem) {
+                items.push({ name: baseItem.name, price: baseItem.price });
+                total += baseItem.price;
+            }
         }
 
         // Size
@@ -88,12 +84,12 @@ export default function Quoter() {
         }
 
         return { items, total };
-    }, [config, selectedBaseId, selectedSizeId, selectedStyles, selectedExtras, selectableBaseServices, sizeCategory, styleCategory, extrasCategory]);
+    }, [config, selectedBaseId, selectedSizeId, selectedStyles, selectedExtras, baseCategory, sizeCategory, styleCategory, extrasCategory]);
 
     // Reset all selections
     const handleReset = () => {
-        if (selectableBaseServices.length > 0) {
-            setSelectedBaseId(String(selectableBaseServices[0].id));
+        if (baseCategory && baseCategory.items.length > 0) {
+            setSelectedBaseId(baseCategory.items[0].id);
         }
         if (sizeCategory && sizeCategory.items.length > 0) {
             setSelectedSizeId(sizeCategory.items[0].id);
@@ -194,17 +190,17 @@ export default function Quoter() {
                 <div className="lg:col-span-7 space-y-6">
                     
                     {/* Base Services */}
-                    {selectableBaseServices.length > 0 && (
+                    {baseCategory && (
                         <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
                             <h3 className="text-md font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
-                                <span className="w-2 h-2 rounded-full bg-accent"></span> Técnica Base (Servicio)
+                                <span className="w-2 h-2 rounded-full bg-accent"></span> {baseCategory.name}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {selectableBaseServices.map(service => (
+                                {baseCategory.items.map(item => (
                                     <label
-                                        key={service.id}
+                                        key={item.id}
                                         className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-300 ${
-                                            selectedBaseId === String(service.id)
+                                            selectedBaseId === item.id
                                                 ? 'bg-accent/10 border-accent text-white shadow-glow-sm'
                                                 : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
                                         }`}
@@ -213,13 +209,13 @@ export default function Quoter() {
                                             <input
                                                 type="radio"
                                                 name="baseService"
-                                                checked={selectedBaseId === String(service.id)}
-                                                onChange={() => setSelectedBaseId(String(service.id))}
+                                                checked={selectedBaseId === item.id}
+                                                onChange={() => setSelectedBaseId(item.id)}
                                                 className="w-4 h-4 text-accent border-white/10 focus:ring-accent bg-slate-900"
                                             />
-                                            <span className="text-sm font-semibold">{service.name}</span>
+                                            <span className="text-sm font-semibold">{item.name}</span>
                                         </div>
-                                        <span className="text-sm font-bold text-accent">${service.price}</span>
+                                        <span className="text-sm font-bold text-accent">${item.price}</span>
                                     </label>
                                 ))}
                             </div>
