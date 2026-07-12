@@ -26,7 +26,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Minus, Plus, Sparkles, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -102,8 +102,8 @@ export default function Booking() {
     const extrasCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'extras'), [nailQuoterConfig]);
 
     const [nailSize, setNailSize] = useState<{ id: string; name: string; price: number } | null>(null);
-    const [nailStyles, setNailStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [nailExtras, setNailExtras] = useState<Record<string, boolean>>({});
+    const [designLevel, setDesignLevel] = useState<'basic' | 'simple' | 'complex'>('basic');
     const [showNailQuoterFlow, setShowNailQuoterFlow] = useState(false);
     const { uploadNailDesign } = useImageUpload();
     const [nailDesignUrl, setNailDesignUrl] = useState<string>('');
@@ -131,15 +131,8 @@ export default function Booking() {
         let sum = selectedService.price;
         if (nailSize) sum += nailSize.price;
 
-        const styleCat = nailQuoterConfig?.find(c => c.id === 'styles');
-        if (styleCat) {
-            styleCat.items.forEach(item => {
-                const sel = nailStyles[item.id];
-                if (sel?.checked) {
-                    sum += item.price * (item.unit ? sel.qty : 1);
-                }
-            });
-        }
+        if (designLevel === 'simple') sum += 50;
+        else if (designLevel === 'complex') sum += 150;
 
         const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
         if (extrasCat) {
@@ -151,7 +144,7 @@ export default function Booking() {
         }
 
         return sum;
-    }, [nailQuoterConfig, selectedService, nailSize, nailStyles, nailExtras]);
+    }, [nailQuoterConfig, selectedService, nailSize, designLevel, nailExtras]);
 
     const totalPrice = useMemo(() => {
         if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
@@ -522,15 +515,12 @@ export default function Booking() {
         let addOnNames: string[] = [];
         if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
-            const styleCat = nailQuoterConfig.find(c => c.id === 'styles');
-            if (styleCat) {
-                styleCat.items.forEach(item => {
-                    const sel = nailStyles[item.id];
-                    if (sel?.checked) {
-                        const qtyText = item.unit ? ` (${sel.qty} ${item.unit})` : '';
-                        addOnNames.push(`Diseño: ${item.name}${qtyText} (+$${item.price * (item.unit ? sel.qty : 1)} MXN)`);
-                    }
-                });
+            if (designLevel === 'basic') {
+                addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
+            } else if (designLevel === 'simple') {
+                addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
+            } else if (designLevel === 'complex') {
+                addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
             }
             const extrasCat = nailQuoterConfig.find(c => c.id === 'extras');
             if (extrasCat) {
@@ -1363,83 +1353,42 @@ export default function Booking() {
                                     </div>
                                 )}
 
-                                {/* Styles Category */}
+                                {/* Styles Category - Simplified Choice */}
                                 {styleCategory && (
                                     <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
                                         <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> {styleCategory.name}
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Nivel de Diseño / Estilo
                                         </h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                            {styleCategory.items.map((item: any) => {
-                                                const selection = nailStyles[item.id] || { checked: false, qty: 1 };
-                                                const hasUnit = !!item.unit;
-                                                return (
-                                                    <div
-                                                        key={item.id}
-                                                        className={`p-3 rounded-xl border transition-all duration-300 flex items-center justify-between gap-3 ${
-                                                            selection.checked
-                                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-white'
-                                                                : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
-                                                        }`}
-                                                    >
-                                                        <label className="flex items-center gap-3 cursor-pointer select-none flex-1">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selection.checked}
-                                                                onChange={e => {
-                                                                    const checked = e.target.checked;
-                                                                    setNailStyles(prev => ({
-                                                                        ...prev,
-                                                                        [item.id]: { ...selection, checked }
-                                                                    }));
-                                                                }}
-                                                                className="w-4 h-4 rounded text-emerald-500 border-white/10 focus:ring-emerald-500 bg-slate-900 cursor-pointer"
-                                                            />
-                                                            <div className="text-left">
-                                                                <p className="text-xs font-semibold">{item.name}</p>
-                                                                <p className="text-[10px] text-emerald-400 font-bold mt-0.5">
-                                                                    ${item.price} {item.unit ? <span className="text-slate-500 font-normal">c/u</span> : ''}
-                                                                </p>
-                                                            </div>
-                                                        </label>
-
-                                                        {selection.checked && hasUnit && (
-                                                            <div className="flex items-center gap-1.5 bg-slate-950/50 rounded-lg p-1 border border-white/5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const qty = Math.max(1, selection.qty - 1);
-                                                                        setNailStyles(prev => ({
-                                                                            ...prev,
-                                                                            [item.id]: { ...selection, qty }
-                                                                        }));
-                                                                    }}
-                                                                    className="w-5.5 h-5.5 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white text-[10px]"
-                                                                >
-                                                                    <Minus size={10} />
-                                                                </button>
-                                                                <span className="text-[10px] font-bold w-4 text-center text-white">{selection.qty}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const qty = Math.min(10, selection.qty + 1);
-                                                                        setNailStyles(prev => ({
-                                                                            ...prev,
-                                                                            [item.id]: { ...selection, qty }
-                                                                        }));
-                                                                    }}
-                                                                    className="w-5.5 h-5.5 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white text-[10px]"
-                                                                >
-                                                                    <Plus size={10} />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                        <div className="flex flex-col gap-2.5">
+                                             {[
+                                                 { id: 'basic', label: 'Básico (1 solo tono)', desc: 'Esmaltado liso de un solo color sin decoraciones.', price: 'Sin costo extra' },
+                                                 { id: 'simple', label: 'Sencillo (Francés o Efectos)', desc: 'Francés clásico/Baby boomer, efectos chrome/cat-eye, o diseño minimalista en 2-4 uñas.', price: '+$50 MXN' },
+                                                 { id: 'complex', label: 'Elaborado (Full Art / Pedrería)', desc: 'Diseños a mano alzada en todas las uñas, cristales, charms, encapsulados o decoraciones 3D.', price: '+$150 MXN' }
+                                             ].map((opt) => {
+                                                 const isSelected = designLevel === opt.id;
+                                                 return (
+                                                     <button
+                                                         key={opt.id}
+                                                         type="button"
+                                                         onClick={() => setDesignLevel(opt.id as any)}
+                                                         className={`p-4 rounded-xl border text-left transition-all duration-300 flex flex-col gap-1 w-full ${
+                                                             isSelected
+                                                                 ? 'bg-emerald-500/10 border-emerald-500/40 text-white shadow-[0_0_15px_rgba(16,185,129,0.08)]'
+                                                                 : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
+                                                         }`}
+                                                     >
+                                                         <div className="flex items-center justify-between w-full">
+                                                             <span className="text-xs font-black uppercase tracking-wider">{opt.label}</span>
+                                                             <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`}>{opt.price}</span>
+                                                         </div>
+                                                         <p className="text-[10px] text-slate-400 leading-relaxed font-normal mt-0.5">{opt.desc}</p>
+                                                     </button>
+                                                 );
+                                             })}
                                         </div>
                                     </div>
                                 )}
+
 
                                 {/* Extras Category */}
                                 {extrasCategory && (
@@ -2146,11 +2095,7 @@ export default function Booking() {
                                         `💅 Detalle de diseño:\n` +
                                         `  - Técnica base: ${selectedService?.name}\n` +
                                         (nailSize ? `  - Largo: ${nailSize.name}\n` : '') +
-                                        (Object.keys(nailStyles).some(id => nailStyles[id]?.checked) ? `  - Diseños: ${Object.keys(nailStyles).filter(id => nailStyles[id]?.checked).map(id => {
-                                            const item = nailQuoterConfig?.find(c => c.id === 'styles')?.items.find(i => i.id === id);
-                                            const sel = nailStyles[id];
-                                            return `${item?.name}${item?.unit ? ` (x${sel.qty})` : ''}`;
-                                        }).join(', ')}\n` : '') +
+                                        `  - Diseño: ${designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo (Francés / Efectos)' : 'Elaborado / Full Art'}\n` +
                                         (Object.keys(nailExtras).some(id => nailExtras[id]) ? `  - Extras: ${Object.keys(nailExtras).filter(id => nailExtras[id]).map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name).join(', ')}\n` : '') +
                                         `\n💵 Cotización Estimada: $${totalPrice} MXN\n\n` +
                                         `👉 Adjunto la foto del diseño de uña que quiero para confirmar.`
