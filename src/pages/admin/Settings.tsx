@@ -1100,100 +1100,124 @@ export default function Settings() {
                                 <div key={category.id} className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-sm font-bold text-white uppercase tracking-wider">{category.name}</h4>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const newItem = {
-                                                    id: Date.now().toString(),
-                                                    name: 'Nueva Opción',
-                                                    price: 0
-                                                };
-                                                const updatedConfig = [...localQuoterConfig];
-                                                updatedConfig[catIdx] = {
-                                                    ...category,
-                                                    items: [...category.items, newItem]
-                                                };
-                                                setLocalQuoterConfig(updatedConfig);
-                                            }}
-                                            className="text-xs text-accent hover:text-white font-bold flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
-                                        >
-                                            <Plus size={14} /> Añadir Opción
-                                        </button>
+                                        {category.id !== 'simplified_designs' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newItem = {
+                                                        id: Date.now().toString(),
+                                                        name: 'Nueva Opción',
+                                                        price: 0
+                                                    };
+                                                    const updatedConfig = [...localQuoterConfig];
+                                                    updatedConfig[catIdx] = {
+                                                        ...category,
+                                                        items: [...category.items, newItem]
+                                                    };
+                                                    setLocalQuoterConfig(updatedConfig);
+                                                }}
+                                                className="text-xs text-accent hover:text-white font-bold flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
+                                            >
+                                                <Plus size={14} /> Añadir Opción
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                                         {category.items.map((item, itemIdx) => (
-                                            <div key={item.id} className="flex flex-col sm:flex-row gap-3 bg-slate-950/35 p-3.5 rounded-2xl border border-white/5 relative group hover:border-white/10 transition-all duration-300">
-                                                {/* Text Input - Left side or top row */}
-                                                <div className="flex-1 min-w-0">
-                                                    <input
-                                                        type="text"
-                                                        value={item.name}
-                                                        onChange={e => {
-                                                            const updatedConfig = [...localQuoterConfig];
-                                                            const updatedItems = [...category.items];
-                                                            updatedItems[itemIdx] = { ...item, name: e.target.value };
-                                                            updatedConfig[catIdx] = { ...category, items: updatedItems };
-                                                            setLocalQuoterConfig(updatedConfig);
-                                                        }}
-                                                        placeholder="Nombre de la opción"
-                                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:border-accent placeholder:text-slate-600 transition-colors font-medium"
-                                                    />
-                                                </div>
-                                                
-                                                {/* Controls row - Right side or bottom row */}
-                                                <div className="flex items-center gap-2.5 shrink-0 justify-between sm:justify-start w-full sm:w-auto">
-                                                    {/* Price Input */}
-                                                    <div className="relative w-28 flex-1 sm:flex-initial">
-                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-black">$</span>
+                                            <div key={item.id} className="flex flex-col gap-3 bg-slate-950/35 p-3.5 rounded-2xl border border-white/5 relative group hover:border-white/10 transition-all duration-300">
+                                                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                                                    {/* Text Input - Left side or top row */}
+                                                    <div className="flex-1 min-w-0">
                                                         <input
-                                                            type="number"
-                                                            value={item.price}
+                                                            type="text"
+                                                            value={item.name}
                                                             onChange={e => {
                                                                 const updatedConfig = [...localQuoterConfig];
                                                                 const updatedItems = [...category.items];
-                                                                updatedItems[itemIdx] = { ...item, price: Number(e.target.value) };
+                                                                updatedItems[itemIdx] = { ...item, name: e.target.value };
                                                                 updatedConfig[catIdx] = { ...category, items: updatedItems };
                                                                 setLocalQuoterConfig(updatedConfig);
                                                             }}
-                                                            placeholder="0"
-                                                            className="w-full text-right bg-slate-900/60 border border-white/10 rounded-xl pl-6 pr-3.5 py-2 text-xs text-white focus:border-accent transition-colors font-bold"
+                                                            placeholder="Nombre de la opción"
+                                                            className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:border-accent placeholder:text-slate-600 transition-colors font-medium"
                                                         />
                                                     </div>
                                                     
-                                                    {/* Select Unit (only for styles) */}
-                                                    {category.id === 'styles' && (
-                                                        <select
-                                                            value={item.unit || ''}
+                                                    {/* Controls row - Right side or bottom row */}
+                                                    <div className="flex items-center gap-2.5 shrink-0 justify-between sm:justify-start w-full sm:w-auto">
+                                                        {/* Price Input */}
+                                                        <div className="relative w-28 flex-1 sm:flex-initial">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-black">$</span>
+                                                            <input
+                                                                type="number"
+                                                                value={item.price}
+                                                                onChange={e => {
+                                                                    const updatedConfig = [...localQuoterConfig];
+                                                                    const updatedItems = [...category.items];
+                                                                    updatedItems[itemIdx] = { ...item, price: Number(e.target.value) };
+                                                                    updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                                    setLocalQuoterConfig(updatedConfig);
+                                                                }}
+                                                                placeholder="0"
+                                                                className="w-full text-right bg-slate-900/60 border border-white/10 rounded-xl pl-6 pr-3.5 py-2 text-xs text-white focus:border-accent transition-colors font-bold"
+                                                            />
+                                                        </div>
+                                                        
+                                                        {/* Select Unit (only for styles) */}
+                                                        {category.id === 'styles' && (
+                                                            <select
+                                                                value={item.unit || ''}
+                                                                onChange={e => {
+                                                                    const updatedConfig = [...localQuoterConfig];
+                                                                    const updatedItems = [...category.items];
+                                                                    updatedItems[itemIdx] = { ...item, unit: e.target.value || undefined };
+                                                                    updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                                    setLocalQuoterConfig(updatedConfig);
+                                                                }}
+                                                                className="bg-slate-900/60 border border-white/10 rounded-xl px-2.5 py-2 text-[10px] text-white focus:border-accent w-24 shrink-0 transition-colors font-semibold"
+                                                            >
+                                                                <option value="">Fijo</option>
+                                                                <option value="por uña">Por uña</option>
+                                                                <option value="por pieza">Por pieza</option>
+                                                            </select>
+                                                        )}
+                                                        
+                                                        {/* Delete Button (hide for simplified_designs) */}
+                                                        {category.id !== 'simplified_designs' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const updatedConfig = [...localQuoterConfig];
+                                                                    const updatedItems = category.items.filter(i => i.id !== item.id);
+                                                                    updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                                    setLocalQuoterConfig(updatedConfig);
+                                                                }}
+                                                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-white/5 hover:border-red-500/20 shadow-sm shrink-0"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Description Input for simplified_designs */}
+                                                {category.id === 'simplified_designs' && (
+                                                    <div className="w-full">
+                                                        <textarea
+                                                            value={(item as any).desc || ''}
                                                             onChange={e => {
                                                                 const updatedConfig = [...localQuoterConfig];
                                                                 const updatedItems = [...category.items];
-                                                                updatedItems[itemIdx] = { ...item, unit: e.target.value || undefined };
+                                                                updatedItems[itemIdx] = { ...item, desc: e.target.value };
                                                                 updatedConfig[catIdx] = { ...category, items: updatedItems };
                                                                 setLocalQuoterConfig(updatedConfig);
                                                             }}
-                                                            className="bg-slate-900/60 border border-white/10 rounded-xl px-2.5 py-2 text-[10px] text-white focus:border-accent w-24 shrink-0 transition-colors font-semibold"
-                                                        >
-                                                            <option value="">Fijo</option>
-                                                            <option value="por uña">Por uña</option>
-                                                            <option value="por pieza">Por pieza</option>
-                                                        </select>
-                                                    )}
-                                                    
-                                                    {/* Delete Button */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const updatedConfig = [...localQuoterConfig];
-                                                            const updatedItems = category.items.filter(i => i.id !== item.id);
-                                                            updatedConfig[catIdx] = { ...category, items: updatedItems };
-                                                            setLocalQuoterConfig(updatedConfig);
-                                                        }}
-                                                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-white/5 hover:border-red-500/20 shadow-sm shrink-0"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
+                                                            placeholder="Descripción o ejemplos del diseño para orientar a la clienta..."
+                                                            className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-3.5 py-2 text-[11px] text-slate-300 focus:border-accent placeholder:text-slate-600 transition-colors font-medium h-14 resize-none"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

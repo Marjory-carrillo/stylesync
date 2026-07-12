@@ -137,6 +137,7 @@ export interface QuotingItem {
     name: string;
     price: number;
     unit?: string;
+    desc?: string;
 }
 
 export interface QuotingCategory {

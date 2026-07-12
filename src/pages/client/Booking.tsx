@@ -100,6 +100,7 @@ export default function Booking() {
     const sizeCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'sizes'), [nailQuoterConfig]);
     const styleCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'styles'), [nailQuoterConfig]);
     const extrasCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'extras'), [nailQuoterConfig]);
+    const simplifiedDesignsCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'simplified_designs'), [nailQuoterConfig]);
 
     const [nailSize, setNailSize] = useState<{ id: string; name: string; price: number } | null>(null);
     const [nailExtras, setNailExtras] = useState<Record<string, boolean>>({});
@@ -131,8 +132,13 @@ export default function Booking() {
         let sum = selectedService.price;
         if (nailSize) sum += nailSize.price;
 
-        if (designLevel === 'simple') sum += 50;
-        else if (designLevel === 'complex') sum += 150;
+        const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
+        if (designItem) {
+            sum += designItem.price;
+        } else {
+            if (designLevel === 'simple') sum += 50;
+            else if (designLevel === 'complex') sum += 150;
+        }
 
         const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
         if (extrasCat) {
@@ -144,7 +150,7 @@ export default function Booking() {
         }
 
         return sum;
-    }, [nailQuoterConfig, selectedService, nailSize, designLevel, nailExtras]);
+    }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
 
     const totalPrice = useMemo(() => {
         if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
@@ -515,12 +521,18 @@ export default function Booking() {
         let addOnNames: string[] = [];
         if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
-            if (designLevel === 'basic') {
-                addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
-            } else if (designLevel === 'simple') {
-                addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
-            } else if (designLevel === 'complex') {
-                addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
+            const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
+            if (designItem) {
+                const priceText = designItem.price > 0 ? ` (+$${designItem.price} MXN)` : ' (Sin costo)';
+                addOnNames.push(`Diseño: ${designItem.name}${priceText}`);
+            } else {
+                if (designLevel === 'basic') {
+                    addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
+                } else if (designLevel === 'simple') {
+                    addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
+                } else if (designLevel === 'complex') {
+                    addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
+                }
             }
             const extrasCat = nailQuoterConfig.find(c => c.id === 'extras');
             if (extrasCat) {
@@ -1360,31 +1372,37 @@ export default function Booking() {
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Nivel de Diseño / Estilo
                                         </h4>
                                         <div className="flex flex-col gap-2.5">
-                                             {[
-                                                 { id: 'basic', label: 'Básico (1 solo tono)', desc: 'Esmaltado liso de un solo color sin decoraciones.', price: 'Sin costo extra' },
-                                                 { id: 'simple', label: 'Sencillo (Francés o Efectos)', desc: 'Francés clásico/Baby boomer, efectos chrome/cat-eye, o diseño minimalista en 2-4 uñas.', price: '+$50 MXN' },
-                                                 { id: 'complex', label: 'Elaborado (Full Art / Pedrería)', desc: 'Diseños a mano alzada en todas las uñas, cristales, charms, encapsulados o decoraciones 3D.', price: '+$150 MXN' }
-                                             ].map((opt) => {
-                                                 const isSelected = designLevel === opt.id;
-                                                 return (
-                                                     <button
-                                                         key={opt.id}
-                                                         type="button"
-                                                         onClick={() => setDesignLevel(opt.id as any)}
-                                                         className={`p-4 rounded-xl border text-left transition-all duration-300 flex flex-col gap-1 w-full ${
-                                                             isSelected
-                                                                 ? 'bg-emerald-500/10 border-emerald-500/40 text-white shadow-[0_0_15px_rgba(16,185,129,0.08)]'
-                                                                 : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
-                                                         }`}
-                                                     >
-                                                         <div className="flex items-center justify-between w-full">
-                                                             <span className="text-xs font-black uppercase tracking-wider">{opt.label}</span>
-                                                             <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`}>{opt.price}</span>
-                                                         </div>
-                                                         <p className="text-[10px] text-slate-400 leading-relaxed font-normal mt-0.5">{opt.desc}</p>
-                                                     </button>
-                                                 );
-                                             })}
+                                            {(() => {
+                                                const options = simplifiedDesignsCategory?.items || [
+                                                    { id: 'basic', name: 'Básico (1 solo tono)', desc: 'Esmaltado liso de un solo color sin decoraciones.', price: 0 },
+                                                    { id: 'simple', name: 'Sencillo (Francés o Efectos)', desc: 'Francés clásico/Baby boomer, efectos chrome/cat-eye, o diseño minimalista en 2-4 uñas.', price: 50 },
+                                                    { id: 'complex', name: 'Elaborado (Full Art / Pedrería)', desc: 'Diseños a mano alzada en todas las uñas, cristales, charms, encapsulados o decoraciones 3D.', price: 150 }
+                                                ];
+                                                return options.map((opt: any) => {
+                                                    const isSelected = designLevel === opt.id;
+                                                    const formattedPrice = opt.price === 0 ? 'Sin costo extra' : `+$${opt.price} MXN`;
+                                                    return (
+                                                        <button
+                                                            key={opt.id}
+                                                            type="button"
+                                                            onClick={() => setDesignLevel(opt.id as any)}
+                                                            className={`p-4 rounded-xl border text-left transition-all duration-300 flex flex-col gap-1 w-full ${
+                                                                isSelected
+                                                                    ? 'bg-emerald-500/10 border-emerald-500/40 text-white shadow-[0_0_15px_rgba(16,185,129,0.08)]'
+                                                                    : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between w-full">
+                                                                <span className="text-xs font-black uppercase tracking-wider">{opt.name}</span>
+                                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`}>{formattedPrice}</span>
+                                                            </div>
+                                                            {opt.desc && (
+                                                                <p className="text-[10px] text-slate-400 leading-relaxed font-normal mt-0.5">{opt.desc}</p>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                });
+                                            })()}
                                         </div>
                                     </div>
                                 )}

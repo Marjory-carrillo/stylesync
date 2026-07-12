@@ -53,6 +53,16 @@ const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
         { id: "e2", name: "Reparación de uña", price: 40 },
         { id: "e3", name: "Retiro de otro salón", price: 100 }
       ]
+    },
+    {
+      id: "simplified_designs",
+      name: "Niveles de Diseño (App Clientes)",
+      type: "radio",
+      items: [
+        { id: "basic", name: "Básico (1 solo tono)", price: 0, desc: "Esmaltado liso de un solo color sin decoraciones." },
+        { id: "simple", name: "Sencillo (Francés o Efectos)", price: 50, desc: "Francés clásico/Baby boomer, efectos chrome/cat-eye, o diseño minimalista en 2-4 uñas." },
+        { id: "complex", name: "Elaborado (Full Art / Pedrería)", price: 150, desc: "Diseños a mano alzada en todas las uñas, cristales, charms, encapsulados o decoraciones 3D." }
+      ]
     }
 ];
 
