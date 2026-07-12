@@ -14,15 +14,17 @@ export const useImageUpload = () => {
     const uploadImage = useCallback(async (
         file: File,
         bucket: string,
-        folder: string
+        folder: string,
+        customTenantId?: number
     ): Promise<string | null> => {
-        if (!tenantId) {
+        const activeTenantId = customTenantId || tenantId;
+        if (!activeTenantId) {
             showToast('Sin tenant para subir imagen', 'error');
             return null;
         }
 
         const ext = file.name.split('.').pop();
-        const fileName = `${folder}/${tenantId}_${Date.now()}.${ext}`;
+        const fileName = `${folder}/${activeTenantId}_${Date.now()}.${ext}`;
 
         const { error } = await supabase.storage
             .from(bucket)
@@ -52,8 +54,8 @@ export const useImageUpload = () => {
         uploadImage(file, 'logos', 'tenants'),
         [uploadImage]);
 
-    const uploadNailDesign = useCallback((file: File) =>
-        uploadImage(file, 'services', 'nail_designs'),
+    const uploadNailDesign = useCallback((file: File, customTenantId?: number) =>
+        uploadImage(file, 'services', 'nail_designs', customTenantId),
         [uploadImage]);
 
     return { uploadServiceImage, uploadStylistPhoto, uploadLogo, uploadNailDesign };

@@ -1460,7 +1460,7 @@ export default function Booking() {
                                                             if (!file) return;
                                                             setUploadingDesign(true);
                                                             try {
-                                                                const url = await uploadNailDesign(file);
+                                                                const url = await uploadNailDesign(file, tenantId);
                                                                 if (url) {
                                                                     setNailDesignUrl(url);
                                                                 }
