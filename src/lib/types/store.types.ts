@@ -8,8 +8,21 @@ export interface Service {
     price: number;
     duration: number; // minutes
     image?: string;
+    description?: string; // shown in catalog modal
     isAddon?: boolean; // if true, shown only as add-on; not in main service list
     enableQuoter?: boolean; // if true, nail quoter is enabled for this service
+}
+
+export interface CatalogItem {
+    id: string;
+    tenantId: string;
+    serviceId?: number | null;   // null = catálogo general del negocio
+    stylistId?: number | null;   // null = catálogo del negocio (no de un profesional)
+    title?: string;
+    description?: string;
+    imageUrl: string;
+    sortOrder?: number;
+    createdAt: string;
 }
 
 export interface Stylist {

@@ -16,6 +16,7 @@ import { useBlockedPhones } from '../../lib/store/queries/useBlockedPhones';
 import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
+import { useAllCatalog } from '../../lib/store/queries/useCatalog';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -26,7 +27,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -109,6 +110,11 @@ export default function Booking() {
     const { uploadNailDesign } = useImageUpload();
     const [nailDesignUrl, setNailDesignUrl] = useState<string>('');
     const [uploadingDesign, setUploadingDesign] = useState(false);
+
+    // ── Catalog Gallery State ──
+    const { data: catalogItems = [] } = useAllCatalog(tenantId ?? null);
+    const [showCatalogModal, setShowCatalogModal] = useState(false);
+    const [catalogTab, setCatalogTab] = useState<number | null>(null); // null = all
 
     useEffect(() => {
         const sizeCat = nailQuoterConfig?.find(c => c.id === 'sizes');
@@ -1540,12 +1546,32 @@ export default function Booking() {
                         ) : (
                             // ── STANDARD SERVICE SELECTION LIST ──
                             <>
-                                <div className="mb-6 text-center">
+                                <div className="mb-5 text-center">
                                     <p className="text-sm text-accent font-medium mb-1">Paso 2 de 4</p>
                                     <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                                         ¿Qué te gustaría hacerte hoy?
                                     </h3>
                                 </div>
+
+                                {/* ── Catalog Gallery Button ── */}
+                                {catalogItems.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setCatalogTab(null); setShowCatalogModal(true); }}
+                                        className="w-full mb-4 flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 hover:from-violet-500/20 hover:to-fuchsia-500/20 transition-all group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
+                                                <Images size={18} className="text-violet-300" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-bold text-white">Ver galería de diseños</p>
+                                                <p className="text-xs text-violet-300/70">{catalogItems.length} fotos · Inspírate antes de elegir</p>
+                                            </div>
+                                        </div>
+                                        <ChevronRight size={18} className="text-violet-400 group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                )}
 
                                 <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
                                     {services.filter(s => !s.isAddon).map((service: Service) => (
@@ -1601,6 +1627,130 @@ export default function Booking() {
                                 <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro {professionalLabel.toLowerCase()}</button>
                             </>
                         )}
+
+                        {/* ══ CATALOG GALLERY MODAL ══ */}
+                        {showCatalogModal && (() => {
+                            const mainServices = services.filter(s => !s.isAddon);
+                            const servicesWithPhotos = mainServices.filter(s =>
+                                catalogItems.some(c => c.serviceId === s.id)
+                            );
+                            const allVisible = catalogTab === null
+                                ? catalogItems
+                                : catalogItems.filter(c => c.serviceId === catalogTab);
+
+                            return (
+                                <div
+                                    className="fixed inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md"
+                                    style={{ overscrollBehavior: 'contain' }}
+                                >
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-white/10 shrink-0">
+                                        <div>
+                                            <h3 className="text-lg font-black text-white">Galería de Diseños</h3>
+                                            <p className="text-xs text-slate-400">{allVisible.length} fotos disponibles</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowCatalogModal(false)}
+                                            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+                                        >
+                                            <X size={20} className="text-white" />
+                                        </button>
+                                    </div>
+
+                                    {/* Tabs por servicio */}
+                                    {servicesWithPhotos.length > 1 && (
+                                        <div className="flex gap-2 px-4 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-white/5">
+                                            <button
+                                                onClick={() => setCatalogTab(null)}
+                                                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                                                    catalogTab === null
+                                                        ? 'bg-violet-500 border-violet-400 text-white'
+                                                        : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                                                }`}
+                                            >
+                                                Todos
+                                            </button>
+                                            {servicesWithPhotos.map(s => (
+                                                <button
+                                                    key={s.id}
+                                                    onClick={() => setCatalogTab(s.id)}
+                                                    className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                                                        catalogTab === s.id
+                                                            ? 'bg-violet-500 border-violet-400 text-white'
+                                                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {s.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Photo Grid */}
+                                    <div className="flex-1 overflow-y-auto p-3">
+                                        {allVisible.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center h-48 text-slate-500">
+                                                <Images size={36} className="mb-2 opacity-30" />
+                                                <p className="text-sm">No hay fotos en esta categoría</p>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                {allVisible.map(item => {
+                                                    const svc = services.find(s => s.id === item.serviceId);
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            className="relative aspect-square rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-violet-400/50 transition-all"
+                                                            onClick={() => {
+                                                                if (svc) {
+                                                                    setSelectedService(svc);
+                                                                    setShowCatalogModal(false);
+                                                                    if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
+                                                                        setShowNailQuoterFlow(true);
+                                                                    } else {
+                                                                        const hasAddons = services.some(s => s.isAddon);
+                                                                        if (businessConfig?.enableAddons && hasAddons) {
+                                                                            setStep(23);
+                                                                        } else {
+                                                                            setStep(25);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }}
+                                                        >
+                                                            <img
+                                                                src={item.imageUrl}
+                                                                alt={item.title || svc?.name || 'Diseño'}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                            />
+                                                            {/* Overlay on hover */}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2.5">
+                                                                {svc && (
+                                                                    <span className="text-[10px] font-bold text-white bg-violet-500/70 backdrop-blur-sm px-2 py-0.5 rounded-full self-start">
+                                                                        {svc.name}
+                                                                    </span>
+                                                                )}
+                                                                <p className="text-[11px] text-white font-bold mt-1">Toca para reservar →</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Footer CTA */}
+                                    <div className="px-4 py-4 border-t border-white/10 shrink-0">
+                                        <button
+                                            onClick={() => setShowCatalogModal(false)}
+                                            className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-sm font-bold transition-colors"
+                                        >
+                                            Volver a los servicios
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
 
