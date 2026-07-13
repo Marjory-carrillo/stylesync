@@ -106,93 +106,109 @@ export default function SelectBusiness() {
             </div>
 
             {/* Cards Grid */}
-            <div className={`grid gap-5 max-w-5xl w-full relative z-10 ${
-                userTenants.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-3xl' :
-                userTenants.length >= 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
-                'grid-cols-1 max-w-md'
-            }`}>
-                {userTenants.map((tenant, idx) => {
-                    const cat = tenant.category || 'other';
-                    const styles = CATEGORY_STYLES[cat] || CATEGORY_STYLES.other;
-                    const IconComponent = CATEGORY_ICONS[cat] || Building2;
-                    const label = CATEGORY_LABELS[cat] || cat;
-                    const isRecent = tenant.id === lastUsed;
+            {userTenants.length === 0 ? (
+                <div className="glass-panel p-8 max-w-md w-full relative z-10 text-center space-y-5 border border-white/10 rounded-3xl bg-slate-900/40 shadow-2xl animate-scale-in">
+                    <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                        No hay ningún negocio o sucursal asociada a esta cuenta de correo. Si acabas de registrarte, ponte en contacto con CitaLink HQ para activar tu espacio de administración.
+                    </p>
+                    <a
+                        href={`https://wa.me/528681239154?text=Hola%20CitaLink%20HQ%2C%20acabo%20de%20crear%20mi%20cuenta%20en%20el%20portal%20pero%20aún%20no%20tengo%20negocios%20asignados.%20Mi%20correo%20es%3A%20${encodeURIComponent(user?.email || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-xl font-bold text-white shadow-lg shadow-violet-500/20 inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.02] text-xs uppercase tracking-wider"
+                    >
+                        Contactar Soporte CitaLink
+                    </a>
+                </div>
+            ) : (
+                <div className={`grid gap-5 max-w-5xl w-full relative z-10 ${
+                    userTenants.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-3xl' :
+                    userTenants.length >= 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
+                    'grid-cols-1 max-w-md'
+                }`}>
+                    {userTenants.map((tenant, idx) => {
+                        const cat = tenant.category || 'other';
+                        const styles = CATEGORY_STYLES[cat] || CATEGORY_STYLES.other;
+                        const IconComponent = CATEGORY_ICONS[cat] || Building2;
+                        const label = CATEGORY_LABELS[cat] || cat;
+                        const isRecent = tenant.id === lastUsed;
 
-                    return (
-                        <button
-                            key={tenant.id}
-                            onClick={() => handleSelect(tenant.id)}
-                            className={`group relative text-left rounded-2xl border overflow-hidden transition-all duration-400 hover:scale-[1.03] active:scale-[0.98] animate-scale-in ${
-                                isRecent ? styles.border : 'border-white/[0.07] hover:border-white/20'
-                            }`}
-                            style={{
-                                animationDelay: `${idx * 0.1}s`,
-                                background: isRecent ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
-                                boxShadow: isRecent ? styles.glow : 'none',
-                            }}
-                        >
-                            {/* Top accent stripe */}
-                            <div className={`h-[3px] w-full ${styles.stripe} opacity-${isRecent ? '100' : '0'} group-hover:opacity-100 transition-opacity duration-400`} />
+                        return (
+                            <button
+                                key={tenant.id}
+                                onClick={() => handleSelect(tenant.id)}
+                                className={`group relative text-left rounded-2xl border overflow-hidden transition-all duration-400 hover:scale-[1.03] active:scale-[0.98] animate-scale-in ${
+                                    isRecent ? styles.border : 'border-white/[0.07] hover:border-white/20'
+                                }`}
+                                style={{
+                                    animationDelay: `${idx * 0.1}s`,
+                                    background: isRecent ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+                                    boxShadow: isRecent ? styles.glow : 'none',
+                                }}
+                            >
+                                {/* Top accent stripe */}
+                                <div className={`h-[3px] w-full ${styles.stripe} opacity-${isRecent ? '100' : '0'} group-hover:opacity-100 transition-opacity duration-400`} />
 
-                            {/* Inner gradient overlay on hover */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
+                                {/* Inner gradient overlay on hover */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
 
-                            <div className="relative z-10 p-6">
-                                {/* Recent badge */}
-                                {isRecent && (
-                                    <div className="absolute top-4 right-4">
-                                        <span className={`text-[8px] font-black uppercase tracking-[0.22em] ${styles.text} px-2.5 py-1 rounded-full border ${styles.badgeBg} backdrop-blur-sm`}>
-                                            ✦ Reciente
+                                <div className="relative z-10 p-6">
+                                    {/* Recent badge */}
+                                    {isRecent && (
+                                        <div className="absolute top-4 right-4">
+                                            <span className={`text-[8px] font-black uppercase tracking-[0.22em] ${styles.text} px-2.5 py-1 rounded-full border ${styles.badgeBg} backdrop-blur-sm`}>
+                                                ✦ Reciente
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Logo / Icon */}
+                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 border overflow-hidden transition-all duration-300 group-hover:scale-110 ${
+                                        isRecent
+                                            ? `${styles.border} bg-gradient-to-br ${styles.iconBg}`
+                                            : 'border-white/10 bg-white/[0.04] group-hover:border-white/20'
+                                    }`}>
+                                        {tenant.logoUrl ? (
+                                            <img src={tenant.logoUrl} className="w-full h-full object-cover" alt="" />
+                                        ) : (
+                                            <IconComponent
+                                                size={28}
+                                                className={`transition-colors duration-300 ${isRecent ? styles.text : `text-slate-400 group-hover:${styles.text}`}`}
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Name */}
+                                    <h3 className="text-lg font-black text-white tracking-tight mb-1 uppercase leading-tight line-clamp-2">
+                                        {tenant.name}
+                                    </h3>
+
+                                    {/* Category + Slug */}
+                                    <div className="flex items-center gap-2 mb-5 flex-wrap">
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${isRecent ? styles.text : 'text-slate-500 group-hover:text-slate-400'} transition-colors`}>
+                                            {label}
+                                        </span>
+                                        <span className="text-slate-700">•</span>
+                                        <span className="text-[10px] text-slate-600 font-mono truncate">
+                                            /{tenant.slug}
                                         </span>
                                     </div>
-                                )}
 
-                                {/* Logo / Icon */}
-                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 border overflow-hidden transition-all duration-300 group-hover:scale-110 ${
-                                    isRecent
-                                        ? `${styles.border} bg-gradient-to-br ${styles.iconBg}`
-                                        : 'border-white/10 bg-white/[0.04] group-hover:border-white/20'
-                                }`}>
-                                    {tenant.logoUrl ? (
-                                        <img src={tenant.logoUrl} className="w-full h-full object-cover" alt="" />
-                                    ) : (
-                                        <IconComponent
-                                            size={28}
-                                            className={`transition-colors duration-300 ${isRecent ? styles.text : `text-slate-400 group-hover:${styles.text}`}`}
-                                        />
-                                    )}
+                                    {/* CTA Button */}
+                                    <div className={`inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all duration-300 ${
+                                        isRecent
+                                            ? `bg-gradient-to-r ${styles.btnGradient} text-white shadow-lg`
+                                            : 'bg-white/[0.04] text-slate-400 border border-white/[0.07] group-hover:bg-white/[0.08] group-hover:text-white group-hover:border-white/15'
+                                    }`}>
+                                        <span>Administrar</span>
+                                        <ChevronRight size={16} className="group-hover:translate-x-1.5 transition-transform duration-300" />
+                                    </div>
                                 </div>
-
-                                {/* Name */}
-                                <h3 className="text-lg font-black text-white tracking-tight mb-1 uppercase leading-tight line-clamp-2">
-                                    {tenant.name}
-                                </h3>
-
-                                {/* Category + Slug */}
-                                <div className="flex items-center gap-2 mb-5 flex-wrap">
-                                    <span className={`text-[10px] font-bold uppercase tracking-widest ${isRecent ? styles.text : 'text-slate-500 group-hover:text-slate-400'} transition-colors`}>
-                                        {label}
-                                    </span>
-                                    <span className="text-slate-700">•</span>
-                                    <span className="text-[10px] text-slate-600 font-mono truncate">
-                                        /{tenant.slug}
-                                    </span>
-                                </div>
-
-                                {/* CTA Button */}
-                                <div className={`inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all duration-300 ${
-                                    isRecent
-                                        ? `bg-gradient-to-r ${styles.btnGradient} text-white shadow-lg`
-                                        : 'bg-white/[0.04] text-slate-400 border border-white/[0.07] group-hover:bg-white/[0.08] group-hover:text-white group-hover:border-white/15'
-                                }`}>
-                                    <span>Administrar</span>
-                                    <ChevronRight size={16} className="group-hover:translate-x-1.5 transition-transform duration-300" />
-                                </div>
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Footer */}
             <div className="mt-12 relative z-10 flex flex-col items-center gap-3">
