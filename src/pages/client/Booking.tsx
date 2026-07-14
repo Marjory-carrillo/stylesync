@@ -116,6 +116,7 @@ export default function Booking() {
     const [showCatalogModal, setShowCatalogModal] = useState(false);
     const [catalogTab, setCatalogTab] = useState<number | null>(null); // null = all
     const [expandedPhoto, setExpandedPhoto] = useState<CatalogItem | null>(null);
+    const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItem | null>(null);
 
     useEffect(() => {
         const sizeCat = nailQuoterConfig?.find(c => c.id === 'sizes');
@@ -526,7 +527,7 @@ export default function Booking() {
 
         // Build combined service name (main + add-ons)
         let addOnNames: string[] = [];
-        if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
+        if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter && !selectedCatalogItem) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
             if (designItem) {
@@ -557,6 +558,15 @@ export default function Booking() {
             addOnNames = selectedAddOns
                 .map(id => services.find(s => s.id === id)?.name)
                 .filter(Boolean) as string[];
+
+            if (selectedCatalogItem) {
+                addOnNames.push(`Referencia: ${selectedCatalogItem.imageUrl}`);
+                if (selectedCatalogItem.price) {
+                    addOnNames.push(`Diseño Catálogo: ${selectedCatalogItem.description || 'Diseño'} ($${selectedCatalogItem.price} MXN)`);
+                } else {
+                    addOnNames.push(`Diseño Catálogo: ${selectedCatalogItem.description || 'Diseño'}`);
+                }
+            }
         }
 
         const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.filter(n => !n.startsWith('Cotización') && !n.startsWith('Referencia:')).join(' + ') : '');
@@ -1584,6 +1594,7 @@ export default function Booking() {
                                             className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
                                             onClick={() => {
                                                 setSelectedService(service);
+                                                setSelectedCatalogItem(null);
                                                 if (businessConfig?.category === 'nail_bar' && service.enableQuoter) {
                                                     setShowNailQuoterFlow(true);
                                                 } else {
@@ -1806,6 +1817,7 @@ export default function Booking() {
                                                                 onClick={() => {
                                                                     if (svc) {
                                                                         setSelectedService(svc);
+                                                                        setSelectedCatalogItem(expandedPhoto);
                                                                         setExpandedPhoto(null);
                                                                         setShowCatalogModal(false);
                                                                         setStep(25); // Mandar directamente a elegir fecha
