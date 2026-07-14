@@ -1325,8 +1325,12 @@ export default function Booking() {
 
                                     {/* ── Galerías del Profesional separadas por Servicio ── */}
                                     {(() => {
-                                        // Obtener servicios que realiza el estilista (excluyendo adicionales/addons)
-                                        const stylistServices = services.filter(s => !s.isAddon && stylist.serviceIds?.includes(s.id));
+                                        // Obtener servicios que realiza el estilista (si no tiene asignados, por defecto realiza todos)
+                                        const hasAssignedServices = stylist.serviceIds && stylist.serviceIds.length > 0;
+                                        const stylistServices = services.filter(s => 
+                                            !s.isAddon && 
+                                            (!hasAssignedServices || stylist.serviceIds.includes(s.id))
+                                        );
                                         
                                         // Filtrar cuáles tienen imágenes en el catálogo
                                         const servicesWithPhotos = stylistServices.filter(s =>
