@@ -18,11 +18,6 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
     const [uploadingIdx, setUploadingIdx] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
-    // Edit states
-    const [editingItem, setEditingItem] = useState<any | null>(null);
-    const [editPrice, setEditPrice] = useState('');
-    const [editDesc, setEditDesc] = useState('');
-
     const canAddMore = items.length < MAX_CATALOG_IMAGES_PER_SERVICE;
 
     const handleFiles = async (files: FileList) => {
@@ -78,52 +73,59 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
                     <p className="text-[10px] text-slate-600 mt-1">Hasta {MAX_CATALOG_IMAGES_PER_SERVICE} imágenes · JPG, PNG, WEBP</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {items.map(item => (
-                        <div key={item.id} className="relative aspect-square rounded-xl overflow-hidden group border border-white/10">
-                            <img
-                                src={item.imageUrl}
-                                alt={item.title || 'Diseño'}
-                                className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setEditingItem(item);
-                                        setEditPrice(item.price ? String(item.price) : '');
-                                        setEditDesc(item.description || '');
-                                    }}
-                                    className="p-1.5 bg-blue-500/80 rounded-lg hover:bg-blue-500 transition-colors"
-                                    title="Editar detalles"
-                                >
-                                    <Edit2 size={12} className="text-white" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setConfirmRemove(item.id)}
-                                    className="p-1.5 bg-red-500/80 rounded-lg hover:bg-red-500 transition-colors"
-                                    title="Eliminar"
-                                >
-                                    <Trash2 size={12} className="text-white" />
-                                </button>
+                        <div key={item.id} className="flex gap-3 p-3 bg-white/[0.02] border border-white/10 rounded-xl items-center">
+                            {/* Imagen */}
+                            <div className="w-16 h-16 rounded-lg overflow-hidden border border-white/5 shrink-0 bg-slate-900">
+                                <img src={item.imageUrl} alt="Diseño" className="w-full h-full object-cover" />
+                            </div>
+
+                            {/* Inputs Modificables Inline */}
+                            <div className="flex-1 space-y-1.5 min-w-0">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        defaultValue={item.price ? String(item.price) : ''}
+                                        id={`price-${item.id}`}
+                                        placeholder="Precio ($)"
+                                        className="w-20 bg-slate-900/50 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-accent"
+                                    />
+                                    <input
+                                        type="text"
+                                        defaultValue={item.description || ''}
+                                        id={`desc-${item.id}`}
+                                        placeholder="Descripción / Notas..."
+                                        className="flex-1 bg-slate-900/50 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-accent"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            const priceVal = (document.getElementById(`price-${item.id}`) as HTMLInputElement)?.value;
+                                            const descVal = (document.getElementById(`desc-${item.id}`) as HTMLInputElement)?.value;
+                                            await updateItem({
+                                                id: item.id,
+                                                description: descVal ?? '',
+                                                price: priceVal ? Number(priceVal) : null
+                                            });
+                                        }}
+                                        className="px-2.5 py-1 bg-violet-500/20 border border-violet-500/30 hover:bg-violet-500/30 text-violet-300 font-bold rounded-lg text-[9px] transition-colors"
+                                    >
+                                        Guardar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfirmRemove(item.id)}
+                                        className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-bold rounded-lg text-[9px] transition-colors"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
-                    {/* Upload tile */}
-                    {canAddMore && (
-                        <label className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-white/10 hover:border-accent/40 cursor-pointer transition-colors flex items-center justify-center bg-white/[0.02]">
-                            <Plus size={18} className="text-slate-600" />
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="hidden"
-                                disabled={uploadingIdx || isAdding}
-                                onChange={e => e.target.files && handleFiles(e.target.files)}
-                            />
-                        </label>
-                    )}
                 </div>
             )}
 
@@ -139,63 +141,6 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
                 }}
                 onCancel={() => setConfirmRemove(null)}
             />
-
-            {/* Modal de edición de detalles */}
-            {editingItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setEditingItem(null)}>
-                    <div className="glass-panel w-full max-w-sm p-5 rounded-xl animate-fade-in" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="text-sm font-bold text-white uppercase tracking-wider">Editar detalles del diseño</h4>
-                            <button className="text-muted hover:text-white" onClick={() => setEditingItem(null)}><X size={20} /></button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="w-full aspect-video rounded-lg overflow-hidden border border-white/10 bg-slate-900 flex items-center justify-center">
-                                <img src={editingItem.imageUrl} alt="Diseño" className="h-full w-full object-cover" />
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 mb-1 block">Precio sugerido ($)</label>
-                                <input
-                                    type="number"
-                                    value={editPrice}
-                                    onChange={e => setEditPrice(e.target.value)}
-                                    placeholder="Ej: 150"
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-slate-400 mb-1 block">Descripción breve / Notas</label>
-                                <textarea
-                                    value={editDesc}
-                                    onChange={e => setEditDesc(e.target.value)}
-                                    placeholder="Ej: Incluye pedrería en 2 uñas, largo número 3..."
-                                    rows={3}
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent resize-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-2 mt-5 pt-3 border-t border-white/5">
-                            <button className="btn btn-ghost hover:bg-white/10 py-1.5 px-3 text-xs" onClick={() => setEditingItem(null)}>Cancelar</button>
-                            <button 
-                                className="btn btn-primary py-1.5 px-4 text-xs font-bold" 
-                                onClick={async () => {
-                                    await updateItem({
-                                        id: editingItem.id,
-                                        description: editDesc,
-                                        price: editPrice ? Number(editPrice) : null
-                                    });
-                                    setEditingItem(null);
-                                }}
-                            >
-                                Guardar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
