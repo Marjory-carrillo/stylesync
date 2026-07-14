@@ -13,10 +13,15 @@ import { serviceSchema } from '../../lib/schemas';
 // ── Sub-componente: Galería de un servicio ────────────────────────────────
 function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
     const { uploadCatalogImage } = useImageUpload();
-    const { items, addItem, removeItem, isAdding } = useCatalog(serviceId);
+    const { items, addItem, removeItem, updateItem, isAdding } = useCatalog(serviceId);
     const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
     const [uploadingIdx, setUploadingIdx] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
+
+    // Edit states
+    const [editingItem, setEditingItem] = useState<any | null>(null);
+    const [editPrice, setEditPrice] = useState('');
+    const [editDesc, setEditDesc] = useState('');
 
     const canAddMore = items.length < MAX_CATALOG_IMAGES_PER_SERVICE;
 
@@ -81,11 +86,24 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
                                 alt={item.title || 'Diseño'}
                                 className="w-full h-full object-cover"
                             />
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditingItem(item);
+                                        setEditPrice(item.price ? String(item.price) : '');
+                                        setEditDesc(item.description || '');
+                                    }}
+                                    className="p-1.5 bg-blue-500/80 rounded-lg hover:bg-blue-500 transition-colors"
+                                    title="Editar detalles"
+                                >
+                                    <Edit2 size={12} className="text-white" />
+                                </button>
                                 <button
                                     type="button"
                                     onClick={() => setConfirmRemove(item.id)}
                                     className="p-1.5 bg-red-500/80 rounded-lg hover:bg-red-500 transition-colors"
+                                    title="Eliminar"
                                 >
                                     <Trash2 size={12} className="text-white" />
                                 </button>
@@ -121,6 +139,63 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
                 }}
                 onCancel={() => setConfirmRemove(null)}
             />
+
+            {/* Modal de edición de detalles */}
+            {editingItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setEditingItem(null)}>
+                    <div className="glass-panel w-full max-w-sm p-5 rounded-xl animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-sm font-bold text-white uppercase tracking-wider">Editar detalles del diseño</h4>
+                            <button className="text-muted hover:text-white" onClick={() => setEditingItem(null)}><X size={20} /></button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="w-full aspect-video rounded-lg overflow-hidden border border-white/10 bg-slate-900 flex items-center justify-center">
+                                <img src={editingItem.imageUrl} alt="Diseño" className="h-full w-full object-cover" />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 mb-1 block">Precio sugerido ($)</label>
+                                <input
+                                    type="number"
+                                    value={editPrice}
+                                    onChange={e => setEditPrice(e.target.value)}
+                                    placeholder="Ej: 150"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-semibold text-slate-400 mb-1 block">Descripción breve / Notas</label>
+                                <textarea
+                                    value={editDesc}
+                                    onChange={e => setEditDesc(e.target.value)}
+                                    placeholder="Ej: Incluye pedrería en 2 uñas, largo número 3..."
+                                    rows={3}
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 mt-5 pt-3 border-t border-white/5">
+                            <button className="btn btn-ghost hover:bg-white/10 py-1.5 px-3 text-xs" onClick={() => setEditingItem(null)}>Cancelar</button>
+                            <button 
+                                className="btn btn-primary py-1.5 px-4 text-xs font-bold" 
+                                onClick={async () => {
+                                    await updateItem({
+                                        id: editingItem.id,
+                                        description: editDesc,
+                                        price: editPrice ? Number(editPrice) : null
+                                    });
+                                    setEditingItem(null);
+                                }}
+                            >
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

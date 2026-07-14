@@ -13,6 +13,7 @@ const mapRow = (row: any): CatalogItem => ({
     stylistId: row.stylist_id ?? null,
     title: row.title ?? '',
     description: row.description ?? '',
+    price: row.price ?? null,
     imageUrl: row.image_url,
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
@@ -53,6 +54,7 @@ export const useCatalog = (serviceId?: number | null) => {
             imageUrl: string;
             title?: string;
             description?: string;
+            price?: number | null;
             serviceId?: number | null;
         }) => {
             if (!tenantId) throw new Error('No tenant');
@@ -63,6 +65,7 @@ export const useCatalog = (serviceId?: number | null) => {
                     image_url: item.imageUrl,
                     title: item.title ?? null,
                     description: item.description ?? null,
+                    price: item.price ?? null,
                     service_id: item.serviceId ?? null,
                     stylist_id: null,
                 }])
@@ -80,11 +83,15 @@ export const useCatalog = (serviceId?: number | null) => {
 
     // UPDATE item
     const updateMutation = useMutation({
-        mutationFn: async ({ id, title, description }: { id: string; title?: string; description?: string }) => {
+        mutationFn: async ({ id, title, description, price }: { id: string; title?: string; description?: string; price?: number | null }) => {
             if (!tenantId) throw new Error('No tenant');
             const { error } = await supabase
                 .from('catalog_items')
-                .update({ title: title ?? null, description: description ?? null })
+                .update({ 
+                    title: title ?? null, 
+                    description: description ?? null,
+                    price: price ?? null
+                })
                 .eq('id', id)
                 .eq('tenant_id', tenantId);
             if (error) throw error;

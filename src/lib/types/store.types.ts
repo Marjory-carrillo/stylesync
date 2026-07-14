@@ -20,6 +20,7 @@ export interface CatalogItem {
     stylistId?: number | null;   // null = catálogo del negocio (no de un profesional)
     title?: string;
     description?: string;
+    price?: number | null;
     imageUrl: string;
     sortOrder?: number;
     createdAt: string;

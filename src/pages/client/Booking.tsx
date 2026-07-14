@@ -1322,66 +1322,6 @@ export default function Booking() {
                                             <p className="text-sm text-muted uppercase tracking-widest">{stylist.role}</p>
                                         </div>
                                     </div>
-
-                                    {/* ── Galerías del Profesional separadas por Servicio ── */}
-                                    {(() => {
-                                        // Obtener servicios que realiza el estilista (si no tiene asignados, por defecto realiza todos)
-                                        const hasAssignedServices = stylist.serviceIds && stylist.serviceIds.length > 0;
-                                        const stylistServices = services.filter(s => 
-                                            !s.isAddon && 
-                                            (!hasAssignedServices || stylist.serviceIds.includes(s.id))
-                                        );
-                                        
-                                        // Filtrar cuáles tienen imágenes en el catálogo
-                                        const servicesWithPhotos = stylistServices.filter(s =>
-                                            catalogItems.some(c => c.serviceId === s.id)
-                                        );
-
-                                        if (servicesWithPhotos.length === 0) return null;
-
-                                        return (
-                                            <div className="mt-4 pt-4 border-t border-white/5 space-y-3" onClick={e => e.stopPropagation()}>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Trabajos destacados:</p>
-                                                {servicesWithPhotos.map(svc => {
-                                                    const svcPhotos = catalogItems.filter(c => c.serviceId === svc.id);
-                                                    return (
-                                                        <div key={svc.id} className="space-y-1.5">
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-[11px] font-bold text-slate-300">{svc.name}</span>
-                                                                <span className="text-[9px] text-slate-500 font-medium">({svcPhotos.length} fotos)</span>
-                                                            </div>
-                                                            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                                                                {svcPhotos.map(photo => (
-                                                                    <div
-                                                                        key={photo.id}
-                                                                        className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 hover:border-violet-400/50 cursor-pointer active:scale-95 transition-all"
-                                                                        onClick={() => {
-                                                                            setSelectedStylist(stylist);
-                                                                            setSelectedService(svc);
-                                                                            setSelectedAddOns([]);
-                                                                            if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
-                                                                                setShowNailQuoterFlow(true);
-                                                                                setStep(22);
-                                                                            } else {
-                                                                                const hasAddons = services.some(s => s.isAddon);
-                                                                                if (businessConfig?.enableAddons && hasAddons) {
-                                                                                    setStep(23);
-                                                                                } else {
-                                                                                    setStep(25);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <img src={photo.imageUrl} alt={svc.name} className="w-full h-full object-cover" />
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        );
-                                    })()}
                                 </div>
                             ))}
                         </div>
@@ -1757,43 +1697,43 @@ export default function Booking() {
                                                 <p className="text-sm">No hay fotos en esta categoría</p>
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                                 {allVisible.map(item => {
                                                     const svc = services.find(s => s.id === item.serviceId);
                                                     return (
                                                         <div
                                                             key={item.id}
-                                                            className="relative aspect-square rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-violet-400/50 transition-all"
+                                                            className="flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:border-violet-400/50 transition-all group"
                                                             onClick={() => {
                                                                 if (svc) {
                                                                     setSelectedService(svc);
                                                                     setShowCatalogModal(false);
-                                                                    if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
-                                                                        setShowNailQuoterFlow(true);
-                                                                    } else {
-                                                                        const hasAddons = services.some(s => s.isAddon);
-                                                                        if (businessConfig?.enableAddons && hasAddons) {
-                                                                            setStep(23);
-                                                                        } else {
-                                                                            setStep(25);
-                                                                        }
-                                                                    }
+                                                                    setStep(25); // Mandar directamente a elegir fecha
                                                                 }
                                                             }}
                                                         >
-                                                            <img
-                                                                src={item.imageUrl}
-                                                                alt={item.title || svc?.name || 'Diseño'}
-                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                            />
-                                                            {/* Overlay on hover */}
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2.5">
+                                                            <div className="relative aspect-square overflow-hidden bg-slate-800">
+                                                                <img
+                                                                    src={item.imageUrl}
+                                                                    alt={item.title || svc?.name || 'Diseño'}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                                />
                                                                 {svc && (
-                                                                    <span className="text-[10px] font-bold text-white bg-violet-500/70 backdrop-blur-sm px-2 py-0.5 rounded-full self-start">
+                                                                    <span className="absolute top-2 left-2 text-[9px] font-bold text-white bg-violet-600/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-md">
                                                                         {svc.name}
                                                                     </span>
                                                                 )}
-                                                                <p className="text-[11px] text-white font-bold mt-1">Toca para reservar →</p>
+                                                            </div>
+                                                            <div className="p-2 text-left flex flex-col justify-between flex-1 min-h-[4.5rem] bg-slate-950/40">
+                                                                <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
+                                                                    {item.description || 'Diseño de catálogo'}
+                                                                </p>
+                                                                <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/5">
+                                                                    <span className="text-xs font-bold text-violet-300">
+                                                                        {item.price ? `$${item.price} MXN` : 'Costo base'}
+                                                                    </span>
+                                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Reservar →</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     );
