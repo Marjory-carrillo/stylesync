@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { type Announcement, type Service, type Stylist } from '../../lib/types/store.types';
+import { type Announcement, type Service, type Stylist, type CatalogItem } from '../../lib/types/store.types';
 import { appointmentSchema } from '../../lib/schemas';
 import { useTenantBySlug } from '../../lib/store/queries/useTenantBySlug';
 import { useServices } from '../../lib/store/queries/useServices';
@@ -115,6 +115,7 @@ export default function Booking() {
     const { data: catalogItems = [] } = useAllCatalog(tenantId ?? null);
     const [showCatalogModal, setShowCatalogModal] = useState(false);
     const [catalogTab, setCatalogTab] = useState<number | null>(null); // null = all
+    const [expandedPhoto, setExpandedPhoto] = useState<CatalogItem | null>(null);
 
     useEffect(() => {
         const sizeCat = nailQuoterConfig?.find(c => c.id === 'sizes');
@@ -1642,116 +1643,186 @@ export default function Booking() {
                                 : catalogItems.filter(c => c.serviceId === catalogTab);
 
                             return (
-                                <div
-                                    className="fixed inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md"
-                                    style={{ overscrollBehavior: 'contain' }}
-                                >
-                                    {/* Header */}
-                                    <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-white/10 shrink-0">
-                                        <div>
-                                            <h3 className="text-lg font-black text-white">Galería de Diseños</h3>
-                                            <p className="text-xs text-slate-400">{allVisible.length} fotos disponibles</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setShowCatalogModal(false)}
-                                            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-                                        >
-                                            <X size={20} className="text-white" />
-                                        </button>
-                                    </div>
-
-                                    {/* Tabs por servicio */}
-                                    {servicesWithPhotos.length > 1 && (
-                                        <div className="flex gap-2 px-4 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-white/5">
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md"
+                                        style={{ overscrollBehavior: 'contain' }}
+                                    >
+                                        {/* Header */}
+                                        <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-white/10 shrink-0">
+                                            <div>
+                                                <h3 className="text-lg font-black text-white">Galería de Diseños</h3>
+                                                <p className="text-xs text-slate-400">{allVisible.length} fotos disponibles</p>
+                                            </div>
                                             <button
-                                                onClick={() => setCatalogTab(null)}
-                                                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                                                    catalogTab === null
-                                                        ? 'bg-violet-500 border-violet-400 text-white'
-                                                        : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                                                }`}
+                                                onClick={() => setShowCatalogModal(false)}
+                                                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
                                             >
-                                                Todos
+                                                <X size={20} className="text-white" />
                                             </button>
-                                            {servicesWithPhotos.map(s => (
+                                        </div>
+
+                                        {/* Tabs por servicio */}
+                                        {servicesWithPhotos.length > 1 && (
+                                            <div className="flex gap-2 px-4 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-white/5">
                                                 <button
-                                                    key={s.id}
-                                                    onClick={() => setCatalogTab(s.id)}
+                                                    onClick={() => setCatalogTab(null)}
                                                     className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                                                        catalogTab === s.id
+                                                        catalogTab === null
                                                             ? 'bg-violet-500 border-violet-400 text-white'
                                                             : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
                                                     }`}
                                                 >
-                                                    {s.name}
+                                                    Todos
                                                 </button>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Photo Grid */}
-                                    <div className="flex-1 overflow-y-auto p-3">
-                                        {allVisible.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center h-48 text-slate-500">
-                                                <Images size={36} className="mb-2 opacity-30" />
-                                                <p className="text-sm">No hay fotos en esta categoría</p>
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                {allVisible.map(item => {
-                                                    const svc = services.find(s => s.id === item.serviceId);
-                                                    return (
-                                                        <div
-                                                            key={item.id}
-                                                            className="flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:border-violet-400/50 transition-all group"
-                                                            onClick={() => {
-                                                                if (svc) {
-                                                                    setSelectedService(svc);
-                                                                    setShowCatalogModal(false);
-                                                                    setStep(25); // Mandar directamente a elegir fecha
-                                                                }
-                                                            }}
-                                                        >
-                                                            <div className="relative aspect-square overflow-hidden bg-slate-800">
-                                                                <img
-                                                                    src={item.imageUrl}
-                                                                    alt={item.title || svc?.name || 'Diseño'}
-                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                                />
-                                                                {svc && (
-                                                                    <span className="absolute top-2 left-2 text-[9px] font-bold text-white bg-violet-600/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-md">
-                                                                        {svc.name}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="p-2 text-left flex flex-col justify-between flex-1 min-h-[4.5rem] bg-slate-950/40">
-                                                                <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
-                                                                    {item.description || 'Diseño de catálogo'}
-                                                                </p>
-                                                                <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/5">
-                                                                    <span className="text-xs font-bold text-violet-300">
-                                                                        {item.price ? `$${item.price} MXN` : 'Costo base'}
-                                                                    </span>
-                                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Reservar →</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                {servicesWithPhotos.map(s => (
+                                                    <button
+                                                        key={s.id}
+                                                        onClick={() => setCatalogTab(s.id)}
+                                                        className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                                                            catalogTab === s.id
+                                                                ? 'bg-violet-500 border-violet-400 text-white'
+                                                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        {s.name}
+                                                    </button>
+                                                ))}
                                             </div>
                                         )}
+
+                                        {/* Photo Grid */}
+                                        <div className="flex-1 overflow-y-auto p-3">
+                                            {allVisible.length === 0 ? (
+                                                <div className="flex flex-col items-center justify-center h-48 text-slate-500">
+                                                    <Images size={36} className="mb-2 opacity-30" />
+                                                    <p className="text-sm">No hay fotos en esta categoría</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                    {allVisible.map(item => {
+                                                        const svc = services.find(s => s.id === item.serviceId);
+                                                        return (
+                                                            <div
+                                                                key={item.id}
+                                                                className="flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:border-violet-400/50 transition-all group"
+                                                                onClick={() => {
+                                                                    setExpandedPhoto(item);
+                                                                }}
+                                                            >
+                                                                <div className="relative aspect-square overflow-hidden bg-slate-800">
+                                                                    <img
+                                                                        src={item.imageUrl}
+                                                                        alt={item.title || svc?.name || 'Diseño'}
+                                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                                    />
+                                                                    {svc && (
+                                                                        <span className="absolute top-2 left-2 text-[9px] font-bold text-white bg-violet-600/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-md">
+                                                                            {svc.name}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="p-2 text-left flex flex-col justify-between flex-1 min-h-[4.5rem] bg-slate-950/40">
+                                                                    <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
+                                                                        {item.description || 'Diseño de catálogo'}
+                                                                    </p>
+                                                                    <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/5">
+                                                                        <span className="text-xs font-bold text-violet-300">
+                                                                            {item.price ? `$${item.price} MXN` : 'Costo base'}
+                                                                        </span>
+                                                                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Ver más →</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Footer CTA */}
+                                        <div className="px-4 py-4 border-t border-white/10 shrink-0">
+                                            <button
+                                                onClick={() => setShowCatalogModal(false)}
+                                                className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-sm font-bold transition-colors"
+                                            >
+                                                Volver a los servicios
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    {/* Footer CTA */}
-                                    <div className="px-4 py-4 border-t border-white/10 shrink-0">
-                                        <button
-                                            onClick={() => setShowCatalogModal(false)}
-                                            className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-sm font-bold transition-colors"
-                                        >
-                                            Volver a los servicios
-                                        </button>
-                                    </div>
-                                </div>
+                                    {/* ── LIGHTBOX / FOTO EXPANDIDA ── */}
+                                    {expandedPhoto && (() => {
+                                        const svc = services.find(s => s.id === expandedPhoto.serviceId);
+                                        return (
+                                            <div
+                                                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+                                                onClick={() => setExpandedPhoto(null)}
+                                            >
+                                                <div
+                                                    className="relative w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl overflow-hidden animate-zoom-in"
+                                                    onClick={e => e.stopPropagation()}
+                                                >
+                                                    {/* Botón Cerrar (Tachita) */}
+                                                    <button
+                                                        onClick={() => setExpandedPhoto(null)}
+                                                        className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
+                                                        aria-label="Cerrar vista"
+                                                    >
+                                                        <X size={18} />
+                                                    </button>
+
+                                                    {/* Imagen Principal */}
+                                                    <div className="w-full aspect-square bg-slate-950 flex items-center justify-center">
+                                                        <img
+                                                            src={expandedPhoto.imageUrl}
+                                                            alt="Diseño expandido"
+                                                            className="w-full h-full object-contain"
+                                                        />
+                                                    </div>
+
+                                                    {/* Detalles y CTA */}
+                                                    <div className="p-5 space-y-4">
+                                                        <div>
+                                                            {svc && (
+                                                                <span className="text-[10px] font-bold text-white bg-violet-600 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                    {svc.name}
+                                                                </span>
+                                                            )}
+                                                            <p className="text-xs text-slate-300 mt-3 leading-relaxed">
+                                                                {expandedPhoto.description || 'Diseño exclusivo de nuestro catálogo.'}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                                                            <div className="text-left">
+                                                                <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold">Precio</span>
+                                                                <span className="text-base font-black text-violet-400">
+                                                                    {expandedPhoto.price ? `$${expandedPhoto.price} MXN` : 'Costo base'}
+                                                                </span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (svc) {
+                                                                        setSelectedService(svc);
+                                                                        setExpandedPhoto(null);
+                                                                        setShowCatalogModal(false);
+                                                                        setStep(25); // Mandar directamente a elegir fecha
+                                                                    }
+                                                                }}
+                                                                className="btn btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 shadow-glow"
+                                                            >
+                                                                Elegir este diseño
+                                                                <ChevronRight size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </>
                             );
                         })()}
                     </div>
