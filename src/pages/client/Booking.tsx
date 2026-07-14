@@ -1322,6 +1322,62 @@ export default function Booking() {
                                             <p className="text-sm text-muted uppercase tracking-widest">{stylist.role}</p>
                                         </div>
                                     </div>
+
+                                    {/* ── Galerías del Profesional separadas por Servicio ── */}
+                                    {(() => {
+                                        // Obtener servicios que realiza el estilista (excluyendo adicionales/addons)
+                                        const stylistServices = services.filter(s => !s.isAddon && stylist.serviceIds?.includes(s.id));
+                                        
+                                        // Filtrar cuáles tienen imágenes en el catálogo
+                                        const servicesWithPhotos = stylistServices.filter(s =>
+                                            catalogItems.some(c => c.serviceId === s.id)
+                                        );
+
+                                        if (servicesWithPhotos.length === 0) return null;
+
+                                        return (
+                                            <div className="mt-4 pt-4 border-t border-white/5 space-y-3" onClick={e => e.stopPropagation()}>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Trabajos destacados:</p>
+                                                {servicesWithPhotos.map(svc => {
+                                                    const svcPhotos = catalogItems.filter(c => c.serviceId === svc.id);
+                                                    return (
+                                                        <div key={svc.id} className="space-y-1.5">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-[11px] font-bold text-slate-300">{svc.name}</span>
+                                                                <span className="text-[9px] text-slate-500 font-medium">({svcPhotos.length} fotos)</span>
+                                                            </div>
+                                                            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                                                {svcPhotos.map(photo => (
+                                                                    <div
+                                                                        key={photo.id}
+                                                                        className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 hover:border-violet-400/50 cursor-pointer active:scale-95 transition-all"
+                                                                        onClick={() => {
+                                                                            setSelectedStylist(stylist);
+                                                                            setSelectedService(svc);
+                                                                            setSelectedAddOns([]);
+                                                                            if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
+                                                                                setShowNailQuoterFlow(true);
+                                                                                setStep(22);
+                                                                            } else {
+                                                                                const hasAddons = services.some(s => s.isAddon);
+                                                                                if (businessConfig?.enableAddons && hasAddons) {
+                                                                                    setStep(23);
+                                                                                } else {
+                                                                                    setStep(25);
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <img src={photo.imageUrl} alt={svc.name} className="w-full h-full object-cover" />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             ))}
                         </div>
