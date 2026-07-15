@@ -110,8 +110,7 @@ export default function Quoter() {
             const detailText = item.detail ? ` ${item.detail}` : '';
             text += `• ${item.name}${detailText}: *$${item.price} MXN*\n`;
         });
-        text += `\n💵 *TOTAL ESTIMADO: $${quoteBreakdown.total} MXN*\n`;
-        text += `_Nota: Precios aproximados según especificaciones del diseño._\n\n`;
+        text += `\n💵 *TOTAL: $${quoteBreakdown.total} MXN*\n\n`;
         text += `👉 ¡Reserva tu cita aquí! https://stylesync.citalink.site/${businessConfig.slug}`;
         return encodeURIComponent(text);
     };
@@ -123,8 +122,7 @@ export default function Quoter() {
             const detailText = item.detail ? ` ${item.detail}` : '';
             text += `• ${item.name}${detailText}: $${item.price} MXN\n`;
         });
-        text += `\nTOTAL ESTIMADO: $${quoteBreakdown.total} MXN\n`;
-        text += `Nota: Precios aproximados según diseño.\n`;
+        text += `\nTOTAL: $${quoteBreakdown.total} MXN\n\n`;
         text += `Reserva tu cita aquí: https://stylesync.citalink.site/${businessConfig.slug}`;
 
         navigator.clipboard.writeText(text);
@@ -496,18 +494,13 @@ export default function Quoter() {
                         {/* Grand Total */}
                         <div className="pt-6 border-t border-dashed border-white/10 flex justify-between items-center">
                             <div className="text-left">
-                                <span className="text-xs uppercase font-bold text-slate-500">Total Estimado</span>
+                                <span className="text-xs uppercase font-bold text-slate-500">Total</span>
                                 <p className="text-2xl font-black text-white">${quoteBreakdown.total} <span className="text-xs font-semibold text-slate-400">MXN</span></p>
                             </div>
                             <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-wider">
                                 Cotizado
                             </div>
                         </div>
-
-                        {/* Disclaimer */}
-                        <p className="text-[10px] text-slate-500 text-center mt-6 leading-relaxed">
-                            Este es un presupuesto informativo aproximado. Los precios finales pueden variar de acuerdo al diseño final en cabina.
-                        </p>
                     </div>
 
                     {/* Actions button group */}
