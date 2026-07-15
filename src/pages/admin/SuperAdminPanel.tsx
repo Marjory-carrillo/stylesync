@@ -303,6 +303,7 @@ export default function SuperAdminPanel() {
     const [appointmentsLast30, setAppointmentsLast30] = useState<number | null>(null);
     const [appointmentsByTenant, setAppointmentsByTenant] = useState<Record<string, number>>({});
     const [uniqueClients, setUniqueClients] = useState<number | null>(null);
+    const [smsByMonth, setSmsByMonth] = useState<{ month_label: string; count: number }[]>([]);
     const showToast = useUIStore(s => s.showToast);
     const navigate = useNavigate();
 
@@ -325,20 +326,14 @@ export default function SuperAdminPanel() {
 
     const fetchSmsMetrics = async () => {
         try {
-            // Conteo total de mensajes WhatsApp reales (excluye demo)
-            const { count } = await supabase
-                .from('sms_logs')
-                .select('*', { count: 'exact', head: true })
-                .eq('provider', 'whatsapp');
-            setTotalSmsCount(count || 0);
-
-            // Obtener conteos por tenant agrupados desde la vista de Supabase
+            // 1. Obtener conteos por tenant agrupados desde la vista de Supabase
             const { data: viewData, error } = await supabase
                 .from('whatsapp_metrics_by_tenant')
                 .select('*');
 
             if (error) throw error;
 
+            let sumTotal = 0;
             const counts: Record<string, { total: number; week: number; month: number }> = {};
             viewData?.forEach((row: any) => {
                 if (row.tenant_id) {
@@ -347,9 +342,19 @@ export default function SuperAdminPanel() {
                         week: row.week || 0,
                         month: row.month || 0
                     };
+                    sumTotal += row.total || 0;
                 }
             });
             setSmsCountsByTenant(counts);
+            setTotalSmsCount(sumTotal);
+
+            // 2. Obtener historial mensual de mensajes
+            const { data: monthData } = await supabase
+                .from('whatsapp_metrics_by_month')
+                .select('*');
+            if (monthData) {
+                setSmsByMonth(monthData.map((d: any) => ({ month_label: d.month_label, count: d.count || 0 })));
+            }
         } catch (err) {
             console.error("Error fetching SMS metrics:", err);
         }
@@ -388,6 +393,20 @@ export default function SuperAdminPanel() {
             console.error('Error fetching appointment metrics:', err);
         }
     };
+
+    const tenantsByMonth = useMemo(() => {
+        const groups: Record<string, number> = {};
+        allTenants.forEach(t => {
+            if (t.created_at) {
+                const date = new Date(t.created_at);
+                const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                groups[monthStr] = (groups[monthStr] || 0) + 1;
+            }
+        });
+        return Object.entries(groups)
+            .map(([month_label, count]) => ({ month_label, count }))
+            .sort((a, b) => b.month_label.localeCompare(a.month_label));
+    }, [allTenants]);
 
     const planCounts = useMemo(() => {
         const counts = { all: allTenants.length, free: 0, lite: 0, pro: 0, business: 0, trial: 0, trial_expired: 0, at_risk: 0 };
@@ -820,6 +839,61 @@ export default function SuperAdminPanel() {
                             );
                         });
                     })()}
+                </div>
+            </div>
+
+            {/* Historial de Crecimiento Mensual */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Historial de Mensajes de WhatsApp */}
+                <div className="glass-panel p-6 border border-white/5 flex flex-col">
+                    <h3 className="text-white font-black text-lg mb-4 flex items-center gap-2 uppercase tracking-tight">
+                        <Zap className="text-emerald-400" size={18} />
+                        Historial Mensual de WhatsApp
+                    </h3>
+                    <div className="flex-1 max-h-60 overflow-y-auto space-y-2.5 pr-2 custom-scrollbar">
+                        {smsByMonth.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500 text-xs">Sin registros de WhatsApp aún.</div>
+                        ) : (
+                            smsByMonth.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.04] p-3.5 rounded-xl hover:bg-white/[0.04] transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 animate-pulse-soft"></div>
+                                        <span className="text-sm font-semibold text-slate-300 uppercase">{item.month_label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-base font-black text-emerald-400">{item.count.toLocaleString()}</span>
+                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">mensajes</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Historial de Registro de Negocios */}
+                <div className="glass-panel p-6 border border-white/5 flex flex-col">
+                    <h3 className="text-white font-black text-lg mb-4 flex items-center gap-2 uppercase tracking-tight">
+                        <Building2 className="text-blue-400" size={18} />
+                        Historial Mensual de Negocios
+                    </h3>
+                    <div className="flex-1 max-h-60 overflow-y-auto space-y-2.5 pr-2 custom-scrollbar">
+                        {tenantsByMonth.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500 text-xs">Sin registros de negocios aún.</div>
+                        ) : (
+                            tenantsByMonth.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.04] p-3.5 rounded-xl hover:bg-white/[0.04] transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500/80"></div>
+                                        <span className="text-sm font-semibold text-slate-300 uppercase">{item.month_label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-base font-black text-blue-400">+{item.count}</span>
+                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">nuevos</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
 
