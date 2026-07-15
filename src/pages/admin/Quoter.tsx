@@ -66,10 +66,16 @@ export default function Quoter() {
                     const hasUnit = !!item.unit;
                     const qty = hasUnit ? selection.qty : 1;
                     const price = item.price * qty;
+                    let unitText = item.unit;
+                    if (item.unit === 'por pieza') {
+                        unitText = qty === 1 ? 'pieza' : 'piezas';
+                    } else if (item.unit === 'por uña') {
+                        unitText = qty === 1 ? 'uña' : 'uñas';
+                    }
                     items.push({
                         name: item.name,
                         price,
-                        detail: hasUnit ? `(${qty} ${item.unit})` : undefined
+                        detail: hasUnit ? `(${qty} ${unitText})` : undefined
                     });
                     total += price;
                 }
