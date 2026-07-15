@@ -95,6 +95,22 @@ export interface BlockedSlot {
     reason?: string;
 }
 
+export interface Lead {
+    id: string;
+    business_name: string;
+    business_type: string;
+    employee_count: string;
+    contact_name: string;
+    email: string;
+    phone: string;
+    status: string;
+    notes?: string | null;
+    archived_at?: string | null;
+    converted_at?: string | null;
+    converted_tenant_id?: string | null;
+    created_at: string;
+}
+
 export interface Toast {
     id: string;
     message: string;

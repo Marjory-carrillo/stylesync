@@ -113,6 +113,47 @@ export default function Landing() {
             }]);
             if (error) throw error;
             setLeadSuccess(true);
+
+            // ── Notificación por WhatsApp al SuperAdmin ──
+            try {
+                const { data: globalConfig } = await supabase
+                    .from('global_configs')
+                    .select('superadmin_phone')
+                    .eq('id', 'main')
+                    .single();
+
+                if (globalConfig?.superadmin_phone) {
+                    const bizTypes: Record<string, string> = {
+                        barbershop: 'Barbería',
+                        salon: 'Salón de Belleza',
+                        spa: 'Spa / Multiestética',
+                        clinic: 'Clínica / Consultorio',
+                        other: 'Otro'
+                    };
+                    const typeLabel = bizTypes[formData.businessType] || formData.businessType;
+                    const messageText = `🆕 *Nuevo prospecto en CitaLink!*\n\n🏪 *Negocio:* ${formData.businessName} (${typeLabel})\n👤 *Contacto:* ${formData.contactName}\n📞 *Teléfono:* ${formData.phone}\n📧 *Email:* ${formData.email}\n👥 *Personal:* ${formData.employeeCount}`;
+                    
+                    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+                    const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+                    
+                    void fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': `Bearer ${ANON_KEY}`, 
+                            'apikey': ANON_KEY 
+                        },
+                        body: JSON.stringify({
+                            to: globalConfig.superadmin_phone,
+                            message: messageText,
+                            provider: 'whatsapp'
+                        }),
+                    });
+                }
+            } catch (notiErr) {
+                console.warn('No se pudo enviar la notificación de lead al superadmin:', notiErr);
+            }
+
             setTimeout(() => { setIsModalOpen(false); setLeadSuccess(false); setFormData({ businessName: '', businessType: '', employeeCount: '', contactName: '', email: '', phone: '' }); }, 5000);
         } catch (err: any) {
             setErrorMsg(err.message || 'Error al procesar. Intenta de nuevo.');

@@ -11,6 +11,7 @@ const globalConfigSchema = z.object({
     trial_days: z.number().int().min(0, 'Los días de prueba no pueden ser negativos').max(365, 'El período de prueba no puede exceder 1 año'),
     maintenance_mode: z.boolean(),
     system_email: z.string().email('Debe ser un correo electrónico válido').min(1, 'El correo es requerido'),
+    superadmin_phone: z.string().optional().nullable(),
 });
 
 type GlobalConfigValidation = z.infer<typeof globalConfigSchema>;
@@ -55,7 +56,8 @@ export default function GlobalSettings() {
                         premium_plan_price: 999.00,
                         trial_days: 21,
                         maintenance_mode: false,
-                        system_email: 'soporte@citalink.app'
+                        system_email: 'soporte@citalink.app',
+                        superadmin_phone: ''
                     };
                     const { data: newData, error: insertError } = await supabase
                         .from('global_configs')
@@ -115,6 +117,7 @@ export default function GlobalSettings() {
                     trial_days: config.trial_days,
                     maintenance_mode: config.maintenance_mode,
                     system_email: config.system_email,
+                    superadmin_phone: config.superadmin_phone || null,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', 'main');
@@ -351,6 +354,25 @@ export default function GlobalSettings() {
                                     <Info size={16} className="text-violet-400 shrink-0 mt-0.5" />
                                     <p className="text-[10px] uppercase font-black tracking-widest leading-relaxed text-slate-500">
                                         Este dirección es el núcleo de las notificaciones automáticas y recuperación de cuentas.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 relative z-10">
+                                <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                                    Teléfono WhatsApp de Notificaciones SuperAdmin
+                                </label>
+                                <input
+                                    type="tel"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:outline-none focus:border-violet-500/40 transition-all placeholder:opacity-20"
+                                    value={config.superadmin_phone || ''}
+                                    onChange={(e) => setConfig({ ...config, superadmin_phone: e.target.value })}
+                                    placeholder="ej. 528682992809"
+                                />
+                                <div className="flex items-start gap-2 p-4 bg-white/5 rounded-2xl border border-white/5 mt-4">
+                                    <Info size={16} className="text-violet-400 shrink-0 mt-0.5" />
+                                    <p className="text-[10px] uppercase font-black tracking-widest leading-relaxed text-slate-500">
+                                        Este número recibirá notificaciones automáticas vía WhatsApp cuando se registre un nuevo prospecto en la landing page.
                                     </p>
                                 </div>
                             </div>
