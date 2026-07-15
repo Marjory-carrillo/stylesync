@@ -332,26 +332,21 @@ export default function SuperAdminPanel() {
                 .eq('provider', 'whatsapp');
             setTotalSmsCount(count || 0);
 
-            // Conteos por tenant â€” solo WhatsApp, con fecha para semana/mes
-            const { data: logsData, error } = await supabase
-                .from('sms_logs')
-                .select('tenant_id, created_at')
-                .eq('provider', 'whatsapp');
+            // Obtener conteos por tenant agrupados desde la vista de Supabase
+            const { data: viewData, error } = await supabase
+                .from('whatsapp_metrics_by_tenant')
+                .select('*');
 
             if (error) throw error;
 
-            const now = new Date();
-            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            const oneMonthAgo = subMonths(now, 1);
-
             const counts: Record<string, { total: number; week: number; month: number }> = {};
-            logsData?.forEach(log => {
-                if (log.tenant_id) {
-                    if (!counts[log.tenant_id]) counts[log.tenant_id] = { total: 0, week: 0, month: 0 };
-                    counts[log.tenant_id].total += 1;
-                    const logDate = new Date(log.created_at);
-                    if (logDate >= oneWeekAgo) counts[log.tenant_id].week += 1;
-                    if (logDate >= oneMonthAgo) counts[log.tenant_id].month += 1;
+            viewData?.forEach((row: any) => {
+                if (row.tenant_id) {
+                    counts[row.tenant_id] = {
+                        total: row.total || 0,
+                        week: row.week || 0,
+                        month: row.month || 0
+                    };
                 }
             });
             setSmsCountsByTenant(counts);
@@ -362,34 +357,33 @@ export default function SuperAdminPanel() {
 
     const fetchAppointmentMetrics = async () => {
         try {
-            const since = subMonths(new Date(), 1).toISOString().split('T')[0];
+            // 1. Obtener métricas globales agrupadas desde la vista de Supabase
+            const { data: globalData, error: globalErr } = await supabase
+                .from('global_platform_metrics')
+                .select('*')
+                .single();
 
-            // Citas en los últimos 30 días
-            const { data: apptData, error } = await supabase
-                .from('appointments')
-                .select('tenant_id, client_phone, date')
-                .gte('date', since);
+            if (globalErr) throw globalErr;
 
-            if (error) throw error;
+            if (globalData) {
+                setAppointmentsLast30(globalData.appointments_last_30d || 0);
+                setUniqueClients(globalData.unique_clients || 0);
+            }
 
-            const apptCount = apptData?.length || 0;
-            setAppointmentsLast30(apptCount);
+            // 2. Obtener conteos de citas por tenant desde la vista
+            const { data: apptTenantData, error: tenantErr } = await supabase
+                .from('appointments_last_30d_by_tenant')
+                .select('*');
 
-            // Calculate appointments by tenant
+            if (tenantErr) throw tenantErr;
+
             const apptCounts: Record<string, number> = {};
-            apptData?.forEach(appt => {
-                if (appt.tenant_id) {
-                    apptCounts[appt.tenant_id] = (apptCounts[appt.tenant_id] || 0) + 1;
+            apptTenantData?.forEach((row: any) => {
+                if (row.tenant_id) {
+                    apptCounts[row.tenant_id] = row.count || 0;
                 }
             });
             setAppointmentsByTenant(apptCounts);
-
-            // Total clientes únicos (por número de teléfono)
-            const { data: phones } = await supabase
-                .from('appointments')
-                .select('client_phone');
-            const unique = new Set((phones || []).map((r: any) => r.client_phone).filter(Boolean));
-            setUniqueClients(unique.size);
         } catch (err) {
             console.error('Error fetching appointment metrics:', err);
         }
