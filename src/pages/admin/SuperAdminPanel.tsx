@@ -559,6 +559,7 @@ export default function SuperAdminPanel() {
     const mrrInfo = useMemo(() => {
         let totalMrr = 0;
         let freeCount = 0;
+        let liteCount = 0;
         let proCount = 0;
         let businessCount = 0;
         let activeTrials = 0;
@@ -614,6 +615,7 @@ export default function SuperAdminPanel() {
                 businessCount++;
                 if (!isTrial) basePrice = 1249;
             } else if (plan === 'lite') {
+                liteCount++;
                 if (!isTrial) basePrice = 349;
             }
 
@@ -630,7 +632,7 @@ export default function SuperAdminPanel() {
             }
         });
 
-        return { totalMrr, freeCount, proCount, businessCount, activeTrials };
+        return { totalMrr, freeCount, liteCount, proCount, businessCount, activeTrials };
     }, [allTenants]);
 
 
@@ -776,7 +778,7 @@ export default function SuperAdminPanel() {
                     title="MRR Estimado"
                     value={`$${mrrInfo.totalMrr.toLocaleString()} MXN`}
                     color="text-emerald-400"
-                    sub={`${mrrInfo.proCount} Pro · ${mrrInfo.businessCount} Biz · ${mrrInfo.activeTrials} Trials`}
+                    sub={`${mrrInfo.liteCount} Esen · ${mrrInfo.proCount} Pro · ${mrrInfo.businessCount} Biz · ${mrrInfo.activeTrials} Trials`}
                     delay="1"
                 />
                 <StatCard
