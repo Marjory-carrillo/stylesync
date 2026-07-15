@@ -28,17 +28,18 @@ FROM public.sms_logs
 WHERE provider = 'whatsapp'
 GROUP BY tenant_id;
 
+-- Corrección: comparación directa de tipos de fecha para evitar error "operator does not exist: date >= text"
 CREATE OR REPLACE VIEW public.global_platform_metrics AS
 SELECT
     (SELECT COUNT(DISTINCT client_phone) FROM public.appointments)::integer as unique_clients,
-    (SELECT COUNT(*) FROM public.appointments WHERE date >= to_char(CURRENT_DATE - INTERVAL '30 days', 'YYYY-MM-DD'))::integer as appointments_last_30d;
+    (SELECT COUNT(*) FROM public.appointments WHERE date >= (CURRENT_DATE - INTERVAL '30 days')::date)::integer as appointments_last_30d;
 
 CREATE OR REPLACE VIEW public.appointments_last_30d_by_tenant AS
 SELECT 
     tenant_id,
     COUNT(*)::integer as count
 FROM public.appointments
-WHERE date >= to_char(CURRENT_DATE - INTERVAL '30 days', 'YYYY-MM-DD')
+WHERE date >= (CURRENT_DATE - INTERVAL '30 days')::date
 GROUP BY tenant_id;
 
 -- 4. Asignar permisos sobre las nuevas vistas
