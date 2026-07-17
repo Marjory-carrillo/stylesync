@@ -13,7 +13,7 @@ import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
-import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2 } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -78,6 +78,7 @@ export default function Dashboard() {
 
     const [linkType, setLinkType] = useState<'branch' | 'brand'>('branch');
     const [isLinkCardExpanded, setIsLinkCardExpanded] = useState(false);
+    const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
 
     const isLoading = apptsPending || svcsLoading;
 
@@ -1197,14 +1198,12 @@ export default function Dashboard() {
                                                             if (refItem) {
                                                                 const url = refItem.replace('Referencia: ', '');
                                                                 return (
-                                                                    <a
-                                                                        href={url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider"
+                                                                    <button
+                                                                        onClick={() => setActivePhotoUrl(url)}
+                                                                        className="inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
                                                                     >
                                                                         👁️ Diseño
-                                                                    </a>
+                                                                    </button>
                                                                 );
                                                             }
                                                             return null;
@@ -1377,14 +1376,12 @@ export default function Dashboard() {
                                                                 if (refItem) {
                                                                     const url = refItem.replace('Referencia: ', '');
                                                                     return (
-                                                                        <a
-                                                                            href={url}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="ml-2 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider"
+                                                                        <button
+                                                                            onClick={() => setActivePhotoUrl(url)}
+                                                                            className="ml-2 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
                                                                         >
                                                                             👁️ Diseño
-                                                                        </a>
+                                                                        </button>
                                                                     );
                                                                 }
                                                                 return null;
@@ -1555,14 +1552,12 @@ export default function Dashboard() {
                                                                 if (refItem) {
                                                                     const url = refItem.replace('Referencia: ', '');
                                                                     return (
-                                                                        <a
-                                                                            href={url}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="ml-2 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider"
+                                                                        <button
+                                                                            onClick={() => setActivePhotoUrl(url)}
+                                                                            className="ml-2 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
                                                                         >
                                                                             👁️ Diseño
-                                                                        </a>
+                                                                        </button>
                                                                     );
                                                                 }
                                                                 return null;
@@ -1607,6 +1602,28 @@ export default function Dashboard() {
                     );
                 })()}
             </div>
+
+            {/* Full screen design reference photo preview modal */}
+            {activePhotoUrl && (
+                <div 
+                    className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer animate-fade-in"
+                    onClick={() => setActivePhotoUrl(null)}
+                >
+                    <button 
+                        onClick={() => setActivePhotoUrl(null)}
+                        className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/5 hover:bg-white/10 p-3 rounded-full border border-white/10 transition-all cursor-pointer"
+                    >
+                        <X size={20} />
+                    </button>
+                    <div className="relative max-w-4xl max-h-[85vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                        <img 
+                            src={activePhotoUrl} 
+                            alt="Diseño de referencia" 
+                            className="max-w-full max-h-[85vh] rounded-3xl object-contain shadow-2xl border border-white/10 animate-scale-in"
+                        />
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

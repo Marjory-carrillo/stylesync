@@ -71,6 +71,7 @@ export default function Appointments() {
     const [showLog, setShowLog] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; appt: any | null }>({ open: false, appt: null });
     const [showBookingModal, setShowBookingModal] = useState(false);
+    const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
 
     const PAGE_SIZE = 20;
 
@@ -557,14 +558,12 @@ export default function Appointments() {
                                                                         if (refItem) {
                                                                             const url = refItem.replace('Referencia: ', '');
                                                                             return (
-                                                                                <a
-                                                                                    href={url}
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    className="ml-1 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider"
-                                                                                >
-                                                                                    👁️ Diseño
-                                                                                </a>
+                                                                                <button
+                                                                                     onClick={() => setActivePhotoUrl(url)}
+                                                                                     className="ml-1 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
+                                                                                 >
+                                                                                     👁️ Diseño
+                                                                                 </button>
                                                                             );
                                                                         }
                                                                         return null;
@@ -805,6 +804,28 @@ export default function Appointments() {
                 isOpen={showBookingModal}
                 onClose={() => setShowBookingModal(false)}
             />
+
+            {/* Full screen design reference photo preview modal */}
+            {activePhotoUrl && (
+                <div 
+                    className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer animate-fade-in"
+                    onClick={() => setActivePhotoUrl(null)}
+                >
+                    <button 
+                        onClick={() => setActivePhotoUrl(null)}
+                        className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/5 hover:bg-white/10 p-3 rounded-full border border-white/10 transition-all cursor-pointer"
+                    >
+                        <X size={20} />
+                    </button>
+                    <div className="relative max-w-4xl max-h-[85vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                        <img 
+                            src={activePhotoUrl} 
+                            alt="Diseño de referencia" 
+                            className="max-w-full max-h-[85vh] rounded-3xl object-contain shadow-2xl border border-white/10 animate-scale-in"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
