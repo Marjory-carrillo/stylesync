@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, addDays, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { X, User, Phone, Scissors, Calendar, Clock, ChevronLeft, CheckCircle, AlertTriangle, Loader2, UserCheck } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useBlockedSlots } from '../lib/store/queries/useBlockedSlots';
 import { useBlockedPhones } from '../lib/store/queries/useBlockedPhones';
 import { useSchedule } from '../lib/store/queries/useSchedule';
 import { useTenantData } from '../lib/store/queries/useTenantData';
+import { useNailCalculator } from '../lib/store/queries/useNailCalculator';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 
 export const DAY_NAMES: Record<string, string> = {
@@ -21,7 +22,7 @@ interface Props {
     onClose: () => void;
 }
 
-type Step = 'datos' | 'servicio' | 'barbero' | 'fecha' | 'hora' | 'exito';
+type Step = 'datos' | 'barbero' | 'servicio' | 'fecha' | 'hora' | 'exito';
 
 export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { addAppointment, appointments, isAdding } = useAppointments();
@@ -31,8 +32,26 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { blockedPhones } = useBlockedPhones();
     const { schedule } = useSchedule();
     const { data: businessConfig } = useTenantData();
+
+    // Nail Calculator config & states
+    const { config: nailQuoterConfig } = useNailCalculator();
+    const sizeCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'sizes'), [nailQuoterConfig]);
+    const extrasCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'extras'), [nailQuoterConfig]);
+    const simplifiedDesignsCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'simplified_designs'), [nailQuoterConfig]);
+
+    const [nailSize, setNailSize] = useState<{ id: string; name: string; price: number } | null>(null);
+    const [nailExtras, setNailExtras] = useState<Record<string, boolean>>({});
+    const [designLevel, setDesignLevel] = useState<'basic' | 'simple' | 'complex'>('basic');
     
-    // Función auxiliar local
+    // Set default nail size once config is loaded
+    useEffect(() => {
+        const sizeCat = nailQuoterConfig?.find(c => c.id === 'sizes');
+        if (sizeCat && sizeCat.items.length > 0 && !nailSize) {
+            setNailSize({ id: sizeCat.items[0].id, name: sizeCat.items[0].name, price: sizeCat.items[0].price });
+        }
+    }, [nailQuoterConfig, nailSize]);
+
+    // Auxiliary schedule retriever
     const getScheduleForDate = (dateStr: string) => {
         const d = new Date(dateStr + 'T00:00:00');
         const dayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][d.getDay()];
@@ -63,6 +82,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         setSelectedTime(null);
         setFormError(null);
         setLastCreated(null);
+        setNailExtras({});
+        setDesignLevel('basic');
     };
 
     const handleClose = () => {
@@ -70,7 +91,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         onClose();
     };
 
-    // Build available dates (60 days ahead — admin can book further than clients)
+    // Build available dates (60 days ahead)
     const availableDates = useMemo(() => {
         const dates: { dateStr: string; label: string; dayName: string; isToday: boolean }[] = [];
         const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -88,6 +109,50 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
         return dates;
     }, []);
+
+    // Check if client has an active appointment (status is confirmada/pendiente)
+    const activeAppointmentForPhone = useMemo(() => {
+        if (!clientPhone || clientPhone.length < 7) return null;
+        const normalizedInput = clientPhone.replace(/\D/g, '');
+        return appointments.find(a => {
+            const normalizedAptPhone = a.clientPhone.replace(/\D/g, '');
+            const isActive = a.status !== 'cancelada' && a.status !== 'completada';
+            return isActive && (normalizedInput.slice(-10) === normalizedAptPhone.slice(-10));
+        });
+    }, [clientPhone, appointments]);
+
+    // Calculate smart nail total price
+    const nailTotalPrice = useMemo(() => {
+        if (!selectedService) return 0;
+        let sum = selectedService.price;
+        if (nailSize) sum += nailSize.price;
+
+        const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
+        if (designItem) {
+            sum += designItem.price;
+        } else {
+            if (designLevel === 'simple') sum += 50;
+            else if (designLevel === 'complex') sum += 150;
+        }
+
+        const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+        if (extrasCat) {
+            extrasCat.items.forEach(item => {
+                if (nailExtras[item.id]) {
+                    sum += item.price;
+                }
+            });
+        }
+        return sum;
+    }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
+
+    // Get final computed service price
+    const totalPrice = useMemo(() => {
+        if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
+            return nailTotalPrice;
+        }
+        return selectedService?.price ?? 0;
+    }, [businessConfig, selectedService, nailTotalPrice]);
 
     // Compute available time slots for selected date + service + stylist
     const availableSlots = useMemo(() => {
@@ -116,7 +181,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         const stylistsToCheck = selectedStylist === 'any' ? stylists : (selectedStylist ? [selectedStylist] : []);
 
         if (stylistsToCheck.length === 0) {
-            // No stylists configured — use generic slot
+            // No stylists configured — treat as generic slot
             const appts: SlotAppointment[] = appointments
                 .filter(a => a.date === selectedDate && a.status === 'confirmada')
                 .map(a => {
@@ -162,7 +227,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
         setClientPhone(phone);
         setFormError(null);
-        setStep('servicio');
+        setStep('barbero'); // Step 2 is now Stylist Selection
     };
 
     // Step: confirm booking
@@ -177,6 +242,35 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             stylistId = stylists[0].id;
         }
 
+        // Build additionalServices/addOnNames
+        let addOnNames: string[] = [];
+        if (businessConfig?.category === 'nail_bar' && selectedService.enableQuoter) {
+            if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
+            
+            const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
+            if (designItem) {
+                addOnNames.push(`Diseño: ${designItem.name} (+$${designItem.price} MXN)`);
+            } else {
+                if (designLevel === 'basic') {
+                    addOnNames.push(`Diseño: Básico / 1 Tono (+$0 MXN)`);
+                } else if (designLevel === 'simple') {
+                    addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
+                } else if (designLevel === 'complex') {
+                    addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
+                }
+            }
+
+            const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+            if (extrasCat) {
+                extrasCat.items.forEach(item => {
+                    if (nailExtras[item.id]) {
+                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN)`);
+                    }
+                });
+            }
+            addOnNames.push(`Cotización Estimada: $${totalPrice} MXN`);
+        }
+
         try {
             await addAppointment({
                 clientName: clientName.trim(),
@@ -185,6 +279,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                 stylistId,
                 date: selectedDate,
                 time: selectedTime,
+                additionalServices: addOnNames.length > 0 ? addOnNames : undefined,
             });
             setLastCreated({ clientName: clientName.trim(), date: selectedDate, time: selectedTime });
             setStep('exito');
@@ -202,7 +297,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return `${hh}:${m}${ampm}`;
     };
 
-    const stepIndex: Record<Step, number> = { datos: 1, servicio: 2, barbero: 3, fecha: 4, hora: 5, exito: 6 };
+    const stepIndex: Record<Step, number> = { datos: 1, barbero: 2, servicio: 3, fecha: 4, hora: 5, exito: 6 };
     const totalSteps = 5;
     const progress = Math.min((stepIndex[step] - 1) / totalSteps, 1);
 
@@ -293,6 +388,17 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         </div>
                                     </div>
 
+                                    {/* Active Appointment Warning */}
+                                    {activeAppointmentForPhone && (
+                                        <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs leading-relaxed animate-fade-in">
+                                            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-bold block text-slate-200 mb-0.5">¡Cita activa encontrada!</span>
+                                                Este cliente ya tiene una cita para el <span className="text-white font-bold">{new Date(activeAppointmentForPhone.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</span> a las <span className="text-accent font-black">{fmt12h(activeAppointmentForPhone.time)}</span>.
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {formError && (
                                         <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                                             <AlertTriangle size={16} />
@@ -311,42 +417,14 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                         </div>
                     )}
 
-                    {/* ══ STEP: Servicio ══ */}
-                    {step === 'servicio' && (
-                        <div className="animate-fade-in">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 2: Servicio</p>
-                            <div className="space-y-2">
-                                {services.map(svc => (
-                                    <button
-                                        key={svc.id}
-                                        onClick={() => { setSelectedService(svc); setStep('barbero'); }}
-                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
-                                    >
-                                        <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-                                            <Scissors size={18} className="text-accent" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-white text-sm">{svc.name}</p>
-                                            <p className="text-xs text-slate-500">{svc.duration} min</p>
-                                        </div>
-                                        <span className="text-accent font-black text-sm shrink-0">${svc.price}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            <button onClick={() => setStep('datos')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
-                                <ChevronLeft size={16} /> Regresar
-                            </button>
-                        </div>
-                    )}
-
                     {/* ══ STEP: Barbero ══ */}
                     {step === 'barbero' && (
                         <div className="animate-fade-in">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 3: Barbero / Profesional</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 2: Barbero / Profesional</p>
                             <div className="space-y-2">
                                 {/* Any option */}
                                 <button
-                                    onClick={() => { setSelectedStylist('any'); setStep('fecha'); }}
+                                    onClick={() => { setSelectedStylist('any'); setStep('servicio'); }}
                                     className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/[0.03] hover:border-accent/20 hover:bg-white/5 transition-all text-left"
                                 >
                                     <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
@@ -360,7 +438,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                 {stylists.map(st => (
                                     <button
                                         key={st.id}
-                                        onClick={() => { setSelectedStylist(st); setStep('fecha'); }}
+                                        onClick={() => { setSelectedStylist(st); setStep('servicio'); }}
                                         className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedStylist !== 'any' && selectedStylist?.id === st.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
                                     >
                                         {st.image ? (
@@ -377,7 +455,156 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     </button>
                                 ))}
                             </div>
-                            <button onClick={() => setStep('servicio')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button onClick={() => setStep('datos')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                                <ChevronLeft size={16} /> Regresar
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ══ STEP: Servicio ══ */}
+                    {step === 'servicio' && (
+                        <div className="animate-fade-in space-y-4">
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-2">Paso 3: Servicio</p>
+                            
+                            {/* If quoter is enabled and a service is selected, show the quoter form */}
+                            {selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter ? (
+                                <div className="space-y-5">
+                                    {/* Selected Service Card */}
+                                    <div className="flex items-center gap-4 p-4 rounded-2xl border bg-accent/5 border-accent/20 text-left">
+                                        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                                            <Scissors size={18} className="text-accent" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-white text-sm">{selectedService.name}</p>
+                                            <p className="text-xs text-slate-500">{selectedService.duration} min</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => setSelectedService(null)}
+                                            className="text-xs font-bold text-slate-500 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/5 transition-all"
+                                        >
+                                            Cambiar
+                                        </button>
+                                    </div>
+
+                                    {/* Nail Size Selector */}
+                                    {sizeCategory && (
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Largo de Uña</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {sizeCategory.items.map(item => (
+                                                    <button
+                                                        key={item.id}
+                                                        onClick={() => setNailSize(item)}
+                                                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center ${nailSize?.id === item.id ? 'bg-accent/15 border-accent text-white font-black' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                    >
+                                                        <span>{item.name}</span>
+                                                        <span className="block text-[10px] text-slate-500 font-normal">
+                                                            {item.price > 0 ? `+$${item.price}` : 'Sin costo'}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Design Level Selector */}
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Nivel de Diseño</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[
+                                                { id: 'basic', name: 'Básico', price: 0 },
+                                                { id: 'simple', name: 'Sencillo', price: 50 },
+                                                { id: 'complex', name: 'Elaborado', price: 150 }
+                                            ].map(lvl => {
+                                                const designItem = simplifiedDesignsCategory?.items.find(i => i.id === lvl.id);
+                                                const priceVal = designItem ? designItem.price : lvl.price;
+                                                return (
+                                                    <button
+                                                        key={lvl.id}
+                                                        onClick={() => setDesignLevel(lvl.id as any)}
+                                                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center ${designLevel === lvl.id ? 'bg-accent/15 border-accent text-white font-black' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                    >
+                                                        <span>{lvl.name}</span>
+                                                        <span className="block text-[10px] text-slate-500 font-normal">
+                                                            {priceVal > 0 ? `+$${priceVal}` : 'Sin costo'}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Extras / Retiro Checklist */}
+                                    {extrasCategory && (
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Extras y Retiro</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {extrasCategory.items.map(item => (
+                                                    <button
+                                                        key={item.id}
+                                                        onClick={() => setNailExtras(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                                                        className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all text-left ${nailExtras[item.id] ? 'bg-accent/15 border-accent text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                    >
+                                                        <span>{item.name}</span>
+                                                        <span className="text-[10px] text-slate-500 font-normal">+${item.price}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Total Price & Continue Button */}
+                                    <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
+                                        <div className="text-left">
+                                            <span className="text-[10px] text-slate-500 uppercase tracking-widest block">Total</span>
+                                            <span className="text-xl font-black text-emerald-400">${totalPrice} MXN</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setStep('fecha')}
+                                            className="px-6 py-3 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/20"
+                                        >
+                                            Continuar a Fecha →
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {services.map(svc => (
+                                        <button
+                                            key={svc.id}
+                                            onClick={() => {
+                                                setSelectedService(svc);
+                                                if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
+                                                    // Keep user in step to see customized quoter
+                                                } else {
+                                                    setStep('fecha');
+                                                }
+                                            }}
+                                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
+                                        >
+                                            <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                                                <Scissors size={18} className="text-accent" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-white text-sm">{svc.name}</p>
+                                                <p className="text-xs text-slate-500">{svc.duration} min</p>
+                                            </div>
+                                            <span className="text-accent font-black text-sm shrink-0">${svc.price}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button 
+                                onClick={() => {
+                                    if (selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter) {
+                                        setSelectedService(null);
+                                    } else {
+                                        setStep('barbero');
+                                    }
+                                }} 
+                                className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2"
+                            >
                                 <ChevronLeft size={16} /> Regresar
                             </button>
                         </div>
@@ -406,7 +633,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     );
                                 })}
                             </div>
-                            <button onClick={() => setStep('barbero')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button onClick={() => setStep('servicio')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
                                 <ChevronLeft size={16} /> Regresar
                             </button>
                         </div>
@@ -444,8 +671,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                             {selectedTime && (
                                 <div className="mt-6 space-y-3">
                                     {/* Summary card */}
-                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
-                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Resumen</p>
+                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2 text-left">
+                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Resumen de la Cita</p>
                                         <div className="flex items-center gap-2 text-sm text-white">
                                             <User size={14} className="text-accent shrink-0" />
                                             <span className="font-bold">{clientName}</span>
@@ -454,8 +681,38 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         <div className="flex items-center gap-2 text-sm text-white">
                                             <Scissors size={14} className="text-accent shrink-0" />
                                             <span>{selectedService?.name}</span>
-                                            <span className="text-accent font-bold ml-auto">${selectedService?.price}</span>
+                                            <span className="text-accent font-bold ml-auto">${totalPrice}</span>
                                         </div>
+
+                                        {/* Nails Customization details breakdown in admin summary card */}
+                                        {businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter && (
+                                            <div className="border-t border-white/5 pt-2.5 mt-2.5 space-y-1.5 text-xs text-slate-400">
+                                                {nailSize && (
+                                                    <div className="flex justify-between">
+                                                        <span>Largo:</span>
+                                                        <span className="text-slate-200 font-bold">{nailSize.name}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between">
+                                                    <span>Diseño:</span>
+                                                    <span className="text-slate-200 font-bold">
+                                                        {designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo' : 'Elaborado / Full Art'}
+                                                    </span>
+                                                </div>
+                                                {Object.keys(nailExtras).some(id => nailExtras[id]) && (
+                                                    <div className="flex justify-between items-start">
+                                                        <span>Extras:</span>
+                                                        <span className="text-slate-200 font-bold text-right truncate max-w-[150px]">
+                                                            {Object.keys(nailExtras)
+                                                                .filter(id => nailExtras[id])
+                                                                .map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name)
+                                                                .join(', ')}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center gap-2 text-sm text-white">
                                             <Calendar size={14} className="text-accent shrink-0" />
                                             <span>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
