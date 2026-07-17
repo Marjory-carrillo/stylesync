@@ -1609,12 +1609,23 @@ export default function Dashboard() {
                     className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer animate-fade-in"
                     onClick={() => setActivePhotoUrl(null)}
                 >
-                    <button 
-                        onClick={() => setActivePhotoUrl(null)}
-                        className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/5 hover:bg-white/10 p-3 rounded-full border border-white/10 transition-all cursor-pointer"
-                    >
-                        <X size={20} />
-                    </button>
+                    {/* Header buttons */}
+                    <div className="absolute top-6 left-6 right-6 flex items-center justify-between pointer-events-none">
+                        <a 
+                            href={activePhotoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pointer-events-auto inline-flex items-center gap-2 text-xs font-bold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-full border border-white/10 backdrop-blur-md transition-all cursor-pointer"
+                        >
+                            🔍 Abrir Original / Zoom
+                        </a>
+                        <button 
+                            onClick={() => setActivePhotoUrl(null)}
+                            className="pointer-events-auto text-white/70 hover:text-white bg-white/5 hover:bg-white/10 p-3 rounded-full border border-white/10 backdrop-blur-md transition-all cursor-pointer"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                     <div className="relative max-w-4xl max-h-[85vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
                         <img 
                             src={activePhotoUrl} 
