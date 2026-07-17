@@ -10,7 +10,7 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck, Eye } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
@@ -545,25 +545,28 @@ export default function Appointments() {
 
                                                             {/* Service & Stylist */}
                                                             <div className="flex flex-col gap-1.5 md:min-w-[180px] mt-2 md:mt-0">
-                                                                <div className="flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 w-fit">
-                                                                    <Scissors size={12} className="text-accent" />
-                                                                    <span className="tracking-tight truncate max-w-[200px]">
-                                                                        {service?.name} {(() => {
-                                                                            const clean = (apt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
-                                                                            return clean.length ? ' + ' + clean.join(' + ') : '';
-                                                                        })()}
-                                                                    </span>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <div className="flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 w-fit">
+                                                                        <Scissors size={12} className="text-accent" />
+                                                                        <span className="tracking-tight truncate max-w-[200px]">
+                                                                            {service?.name} {(() => {
+                                                                                const clean = (apt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
+                                                                                return clean.length ? ' + ' + clean.join(' + ') : '';
+                                                                            })()}
+                                                                        </span>
+                                                                    </div>
                                                                     {(() => {
                                                                         const refItem = (apt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
                                                                         if (refItem) {
                                                                             const url = refItem.replace('Referencia: ', '');
                                                                             return (
                                                                                 <button
-                                                                                     onClick={() => setActivePhotoUrl(url)}
-                                                                                     className="ml-1 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
-                                                                                 >
-                                                                                     👁️ Diseño
-                                                                                 </button>
+                                                                                    onClick={() => setActivePhotoUrl(url)}
+                                                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1.5 rounded-xl hover:bg-cyan-500/20 hover:text-cyan-300 transition-all uppercase tracking-wider cursor-pointer active:scale-95"
+                                                                                >
+                                                                                    <Eye size={12} className="text-cyan-400" />
+                                                                                    <span>Diseño</span>
+                                                                                </button>
                                                                             );
                                                                         }
                                                                         return null;
@@ -808,31 +811,33 @@ export default function Appointments() {
             {/* Full screen design reference photo preview modal */}
             {activePhotoUrl && (
                 <div 
-                    className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer animate-fade-in"
+                    className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 cursor-pointer animate-fade-in"
                     onClick={() => setActivePhotoUrl(null)}
                 >
-                    {/* Header buttons */}
-                    <div className="absolute top-6 left-6 right-6 flex items-center justify-between pointer-events-none">
+                    {/* Fixed Top Bar (100% visible on Mobile & Laptop) */}
+                    <div className="absolute top-0 left-0 right-0 h-16 bg-[#0f1420]/90 backdrop-blur-md border-b border-white/10 px-6 flex items-center justify-between z-10 pointer-events-auto">
                         <a 
                             href={activePhotoUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="pointer-events-auto inline-flex items-center gap-2 text-xs font-bold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-full border border-white/10 backdrop-blur-md transition-all cursor-pointer"
+                            className="inline-flex items-center gap-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-600/20 cursor-pointer active:scale-95"
                         >
                             🔍 Abrir Original / Zoom
                         </a>
                         <button 
                             onClick={() => setActivePhotoUrl(null)}
-                            className="pointer-events-auto text-white/70 hover:text-white bg-white/5 hover:bg-white/10 p-3 rounded-full border border-white/10 backdrop-blur-md transition-all cursor-pointer"
+                            className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
                         >
-                            <X size={20} />
+                            <X size={18} />
                         </button>
                     </div>
-                    <div className="relative max-w-4xl max-h-[85vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+
+                    {/* Image Container with margin top to prevent overlap with the header */}
+                    <div className="relative max-w-4xl max-h-[75vh] w-full flex items-center justify-center mt-16" onClick={e => e.stopPropagation()}>
                         <img 
                             src={activePhotoUrl} 
                             alt="Diseño de referencia" 
-                            className="max-w-full max-h-[85vh] rounded-3xl object-contain shadow-2xl border border-white/10 animate-scale-in"
+                            className="max-w-full max-h-[75vh] rounded-3xl object-contain shadow-2xl border border-white/10 animate-scale-in"
                         />
                     </div>
                 </div>

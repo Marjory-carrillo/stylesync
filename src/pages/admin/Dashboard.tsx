@@ -13,7 +13,7 @@ import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
-import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -1200,9 +1200,10 @@ export default function Dashboard() {
                                                                 return (
                                                                     <button
                                                                         onClick={() => setActivePhotoUrl(url)}
-                                                                        className="inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
+                                                                        className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1.5 rounded-xl hover:bg-cyan-500/20 hover:text-cyan-300 transition-all uppercase tracking-wider cursor-pointer active:scale-95"
                                                                     >
-                                                                        👁️ Diseño
+                                                                        <Eye size={12} className="text-cyan-400" />
+                                                                        <span>Diseño</span>
                                                                     </button>
                                                                 );
                                                             }
@@ -1371,22 +1372,23 @@ export default function Dashboard() {
                                                                 const clean = (appt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
                                                                 return clean.length ? ' + ' + clean.join(' + ') : '';
                                                             })()}
-                                                            {(() => {
-                                                                const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
-                                                                if (refItem) {
-                                                                    const url = refItem.replace('Referencia: ', '');
-                                                                    return (
-                                                                        <button
-                                                                            onClick={() => setActivePhotoUrl(url)}
-                                                                            className="ml-2 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
-                                                                        >
-                                                                            👁️ Diseño
-                                                                        </button>
-                                                                    );
-                                                                }
-                                                                return null;
-                                                            })()}
                                                         </div>
+                                                        {(() => {
+                                                            const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
+                                                            if (refItem) {
+                                                                const url = refItem.replace('Referencia: ', '');
+                                                                return (
+                                                                    <button
+                                                                        onClick={() => setActivePhotoUrl(url)}
+                                                                        className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1.5 rounded-xl hover:bg-cyan-500/20 hover:text-cyan-300 transition-all uppercase tracking-wider cursor-pointer active:scale-95"
+                                                                    >
+                                                                        <Eye size={12} className="text-cyan-400" />
+                                                                        <span>Diseño</span>
+                                                                    </button>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
                                                         {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
                                                             <>
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
@@ -1541,28 +1543,29 @@ export default function Dashboard() {
                                                     <div className="flex items-center gap-3 mb-1">
                                                         <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
                                                     </div>
-                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-3 tracking-wide">
+                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center flex-wrap gap-3 tracking-wide">
                                                         <div className="flex items-center gap-1.5 uppercase">
                                                             <Scissors size={12} className="text-emerald-500/60" /> {svc?.name} {(() => {
                                                                 const clean = (appt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
                                                                 return clean.length ? ' + ' + clean.join(' + ') : '';
                                                             })()}
-                                                            {(() => {
-                                                                const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
-                                                                if (refItem) {
-                                                                    const url = refItem.replace('Referencia: ', '');
-                                                                    return (
-                                                                        <button
-                                                                            onClick={() => setActivePhotoUrl(url)}
-                                                                            className="ml-2 inline-flex items-center gap-1 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded hover:bg-cyan-500/40 transition-all uppercase tracking-wider cursor-pointer"
-                                                                        >
-                                                                            👁️ Diseño
-                                                                        </button>
-                                                                    );
-                                                                }
-                                                                return null;
-                                                            })()}
                                                         </div>
+                                                        {(() => {
+                                                            const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
+                                                            if (refItem) {
+                                                                const url = refItem.replace('Referencia: ', '');
+                                                                return (
+                                                                    <button
+                                                                        onClick={() => setActivePhotoUrl(url)}
+                                                                        className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1.5 rounded-xl hover:bg-cyan-500/20 hover:text-cyan-300 transition-all uppercase tracking-wider cursor-pointer active:scale-95"
+                                                                    >
+                                                                        <Eye size={12} className="text-cyan-400" />
+                                                                        <span>Diseño</span>
+                                                                    </button>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
                                                         {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
                                                             <>
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
