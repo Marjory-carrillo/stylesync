@@ -72,6 +72,7 @@ export default function Appointments() {
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; appt: any | null }>({ open: false, appt: null });
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
+    const [isZoomed, setIsZoomed] = useState(false);
 
     const PAGE_SIZE = 20;
 
@@ -561,10 +562,10 @@ export default function Appointments() {
                                                                             const url = refItem.replace('Referencia: ', '');
                                                                             return (
                                                                                 <button
-                                                                                    onClick={() => setActivePhotoUrl(url)}
-                                                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1.5 rounded-xl hover:bg-cyan-500/20 hover:text-cyan-300 transition-all uppercase tracking-wider cursor-pointer active:scale-95"
+                                                                                    onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
                                                                                 >
-                                                                                    <Eye size={12} className="text-cyan-400" />
+                                                                                    <Eye size={12} className="text-slate-900" />
                                                                                     <span>Diseño</span>
                                                                                 </button>
                                                                             );
@@ -815,15 +816,13 @@ export default function Appointments() {
                     onClick={() => setActivePhotoUrl(null)}
                 >
                     {/* Fixed Top Bar (100% visible on Mobile & Laptop) */}
-                    <div className="absolute top-0 left-0 right-0 h-16 bg-[#0f1420]/90 backdrop-blur-md border-b border-white/10 px-6 flex items-center justify-between z-10 pointer-events-auto">
-                        <a 
-                            href={activePhotoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-600/20 cursor-pointer active:scale-95"
+                    <div className="absolute top-0 left-0 right-0 h-16 bg-[#0f1420]/90 backdrop-blur-md border-b border-white/10 px-6 flex items-center justify-between z-20 pointer-events-auto">
+                        <button 
+                            onClick={() => setIsZoomed(!isZoomed)}
+                            className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 bg-cyan-500 hover:bg-cyan-400 px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
                         >
-                            🔍 Abrir Original / Zoom
-                        </a>
+                            {isZoomed ? '🔍 Ajustar a Pantalla' : '🔍 Ampliar Foto (Zoom)'}
+                        </button>
                         <button 
                             onClick={() => setActivePhotoUrl(null)}
                             className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
@@ -832,12 +831,23 @@ export default function Appointments() {
                         </button>
                     </div>
 
-                    {/* Image Container with margin top to prevent overlap with the header */}
-                    <div className="relative max-w-4xl max-h-[75vh] w-full flex items-center justify-center mt-16" onClick={e => e.stopPropagation()}>
+                    {/* Image Container with native zoom/pan scrolling */}
+                    <div 
+                        className={`w-full h-[calc(100vh-64px)] mt-16 flex ${isZoomed ? 'overflow-auto items-start justify-start p-8' : 'items-center justify-center p-4'} transition-all`}
+                        onClick={() => setIsZoomed(!isZoomed)}
+                    >
                         <img 
                             src={activePhotoUrl} 
                             alt="Diseño de referencia" 
-                            className="max-w-full max-h-[75vh] rounded-3xl object-contain shadow-2xl border border-white/10 animate-scale-in"
+                            className={`rounded-3xl object-contain border border-white/10 shadow-2xl transition-all duration-300 ${
+                                isZoomed 
+                                    ? 'max-w-none max-h-none w-[180%] md:w-[220%] cursor-zoom-out' 
+                                    : 'max-w-full max-h-full cursor-zoom-in'
+                            }`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsZoomed(!isZoomed);
+                            }}
                         />
                     </div>
                 </div>
