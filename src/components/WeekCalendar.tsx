@@ -96,10 +96,9 @@ const WeekCalendar = React.memo(function WeekCalendar({ appointments, services, 
                     ))}
                 </div>
 
-                {/* Days Grid */}
-                <div className="flex flex-1 min-w-[800px] relative">
+                <div className="flex flex-1 min-w-[980px] relative">
                     {weekDays.map((day, i) => (
-                        <div key={i} className="flex-1 border-r border-white/5 flex flex-col relative min-w-[120px]">
+                        <div key={i} className="flex-1 border-r border-white/5 flex flex-col relative min-w-[140px]">
                             {/* Day Header */}
                             <div className={`h-12 flex flex-col items-center justify-center border-b border-white/5 sticky top-0 z-20 bg-[#0f172a]/95 backdrop-blur-sm ${isToday(day) ? 'bg-accent/10 border-b-accent/50' : ''}`}>
                                 <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">

@@ -461,6 +461,46 @@ export default function Booking() {
         );
     }, [blockedSlots, selectedDate]);
 
+    // Detect if the selected stylist is closed on this day
+    const isSelectedStylistClosed = useMemo(() => {
+        if (!selectedStylist) return false;
+        const dayIdx = new Date(selectedDate + 'T00:00:00').getDay();
+        const dayKey = DAY_KEYS[dayIdx];
+        const stylistSchedule = (selectedStylist.schedule && typeof selectedStylist.schedule === 'object' && Object.keys(selectedStylist.schedule).length > 0)
+            ? (selectedStylist.schedule as any)
+            : null;
+        const stylistDateSchedule = stylistSchedule && stylistSchedule[dayKey]
+            ? stylistSchedule[dayKey]
+            : selectedDateSchedule;
+        return !stylistDateSchedule.open;
+    }, [selectedStylist, selectedDate, selectedDateSchedule]);
+
+    // Find other stylists who are open and capable of doing this service today
+    const alternativeOpenStylists = useMemo(() => {
+        if (!selectedStylist || !selectedService) return [];
+        const dayIdx = new Date(selectedDate + 'T00:00:00').getDay();
+        const dayKey = DAY_KEYS[dayIdx];
+
+        return stylists.filter(s => {
+            if (s.id === selectedStylist.id) return false;
+            
+            // Check if they support the service
+            if (s.serviceIds && s.serviceIds.length > 0 && !s.serviceIds.includes(Number(selectedService.id))) {
+                return false;
+            }
+
+            // Check if they are open on this day
+            const sSchedule = (s.schedule && typeof s.schedule === 'object' && Object.keys(s.schedule).length > 0)
+                ? (s.schedule as any)
+                : null;
+            const sDateSchedule = sSchedule && sSchedule[dayKey]
+                ? sSchedule[dayKey]
+                : selectedDateSchedule;
+
+            return !!sDateSchedule?.open;
+        });
+    }, [selectedStylist, selectedService, selectedDate, stylists, selectedDateSchedule]);
+
     const availableSlots = useMemo(() => {
         return Object.keys(slotsMetadata).sort();
     }, [slotsMetadata]);
@@ -601,6 +641,7 @@ export default function Booking() {
                             service_name: combinedServiceName,
                             date:         selectedDate,
                             time:         selectedTime,
+                            design_photo: nailDesignUrl || selectedCatalogItem?.imageUrl || undefined,
                         },
                     }),
                 }).catch(() => { /* fire-and-forget */ });
@@ -1993,10 +2034,51 @@ export default function Booking() {
                                 <p className="text-sm text-muted mb-6">
                                     {isDayBlockedManually
                                         ? 'Este día no hay servicio por causa de fuerza mayor o descanso.'
-                                        : (selectedDate === format(new Date(), 'yyyy-MM-dd')
-                                            ? 'Las horas laborales han concluido por el día de hoy o la agenda está llena. Intenta otro día.'
-                                            : 'Parece que el día está completamente reservado para este servicio.')}
+                                        : isSelectedStylistClosed
+                                            ? `El profesional seleccionado (${selectedStylist?.name}) no atiende los ${DAY_NAMES[DAY_KEYS[new Date(selectedDate + 'T00:00:00').getDay()]]}s.`
+                                            : (selectedDate === format(new Date(), 'yyyy-MM-dd')
+                                                ? 'Las horas laborales han concluido por el día de hoy o la agenda está llena. Intenta otro día.'
+                                                : 'Parece que el día está completamente reservado para este servicio.')}
                                 </p>
+
+                                {isSelectedStylistClosed && alternativeOpenStylists.length > 0 && (
+                                    <div className="mt-4 mb-6 text-left w-full space-y-3">
+                                        <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">
+                                            {alternativeOpenStylists.length === 1 
+                                                ? 'Pero este profesional sí atiende hoy:' 
+                                                : 'Pero estos profesionales sí atienden hoy:'}
+                                        </p>
+                                        <div className="flex flex-col gap-2">
+                                            {alternativeOpenStylists.map(s => (
+                                                <button
+                                                    key={s.id}
+                                                    onClick={() => {
+                                                        setSelectedStylist(s);
+                                                        setSelectedTime(null);
+                                                    }}
+                                                    className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 hover:border-accent/40 rounded-xl transition-all text-left w-full group"
+                                                >
+                                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-800 shrink-0">
+                                                        {s.image ? (
+                                                            <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-cyan-400/10 text-xs font-bold">
+                                                                {s.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className="text-xs font-bold text-white block truncate group-hover:text-accent transition-colors">{s.name}</span>
+                                                        <span className="text-[10px] text-slate-500 block truncate">{s.role}</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-lg shrink-0">
+                                                        Ver horarios
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {(() => {
                                     const now = new Date();
@@ -2265,10 +2347,50 @@ export default function Booking() {
                                             )}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2 pl-1">
+                                    <div className="flex items-center gap-2 pl-1 mb-1">
                                         <span className="text-[9px] font-black text-slate-400 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-widest">{totalDuration} MIN</span>
                                         <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase tracking-widest">${totalPrice}{selectedAddOns.length > 0 ? ' total' : ''}</span>
                                     </div>
+
+                                    {/* Breakdown of customization details (Nails) */}
+                                    {businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter && (
+                                        <div className="border-t border-white/5 pt-3 mt-3 space-y-1.5 text-xs text-slate-300">
+                                            {nailSize && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Largo:</span>
+                                                    <span className="font-bold text-white">{nailSize.name}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-500">Diseño:</span>
+                                                <span className="font-bold text-white font-medium">
+                                                    {designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo' : 'Elaborado / Full Art'}
+                                                </span>
+                                            </div>
+                                            {Object.keys(nailExtras).some(id => nailExtras[id]) && (
+                                                <div className="flex justify-between items-start">
+                                                    <span className="text-slate-500 shrink-0">Extras:</span>
+                                                    <span className="font-bold text-white text-right">
+                                                        {Object.keys(nailExtras)
+                                                            .filter(id => nailExtras[id])
+                                                            .map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name)
+                                                            .join(', ')}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedCatalogItem && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Diseño Catálogo:</span>
+                                                    <span className="font-bold text-white truncate max-w-[150px]">{selectedCatalogItem.description || 'Diseño'}</span>
+                                                </div>
+                                            )}
+                                            {(nailDesignUrl || selectedCatalogItem?.imageUrl) && (
+                                                <div className="flex items-center gap-1.5 text-[10px] text-cyan-400 font-bold mt-2 pt-2 border-t border-white/5">
+                                                    <span>📸 Referencia de diseño adjunta</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -2335,12 +2457,11 @@ export default function Booking() {
                                             <span className="text-[9px] font-black uppercase tracking-widest">Agregar a Google Calendar</span>
                                         </a>
                                     </div>
-
                                 );
                             })()}
 
-                             {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
-                            {businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter && (
+                            {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
+                            {businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter && !nailDesignUrl && !selectedCatalogItem && (
                                 <a
                                     href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(
                                         `Hola, acabo de agendar una cita en ${businessConfig?.name || 'CitaLink'}.\n\n` +

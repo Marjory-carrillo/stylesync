@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Calendar, RotateCcw, XCircle, CheckCircle, Trash2, BellOff, Phone, AlertTriangle } from 'lucide-react';
+import { Bell, X, Calendar, RotateCcw, XCircle, CheckCircle, Trash2, BellOff, Phone, AlertTriangle, Users } from 'lucide-react';
 import type { AdminNotification, NotifType } from '../lib/store/useRealtimeNotifications';
 
 interface Props {
@@ -13,10 +13,11 @@ interface Props {
 }
 
 const TYPE_CONFIG: Record<NotifType, { icon: React.ElementType; color: string; bg: string; label: string }> = {
-    new:       { icon: Calendar,    color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', label: 'Nueva cita'       },
-    reschedule:{ icon: RotateCcw,   color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20',       label: 'Reprogramada'     },
-    cancel:    { icon: XCircle,     color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20',         label: 'Cancelada'        },
-    complete:  { icon: CheckCircle, color: 'text-violet-400',  bg: 'bg-violet-500/10 border-violet-500/20',   label: 'Completada'       },
+    new:          { icon: Calendar,    color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', label: 'Nueva cita'       },
+    reschedule:   { icon: RotateCcw,   color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20',       label: 'Reprogramada'     },
+    cancel:       { icon: XCircle,     color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20',         label: 'Cancelada'        },
+    complete:     { icon: CheckCircle, color: 'text-violet-400',  bg: 'bg-violet-500/10 border-violet-500/20',   label: 'Completada'       },
+    waiting_list: { icon: Users,       color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20',     label: 'Lista de espera'  },
 };
 
 function timeAgo(date: Date): string {
@@ -29,7 +30,13 @@ function timeAgo(date: Date): string {
 
 function formatDate(date: string, time: string): string {
     const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    if (time === 'Lista de espera' || !time.includes(':')) {
+        const d = new Date(`${date}T00:00:00`);
+        if (isNaN(d.getTime())) return date;
+        return `${days[d.getDay()]} ${d.getDate()} · Lista de espera`;
+    }
     const d = new Date(`${date}T${time}`);
+    if (isNaN(d.getTime())) return `${date} · ${time}`;
     return `${days[d.getDay()]} ${d.getDate()} · ${time.slice(0,5)}`;
 }
 

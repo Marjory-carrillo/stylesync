@@ -77,6 +77,7 @@ export default function Dashboard() {
     }, [allAppointments]);
 
     const [linkType, setLinkType] = useState<'branch' | 'brand'>('branch');
+    const [isLinkCardExpanded, setIsLinkCardExpanded] = useState(false);
 
     const isLoading = apptsPending || svcsLoading;
 
@@ -423,112 +424,147 @@ export default function Dashboard() {
                 })()
             )}
 
-            {/* ── Client App Link Banner ── */}
-            <div className={`relative overflow-hidden rounded-[2.5rem] border p-8 md:p-12 shadow-2xl mb-12 group transition-all duration-500 ${
+            {/* ── Client App Link Banner (Collapsible) ── */}
+            <div className={`relative overflow-hidden rounded-[2.5rem] border p-6 md:p-8 shadow-2xl mb-6 group transition-all duration-500 ${
                 linkType === 'brand'
                     ? 'bg-gradient-to-br from-violet-600/15 via-fuchsia-600/5 to-purple-600/15 border-violet-500/15'
                     : 'bg-gradient-to-br from-cyan-600/15 via-blue-600/5 to-purple-600/15 border-white/5'
             }`}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:opacity-[0.05] transition-all duration-700">
-                    <Users size={160} />
-                </div>
-                <div className="relative z-10 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8">
-                    <div className="flex-1">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 transition-all duration-300 ${
-                            linkType === 'brand'
-                                ? 'bg-violet-500/10 border border-violet-500/20 text-violet-400'
-                                : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+                {/* Header that is always visible and clickable to toggle */}
+                <div 
+                    className="flex items-center justify-between cursor-pointer select-none relative z-10"
+                    onClick={() => setIsLinkCardExpanded(!isLinkCardExpanded)}
+                >
+                    <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-2xl shrink-0 ${
+                            linkType === 'brand' ? 'bg-violet-500/20 text-violet-400' : 'bg-cyan-500/20 text-cyan-400'
                         }`}>
-                            {linkType === 'brand' ? '🏢 Enlace Multi-Sucursal' : 'PWA Discovery'}
+                            <Users size={20} />
                         </div>
-                        <h3 className="text-2xl md:text-3xl font-black text-white mb-3 tracking-tight">
-                            Tu App de Reservas
-                        </h3>
-                        <p className="text-slate-400 text-sm md:text-base max-w-xl leading-relaxed font-medium">
-                            {linkType === 'brand'
-                                ? 'Comparte este link con tus clientes para que elijan entre todas tus sucursales antes de agendar.'
-                                : 'Tus clientes pueden instalar esta web como una app nativa en su celular para reservar en segundos.'}
-                        </p>
+                        <div className="text-left">
+                            <h3 className="text-base md:text-lg font-black text-white tracking-tight">
+                                Enlace de la App de Reservas
+                            </h3>
+                            <p className="text-xs text-slate-400 font-medium">
+                                {linkType === 'brand' 
+                                    ? '🏢 Enlace Multi-Sucursal activo' 
+                                    : '📍 Enlace directo de esta sucursal'}
+                            </p>
+                        </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-white/5 px-2.5 py-1 rounded-xl border border-white/10 hidden sm:inline">
+                            {isLinkCardExpanded ? 'Contraer' : 'Expandir Enlaces'}
+                        </span>
+                        <ChevronDown 
+                            size={18} 
+                            className={`text-slate-400 transition-transform duration-300 ${isLinkCardExpanded ? 'rotate-180' : ''}`}
+                        />
+                    </div>
+                </div>
 
-                    <div className="flex flex-col gap-4 w-full xl:w-auto">
-                        {/* Toggle — solo si tiene brand_slug */}
-                        {businessConfig.brandSlug && (
-                            <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/[0.08] gap-1 w-full sm:w-auto">
-                                <button
-                                    onClick={() => setLinkType('branch')}
-                                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
-                                        linkType === 'branch'
-                                            ? 'bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 border border-cyan-500/25 shadow-sm'
-                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]'
-                                    }`}
-                                >
-                                    <span className="text-base">📍</span>
-                                    <span>Esta sucursal</span>
-                                </button>
-                                <button
-                                    onClick={() => setLinkType('brand')}
-                                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
-                                        linkType === 'brand'
-                                            ? 'bg-gradient-to-r from-violet-500/25 to-fuchsia-600/20 text-violet-300 border border-violet-500/30 shadow-sm'
-                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]'
-                                    }`}
-                                >
-                                    <Building2 size={14} />
-                                    <span>Multisucursal</span>
-                                </button>
-                            </div>
-                        )}
-
-                        {/* URL + Actions */}
-                        <div className="flex flex-col sm:flex-row gap-3 w-full">
-                            <div className={`flex items-center backdrop-blur-md rounded-2xl px-5 py-4 border flex-1 sm:min-w-[300px] shadow-inner transition-all duration-300 ${
-                                linkType === 'brand' ? 'bg-violet-950/40 border-violet-500/15' : 'bg-black/40 border-white/5'
+                {/* Collapsible Content */}
+                <div className={`transition-all duration-500 ease-in-out overflow-hidden relative z-10 ${
+                    isLinkCardExpanded ? 'max-h-[800px] opacity-100 mt-6 pt-6 border-t border-white/5' : 'max-h-0 opacity-0'
+                }`}>
+                    <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:opacity-[0.05] transition-all duration-700">
+                        <Users size={160} />
+                    </div>
+                    <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8">
+                        <div className="flex-1">
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 transition-all duration-300 ${
+                                linkType === 'brand'
+                                    ? 'bg-violet-500/10 border border-violet-500/20 text-violet-400'
+                                    : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
                             }`}>
-                                <code className={`font-mono text-xs md:text-sm select-all truncate transition-colors duration-300 ${linkType === 'brand' ? 'text-violet-300' : 'text-blue-400'}`}>
-                                    {(() => {
-                                        const path = linkType === 'brand' && businessConfig.brandSlug
-                                            ? `sucursales/${businessConfig.brandSlug}`
-                                            : `reserva/${businessConfig.slug || '...'}`;
-                                        return `citalink.app/${path}`;
-                                    })()}
-                                </code>
+                                {linkType === 'brand' ? '🏢 Enlace Multi-Sucursal' : 'PWA Discovery'}
                             </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => {
-                                        const path = linkType === 'brand' && businessConfig.brandSlug
-                                            ? `/sucursales/${businessConfig.brandSlug}`
-                                            : `/reserva/${businessConfig.slug || ''}`;
-                                        const url = `${window.location.origin}${path}`;
-                                        navigator.clipboard.writeText(url);
-                                        showToast('¡Enlace copiado!', 'success');
-                                    }}
-                                    className={`flex-1 sm:flex-none px-8 py-4 text-white font-black rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-xl text-sm tracking-wide ${
-                                        linkType === 'brand'
-                                            ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600 shadow-violet-900/40'
-                                            : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-900/40'
-                                    }`}
-                                >
-                                    Copiar
-                                </button>
-                                <a
-                                    href={linkType === 'brand' && businessConfig.brandSlug ? `/sucursales/${businessConfig.brandSlug}` : `/reserva/${businessConfig.slug || ''}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="px-5 py-4 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm flex items-center gap-2 backdrop-blur-sm"
-                                >
-                                    Abrir
-                                </a>
-                            </div>
+                            <p className="text-slate-400 text-sm leading-relaxed font-medium">
+                                {linkType === 'brand'
+                                    ? 'Comparte este link con tus clientes para que elijan entre todas tus sucursales antes de agendar.'
+                                    : 'Tus clientes pueden instalar esta web como una app nativa en su celular para reservar en segundos.'}
+                            </p>
                         </div>
 
-                        {/* Contextual help text */}
-                        <p className={`text-[11px] text-slate-600 transition-all duration-300 ${linkType === 'brand' ? 'text-violet-400/50' : 'text-slate-600'}`}>
-                            {linkType === 'brand'
-                                ? '🏢 El cliente verá todas tus sucursales y elegirá antes de reservar'
-                                : '📍 El cliente entra directo a reservar en esta sucursal'}
-                        </p>
+                        <div className="flex flex-col gap-4 w-full xl:w-auto">
+                            {/* Toggle — solo si tiene brand_slug */}
+                            {businessConfig.brandSlug && (
+                                <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/[0.08] gap-1 w-full sm:w-auto">
+                                    <button
+                                        onClick={() => setLinkType('branch')}
+                                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
+                                            linkType === 'branch'
+                                                ? 'bg-gradient-to-r from-cyan-500/20 to-blue-600/20 text-cyan-300 border border-cyan-500/25 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]'
+                                        }`}
+                                    >
+                                        <span className="text-base">📍</span>
+                                        <span>Esta sucursal</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setLinkType('brand')}
+                                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
+                                            linkType === 'brand'
+                                                ? 'bg-gradient-to-r from-violet-500/25 to-fuchsia-600/20 text-violet-300 border border-violet-500/30 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]'
+                                        }`}
+                                    >
+                                        <Building2 size={14} />
+                                        <span>Multisucursal</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* URL + Actions */}
+                            <div className="flex flex-col sm:flex-row gap-3 w-full">
+                                <div className={`flex items-center backdrop-blur-md rounded-2xl px-5 py-4 border flex-1 sm:min-w-[300px] shadow-inner transition-all duration-300 ${
+                                    linkType === 'brand' ? 'bg-violet-950/40 border-violet-500/15' : 'bg-black/40 border-white/5'
+                                }`}>
+                                    <code className={`font-mono text-xs md:text-sm select-all truncate transition-colors duration-300 ${linkType === 'brand' ? 'text-violet-300' : 'text-blue-400'}`}>
+                                        {(() => {
+                                            const path = linkType === 'brand' && businessConfig.brandSlug
+                                                ? `sucursales/${businessConfig.brandSlug}`
+                                                : `reserva/${businessConfig.slug || '...'}`;
+                                            return `citalink.app/${path}`;
+                                        })()}
+                                    </code>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            const path = linkType === 'brand' && businessConfig.brandSlug
+                                                ? `/sucursales/${businessConfig.brandSlug}`
+                                                : `/reserva/${businessConfig.slug || ''}`;
+                                            const url = `${window.location.origin}${path}`;
+                                            navigator.clipboard.writeText(url);
+                                            showToast('¡Enlace copiado!', 'success');
+                                        }}
+                                        className={`flex-1 sm:flex-none px-8 py-4 text-white font-black rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-xl text-sm tracking-wide ${
+                                            linkType === 'brand'
+                                                ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600 shadow-violet-900/40'
+                                                : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-900/40'
+                                        }`}
+                                    >
+                                        Copiar
+                                    </button>
+                                    <a
+                                        href={linkType === 'brand' && businessConfig.brandSlug ? `/sucursales/${businessConfig.brandSlug}` : `/reserva/${businessConfig.slug || ''}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-5 py-4 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm flex items-center gap-2 backdrop-blur-sm"
+                                    >
+                                        Abrir
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Contextual help text */}
+                            <p className={`text-[11px] text-slate-600 transition-all duration-300 ${linkType === 'brand' ? 'text-violet-400/50' : 'text-slate-600'}`}>
+                                {linkType === 'brand'
+                                    ? '🏢 El cliente verá todas tus sucursales y elegirá antes de reservar'
+                                    : '📍 El cliente entra directo a reservar en esta sucursal'}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

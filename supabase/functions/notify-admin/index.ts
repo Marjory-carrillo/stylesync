@@ -55,6 +55,32 @@ async function sendWA(to: string, body: string): Promise<boolean> {
     return res.ok;
 }
 
+/** Envía un mensaje multimedia (foto) al admin */
+async function sendWAMedia(to: string, body: string, mediaUrl: string): Promise<boolean> {
+    const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+    const form = new URLSearchParams({
+        To: to,
+        From: TWILIO_WA_FROM,
+        Body: body,
+        MediaUrl: mediaUrl,
+    });
+    const res = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Basic ${credentials}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: form.toString(),
+        }
+    );
+    const data = await res.json();
+    console.log('[notify-admin] Twilio media response:', res.status, JSON.stringify(data));
+    return res.ok;
+}
+
+
 /** Envía plantilla aprobada por Meta (to debe ser whatsapp:+...) */
 async function sendTemplate(
     to: string,
@@ -185,6 +211,21 @@ serve(async (req: Request) => {
                 `${icons[event_type] ?? '📅'} *${lbls[event_type] ?? 'CITA'}* — ${businessName}
 👤 ${appointment.client_name}  ✂️ ${appointment.service_name ?? 'Servicio'}
 📆 ${fechaAdmin}  📱 ${appointment.client_phone}`);
+        }
+
+        // Si hay una foto de diseño adjunta, intentar enviarla como mensaje multimedia de seguimiento al admin
+        if (adminSent && appointment.design_photo) {
+            console.log('[notify-admin] Intentando enviar foto de diseño al admin:', appointment.design_photo);
+            try {
+                const photoSent = await sendWAMedia(
+                    adminWA,
+                    `📷 Foto de referencia de diseño enviada por ${appointment.client_name} para su cita.`,
+                    appointment.design_photo
+                );
+                console.log('[notify-admin] Resultado del envío de foto:', photoSent);
+            } catch (errPhoto) {
+                console.error('[notify-admin] Error al enviar foto de WhatsApp:', errPhoto.message);
+            }
         }
 
         // Log admin notification

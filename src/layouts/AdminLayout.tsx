@@ -194,6 +194,19 @@ export default function AdminLayout() {
                 {/* Branch Switcher (multi-business owners) */}
                 <BranchSwitcher />
 
+                {/* Desktop "Nueva Cita" Button */}
+                <div className="px-4 py-2 hidden lg:block">
+                    <button
+                        onClick={() => setIsNewApptModalOpen(true)}
+                        className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl
+                            bg-gradient-to-r from-accent to-orange-500 hover:from-accent hover:to-orange-600
+                            text-white font-bold text-sm shadow-lg shadow-accent/20 active:scale-95 transition-all border border-accent/10"
+                    >
+                        <CalendarPlus size={18} />
+                        <span>Nueva Cita</span>
+                    </button>
+                </div>
+
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                     <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>
 

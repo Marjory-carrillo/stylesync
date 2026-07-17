@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuthStore } from './authStore';
 
-export type NotifType = 'new' | 'reschedule' | 'cancel' | 'complete';
+export type NotifType = 'new' | 'reschedule' | 'cancel' | 'complete' | 'waiting_list';
 
 export interface AdminNotification {
     id: string;
@@ -74,7 +74,7 @@ export function useRealtimeNotifications() {
         if (!tenantId) return;
 
         const channel = supabase
-            .channel(`admin-appointments-${tenantId}`)
+            .channel(`admin-notifications-${tenantId}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
@@ -99,14 +99,29 @@ export function useRealtimeNotifications() {
                 const a = payload.new as any;
                 const old = payload.old as any;
 
-                if (a.status === 'cancelada' && old.status !== 'cancelada') {
+                if (a.status === 'cancelada' && old && old.status !== undefined && old.status !== 'cancelada') {
                     addNotification({ type: 'cancel', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
-                } else if (a.status === 'completada' && old.status !== 'completada') {
+                } else if (a.status === 'completada' && old && old.status !== undefined && old.status !== 'completada') {
                     addNotification({ type: 'complete', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
-                } else if (a.time !== old.time || a.date !== old.date) {
-                    // Si cambia la fecha u hora (sin importar si es confirmada o pendiente)
+                } else if (old && old.time !== undefined && old.date !== undefined && (a.time !== old.time || a.date !== old.date)) {
+                    // Si cambia la fecha u hora (sin importar si es confirmada o pendiente) y tenemos datos anteriores
                     addNotification({ type: 'reschedule', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
                 }
+            })
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'waiting_list',
+                filter: `tenant_id=eq.${tenantId}`,
+            }, (payload) => {
+                const w = payload.new as any;
+                addNotification({
+                    type: 'waiting_list',
+                    clientName: w.name || w.client_name,
+                    clientPhone: w.phone || w.client_phone,
+                    date: w.date,
+                    time: 'Lista de espera',
+                });
             })
             .subscribe();
 

@@ -183,7 +183,7 @@ export default function Appointments() {
     };
 
     return (
-        <div className="animate-fade-in h-[calc(100vh-100px)] flex flex-col gap-6">
+        <div className="animate-fade-in w-full min-h-[calc(100vh-120px)] flex flex-col gap-6 pb-12">
 
             {/* Header & Controls */}
             <div className="flex flex-col gap-3 flex-none px-1 w-full">
@@ -332,9 +332,8 @@ export default function Appointments() {
                 )}
             </div>
 
-            {/* Main Content */}
             <div className="flex-1 min-h-0 flex flex-col items-center justify-start w-full max-w-full">
-                <div className="w-full max-w-5xl bg-black/20 rounded-3xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col shadow-2xl h-full">
+                <div className="w-full max-w-5xl bg-black/20 rounded-3xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col shadow-2xl min-h-[600px] h-auto">
                     {/* ── Lista de Espera View ── */}
                     {viewMode === 'espera' ? (
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
@@ -420,7 +419,7 @@ export default function Appointments() {
                             </div>
                         </div>
                     ) : viewMode === 'calendar' ? (
-                        <div className="flex-1 min-h-0 p-2 overflow-hidden">
+                        <div className="flex-1 min-h-[600px] h-[calc(100vh-320px)] p-2 overflow-hidden">
                             <WeekCalendar
                                 appointments={filteredAppointments}
                                 services={services}
