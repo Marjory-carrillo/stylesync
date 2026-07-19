@@ -749,15 +749,141 @@ export default function Dashboard() {
                             <div className="mt-6 p-4 bg-red-500/5 border border-red-500/15 rounded-2xl">
                                 <p className="text-sm text-red-400/90 font-medium text-center">
                                     Has alcanzado el límite de <strong>{limit} citas</strong> para el Plan Free este mes. 
-                                    Actualiza a <strong>Pro</strong> para citas ilimitadas por solo <strong>$899/mes</strong>.
+                                    Elige uno de nuestros planes para continuar sin interrupciones.
                                 </p>
+                            </div>
+                        )}
+
+                        {/* Premium Plans Grid */}
+                        {(tenantPlan === 'free' || (inTrial && daysLeft <= 8)) && (
+                            <div className="mt-8 pt-8 border-t border-white/5">
+                                <h4 className="text-sm font-black text-white uppercase tracking-wider mb-6 text-center md:text-left">
+                                    Elige el plan ideal para tu negocio
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Plan Esencial */}
+                                    <div className="bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative overflow-hidden">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-[10px] font-black text-teal-400 uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 px-2.5 py-0.5 rounded-full">
+                                                    Esencial
+                                                </span>
+                                            </div>
+                                            <div className="flex items-baseline gap-1 mb-4">
+                                                <span className="text-3xl font-black text-white">$349</span>
+                                                <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
+                                            </div>
+                                            <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-teal-400 font-bold">✓</span> 1 Profesional (no expandible)
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-teal-400 font-bold">✓</span> 1 Sucursal
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-teal-400 font-bold">✓</span> Citas Ilimitadas
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-teal-400 font-bold">✓</span> App de Reservas Clientes
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <button
+                                            onClick={() => redirectToCheckout('lite')}
+                                            disabled={isCheckoutLoading}
+                                            className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                                        >
+                                            Adquirir Esencial
+                                        </button>
+                                    </div>
+
+                                    {/* Plan Pro */}
+                                    <div className="bg-white/[0.03] hover:bg-white/[0.05] border border-amber-500/30 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative shadow-[0_0_30px_rgba(245,158,11,0.05)] overflow-hidden">
+                                        <div className="absolute -top-1.5 right-6 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[8px] uppercase tracking-widest px-2.5 py-1 rounded-b-xl border border-t-0 border-amber-400/30">
+                                            Recomendado
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                                                    Pro
+                                                </span>
+                                            </div>
+                                            <div className="flex items-baseline gap-1 mb-4">
+                                                <span className="text-3xl font-black text-white">$649</span>
+                                                <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
+                                            </div>
+                                            <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-amber-400 font-bold">✓</span> 2 Profesionales (incluidos)
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-amber-400 font-bold">✓</span> Profesionales Extra (+$249/mes c/u)
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-amber-400 font-bold">✓</span> 1 Sucursal
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-amber-400 font-bold">✓</span> Citas Ilimitadas
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-amber-400 font-bold">✓</span> WhatsApp / Recordatorios Auto
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <button
+                                            onClick={() => redirectToCheckout('pro')}
+                                            disabled={isCheckoutLoading}
+                                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/10 disabled:opacity-50"
+                                        >
+                                            Actualizar a Pro
+                                        </button>
+                                    </div>
+
+                                    {/* Plan Business */}
+                                    <div className="bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative overflow-hidden">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest bg-violet-500/10 border border-violet-500/20 px-2.5 py-0.5 rounded-full">
+                                                    Business
+                                                </span>
+                                            </div>
+                                            <div className="flex items-baseline gap-1 mb-4">
+                                                <span className="text-3xl font-black text-white">$1,249</span>
+                                                <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
+                                            </div>
+                                            <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-violet-400 font-bold">✓</span> Multi-Sucursal (2 incluidas)
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-violet-400 font-bold">✓</span> Sucursales Extra (+$599/mes c/u)
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-violet-400 font-bold">✓</span> 2 Profesionales por Sucursal
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-violet-400 font-bold">✓</span> Citas Ilimitadas
+                                                </li>
+                                                <li className="flex items-center gap-2">
+                                                    <span className="text-violet-400 font-bold">✓</span> WhatsApp / Recordatorios Auto
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <button
+                                            onClick={() => redirectToCheckout('business')}
+                                            disabled={isCheckoutLoading}
+                                            className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                                        >
+                                            Adquirir Business
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
                 );
             })()}
 
-            {/* ── Alerts & Recovery Opportunities (deduplicado por fecha) ── */}
             {
                 (cancellationLog.length > 0 && waitingList.length > 0) && (() => {
                     // Agrupar cancelaciones por fecha — un solo card por fecha
