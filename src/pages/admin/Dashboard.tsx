@@ -725,23 +725,6 @@ export default function Dashboard() {
                                     </div>
                                 )}
                             </div>
-
-                            {/* CTA for Free plan — always visible */}
-                            {hasLimit && (
-                                <div className="shrink-0">
-                                    <button
-                                        onClick={() => redirectToCheckout('pro')}
-                                        disabled={isCheckoutLoading}
-                                        className={`px-6 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl disabled:opacity-50 disabled:cursor-wait ${
-                                            isFull
-                                                ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-red-900/30 hover:brightness-110'
-                                                : 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-violet-900/30 hover:brightness-110'
-                                        }`}
-                                    >
-                                        {isCheckoutLoading ? '⏳ Procesando...' : isFull ? '🔓 Desbloquear Citas' : '⭐ Actualizar a Pro'}
-                                    </button>
-                                </div>
-                            )}
                         </div>
 
                         {/* Full limit overlay warning */}
