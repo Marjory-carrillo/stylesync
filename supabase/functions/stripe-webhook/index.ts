@@ -170,6 +170,9 @@ serve(async (req: Request) => {
                     trial_ends_at: null, // Clear trial — they're paying now
                     extra_employees_paid: extraEmployees,
                     extra_branches_paid: extraBranches,
+                    subscription_type: 'stripe',
+                    payment_status: 'active',
+                    grace_period_ends_at: null,
                 };
 
                 const { error } = await supabase
@@ -209,6 +212,9 @@ serve(async (req: Request) => {
                         stripe_subscription_id: subscription.id,
                         extra_employees_paid: addons.extraEmployees,
                         extra_branches_paid: addons.extraBranches,
+                        subscription_type: 'stripe',
+                        payment_status: 'active',
+                        grace_period_ends_at: null,
                     };
                     if (plan) updateData.plan = plan;
 
@@ -219,23 +225,43 @@ serve(async (req: Request) => {
                     const syncData: Record<string, any> = {
                         extra_employees_paid: addons.extraEmployees,
                         extra_branches_paid: addons.extraBranches,
+                        subscription_type: 'stripe',
+                        payment_status: 'active',
+                        grace_period_ends_at: null,
                     };
                     if (plan) syncData.plan = plan;
                     await syncBrandSiblings(supabase, tenantId, syncData);
 
                 } else if (status === 'past_due' || status === 'unpaid') {
-                    // Payment failed — don't downgrade immediately
-                    console.warn(`[stripe-webhook] Subscription ${status} for tenant ${tenantId}`);
+                    // Payment failed — enter grace period of 5 days
+                    console.warn(`[stripe-webhook] ⚠️ Subscription ${status} for tenant ${tenantId}. Activating grace period.`);
+                    
+                    const gracePeriodDate = new Date();
+                    gracePeriodDate.setDate(gracePeriodDate.getDate() + 5);
+
+                    const updateData = {
+                        payment_status: 'grace_period',
+                        grace_period_ends_at: gracePeriodDate.toISOString()
+                    };
+
+                    await supabase.from('tenants').update(updateData).eq('id', tenantId);
+                    await syncBrandSiblings(supabase, tenantId, updateData);
+
                 } else if (status === 'canceled') {
-                    // Downgrade to free, reset add-ons
-                    await supabase.from('tenants').update({
+                    // Downgrade to free, reset add-ons and payment indicators
+                    const updateData = {
                         plan: 'free',
                         stripe_subscription_id: null,
                         extra_employees_paid: 0,
                         extra_branches_paid: 0,
-                    }).eq('id', tenantId);
-                    await syncBrandSiblings(supabase, tenantId, { plan: 'free', extra_employees_paid: 0, extra_branches_paid: 0 });
-                    console.log(`[stripe-webhook] ⬇️ Tenant ${tenantId} downgraded to free (canceled)`);
+                        subscription_type: 'manual',
+                        payment_status: 'active',
+                        grace_period_ends_at: null,
+                    };
+
+                    await supabase.from('tenants').update(updateData).eq('id', tenantId);
+                    await syncBrandSiblings(supabase, tenantId, updateData);
+                    console.log(`[stripe-webhook] ⬇️ Tenant ${tenantId} downgraded to free due to cancelation`);
                 }
                 break;
             }
@@ -249,14 +275,18 @@ serve(async (req: Request) => {
 
                 console.log(`[stripe-webhook] Subscription deleted: tenant=${tenantId}`);
 
-                await supabase.from('tenants').update({
+                const updateData = {
                     plan: 'free',
                     stripe_subscription_id: null,
                     extra_employees_paid: 0,
                     extra_branches_paid: 0,
-                }).eq('id', tenantId);
+                    subscription_type: 'manual',
+                    payment_status: 'active',
+                    grace_period_ends_at: null,
+                };
 
-                await syncBrandSiblings(supabase, tenantId, { plan: 'free', extra_employees_paid: 0, extra_branches_paid: 0 });
+                await supabase.from('tenants').update(updateData).eq('id', tenantId);
+                await syncBrandSiblings(supabase, tenantId, updateData);
                 console.log(`[stripe-webhook] ⬇️ Tenant ${tenantId} downgraded to free (deleted)`);
                 break;
             }

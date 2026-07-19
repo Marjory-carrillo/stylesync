@@ -57,7 +57,7 @@ export default function Dashboard() {
     const { stylists } = useStylists();
     const { data: tenantConfig } = useTenantData();
     const { schedule } = useSchedule();
-    const businessConfig = tenantConfig || { slug: '', brandSlug: '' };
+    const businessConfig = (tenantConfig || { slug: '', brandSlug: '', name: '', payment_status: 'active', grace_period_ends_at: null }) as any;
     const tenantPlan = (tenantConfig as any)?.plan || 'free';
     const trialEndsAt = (tenantConfig as any)?.trialEndsAt || null;
     const inTrial = isInTrial(trialEndsAt);
@@ -317,6 +317,38 @@ export default function Dashboard() {
 
     return (
         <div className="animate-fade-in space-y-6 md:space-y-8">
+            {/* Grace Period Warning Banner */}
+            {businessConfig?.payment_status === 'grace_period' && (
+                <div className="glass-panel p-5 border border-amber-500/25 bg-amber-500/5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-scale-in">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 bg-amber-500/15 text-amber-400 rounded-2xl shrink-0">
+                            <Activity size={20} className="animate-pulse-soft" />
+                        </div>
+                        <div className="text-left">
+                            <h4 className="text-sm font-black text-white uppercase tracking-wider">Problema con tu método de pago</h4>
+                            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                Tu suscripción está en período de gracia. Actualiza tu método de pago antes del{' '}
+                                <strong className="text-amber-400">
+                                    {businessConfig.grace_period_ends_at 
+                                        ? format(new Date(businessConfig.grace_period_ends_at), 'dd/MM/yyyy', { locale: es }) 
+                                        : 'próximo ciclo'}
+                                </strong>{' '}
+                                para evitar la suspensión temporal del servicio.
+                            </p>
+                        </div>
+                    </div>
+                    <a
+                        href={`https://wa.me/5213312345678?text=${encodeURIComponent(`Hola, mi negocio "${businessConfig.name || ''}" tiene un aviso de pago pendiente en CitaLink. ¿Me ayudan a verificar?`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 shrink-0"
+                    >
+                        <MessageCircle size={14} />
+                        Contactar Soporte
+                    </a>
+                </div>
+            )}
+
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <div className="flex items-center gap-3 mb-1">

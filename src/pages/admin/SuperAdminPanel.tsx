@@ -127,6 +127,11 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
     const [trialEndsAt, setTrialEndsAt] = useState(
         tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toISOString().split('T')[0] : ''
     );
+    const [subscriptionType, setSubscriptionType] = useState(tenant.subscription_type || 'manual');
+    const [paymentStatus, setPaymentStatus] = useState(tenant.payment_status || 'active');
+    const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(
+        tenant.grace_period_ends_at ? new Date(tenant.grace_period_ends_at).toISOString().split('T')[0] : ''
+    );
     const [isSaving, setIsSaving] = useState(false);
 
     if (!isOpen) return null;
@@ -140,6 +145,9 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
             category,
             timezone,
             trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
+            subscription_type: subscriptionType,
+            payment_status: paymentStatus,
+            grace_period_ends_at: paymentStatus === 'grace_period' && gracePeriodEndsAt ? new Date(gracePeriodEndsAt).toISOString() : null,
         };
         await onSave(tenant.id, payload);
         setIsSaving(false);
@@ -252,6 +260,46 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
                                 })}
                             </div>
                         </div>
+
+                        {/* Tipo de Suscripción */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Tipo de Suscripción</label>
+                            <select
+                                value={subscriptionType}
+                                onChange={e => setSubscriptionType(e.target.value)}
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
+                            >
+                                <option value="manual" className="bg-slate-900">Manual (Cortesía / Demo)</option>
+                                <option value="stripe" className="bg-slate-900">Stripe (Validación Automática)</option>
+                            </select>
+                        </div>
+
+                        {/* Estado del Pago */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Estado del Pago</label>
+                            <select
+                                value={paymentStatus}
+                                onChange={e => setPaymentStatus(e.target.value)}
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
+                            >
+                                <option value="active" className="bg-slate-900">🟢 Activo</option>
+                                <option value="grace_period" className="bg-slate-900">🟡 Período de Gracia (Aviso)</option>
+                                <option value="suspended" className="bg-slate-900">🔴 Suspendido (Bloqueo)</option>
+                            </select>
+                        </div>
+
+                        {/* Fin del Período de Gracia */}
+                        {paymentStatus === 'grace_period' && (
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-slate-400 ml-1">Fin Período de Gracia</label>
+                                <input
+                                    type="date"
+                                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                    value={gracePeriodEndsAt}
+                                    onChange={e => setGracePeriodEndsAt(e.target.value)}
+                                />
+                            </div>
+                        )}
 
                         {/* Expiración del Trial */}
                         <div className="space-y-1.5">
@@ -1158,9 +1206,36 @@ export default function SuperAdminPanel() {
                                         })()}
                                     </div>
 
+                                    {/* Subscription & Payment Status Badges */}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {/* Sub Type Badge */}
+                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase border ${
+                                            tenant.subscription_type === 'stripe'
+                                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
+                                        }`}>
+                                            {tenant.subscription_type === 'stripe' ? '🔗 STRIPE' : '👤 MANUAL'}
+                                        </span>
+
+                                        {/* Payment Status Badge */}
+                                        {tenant.subscription_type === 'stripe' && (
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase border ${
+                                                tenant.payment_status === 'active'
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                    : tenant.payment_status === 'grace_period'
+                                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                            }`}>
+                                                {tenant.payment_status === 'active' && '🟢 ACTIVO'}
+                                                {tenant.payment_status === 'grace_period' && '🟡 GRACIA'}
+                                                {tenant.payment_status === 'suspended' && '🔴 SUSPENDIDO'}
+                                            </span>
+                                        )}
+                                    </div>
+ 
                                     {/* Spacer */}
                                     <div className="flex-1" />
-
+ 
                                     {/* Controls row — wrap on small screens */}
                                     <div className="flex flex-wrap items-center gap-2">
 

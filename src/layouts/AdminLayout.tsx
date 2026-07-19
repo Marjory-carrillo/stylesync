@@ -11,6 +11,8 @@ import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
 import PWAInstallBanner from '../components/PWAInstallBanner';
+import PaymentBlockedScreen from '../components/PaymentBlockedScreen';
+import { isAccountActive } from '../lib/planLimits';
 
 export default function AdminLayout() {
     const { t, i18n } = useTranslation();
@@ -117,6 +119,14 @@ export default function AdminLayout() {
             ? 'bg-accent/10 text-accent font-semibold border border-accent/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
             : 'text-slate-400 hover:text-white hover:bg-white/5'}
     `;
+
+    // Check if account is suspended/blocked
+    const accountStatus = isAccountActive(businessConfig?.subscription_type, businessConfig?.payment_status);
+    
+    // SuperAdmin can bypass blocks for support purposes
+    if (accountStatus.blocked && !isSuperAdmin) {
+        return <PaymentBlockedScreen businessName={businessConfig?.name} />;
+    }
 
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
 

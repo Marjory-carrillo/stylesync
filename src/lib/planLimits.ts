@@ -214,3 +214,26 @@ export function getPlanBadgeStyles(plan: PlanType): { bg: string; text: string; 
             return { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20', glow: '' };
     }
 }
+
+/**
+ * Checks if the account is currently active based on subscription type and payment status.
+ */
+export function isAccountActive(
+    subscriptionType: 'stripe' | 'manual' = 'manual',
+    paymentStatus: 'active' | 'grace_period' | 'suspended' = 'active'
+): { active: boolean; warning?: string; blocked: boolean } {
+    if (subscriptionType === 'manual') {
+        return { active: true, blocked: false };
+    }
+    if (paymentStatus === 'active') {
+        return { active: true, blocked: false };
+    }
+    if (paymentStatus === 'grace_period') {
+        return {
+            active: true,
+            blocked: false,
+            warning: 'Problema de pago detectado. Por favor, actualiza tu tarjeta para evitar la suspensión del servicio.'
+        };
+    }
+    return { active: false, blocked: true };
+}
