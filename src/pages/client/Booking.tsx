@@ -1529,100 +1529,58 @@ export default function Booking() {
                                 )}
 
                                 {/* Reference Photo Upload */}
-                                <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                                <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
                                     <h4 className="text-sm font-bold text-white flex items-center gap-2">
                                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Foto de Referencia (Opcional)
                                     </h4>
-                                    <p className="text-[11px] text-slate-400 -mt-2">Sube una foto del diseño que te gustaría para tu manicura.</p>
-
-                                    {nailDesignUrl ? (
-                                        /* ── Preview grande cuando hay foto ── */
-                                        <div className="relative w-full rounded-2xl overflow-hidden border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-                                            <img
-                                                src={nailDesignUrl}
-                                                alt="Referencia de diseño"
-                                                className="w-full object-cover"
-                                                style={{ maxHeight: '280px' }}
-                                            />
-                                            {/* Overlay con botón de eliminar */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-3 gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-widest bg-cyan-500/20 border border-cyan-500/30 px-2 py-0.5 rounded-full">
-                                                        ✓ Foto cargada
-                                                    </span>
-                                                    <div className="flex gap-2 ml-auto">
-                                                        <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/15 transition-all">
-                                                            <Upload size={12} /> Cambiar
-                                                            <input
-                                                                type="file"
-                                                                className="hidden"
-                                                                accept="image/*"
-                                                                onChange={async (e) => {
-                                                                    const file = e.target.files?.[0];
-                                                                    if (!file) return;
-                                                                    setUploadingDesign(true);
-                                                                    try {
-                                                                        const url = await uploadNailDesign(file, tenantId);
-                                                                        if (url) setNailDesignUrl(url);
-                                                                    } catch (err) { console.error(err); }
-                                                                    setUploadingDesign(false);
-                                                                }}
-                                                                disabled={uploadingDesign}
-                                                            />
-                                                        </label>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setNailDesignUrl('')}
-                                                            className="p-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-xl border border-red-500/20 transition-all"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <p className="text-[11px] text-slate-400">Sube una foto del diseño que te gustaría para tu manicura.</p>
+                                    
+                                    <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                                        <div className="w-28 h-28 rounded-xl bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                            {nailDesignUrl ? (
+                                                <img src={nailDesignUrl} alt="Referencia" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <ImageIcon className="text-slate-600" size={24} />
+                                            )}
                                         </div>
-                                    ) : (
-                                        /* ── Zona de carga cuando no hay foto ── */
-                                        <label className="cursor-pointer block">
-                                            <div className={`w-full rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3 py-10 px-6 text-center ${uploadingDesign ? 'border-cyan-500/50 bg-cyan-500/5 animate-pulse' : 'border-white/10 bg-white/[0.02] hover:border-cyan-500/40 hover:bg-cyan-500/5'}`}>
-                                                {uploadingDesign ? (
-                                                    <>
-                                                        <RefreshCw className="animate-spin text-cyan-400" size={28} />
-                                                        <p className="text-sm font-medium text-cyan-400">Subiendo foto...</p>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                                                            <Images size={24} className="text-slate-400" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-white mb-1">Toca para subir tu foto de referencia</p>
-                                                            <p className="text-[11px] text-slate-500">JPG, PNG o WEBP · Máx. 10 MB</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 text-xs font-bold rounded-xl transition-all">
-                                                            <Upload size={14} /> Elegir foto
-                                                        </div>
-                                                    </>
+                                        <div className="flex-1">
+                                            <div className="flex gap-2">
+                                                <label className="btn btn-secondary py-2 px-3 text-xs cursor-pointer flex items-center gap-2 rounded-xl">
+                                                    <Upload size={14} />
+                                                    {uploadingDesign ? 'Subiendo...' : 'Subir Foto'}
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (!file) return;
+                                                            setUploadingDesign(true);
+                                                            try {
+                                                                const url = await uploadNailDesign(file, tenantId);
+                                                                if (url) {
+                                                                    setNailDesignUrl(url);
+                                                                }
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                            }
+                                                            setUploadingDesign(false);
+                                                        }}
+                                                        disabled={uploadingDesign}
+                                                    />
+                                                </label>
+                                                {nailDesignUrl && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 p-2 rounded-xl border border-white/10"
+                                                        onClick={() => setNailDesignUrl('')}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 )}
                                             </div>
-                                            <input
-                                                type="file"
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={async (e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (!file) return;
-                                                    setUploadingDesign(true);
-                                                    try {
-                                                        const url = await uploadNailDesign(file, tenantId);
-                                                        if (url) setNailDesignUrl(url);
-                                                    } catch (err) { console.error(err); }
-                                                    setUploadingDesign(false);
-                                                }}
-                                                disabled={uploadingDesign}
-                                            />
-                                        </label>
-                                    )}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Total and Action Footer */}

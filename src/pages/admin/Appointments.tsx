@@ -574,19 +574,11 @@ export default function Appointments() {
                                                                             const url = refItem.replace('Referencia: ', '');
                                                                             return (
                                                                                 <button
-                                                                                    onClick={(e) => { e.stopPropagation(); setActivePhotoUrl(url); setIsZoomed(false); }}
-                                                                                    className="relative group h-9 pl-1 pr-3 rounded-xl overflow-hidden border border-cyan-500/30 hover:border-cyan-400 bg-cyan-500/5 transition-all shadow-sm active:scale-95 flex items-center gap-2"
-                                                                                    title="Ver diseño de referencia"
+                                                                                    onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
                                                                                 >
-                                                                                    <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0 relative">
-                                                                                        <img src={url} alt="Diseño" className="w-full h-full object-cover" />
-                                                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                                            <Eye size={12} className="text-white" />
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-                                                                                        Ver Diseño
-                                                                                    </span>
+                                                                                    <Eye size={12} className="text-slate-900" />
+                                                                                    <span>Diseño</span>
                                                                                 </button>
                                                                             );
                                                                         }
