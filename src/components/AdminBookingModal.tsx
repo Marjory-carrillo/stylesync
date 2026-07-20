@@ -29,7 +29,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { services } = useServices();
     const { stylists } = useStylists();
     const { blockedSlots } = useBlockedSlots();
-    const { blockedPhones } = useBlockedPhones();
+    const { unblockPhone, isPhoneBlocked } = useBlockedPhones();
     const { schedule } = useSchedule();
     const { data: businessConfig } = useTenantData();
 
@@ -221,10 +221,6 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             setFormError('Ingresa un teléfono válido.');
             return;
         }
-        if (blockedPhones.includes(phone)) {
-            setFormError('Este número está bloqueado. No se puede crear la cita.');
-            return;
-        }
         setClientPhone(phone);
         setFormError(null);
         setStep('barbero'); // Step 2 is now Stylist Selection
@@ -272,15 +268,28 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
 
         try {
+            const cleanPhone = clientPhone.replace(/\s+/g, '').trim();
+            const wasBlocked = isPhoneBlocked(cleanPhone);
+
             await addAppointment({
                 clientName: clientName.trim(),
-                clientPhone: clientPhone.trim(),
+                clientPhone: cleanPhone,
                 serviceId: selectedService.id,
                 stylistId,
                 date: selectedDate,
                 time: selectedTime,
                 additionalServices: addOnNames.length > 0 ? addOnNames : undefined,
             });
+
+            // Automatically unblock client if they were blocked
+            if (wasBlocked) {
+                try {
+                    await unblockPhone(cleanPhone);
+                } catch (unblockErr) {
+                    console.error('Failed to auto-unblock client:', unblockErr);
+                }
+            }
+
             setLastCreated({ clientName: clientName.trim(), date: selectedDate, time: selectedTime });
             setStep('exito');
         } catch {
@@ -395,6 +404,17 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             <div>
                                                 <span className="font-bold block text-slate-200 mb-0.5">¡Cita activa encontrada!</span>
                                                 Este cliente ya tiene una cita para el <span className="text-white font-bold">{new Date(activeAppointmentForPhone.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</span> a las <span className="text-accent font-black">{fmt12h(activeAppointmentForPhone.time)}</span>.
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Blocked Phone Warning */}
+                                    {clientPhone && isPhoneBlocked(clientPhone.replace(/\s+/g, '').trim()) && (
+                                        <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs leading-relaxed animate-fade-in">
+                                            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-bold block text-slate-200 mb-0.5">Cliente bloqueado (No-Show)</span>
+                                                Este número está bloqueado por faltas previas. Al registrar esta cita de forma manual, **se desbloqueará automáticamente**.
                                             </div>
                                         </div>
                                     )}
