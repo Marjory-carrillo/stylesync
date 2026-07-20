@@ -44,7 +44,7 @@ export default function Booking() {
     });
     const { schedule } = useSchedule();
     const { blockedSlots } = useBlockedSlots();
-    const { blockedPhones } = useBlockedPhones();
+    const { blockedPhones, getBlockReason } = useBlockedPhones();
     const { announcements } = useAnnouncements();
     const { addToWaitingList } = useWaitingList();
 
@@ -534,7 +534,12 @@ export default function Booking() {
         }
 
         if (isPhoneBlocked(cleanPhone)) {
-            setClientError('Este número ha sido bloqueado. Contacta al establecimiento para más información.');
+            const reason = getBlockReason(cleanPhone);
+            if (reason === 'no_show') {
+                setClientError('blocked_no_show');
+            } else {
+                setClientError('Este número ha sido bloqueado. Contacta al establecimiento para más información.');
+            }
             return;
         }
 
@@ -1054,8 +1059,24 @@ export default function Booking() {
                                 </p>
                             </div>
 
-                            {clientError && (
-                                <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                            {clientError === 'blocked_no_show' ? (
+                                <div className="flex flex-col gap-3 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm mt-4 text-center">
+                                    <div className="flex items-center justify-center gap-2 mb-1">
+                                        <AlertTriangle size={20} />
+                                        <span className="font-bold">Número Bloqueado</span>
+                                    </div>
+                                    <p className="text-orange-300 text-xs mb-1">Has faltado a tu cita anterior. Para volver a agendar, necesitas contactar directamente al negocio por WhatsApp.</p>
+                                    <a
+                                        href={`https://wa.me/${(businessConfig?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${businessConfig?.name}, no pude asistir a mi última cita y mi número fue bloqueado. Me gustaría volver a agendar.`)}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] hover:bg-[#1ebd5b] text-white rounded-xl font-bold transition-colors mt-2"
+                                    >
+                                        <MessageSquare size={16} /> Hablar por WhatsApp
+                                    </a>
+                                </div>
+                            ) : clientError && (
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mt-4">
                                     <AlertTriangle size={16} /><span>{clientError}</span>
                                 </div>
                             )}

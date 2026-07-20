@@ -189,6 +189,28 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         onError: (err: any) => showToast(`Error al actualizar hora: ${err.message}`, 'error'),
     });
 
+    // MARK NO SHOW
+    const markNoShowMutation = useMutation({
+        mutationFn: async (id: string) => {
+            if (!tenantId) throw new Error('No tenant info');
+            const { data, error } = await supabase.rpc('mark_no_show', {
+                p_appointment_id: id,
+                p_tenant_id: tenantId,
+            });
+            if (error) throw error;
+            if (!data?.success) throw new Error(data?.error || 'Error al marcar como no asistió');
+            return id;
+        },
+        onSuccess: (id) => {
+            if (getDevicePendingId() === id) clearDevicePending();
+            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['clients', tenantId] });
+            queryClient.invalidateQueries({ queryKey: ['blocked_phones', tenantId] });
+            showToast('Cliente marcado como No Asistió y bloqueado 🚫', 'error');
+        },
+        onError: (err: any) => showToast(`Error al marcar: ${err.message}`, 'error'),
+    });
+
     return {
         ...query,
         appointments: query.data || [],
@@ -196,8 +218,10 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         cancelAppointment: cancelMutation.mutateAsync,
         completeAppointment: completeMutation.mutateAsync,
         updateAppointmentTime: updateTimeMutation.mutateAsync,
+        markNoShow: markNoShowMutation.mutateAsync,
         isAdding: addMutation.isPending,
         isCancelling: cancelMutation.isPending,
         isCompleting: completeMutation.isPending,
+        isMarkingNoShow: markNoShowMutation.isPending,
     };
 };

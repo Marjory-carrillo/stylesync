@@ -45,7 +45,7 @@ export interface Appointment {
     stylistId: number | null;
     date: string; // "2026-02-15"
     time: string; // "10:00"
-    status: 'confirmada' | 'cancelada' | 'completada';
+    status: 'confirmada' | 'cancelada' | 'completada' | 'no_show';
     bookedAt: string; // ISO timestamp of when this was booked
     reminderSent?: boolean;
     confirmationSent?: boolean;
@@ -65,6 +65,7 @@ export interface Client {
     totalSpent: number;
     lastVisit: string | null;
     mainService?: string | null;
+    noShowCount?: number;
 }
 
 export interface WaitingClient {
@@ -249,6 +250,7 @@ export interface StoreContextType {
     cancelAppointment: (id: string, byClient?: boolean) => Promise<{ success: boolean; error?: string }>;
     completeAppointment: (id: string) => Promise<void>;
     updateAppointmentTime: (id: string, newTime: string) => Promise<void>;
+    markNoShow: (id: string) => Promise<void>;
 
     updateDaySchedule: (day: string, data: Partial<DaySchedule>) => Promise<void>;
     saveSchedule: (schedule: WeekSchedule) => Promise<void>;
@@ -270,6 +272,7 @@ export interface StoreContextType {
     getBlockedSlotsForDate: (date: string) => BlockedSlot[];
 
     isPhoneBlocked: (phone: string) => boolean;
+    getBlockReason: (phone: string) => string | null;
     blockPhone: (phone: string, reason?: string) => Promise<void>;
     unblockPhone: (phone: string) => Promise<void>;
 

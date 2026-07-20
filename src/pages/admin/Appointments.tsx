@@ -10,12 +10,13 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck, Eye } from 'lucide-react';
+import { Trash2, User, UserX, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck, Eye } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import DatePickerInput from '../../components/DatePickerInput';
+import { ClientHistoryModal } from '../../components/ClientHistoryModal';
 
 
 export default function Appointments() {
@@ -30,7 +31,7 @@ export default function Appointments() {
         return d.toISOString().split('T')[0];
     }, []);
 
-    const { appointments: allAppointments, cancelAppointment, isPending: apptsPending } = useAppointments({ startDate });
+    const { appointments: allAppointments, cancelAppointment, markNoShow, isPending: apptsPending } = useAppointments({ startDate });
     const { services, isPending: servicesPending } = useServices();
     const { stylists, isPending: stylistsPending } = useStylists();
     const { waitingList, removeFromWaitingList } = useWaitingList();
@@ -63,7 +64,8 @@ export default function Appointments() {
     }, [allAppointments, userRole, userStylistId]);
 
     const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'espera'>('list');
-    const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada'>('confirmada');
+    const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'no_show'>('confirmada');
+    const [historyModal, setHistoryModal] = useState<{ open: boolean; phone: string }>({ open: false, phone: '' });
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -184,6 +186,12 @@ export default function Appointments() {
         }
     };
 
+    const handleNoShow = async (apt: typeof appointments[0]) => {
+        if (window.confirm(`¿Marcar a ${apt.clientName} como que no asistió? Esto bloqueará su número para agendar.`)) {
+            await markNoShow(apt.id);
+        }
+    };
+
     return (
         <div className="animate-fade-in w-full min-h-[calc(100vh-120px)] flex flex-col gap-6 pb-12">
 
@@ -254,6 +262,7 @@ export default function Appointments() {
                         {[
                             { id: 'confirmada', label: t('appointments.filters.confirmada'), color: 'bg-emerald-500', text: 'text-emerald-400' },
                             { id: 'completada', label: t('appointments.filters.completada'), color: 'bg-slate-500', text: 'text-slate-400' },
+                            { id: 'no_show', label: 'No Asistió', color: 'bg-orange-500', text: 'text-orange-400' },
                             { id: 'cancelada', label: t('appointments.filters.cancelada'), color: 'bg-red-500', text: 'text-red-400' }
                         ].map((tab) => (
                             <button
@@ -534,9 +543,12 @@ export default function Appointments() {
                                                             {/* Client info */}
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-center gap-2 mb-1">
-                                                                    <span className={`text-lg font-bold ${isCancelled ? 'text-muted line-through' : 'text-white'}`}>
+                                                                    <button 
+                                                                        onClick={() => setHistoryModal({ open: true, phone: apt.clientPhone })}
+                                                                        className={`text-lg font-bold text-left hover:underline decoration-white/30 underline-offset-4 ${isCancelled ? 'text-muted line-through' : 'text-white'}`}
+                                                                    >
                                                                         {apt.clientName}
-                                                                    </span>
+                                                                    </button>
                                                                     {blocked && <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[10px] font-bold text-red-500 border border-red-500/20">BLOQUEADO</span>}
                                                                 </div>
                                                                 <a href={`tel:${apt.clientPhone}`} className="text-xs font-medium text-muted hover:text-accent transition-colors flex items-center gap-2 w-fit">
@@ -593,6 +605,21 @@ export default function Appointments() {
                                                                         <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
                                                                             <MessageCircle size={20} />
                                                                         </a>
+                                                                        
+                                                                        {/* Only show No-Show button if appointment has passed or is today (visual isFinished logic) */}
+                                                                        {(() => {
+                                                                            const end = new Date(`${apt.date}T${apt.time}`);
+                                                                            end.setMinutes(end.getMinutes() + (service?.duration || 0));
+                                                                            if (new Date() >= end) {
+                                                                                return (
+                                                                                    <button onClick={() => handleNoShow(apt)} className="p-2.5 rounded-xl text-muted hover:bg-orange-500/10 hover:text-orange-400 transition-all border border-transparent hover:border-orange-500/20" title="No Asistió">
+                                                                                        <UserX size={20} />
+                                                                                    </button>
+                                                                                );
+                                                                            }
+                                                                            return null;
+                                                                        })()}
+
                                                                         <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20" title="Cancelar">
                                                                             <Trash2 size={20} />
                                                                         </button>
@@ -807,6 +834,12 @@ export default function Appointments() {
             <AdminBookingModal
                 isOpen={showBookingModal}
                 onClose={() => setShowBookingModal(false)}
+            />
+
+            <ClientHistoryModal
+                isOpen={historyModal.open}
+                onClose={() => setHistoryModal({ open: false, phone: '' })}
+                clientPhone={historyModal.phone}
             />
 
             {/* Full screen design reference photo preview modal */}

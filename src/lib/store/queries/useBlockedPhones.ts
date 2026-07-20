@@ -11,14 +11,14 @@ export const useBlockedPhones = () => {
 
     const query = useQuery({
         queryKey,
-        queryFn: async (): Promise<string[]> => {
+        queryFn: async (): Promise<{ phone: string; reason: string }[]> => {
             if (!tenantId) return [];
             const { data, error } = await supabase
                 .from('blocked_phones')
-                .select('phone')
+                .select('phone, reason')
                 .eq('tenant_id', tenantId);
             if (error) throw error;
-            return data.map((p: any) => p.phone);
+            return data;
         },
         enabled: !!tenantId,
     });
@@ -56,12 +56,14 @@ export const useBlockedPhones = () => {
         onError: (err: any) => showToast(`Error al desbloquear: ${err.message}`, 'error')
     });
 
-    const blockedPhones = query.data || [];
+    const blockedData = query.data || [];
+    const blockedPhones = blockedData.map(d => d.phone);
 
     return {
         ...query,
         blockedPhones,
         isPhoneBlocked: (phone: string) => blockedPhones.includes(phone),
+        getBlockReason: (phone: string) => blockedData.find(d => d.phone === phone)?.reason || null,
         blockPhone: blockMutation.mutateAsync,
         unblockPhone: unblockMutation.mutateAsync,
     };
