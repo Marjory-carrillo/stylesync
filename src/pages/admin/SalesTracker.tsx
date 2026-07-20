@@ -291,6 +291,26 @@ export default function SalesTracker() {
         {
             q: "No soy bueno usando la tecnología",
             a: "No te preocupes por eso. La app es súper sencilla de usar, como mandar un mensaje de WhatsApp. Además, yo mismo te la configuro en este momento y te enseño a usarla en 5 minutos. No te dejo solo."
+        },
+        {
+            q: "¿Qué pasa si un cliente agenda y no va? Voy a perder tiempo.",
+            a: "Justamente para eso tenemos la función de 'No-Show'. Si un cliente te queda mal, tú lo marcas en la app y el sistema automáticamente le bloquea el acceso para que no pueda volver a agendar en línea, además de enviarle recordatorios antes de su cita para evitar olvidos."
+        },
+        {
+            q: "No quiero que mis clientes vean mi agenda vacía, da mala imagen.",
+            a: "Te entiendo perfectamente. Por eso la app está diseñada de manera inteligente: no le muestra al cliente tu agenda completa. Solo les muestra las horas disponibles que ellos eligen, y puedes activar la función de 'Citas Seguidas' para que los horarios se acomoden de forma compacta y tu negocio siempre se vea con buen ritmo."
+        },
+        {
+            q: "Tengo mi propio equipo y no sé si ellos van a querer usarla.",
+            a: "La app te permite crear perfiles individuales para cada profesional de tu equipo. Ellos pueden ver solo sus propias citas en su cel, organizar sus tiempos y les ahorra el trabajo de estar coordinando agendas entre sí. A ellos les conviene porque les facilita ganar más comisiones sin esfuerzo administrativo."
+        },
+        {
+            q: "Me gusta el trato personalizado con mi cliente, no quiero verme frío.",
+            a: "Totalmente de acuerdo. La app no reemplaza tu trato, al contrario: te libera del tiempo de responder mensajes repetitivos para que cuando el cliente llegue a tu local, le des tu atención al 100%. Además, los mensajes de WhatsApp que envía la app se pueden personalizar con el nombre de tu negocio para que se sientan cercanos y profesionales."
+        },
+        {
+            q: "Ya uso otra aplicación (ej. AgendaPro, Booksy) y no quiero cambiarme.",
+            a: "Esas aplicaciones son buenas, pero suelen ser muy caras (casi $1,000 MXN o más al mes) y complejas de configurar para tu equipo. CitaLink está diseñada específicamente para ser ultra-rápida, con un plan básico gratuito de por vida y planes premium que valen una fracción de lo que cobran los demás. Te ayudo a probarla gratis y tú comparas cuál es más práctica."
         }
     ];
 
