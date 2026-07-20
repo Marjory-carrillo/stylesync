@@ -38,6 +38,7 @@ export const useClients = () => {
                     totalSpent: 0,
                     lastVisit: null,
                     mainService: null,
+                    noShowCount: Number(c.no_show_count) || 0,
                 })) as Client[];
             }
             return (data || []).map((c: any) => ({
@@ -48,6 +49,7 @@ export const useClients = () => {
                 totalSpent: Number(c.total_spent) || 0,
                 lastVisit: c.last_visit || null,
                 mainService: c.main_service || null,
+                noShowCount: Number(c.no_show_count) || 0,
             })) as Client[];
         },
         enabled: !!tenantId,
