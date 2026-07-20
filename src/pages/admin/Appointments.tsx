@@ -850,22 +850,17 @@ export default function Appointments() {
                 >
                     {/* Fixed Top Bar (100% visible on Mobile & Laptop) */}
                     <div className="absolute top-0 left-0 right-0 h-16 bg-[#0f1420]/90 backdrop-blur-md border-b border-white/10 px-6 flex items-center justify-between z-20 pointer-events-auto">
-                        <span className="text-sm font-bold text-white uppercase tracking-wider">Referencia de Diseño</span>
+                        <button 
+                            onClick={() => setIsZoomed(!isZoomed)}
+                            className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 bg-cyan-500 hover:bg-cyan-400 px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
+                        >
+                            {isZoomed ? '🔍 Ajustar a Pantalla' : '🔍 Ampliar Foto (Zoom)'}
+                        </button>
                         <button 
                             onClick={() => setActivePhotoUrl(null)}
                             className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
                         >
                             <X size={18} />
-                        </button>
-                    </div>
-
-                    {/* Floating Zoom Button at the bottom center (Highly visible) */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); setIsZoomed(!isZoomed); }}
-                            className="inline-flex items-center gap-2 text-xs font-black text-slate-900 bg-cyan-500 hover:bg-cyan-400 px-5 py-3 rounded-2xl transition-all shadow-xl shadow-cyan-500/30 cursor-pointer active:scale-95 uppercase tracking-widest"
-                        >
-                            {isZoomed ? '🔍 Ajustar Pantalla' : '🔍 Zoom (Ampliar)'}
                         </button>
                     </div>
 
@@ -877,10 +872,10 @@ export default function Appointments() {
                         <img 
                             src={activePhotoUrl} 
                             alt="Diseño de referencia" 
-                            className={`rounded-3xl object-contain border border-white/10 shadow-2xl transition-all duration-300 ${
+                            className={`rounded-3xl border border-white/10 shadow-2xl transition-all duration-300 ${
                                 isZoomed 
                                     ? 'max-w-none max-h-none w-[180%] md:w-[220%] cursor-zoom-out' 
-                                    : 'max-w-full max-h-full cursor-zoom-in'
+                                    : 'w-full h-full max-w-[90vw] max-h-[80vh] object-contain cursor-zoom-in'
                             }`}
                             onClick={(e) => {
                                 e.stopPropagation();
