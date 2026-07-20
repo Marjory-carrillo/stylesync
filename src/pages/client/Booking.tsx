@@ -1536,11 +1536,11 @@ export default function Booking() {
                                     <p className="text-[11px] text-slate-400">Sube una foto del diseño que te gustaría para tu manicura.</p>
                                     
                                     <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
-                                        <div className="w-28 h-28 rounded-xl bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                        <div className="w-36 h-36 rounded-xl bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                             {nailDesignUrl ? (
                                                 <img src={nailDesignUrl} alt="Referencia" className="w-full h-full object-cover" />
                                             ) : (
-                                                <ImageIcon className="text-slate-600" size={24} />
+                                                <ImageIcon className="text-slate-600" size={28} />
                                             )}
                                         </div>
                                         <div className="flex-1">
