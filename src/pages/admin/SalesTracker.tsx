@@ -45,7 +45,7 @@ export default function SalesTracker() {
     });
 
     // Scripts helpers
-    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const [copiedText, setCopiedText] = useState<string | null>(null);
     const [activeAccordion, setActiveAccordion] = useState<number | null>(null);
 
     useEffect(() => {
@@ -150,10 +150,10 @@ export default function SalesTracker() {
         }
     };
 
-    const handleCopy = (text: string, index: number) => {
+    const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
-        setCopiedIndex(index);
-        setTimeout(() => setCopiedIndex(null), 2000);
+        setCopiedText(text);
+        setTimeout(() => setCopiedText(null), 2000);
         showToast('Texto copiado al portapapeles', 'success');
     };
 
@@ -202,23 +202,75 @@ export default function SalesTracker() {
         }
     };
 
-    // Sales scripts data
+    // Sales scripts data grouped by sections
     const salesScripts = [
         {
-            title: "🚪 Apertura (Entrar al negocio)",
-            text: "Buenas tardes, disculpa, ¿se encuentra el dueño o encargado del negocio? ... Hola, qué tal. Vengo rápido, sé que estás ocupado. Estoy presentando una aplicación de reservas para barberías aquí en la zona para que tus clientes puedan agendar cita directo en tu calendario sin tener que interrumpirte con llamadas o mensajes mientras cortas. ¿Te interesaría ver cómo funciona en 2 minutos?"
+            section: "🚪 Apertura y Abordaje en Frío (Visita Física)",
+            items: [
+                {
+                    title: "🚪 Apertura Clásica (Original)",
+                    text: "Buenas tardes, disculpa, ¿se encuentra el dueño o encargado del negocio? ... Hola, qué tal. Vengo rápido, sé que estás ocupado. Estoy presentando una aplicación de reservas para barberías aquí en la zona para que tus clientes puedan agendar cita directo en tu calendario sin tener que interrumpirte con llamadas o mensajes mientras cortas. ¿Te interesaría ver cómo funciona en 2 minutos?"
+                },
+                {
+                    title: "⚡ Abordaje Express (Cuando están cortando/ocupados)",
+                    text: "Hola, qué tal, buenas tardes. Sé que estás a mitad de un servicio, no te quito tiempo. Te dejo esta tarjeta rápida: estamos digitalizando las barberías de la zona con una agenda inteligente para que los clientes se reserven solos por WhatsApp sin que tengas que pausar tu trabajo para responder mensajes. Paso más tarde o mañana para mostrarte la demo gratis en 2 minutos si te parece bien. ¡Que tengas excelente tarde!"
+                },
+                {
+                    title: "💅 Enfoque Especializado (Salón de Belleza o Manicuristas)",
+                    text: "Hola, buenas tardes, ¿se encuentra la encargada? Un gusto. Estamos implementando una agenda digital de reservas para salones y nail bars aquí en la zona. El principal beneficio es que reduce a cero las cancelaciones de última hora y los no-shows enviando recordatorios automáticos por WhatsApp, y te permite bloquear a clientes problemáticos. ¿Me permitirías mostrarte cómo se ve la agenda desde el celular?"
+                }
+            ]
         },
         {
-            title: "⚡ Elevator Pitch (30 segundos)",
-            text: "CitaLink te da tu propio enlace de reservas para tus redes sociales o WhatsApp. Tus clientes entran, ven tus horas libres, agendan en 3 clics y la app les manda un recordatorio automático por WhatsApp para que no se les olvide y no te dejen plantado. Todo se actualiza solo en tu cel."
+            section: "⚡ Elevator Pitch (Argumento rápido de venta)",
+            items: [
+                {
+                    title: "⚡ Elevator Pitch (Original)",
+                    text: "CitaLink te da tu propio enlace de reservas para tus redes sociales o WhatsApp. Tus clientes entran, ven tus horas libres, agendan en 3 clics y la app les manda un recordatorio automático por WhatsApp para que no se les olvide y no te dejen plantado. Todo se actualiza solo en tu cel."
+                },
+                {
+                    title: "📈 Enfoque de Crecimiento (Atraer nuevos clientes)",
+                    text: "Básicamente, te creamos un link personalizado que pones en tu perfil de Instagram, Facebook y WhatsApp. En lugar de que un cliente nuevo te mande mensaje a las 11 pm y le contestes hasta el día siguiente (cuando ya buscó a otro), el cliente entra a tu link a la hora que sea, ve tus horarios disponibles y se agenda solo. Aseguras la venta al instante."
+                },
+                {
+                    title: "⏱️ Enfoque Eficiencia (Dejar la libreta tradicional)",
+                    text: "La libreta funciona bien, pero te quita tiempo y dinero. Si sumas los minutos que gastas al día contestando '¿a qué hora tienes libre?', confirmando citas y reprogramando, pierdes casi una hora diaria. CitaLink automatiza todo eso: el cliente ve tu disponibilidad en tiempo real, reserva, y si necesita cancelar, lo hace desde la app liberando el espacio para alguien más."
+                }
+            ]
         },
         {
-            title: "✅ Propuesta de Cierre (Demo gratis)",
-            text: "Mira, no te cobro nada por configurártela ahorita mismo. Te doy el plan básico que es gratis y lo pruebas esta semana con tus clientes de confianza. Si ves que te ahorra tiempo y te organiza el día, lo dejas; si no, lo cancelamos sin problemas. ¿Lo dejamos listo de una vez en tu celular? Nos toma 10 minutos."
+            section: "✅ Cierre de Ventas y Registro",
+            items: [
+                {
+                    title: "✅ Propuesta de Cierre (Original)",
+                    text: "Mira, no te cobro nada por configurártela ahorita mismo. Te doy el plan básico que es gratis y lo pruebas esta semana con tus clientes de confianza. Si ves que te ahorra tiempo y te organiza el día, lo dejas; si no, lo cancelamos sin problemas. ¿Lo dejamos listo de una vez en tu celular? Nos toma 10 minutos."
+                },
+                {
+                    title: "🤝 Cierre con Prueba Guiada (Instalar Demo en 5 min)",
+                    text: "Hagamos algo: vamos a dar de alta tu negocio en 5 minutos gratis. Yo te ayudo a registrar tus servicios y horarios de una vez. Te mando el link a tu WhatsApp, te haces una cita de prueba a ti mismo para que sientas la experiencia del cliente y veas cómo te llega la notificación a tu cel. Si te convence, lo dejas activo. ¿Empezamos con el nombre de tu negocio?"
+                },
+                {
+                    title: "🔥 Cierre por Escasez / Zona (Barberías vecinas)",
+                    text: "Estamos activando la plataforma en las barberías principales de esta zona para mejorar el servicio digital. Ahorita tengo la promoción de configurarte la cuenta y dejarte el asistente de WhatsApp activo de manera gratuita para que lo pruebes. Me quedan solo dos activaciones de cortesía hoy. ¿Te registramos de una vez para que no te quedes fuera?"
+                }
+            ]
         },
         {
-            title: "📱 WhatsApp de Seguimiento",
-            text: "Hola [Nombre]! Te saluda Adrián de CitaLink, pasé a saludarte a tu barbería el otro día. Quería ver si tuviste oportunidad de checar el demo o si tienes alguna duda con la app. Quedo a la orden por si quieres que lo activemos gratis para que lo pruebes. ¡Excelente día!"
+            section: "📱 WhatsApp de Seguimiento",
+            items: [
+                {
+                    title: "📱 WhatsApp de Seguimiento (Original)",
+                    text: "Hola [Nombre]! Te saluda Adrián de CitaLink, pasé a saludarte a tu barbería el otro día. Quería ver si tuviste oportunidad de checar el demo o si tienes alguna duda con la app. Quedo a la orden por si quieres que lo activemos gratis para que lo pruebes. ¡Excelente día!"
+                },
+                {
+                    title: "🔥 Seguimiento con Gancho de Valor (Caso de éxito)",
+                    text: "¡Hola [Nombre]! Espero que estés excelente. Te saluda [Tu Nombre] de CitaLink. Te escribo porque recordé tu barbería [Nombre del Negocio] y quería comentarte que otra barbería cercana ya empezó a usar el link esta semana y redujo sus no-shows casi a cero en los primeros 3 días. Te dejo el dato por si aún te interesa que configuremos tu cuenta gratis. ¡Un abrazo!"
+                },
+                {
+                    title: "🛠️ Seguimiento de Soporte (Derribar barreras técnicas)",
+                    text: "Hola [Nombre], ¿cómo va todo? Te escribe [Tu Nombre] de CitaLink. Me quedé pensando en lo que platicamos de que a veces da flojera configurar plataformas nuevas. Si quieres, nos conectamos en una llamada rápida de 5 minutos hoy y yo te dejo todo listo (servicios, precios y horarios) para que no tengas que hacer nada de trabajo pesado. ¿Qué hora te queda bien hoy?"
+                }
+            ]
         }
     ];
 
@@ -420,31 +472,40 @@ export default function SalesTracker() {
 
             {/* VIEW 2: SCRIPTS & OBJECTIONS */}
             {activeTab === 'scripts' && (
-                <div className="space-y-6">
+                <div className="space-y-8">
                     {/* Scripts Section */}
-                    <div className="space-y-4">
-                        <h2 className="text-lg font-black text-white uppercase tracking-wider border-l-2 border-violet-400 pl-2">Guiones Rápidos de Campo</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {salesScripts.map((s, idx) => (
-                                <div key={idx} className="glass-panel p-5 bg-[#161a29] border border-white/5 flex flex-col justify-between">
-                                    <div>
-                                        <h4 className="font-extrabold text-white text-sm mb-2 uppercase tracking-wide flex items-center justify-between">
-                                            {s.title}
-                                        </h4>
-                                        <p className="text-slate-300 text-xs leading-relaxed font-medium">
-                                            {s.text}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => handleCopy(s.text, idx)}
-                                        className="mt-4 w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white transition-all text-xs font-bold flex items-center justify-center gap-2"
-                                    >
-                                        {copiedIndex === idx ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                                        {copiedIndex === idx ? "Copiado!" : "Copiar Guion"}
-                                    </button>
+                    <div className="space-y-8">
+                        {salesScripts.map((section, sIdx) => (
+                            <div key={sIdx} className="space-y-4">
+                                <h2 className="text-sm font-black text-violet-400 uppercase tracking-widest border-l-2 border-violet-400 pl-2">
+                                    {section.section}
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {section.items.map((s, idx) => {
+                                        const isCopied = copiedText === s.text;
+                                        return (
+                                            <div key={idx} className="glass-panel p-5 bg-[#161a29] border border-white/5 flex flex-col justify-between hover:border-white/10 transition-colors">
+                                                <div>
+                                                    <h4 className="font-extrabold text-white text-xs mb-2 uppercase tracking-wider flex items-center justify-between">
+                                                        {s.title}
+                                                    </h4>
+                                                    <p className="text-slate-300 text-xs leading-relaxed font-medium">
+                                                        {s.text}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleCopy(s.text)}
+                                                    className="mt-4 w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 hover:text-white transition-all text-xs font-bold flex items-center justify-center gap-2"
+                                                >
+                                                    {isCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                                                    {isCopied ? "¡Copiado!" : "Copiar Guion"}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Objections Accordion */}
