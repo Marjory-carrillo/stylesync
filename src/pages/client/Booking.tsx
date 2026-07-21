@@ -27,7 +27,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -2664,6 +2664,43 @@ export default function Booking() {
                                 <ChevronRight size={20} />
                             </button>
                         </div>
+
+                        {/* ── CÓMO LLEGAR CARD (MAPA EMBEBIDO) ── */}
+                        {businessConfig?.address && (
+                            <div className="w-full max-w-sm bg-[#f8faf9] text-slate-800 rounded-[2rem] p-6 border border-slate-200/80 shadow-lg mb-8 flex flex-col text-left">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">CÓMO LLEGAR</span>
+                                <h4 className="text-xl font-black text-slate-900 leading-tight mb-2 tracking-tight">
+                                    {businessConfig?.name || 'Nuestro Local'}
+                                </h4>
+                                <div className="flex items-start gap-2 text-slate-600 mb-5">
+                                    <MapPin size={16} className="text-slate-800 mt-0.5 shrink-0" />
+                                    <span className="text-xs font-bold leading-normal">
+                                        {businessConfig?.address}
+                                    </span>
+                                </div>
+                                
+                                {/* Map Container */}
+                                <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+                                    <iframe
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(businessConfig?.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                        className="w-full h-full border-0"
+                                        allowFullScreen={false}
+                                        loading="lazy"
+                                    ></iframe>
+                                    
+                                    {/* Floating Button */}
+                                    <a
+                                        href={businessConfig?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessConfig?.address)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute top-3 left-3 bg-white hover:bg-slate-50 text-blue-600 font-bold text-xs px-3 py-2 rounded-xl shadow-md border border-slate-100 flex items-center gap-1.5 transition-all active:scale-95 z-10"
+                                    >
+                                        <span>Abrir en Maps</span>
+                                        <ExternalLink size={12} />
+                                    </a>
+                                </div>
+                            </div>
+                        )}
 
                         <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.2em] mb-8">Gracias por confiar en {businessConfig?.name || 'nosotros'}</p>
                     </div>

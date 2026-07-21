@@ -104,6 +104,21 @@ export default function Dashboard() {
     const { cancellationLog } = useCancellationLog();
     const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
 
+    const getAppointmentPrice = useCallback((apt: any) => {
+        const service = getServiceById(apt.serviceId);
+        const customPriceItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Cotización Confirmada:'));
+        if (customPriceItem) {
+            const priceMatch = customPriceItem.match(/\$(\d+)/);
+            if (priceMatch) return Number(priceMatch[1]);
+        }
+        const quoteItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Cotización Estimada:'));
+        if (quoteItem) {
+            const priceMatch = quoteItem.match(/\$(\d+)/);
+            if (priceMatch) return Number(priceMatch[1]);
+        }
+        return service?.price || 0;
+    }, [getServiceById]);
+
     const handleNoShow = useCallback((appt: any) => {
         setCustomConfirm({
             open: true,
@@ -153,9 +168,9 @@ export default function Dashboard() {
                 if (new Date() >= end) isFinished = true;
             }
 
-            return isFinished ? sum + svc.price : sum;
+            return isFinished ? sum + getAppointmentPrice(a) : sum;
         }, 0);
-    }, [todayAppts, services]);
+    }, [todayAppts, services, getAppointmentPrice]);
 
     const tomorrowAppts = useMemo(() => {
         const target = new Date();
@@ -204,7 +219,7 @@ export default function Dashboard() {
             const isCanceled = a.status === 'cancelada';
 
             const svc = services.find(s => s.id === a.serviceId);
-            const price = svc?.price || 0;
+            const price = getAppointmentPrice(a);
 
             if (isCurrentMonth) {
                 if (isCanceled) {
@@ -249,7 +264,7 @@ export default function Dashboard() {
             appsGrowth,
             canceled: currentCanceled
         };
-    }, [appointments, services]);
+    }, [appointments, services, getAppointmentPrice]);
 
     // Graph Data
     const revenueChartData = useMemo(() => {
@@ -274,7 +289,7 @@ export default function Dashboard() {
                             end.setMinutes(end.getMinutes() + svc.duration);
                             if (new Date() >= end) isFinished = true;
                         }
-                        return isFinished ? sum + svc.price : sum;
+                        return isFinished ? sum + getAppointmentPrice(appt) : sum;
                     }, 0);
 
                 data.push({
@@ -299,7 +314,7 @@ export default function Dashboard() {
                     .reduce((sum, appt) => {
                         const svc = services.find(s => s.id === appt.serviceId);
                         if (!svc) return sum;
-                        return sum + svc.price;
+                        return sum + getAppointmentPrice(appt);
                     }, 0);
 
                 data.push({
@@ -323,7 +338,7 @@ export default function Dashboard() {
                     .reduce((sum, appt) => {
                         const svc = services.find(s => s.id === appt.serviceId);
                         if (!svc) return sum;
-                        return sum + svc.price;
+                        return sum + getAppointmentPrice(appt);
                     }, 0);
 
                 data.push({
@@ -334,7 +349,7 @@ export default function Dashboard() {
         }
 
         return data;
-    }, [appointments, services, chartRange]);
+    }, [appointments, services, chartRange, getAppointmentPrice]);
 
     const topServices = useMemo(() => {
         const counts: Record<number, number> = {};
@@ -1778,7 +1793,7 @@ export default function Dashboard() {
                                                 {!isEmployee && (
                                                     <div className="text-right mr-2 hidden sm:block">
                                                         <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Ingreso</span>
-                                                        <span className="text-sm font-black text-emerald-400">${svc?.price || 0}</span>
+                                                        <span className="text-sm font-black text-emerald-400">${getAppointmentPrice(appt)}</span>
                                                     </div>
                                                 )}
                                                 <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-emerald-500/10 text-emerald-400 border-emerald-500/20">

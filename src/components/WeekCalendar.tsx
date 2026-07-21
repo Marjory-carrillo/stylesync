@@ -10,9 +10,10 @@ interface WeekCalendarProps {
     stylists: Stylist[];
     onWhatsApp: (apt: Appointment) => void;
     onCancel: (apt: Appointment) => void;
+    onOpenHistory: (phone: string) => void;
 }
 
-const WeekCalendar = React.memo(function WeekCalendar({ appointments, services, stylists, onWhatsApp, onCancel }: WeekCalendarProps) {
+const WeekCalendar = React.memo(function WeekCalendar({ appointments, services, stylists, onWhatsApp, onCancel, onOpenHistory }: WeekCalendarProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
 
@@ -173,8 +174,16 @@ const WeekCalendar = React.memo(function WeekCalendar({ appointments, services, 
                                 <>
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                                {selectedApt.clientName}
+                                            <h3 className="text-xl font-bold text-white flex items-center gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedApt(null);
+                                                        onOpenHistory(selectedApt.clientPhone);
+                                                    }}
+                                                    className="hover:underline text-left hover:text-accent transition-colors"
+                                                >
+                                                    {selectedApt.clientName}
+                                                </button>
                                                 {selectedApt.reminderSent && (
                                                     <span className="flex items-center gap-1 text-[9px] font-black text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
                                                         <MessageCircle size={10} /> Rec. Enviado

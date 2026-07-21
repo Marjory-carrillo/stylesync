@@ -566,6 +566,7 @@ export default function Appointments() {
                                     window.open(url, '_blank');
                                 }}
                                 onCancel={(apt) => handleAdminCancel(apt)}
+                                onOpenHistory={(phone) => setHistoryModal({ open: true, phone })}
                             />
                         </div>
                     ) : (
