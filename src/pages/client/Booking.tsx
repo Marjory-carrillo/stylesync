@@ -60,8 +60,13 @@ export default function Booking() {
     };
     const getActiveAnnouncements = () => announcements.filter(a => a.active);
 
-    // sendSMS removida — OTP ahora usa Twilio Verify (verify-otp edge function)
-    // Para WhatsApp OTP futuro, descomentar y conectar a send-sms con ContentSid de auth template.
+
+    const [isMobileDevice, setIsMobileDevice] = useState(window.innerWidth < 768);
+    useEffect(() => {
+        const handleResize = () => setIsMobileDevice(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
 
     const loading = tenantLoading || (tenantId && configLoading);
@@ -2733,7 +2738,7 @@ export default function Booking() {
                                 {/* Map Container */}
                                 <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
                                     <iframe
-                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(businessConfig?.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(businessConfig?.address)}&t=&z=${isMobileDevice ? 15 : 14}&ie=UTF8&iwloc=&output=embed`}
                                         className="w-full h-full border-0"
                                         allowFullScreen={false}
                                         loading="lazy"
