@@ -1035,7 +1035,7 @@ export default function Appointments() {
                             alt="Diseño de referencia" 
                             className={`rounded-3xl border border-white/10 shadow-2xl transition-all duration-300 ${
                                 isZoomed 
-                                    ? 'max-w-none max-h-none w-[180%] md:w-[220%] cursor-zoom-out' 
+                                    ? 'max-w-none max-h-none w-[180%] cursor-zoom-out' 
                                     : 'w-full h-full max-w-[90vw] max-h-[80vh] object-contain cursor-zoom-in'
                             }`}
                             onClick={(e) => {

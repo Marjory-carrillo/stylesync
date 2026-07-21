@@ -1841,7 +1841,7 @@ export default function Dashboard() {
                             alt="Diseño de referencia" 
                             className={`rounded-3xl object-contain border border-white/10 shadow-2xl transition-all duration-300 ${
                                 isZoomed 
-                                    ? 'max-w-none max-h-none w-[180%] md:w-[220%] cursor-zoom-out' 
+                                    ? 'max-w-none max-h-none w-[180%] cursor-zoom-out' 
                                     : 'max-w-full max-h-full cursor-zoom-in'
                             }`}
                             onClick={(e) => {
