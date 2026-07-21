@@ -90,6 +90,25 @@ export default function Booking() {
     const [clientName, setClientName] = useState('');
     const [clientPhone, setClientPhone] = useState('');
     const [clientError, setClientError] = useState<string | null>(null);
+
+    // Perfiles guardados localmente para autocompletado
+    const [savedProfiles, setSavedProfiles] = useState<{ name: string; phone: string }[]>(() => {
+        try {
+            const data = localStorage.getItem('citalink_saved_profiles');
+            return data ? JSON.parse(data) : [];
+        } catch {
+            return [];
+        }
+    });
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    const matchedProfiles = useMemo(() => {
+        if (!clientName.trim()) return [];
+        return savedProfiles.filter(p => 
+            p.name.toLowerCase().includes(clientName.toLowerCase()) ||
+            p.phone.includes(clientName)
+        );
+    }, [clientName, savedProfiles]);
     const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
     const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null>(null);
     const [selectedAddOns, setSelectedAddOns] = useState<number[]>([]); // additional service IDs
@@ -629,6 +648,20 @@ export default function Booking() {
         setBookingResult(result);
         if (result.success) {
             setStep(5);
+            // Guardar perfil en localStorage para agendar rápido después
+            try {
+                const name = clientName.trim();
+                const phone = clientPhone.trim();
+                const stored = localStorage.getItem('citalink_saved_profiles');
+                let profiles: { name: string; phone: string }[] = stored ? JSON.parse(stored) : [];
+                profiles = profiles.filter(p => p.phone !== phone);
+                profiles.unshift({ name, phone });
+                profiles = profiles.slice(0, 5);
+                localStorage.setItem('citalink_saved_profiles', JSON.stringify(profiles));
+                setSavedProfiles(profiles);
+            } catch (e) {
+                console.error('Error saving profile to localStorage', e);
+            }
             if (tenantId) {
                 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
                 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -1031,11 +1064,47 @@ export default function Booking() {
                                 <input
                                     type="text"
                                     value={clientName}
-                                    onChange={e => { setClientName(e.target.value); setClientError(null); }}
+                                    onChange={e => { 
+                                        setClientName(e.target.value); 
+                                        setClientError(null); 
+                                        setShowSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
                                     placeholder="Tu nombre completo"
                                     className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
                                     onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
+
+                                {/* Sugerencias de autocompletado */}
+                                {showSuggestions && (clientName.trim() === '' ? savedProfiles : matchedProfiles).length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-2 bg-[#101424] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                                        <div className="px-4 py-2 border-b border-white/5 bg-white/2">
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">¿Agendar de nuevo?</span>
+                                        </div>
+                                        {(clientName.trim() === '' ? savedProfiles : matchedProfiles).map((profile, pIdx) => (
+                                            <button
+                                                key={pIdx}
+                                                type="button"
+                                                onClick={() => {
+                                                    setClientName(profile.name);
+                                                    setClientPhone(profile.phone);
+                                                    setClientError(null);
+                                                    setShowSuggestions(false);
+                                                }}
+                                                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 border-b border-white/5 last:border-b-0 transition-colors"
+                                            >
+                                                <div>
+                                                    <p className="text-sm font-bold text-white uppercase tracking-tight">{profile.name}</p>
+                                                    <p className="text-[10px] text-slate-500 font-medium">{profile.phone}</p>
+                                                </div>
+                                                <span className="text-[9px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
+                                                    USAR
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="relative">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
