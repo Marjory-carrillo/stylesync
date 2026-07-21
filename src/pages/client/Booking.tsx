@@ -92,7 +92,17 @@ export default function Booking() {
     const [clientError, setClientError] = useState<string | null>(null);
 
     // Perfiles guardados localmente para autocompletado
-    const [savedProfiles, setSavedProfiles] = useState<{ name: string; phone: string }[]>(() => {
+    interface SavedProfile {
+        name: string;
+        phone: string;
+        lastServiceId?: number;
+        lastServiceName?: string;
+        lastStylistId?: number | null;
+        lastStylistName?: string | null;
+        lastAddOns?: number[];
+    }
+
+    const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>(() => {
         try {
             const data = localStorage.getItem('citalink_saved_profiles');
             return data ? JSON.parse(data) : [];
@@ -109,6 +119,12 @@ export default function Booking() {
             p.phone.includes(clientName)
         );
     }, [clientName, savedProfiles]);
+
+    const activeProfile = useMemo(() => {
+        const cleanPhone = clientPhone.replace(/\D/g, '');
+        if (!cleanPhone || cleanPhone.length < 10) return null;
+        return savedProfiles.find(p => p.phone.replace(/\D/g, '') === cleanPhone);
+    }, [clientPhone, savedProfiles]);
     const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
     const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null>(null);
     const [selectedAddOns, setSelectedAddOns] = useState<number[]>([]); // additional service IDs
@@ -652,10 +668,19 @@ export default function Booking() {
             try {
                 const name = clientName.trim();
                 const phone = clientPhone.trim();
+                const profileData: SavedProfile = {
+                    name,
+                    phone,
+                    lastServiceId: selectedService.id,
+                    lastServiceName: selectedService.name,
+                    lastStylistId: selectedStylist ? selectedStylist.id : null,
+                    lastStylistName: selectedStylist ? selectedStylist.name : null,
+                    lastAddOns: selectedAddOns
+                };
                 const stored = localStorage.getItem('citalink_saved_profiles');
-                let profiles: { name: string; phone: string }[] = stored ? JSON.parse(stored) : [];
+                let profiles: SavedProfile[] = stored ? JSON.parse(stored) : [];
                 profiles = profiles.filter(p => p.phone !== phone);
-                profiles.unshift({ name, phone });
+                profiles.unshift(profileData);
                 profiles = profiles.slice(0, 5);
                 localStorage.setItem('citalink_saved_profiles', JSON.stringify(profiles));
                 setSavedProfiles(profiles);
@@ -1147,6 +1172,53 @@ export default function Booking() {
                             ) : clientError && (
                                 <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mt-4">
                                     <AlertTriangle size={16} /><span>{clientError}</span>
+                                </div>
+                            )}
+
+                            {/* Acceso Rápido / Re-agendar última visita */}
+                            {activeProfile && activeProfile.lastServiceId && (
+                                <div className="p-4 bg-gradient-to-br from-accent/15 via-white/[0.02] to-white/[0.02] border border-accent/20 rounded-2xl animate-fade-in relative overflow-hidden mt-4">
+                                    <div className="flex items-center justify-between gap-3 relative z-10">
+                                        <div className="space-y-0.5">
+                                            <span className="inline-flex items-center gap-1 text-[8px] font-black text-accent uppercase tracking-widest bg-accent/10 px-2 py-0.5 rounded-full border border-accent/15">
+                                                <Sparkles size={8} /> Repetir última cita
+                                            </span>
+                                            <h4 className="text-xs font-bold text-white uppercase mt-1">¿Agendamos lo mismo?</h4>
+                                            <p className="text-[11px] text-slate-400 font-medium">
+                                                {activeProfile.lastServiceName}
+                                                {activeProfile.lastStylistName ? ` con ${activeProfile.lastStylistName}` : ''}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const svc = services.find(s => s.id === activeProfile.lastServiceId);
+                                                if (!svc) {
+                                                    setClientError('El servicio de tu última visita ya no está disponible. Elige un servicio nuevo.');
+                                                    return;
+                                                }
+                                                
+                                                let stylist = null;
+                                                if (activeProfile.lastStylistId) {
+                                                    stylist = stylists.find(s => s.id === activeProfile.lastStylistId) || null;
+                                                }
+
+                                                const validAddOns = (activeProfile.lastAddOns || []).filter(id => 
+                                                    services.some(s => s.id === id)
+                                                );
+
+                                                setSelectedService(svc);
+                                                setSelectedStylist(stylist);
+                                                setSelectedAddOns(validAddOns);
+                                                
+                                                // Mandar a elegir fecha
+                                                setStep(25);
+                                            }}
+                                            className="px-4 py-2.5 bg-accent text-[#0a0f1a] font-black text-xs uppercase tracking-wider rounded-xl hover:bg-accent/80 transition-colors shrink-0 shadow-lg shadow-accent/20"
+                                        >
+                                            Agendar ya
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
