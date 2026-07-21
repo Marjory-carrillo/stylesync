@@ -9,6 +9,7 @@ import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, Arr
 import { stylistSchema } from '../../lib/schemas';
 import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import type { WeekSchedule } from '../../lib/types/store.types';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 const DAY_LABELS: Record<string, string> = {
@@ -46,6 +47,23 @@ export default function Staff() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ type: 'upgrade' | 'extra'; message: string } | null>(null);
+
+    // Custom confirm dialog state
+    const [customConfirm, setCustomConfirm] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm: () => void;
+        danger?: boolean;
+    }>({
+        open: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        danger: false
+    });
 
     const [formName, setFormName] = useState('');
     const [formRole, setFormRole] = useState('');
@@ -159,10 +177,19 @@ export default function Staff() {
         setIsModalOpen(false);
     };
 
-    const handleDelete = async (id: number) => {
-        if (confirm('¿Estás seguro de eliminar a este profesional?')) {
-            await removeStylist(id);
-        }
+    const handleDelete = (id: number) => {
+        const person = stylists.find(s => s.id === id);
+        setCustomConfirm({
+            open: true,
+            title: '¿Eliminar Profesional?',
+            message: `¿Estás seguro de que quieres eliminar a ${person?.name || 'este profesional'}? Esta acción no se puede deshacer y borrará su asignación de servicios y horarios.`,
+            confirmLabel: 'Sí, Eliminar',
+            cancelLabel: 'Cancelar',
+            danger: true,
+            onConfirm: async () => {
+                await removeStylist(id);
+            }
+        });
     };
 
     return (
@@ -665,6 +692,20 @@ export default function Staff() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={customConfirm.open}
+                title={customConfirm.title}
+                message={customConfirm.message}
+                confirmLabel={customConfirm.confirmLabel}
+                cancelLabel={customConfirm.cancelLabel}
+                onConfirm={() => {
+                    customConfirm.onConfirm();
+                    setCustomConfirm(prev => ({ ...prev, open: false }));
+                }}
+                onCancel={() => setCustomConfirm(prev => ({ ...prev, open: false }))}
+                danger={customConfirm.danger}
+            />
         </div>
     );
 }

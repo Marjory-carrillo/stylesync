@@ -9,6 +9,7 @@ import {
     Download, Save, ShieldAlert
 } from 'lucide-react';
 import type { Lead } from '../../lib/types/store.types';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Leads() {
     const {
@@ -40,6 +41,23 @@ export default function Leads() {
     const [tempNotes, setTempNotes] = useState('');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
     const [showConvertModal, setShowConvertModal] = useState(false);
+
+    // Custom confirm dialog state
+    const [customConfirm, setCustomConfirm] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm: () => void;
+        danger?: boolean;
+    }>({
+        open: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        danger: false
+    });
 
     // ── Convert Lead Form State ──
     const [convertForm, setConvertForm] = useState({
@@ -160,11 +178,19 @@ export default function Leads() {
     };
 
     // ── Lead Deletion ──
-    const handleDeleteLead = async (lead: Lead) => {
-        if (confirm(`¿Estás completamente seguro de eliminar permanentemente a "${lead.business_name}"? Esta acción no se puede deshacer.`)) {
-            await deleteLead(lead.id);
-            setSelectedLead(null);
-        }
+    const handleDeleteLead = (lead: Lead) => {
+        setCustomConfirm({
+            open: true,
+            title: '¿Eliminar Prospecto?',
+            message: `¿Estás completamente seguro de eliminar permanentemente a "${lead.business_name}"? Esta acción no se puede deshacer y borrará todo su historial.`,
+            confirmLabel: 'Sí, Eliminar',
+            cancelLabel: 'Cancelar',
+            danger: true,
+            onConfirm: async () => {
+                await deleteLead(lead.id);
+                setSelectedLead(null);
+            }
+        });
     };
 
     // ── Export to CSV ──
@@ -814,6 +840,20 @@ export default function Leads() {
                     </form>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={customConfirm.open}
+                title={customConfirm.title}
+                message={customConfirm.message}
+                confirmLabel={customConfirm.confirmLabel}
+                cancelLabel={customConfirm.cancelLabel}
+                onConfirm={() => {
+                    customConfirm.onConfirm();
+                    setCustomConfirm(prev => ({ ...prev, open: false }));
+                }}
+                onCancel={() => setCustomConfirm(prev => ({ ...prev, open: false }))}
+                danger={customConfirm.danger}
+            />
         </div>
     );
 }

@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import ConfirmModal from '../../components/ConfirmModal';
 
 interface Prospect {
     id: string;
@@ -33,9 +34,27 @@ export default function SalesTracker() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
-    // Modals & Forms
+    // Modales & Forms
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    // Custom confirm dialog state
+    const [customConfirm, setCustomConfirm] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm: () => void;
+        danger?: boolean;
+    }>({
+        open: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        danger: false
+    });
+
     const [formData, setFormData] = useState({
         name: '',
         address: '',
@@ -133,21 +152,29 @@ export default function SalesTracker() {
         setIsAddOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar este prospecto?')) return;
+    const handleDelete = (id: string) => {
+        setCustomConfirm({
+            open: true,
+            title: '¿Eliminar Prospecto?',
+            message: '¿Estás seguro de que quieres eliminar este prospecto? Esta acción no se puede deshacer.',
+            confirmLabel: 'Sí, Eliminar',
+            cancelLabel: 'Cancelar',
+            danger: true,
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase
+                        .from('sales_prospects')
+                        .delete()
+                        .eq('id', id);
 
-        try {
-            const { error } = await supabase
-                .from('sales_prospects')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-            showToast('Prospecto eliminado', 'info');
-            fetchProspects();
-        } catch (err: any) {
-            showToast('Error al eliminar: ' + err.message, 'error');
-        }
+                    if (error) throw error;
+                    showToast('Prospecto eliminado', 'info');
+                    fetchProspects();
+                } catch (err: any) {
+                    showToast('Error al eliminar: ' + err.message, 'error');
+                }
+            }
+        });
     };
 
     const handleCopy = (text: string) => {
@@ -692,6 +719,20 @@ export default function SalesTracker() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={customConfirm.open}
+                title={customConfirm.title}
+                message={customConfirm.message}
+                confirmLabel={customConfirm.confirmLabel}
+                cancelLabel={customConfirm.cancelLabel}
+                onConfirm={() => {
+                    customConfirm.onConfirm();
+                    setCustomConfirm(prev => ({ ...prev, open: false }));
+                }}
+                onCancel={() => setCustomConfirm(prev => ({ ...prev, open: false }))}
+                danger={customConfirm.danger}
+            />
         </div>
     );
 }
