@@ -1211,8 +1211,15 @@ export default function Booking() {
                                                 setSelectedStylist(stylist);
                                                 setSelectedAddOns(validAddOns);
                                                 
-                                                // Mandar a elegir fecha
-                                                setStep(25);
+                                                if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
+                                                    // Si es un salón de uñas y el servicio requiere cotizador, los mandamos al cotizador
+                                                    // para que elijan su largo/diseño de esta cita, pero ya con el servicio y estilista pre-seleccionados.
+                                                    setShowNailQuoterFlow(true);
+                                                    setStep(22);
+                                                } else {
+                                                    // Para servicios normales, va directo al calendario
+                                                    setStep(25);
+                                                }
                                             }}
                                             className="px-4 py-2.5 bg-accent text-[#0a0f1a] font-black text-xs uppercase tracking-wider rounded-xl hover:bg-accent/80 transition-colors shrink-0 shadow-lg shadow-accent/20"
                                         >
