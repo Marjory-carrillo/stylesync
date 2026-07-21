@@ -13,7 +13,7 @@ import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
-import { Calendar, DollarSign, Users, User, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -51,7 +51,7 @@ export default function Dashboard() {
 
     // Optimize: only load last 12 months for dashboard metrics
     const startDate = useMemo(() => format(subMonths(new Date(), 12), 'yyyy-MM-01'), []);
-    const { appointments: allAppointments, isPending: apptsPending } = useAppointments({ startDate });
+    const { appointments: allAppointments, isPending: apptsPending, markNoShow } = useAppointments({ startDate });
     const { services, isPending: svcsLoading } = useServices();
     const { waitingList, addToWaitingList, removeFromWaitingList } = useWaitingList();
     const { stylists } = useStylists();
@@ -85,6 +85,17 @@ export default function Dashboard() {
 
     const { cancellationLog } = useCancellationLog();
     const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
+
+    const handleNoShow = useCallback(async (appt: any) => {
+        if (window.confirm(`¿Marcar a ${appt.clientName} como que no asistió? Esto bloqueará su número para agendar.`)) {
+            try {
+                await markNoShow(appt.id);
+                showToast('Cliente marcado como No Asistió con éxito', 'success');
+            } catch (err: any) {
+                showToast(`Error al registrar inasistencia: ${err.message}`, 'error');
+            }
+        }
+    }, [markNoShow, showToast]);
 
 
     const appointments = useMemo(() => {
@@ -1553,9 +1564,18 @@ export default function Dashboard() {
 
                                             <div className="flex items-center gap-4">
                                                 {isCurrentlyHappening ? (
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
-                                                    </span>
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleNoShow(appt)} 
+                                                            className="p-2 bg-orange-500/10 hover:bg-orange-500/20 rounded-xl text-orange-400 border border-orange-500/20 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                                                            title="No Asistió"
+                                                        >
+                                                            <UserX size={14} />
+                                                        </button>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
+                                                        </span>
+                                                    </>
                                                 ) : (
                                                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 py-1.5">Agenda</span>
                                                 )}
