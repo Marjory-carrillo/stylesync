@@ -123,8 +123,49 @@ export default function Booking() {
     const activeProfile = useMemo(() => {
         const cleanPhone = clientPhone.replace(/\D/g, '');
         if (!cleanPhone || cleanPhone.length < 10) return null;
-        return savedProfiles.find(p => p.phone.replace(/\D/g, '') === cleanPhone);
-    }, [clientPhone, savedProfiles]);
+
+        // 1. Try local savedProfiles first
+        const localProf = savedProfiles.find(p => p.phone.replace(/\D/g, '') === cleanPhone);
+        if (localProf && localProf.lastServiceId) {
+            return localProf;
+        }
+
+        // 2. Fallback: look dynamically in loaded appointments history!
+        const clientAppts = appointments.filter(a => a.clientPhone.replace(/\D/g, '') === cleanPhone);
+        if (clientAppts.length > 0) {
+            const sorted = [...clientAppts].sort((a, b) => {
+                const dateCompare = b.date.localeCompare(a.date);
+                if (dateCompare !== 0) return dateCompare;
+                return b.time.localeCompare(a.time);
+            });
+            const lastAppt = sorted[0];
+            const svc = services.find(s => s.id === lastAppt.serviceId);
+            if (svc) {
+                const styl = stylists.find(s => s.id === lastAppt.stylistId);
+                
+                // Try to find matching addOn service IDs based on names stored in additionalServices
+                const lastAddOns: number[] = [];
+                if (lastAppt.additionalServices && Array.isArray(lastAppt.additionalServices)) {
+                    lastAppt.additionalServices.forEach((name: string) => {
+                        const s = services.find(srv => srv.name === name);
+                        if (s) lastAddOns.push(s.id);
+                    });
+                }
+
+                return {
+                    name: lastAppt.clientName,
+                    phone: lastAppt.clientPhone,
+                    lastServiceId: svc.id,
+                    lastServiceName: svc.name,
+                    lastStylistId: styl?.id || null,
+                    lastStylistName: styl?.name || null,
+                    lastAddOns
+                };
+            }
+        }
+
+        return localProf || null;
+    }, [clientPhone, savedProfiles, appointments, services, stylists]);
     const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
     const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null>(null);
     const [selectedAddOns, setSelectedAddOns] = useState<number[]>([]); // additional service IDs
