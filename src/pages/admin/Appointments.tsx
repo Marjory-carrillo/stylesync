@@ -721,11 +721,10 @@ export default function Appointments() {
                                                                             <MessageCircle size={20} />
                                                                         </a>
                                                                         
-                                                                        {/* Only show No-Show button if appointment has passed or is today (visual isFinished logic) */}
+                                                                        {/* Only show No-Show button if appointment has started or passed */}
                                                                         {(() => {
-                                                                            const end = new Date(`${apt.date}T${apt.time}`);
-                                                                            end.setMinutes(end.getMinutes() + (service?.duration || 0));
-                                                                            if (new Date() >= end) {
+                                                                            const start = new Date(`${apt.date}T${apt.time}`);
+                                                                            if (new Date() >= start) {
                                                                                 return (
                                                                                     <button onClick={() => handleNoShow(apt)} className="p-2.5 rounded-xl text-muted hover:bg-orange-500/10 hover:text-orange-400 transition-all border border-transparent hover:border-orange-500/20" title="No Asistió">
                                                                                         <UserX size={20} />
