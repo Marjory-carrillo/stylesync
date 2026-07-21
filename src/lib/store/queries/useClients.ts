@@ -105,6 +105,37 @@ export const useClients = () => {
         onError: (err: any) => showToast(`Error al eliminar: ${err.message}`, 'error')
     });
 
+    const createMutation = useMutation({
+        mutationFn: async ({ name, phone }: { name: string; phone: string }) => {
+            if (!tenantId) throw new Error('Sin tenant');
+            
+            // Limpiar teléfono
+            const cleanPhone = phone.replace(/\D/g, '');
+            if (!cleanPhone) throw new Error('El teléfono es obligatorio y debe ser válido');
+
+            // Verificar si ya existe en clients
+            const { data: existing, error: checkError } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('phone', cleanPhone)
+                .eq('tenant_id', tenantId)
+                .maybeSingle();
+
+            if (checkError) throw checkError;
+            if (existing) throw new Error('Ya existe un cliente registrado con ese número de teléfono');
+
+            const { error } = await supabase.from('clients').insert([
+                { name: name.trim(), phone: cleanPhone, tenant_id: tenantId }
+            ]);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+            showToast('Cliente registrado con éxito', 'success');
+        },
+        onError: (err: any) => showToast(`Error al registrar cliente: ${err.message}`, 'error')
+    });
+
     return {
         ...query,
         clients: query.data || [],
@@ -112,5 +143,7 @@ export const useClients = () => {
         updateClientTags: updateTagsMutation.mutateAsync,
         deleteClient: deleteMutation.mutateAsync,
         isDeleting: deleteMutation.isPending,
+        createClient: createMutation.mutateAsync,
+        isCreating: createMutation.isPending,
     };
 };

@@ -1,7 +1,8 @@
 // Force Vercel rebuild
 import { useState, useMemo } from 'react';
 import { useClients } from '../../lib/store/queries/useClients';
-import { Search, User, Phone, ChevronRight, Trash2 } from 'lucide-react';
+import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { Search, User, Phone, ChevronRight, Trash2, MessageCircle, Plus, Check, Copy } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -9,12 +10,49 @@ import Pagination from '../../components/Pagination';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
 
 export default function Clients() {
-    const { clients: dbClients, isPending: clientsPending, deleteClient, isDeleting } = useClients();
+    const { clients: dbClients, isPending: clientsPending, deleteClient, isDeleting, createClient, isCreating } = useClients();
+    const { data: tenant } = useTenantData();
 
     const isLoading = clientsPending;
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [historyModal, setHistoryModal] = useState<{ open: boolean; phone: string }>({ open: false, phone: '' });
+
+    // Modales y formularios
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newClientName, setNewClientName] = useState('');
+    const [newClientPhone, setNewClientPhone] = useState('');
+
+    const tenantName = tenant?.name || '';
+    const bookingUrl = useMemo(() => {
+        if (!tenant?.slug) return '';
+        return `${window.location.origin}/reserva/${tenant.slug}`;
+    }, [tenant?.slug]);
+
+    const invitationTemplate = useMemo(() => {
+        return `¡Hola! Te compartimos nuestro nuevo sistema de reservas en línea. Ahora puedes agendar tus citas al instante en el siguiente enlace:\n\n🔗 ${bookingUrl}\n\nEs rápido, cómodo y puedes elegir a tu profesional y horario favorito. ¡Te esperamos en ${tenantName}!`;
+    }, [bookingUrl, tenantName]);
+
+    const [isCopiedTemplate, setIsCopiedTemplate] = useState(false);
+    const handleCopyTemplate = () => {
+        navigator.clipboard.writeText(invitationTemplate);
+        setIsCopiedTemplate(true);
+        setTimeout(() => setIsCopiedTemplate(false), 2000);
+    };
+
+    const handleCreateClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newClientName.trim() || !newClientPhone.trim()) return;
+
+        try {
+            await createClient({ name: newClientName, phone: newClientPhone });
+            setNewClientName('');
+            setNewClientPhone('');
+            setIsAddModalOpen(false);
+        } catch (err) {
+            // Error managed in useClients hook
+        }
+    };
 
     const PAGE_SIZE = 12;
 
@@ -46,10 +84,40 @@ export default function Clients() {
                     <h2 className="text-2xl font-bold tracking-tight text-white mb-1">Clientes</h2>
                     <p className="text-muted">Gestión e historial de tus {filteredClients.length} clientes activos.</p>
                 </div>
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs uppercase tracking-wide transition-all shadow-lg shadow-violet-500/10 flex items-center gap-2"
+                >
+                    <Plus size={14} /> Registrar Cliente
+                </button>
             </header>
 
+            {/* Launch Campaign / Invitation Card */}
+            <div className="glass-panel p-5 bg-gradient-to-br from-violet-600/10 via-slate-900 to-slate-900 border border-violet-500/20 rounded-2xl relative overflow-hidden">
+                <div className="relative z-10 space-y-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 text-[10px] font-black uppercase tracking-wider border border-violet-500/20">
+                        📢 Campaña de Lanzamiento
+                    </span>
+                    <h3 className="text-sm font-black text-white uppercase tracking-tight mt-1.5">Anuncia tu Link de Reservas</h3>
+                    <p className="text-slate-400 text-xs max-w-2xl leading-relaxed">
+                        Copia esta plantilla de invitación y compártela en tus redes sociales (Instagram, Facebook) o WhatsApp para que tus clientes comiencen a agendar solos.
+                    </p>
+                </div>
+
+                <div className="bg-black/35 border border-white/[0.04] p-4 rounded-xl text-slate-300 text-xs mt-4 leading-relaxed font-mono relative pr-12">
+                    <p className="whitespace-pre-wrap">{invitationTemplate}</p>
+                    <button
+                        onClick={handleCopyTemplate}
+                        className="absolute right-3 top-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                        title="Copiar plantilla"
+                    >
+                        {isCopiedTemplate ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                    </button>
+                </div>
+            </div>
+
             {/* Search Bar */}
-            <div className="glass-panel p-4 rounded-xl flex items-center gap-3 mb-6 border border-white/5">
+            <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border border-white/5">
                 <Search className="text-muted" size={20} />
                 <input
                     type="text"
@@ -148,6 +216,19 @@ export default function Clients() {
                                 {client.lastVisit ? format(parse(client.lastVisit, 'yyyy-MM-dd', new Date()), 'd MMM yyyy', { locale: es }) : 'RECIÉN REG.'}
                             </span>
                             <div className="flex items-center gap-2">
+                                {bookingUrl && (
+                                    <a
+                                        href={`https://wa.me/${client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                            `¡Hola ${client.name}! Te compartimos el nuevo sistema de reservas en línea de ${tenantName || 'nuestro negocio'}. Puedes agendar tu cita al instante aquí:\n\n🔗 ${bookingUrl}\n\n¡Te esperamos!`
+                                        )}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/20 transition-all flex items-center justify-center"
+                                        title="Invitar por WhatsApp"
+                                    >
+                                        <MessageCircle size={14} />
+                                    </a>
+                                )}
                                 <button
                                     onClick={() => {
                                         if (window.confirm(`¿Estás seguro de que quieres eliminar a ${client.name}? Esta acción no se puede deshacer.`)) {
@@ -201,6 +282,65 @@ export default function Clients() {
                 onClose={() => setHistoryModal({ open: false, phone: '' })}
                 clientPhone={historyModal.phone}
             />
+
+            {/* Modal de Registro Manual de Clientes */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
+                    <div className="relative w-full max-w-md bg-[#0a0f1a] border border-white/10 rounded-2xl p-6 shadow-2xl animate-scale-in flex flex-col">
+                        <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4">
+                            Registrar Nuevo Cliente
+                        </h3>
+
+                        <form onSubmit={handleCreateClient} className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nombre Completo</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40"
+                                    value={newClientName}
+                                    onChange={e => setNewClientName(e.target.value)}
+                                    placeholder="Ej. Juan Pérez"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Teléfono / WhatsApp</label>
+                                <input
+                                    type="tel"
+                                    required
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40"
+                                    value={newClientPhone}
+                                    onChange={e => setNewClientPhone(e.target.value)}
+                                    placeholder="Ej. 3312345678"
+                                />
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setNewClientName('');
+                                        setNewClientPhone('');
+                                        setIsAddModalOpen(false);
+                                    }}
+                                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold text-xs uppercase transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isCreating}
+                                    className="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs uppercase tracking-wide transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {isCreating ? 'Registrando...' : 'Registrar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
