@@ -8,6 +8,7 @@ import { es } from 'date-fns/locale';
 import { Skeleton } from '../../components/ui/Skeleton';
 import Pagination from '../../components/Pagination';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Clients() {
     const { clients: dbClients, isPending: clientsPending, deleteClient, isDeleting, createClient, isCreating } = useClients();
@@ -17,6 +18,22 @@ export default function Clients() {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [historyModal, setHistoryModal] = useState<{ open: boolean; phone: string }>({ open: false, phone: '' });
+
+    const [customConfirm, setCustomConfirm] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm: () => void;
+        danger?: boolean;
+    }>({
+        open: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        danger: false
+    });
 
     // Modales y formularios
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -229,11 +246,17 @@ export default function Clients() {
                                         <MessageCircle size={14} />
                                     </a>
                                 )}
-                                <button
+                                 <button
                                     onClick={() => {
-                                        if (window.confirm(`¿Estás seguro de que quieres eliminar a ${client.name}? Esta acción no se puede deshacer.`)) {
-                                            deleteClient(client.id);
-                                        }
+                                        setCustomConfirm({
+                                            open: true,
+                                            title: '¿Eliminar Cliente?',
+                                            message: `¿Estás seguro de que quieres eliminar a ${client.name}? Esta acción no se puede deshacer y borrará permanentemente sus datos de contacto.`,
+                                            confirmLabel: 'Sí, Eliminar',
+                                            cancelLabel: 'Cancelar',
+                                            danger: true,
+                                            onConfirm: () => deleteClient(client.id)
+                                        });
                                     }}
                                     disabled={isDeleting}
                                     className="p-2 bg-red-500/5 hover:bg-red-500/20 text-red-500/40 hover:text-red-500 rounded-xl border border-white/5 hover:border-red-500/30 transition-all"
@@ -341,6 +364,20 @@ export default function Clients() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={customConfirm.open}
+                title={customConfirm.title}
+                message={customConfirm.message}
+                confirmLabel={customConfirm.confirmLabel}
+                cancelLabel={customConfirm.cancelLabel}
+                onConfirm={() => {
+                    customConfirm.onConfirm();
+                    setCustomConfirm(prev => ({ ...prev, open: false }));
+                }}
+                onCancel={() => setCustomConfirm(prev => ({ ...prev, open: false }))}
+                danger={customConfirm.danger}
+            />
         </div>
     );
 }

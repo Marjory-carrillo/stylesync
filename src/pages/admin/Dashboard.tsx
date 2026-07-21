@@ -13,6 +13,7 @@ import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
+import ConfirmModal from '../../components/ConfirmModal';
 import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -35,6 +36,23 @@ export default function Dashboard() {
     );
     const { showToast } = useUIStore();
     const { redirectToCheckout, isCheckoutLoading } = useStripeCheckout();
+
+    // Custom confirm dialog state
+    const [customConfirm, setCustomConfirm] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm: () => void;
+        danger?: boolean;
+    }>({
+        open: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        danger: false
+    });
 
     // Handle checkout return from Stripe
     useEffect(() => {
@@ -86,15 +104,23 @@ export default function Dashboard() {
     const { cancellationLog } = useCancellationLog();
     const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
 
-    const handleNoShow = useCallback(async (appt: any) => {
-        if (window.confirm(`¿Marcar a ${appt.clientName} como que no asistió? Esto bloqueará su número para agendar.`)) {
-            try {
-                await markNoShow(appt.id);
-                showToast('Cliente marcado como No Asistió con éxito', 'success');
-            } catch (err: any) {
-                showToast(`Error al registrar inasistencia: ${err.message}`, 'error');
+    const handleNoShow = useCallback((appt: any) => {
+        setCustomConfirm({
+            open: true,
+            title: '¿Marcar como Inasistencia?',
+            message: `¿Marcar a ${appt.clientName} como que no asistió? Esto registrará su inasistencia y bloqueará su número para futuras reservas.`,
+            confirmLabel: 'Marcar No-Asistió',
+            cancelLabel: 'Cancelar',
+            danger: true,
+            onConfirm: async () => {
+                try {
+                    await markNoShow(appt.id);
+                    showToast('Cliente marcado como No Asistió con éxito', 'success');
+                } catch (err: any) {
+                    showToast(`Error al registrar inasistencia: ${err.message}`, 'error');
+                }
             }
-        }
+        });
     }, [markNoShow, showToast]);
 
 
@@ -1811,6 +1837,20 @@ export default function Dashboard() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={customConfirm.open}
+                title={customConfirm.title}
+                message={customConfirm.message}
+                confirmLabel={customConfirm.confirmLabel}
+                cancelLabel={customConfirm.cancelLabel}
+                onConfirm={() => {
+                    customConfirm.onConfirm();
+                    setCustomConfirm(prev => ({ ...prev, open: false }));
+                }}
+                onCancel={() => setCustomConfirm(prev => ({ ...prev, open: false }))}
+                danger={customConfirm.danger}
+            />
         </div >
     );
 }

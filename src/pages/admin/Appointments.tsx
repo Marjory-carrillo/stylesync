@@ -32,6 +32,23 @@ export default function Appointments() {
     const [selectedApptForPrice, setSelectedApptForPrice] = useState<any | null>(null);
     const [newPriceValue, setNewPriceValue] = useState('');
 
+    // Custom confirm dialog state
+    const [customConfirm, setCustomConfirm] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm: () => void;
+        danger?: boolean;
+    }>({
+        open: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        danger: false
+    });
+
     // Optimize: only load last 6 months for the agenda/list
     const startDate = useMemo(() => {
         const d = new Date();
@@ -126,13 +143,20 @@ export default function Appointments() {
             queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             
             // Preguntar si desea notificar por WhatsApp
-            const confirmNotify = window.confirm(`¿Quieres enviarle una notificación por WhatsApp a ${apt.clientName} con el precio actualizado?`);
-            if (confirmNotify) {
-                const bookingUrl = `${window.location.origin}/reserva/${tenantConfig?.slug}`;
-                const msg = `¡Hola ${apt.clientName}! Te notificamos que el precio final de tu cita en *${tenantConfig?.name || 'nuestro salón'}* ha sido ajustado a: *$${price} MXN* (debido a la personalización de tu diseño/largo).\n\nTu cita sigue agendada para el ${apt.date} a las ${apt.time}.\n\nSi deseas revisar los detalles o cancelar tu cita, puedes hacerlo aquí: 🔗 ${bookingUrl}\n\n¡Gracias!`;
-                const waUrl = `https://wa.me/${apt.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-                window.open(waUrl, '_blank');
-            }
+            setCustomConfirm({
+                open: true,
+                title: '¿Notificar por WhatsApp?',
+                message: `¿Quieres enviarle una notificación por WhatsApp a ${apt.clientName} con el precio final actualizado de $${price} MXN?`,
+                confirmLabel: 'Enviar Notificación',
+                cancelLabel: 'Omitir',
+                danger: false,
+                onConfirm: () => {
+                    const bookingUrl = `${window.location.origin}/reserva/${tenantConfig?.slug}`;
+                    const msg = `¡Hola ${apt.clientName}! Te notificamos que el precio final de tu cita en *${tenantConfig?.name || 'nuestro salón'}* ha sido ajustado a: *$${price} MXN* (debido a la personalización de tu diseño/largo).\n\nTu cita sigue agendada para el ${apt.date} a las ${apt.time}.\n\nSi deseas revisar los detalles o cancelar tu cita, puedes hacerlo aquí: 🔗 ${bookingUrl}\n\n¡Gracias!`;
+                    const waUrl = `https://wa.me/${apt.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+                    window.open(waUrl, '_blank');
+                }
+            });
 
             setIsPriceModalOpen(false);
             setSelectedApptForPrice(null);
@@ -280,10 +304,18 @@ export default function Appointments() {
         }
     };
 
-    const handleNoShow = async (apt: typeof appointments[0]) => {
-        if (window.confirm(`¿Marcar a ${apt.clientName} como que no asistió? Esto bloqueará su número para agendar.`)) {
-            await markNoShow(apt.id);
-        }
+    const handleNoShow = (apt: typeof appointments[0]) => {
+        setCustomConfirm({
+            open: true,
+            title: '¿Marcar como Inasistencia?',
+            message: `¿Marcar a ${apt.clientName} como que no asistió? Esto registrará su inasistencia y bloqueará su número para futuras reservas.`,
+            confirmLabel: 'Marcar No-Asistió',
+            cancelLabel: 'Cancelar',
+            danger: true,
+            onConfirm: async () => {
+                await markNoShow(apt.id);
+            }
+        });
     };
 
     return (
@@ -943,6 +975,20 @@ export default function Appointments() {
                 onConfirm={confirmCancel}
                 onCancel={() => setConfirmModal({ open: false, appt: null })}
                 danger
+            />
+
+            <ConfirmModal
+                isOpen={customConfirm.open}
+                title={customConfirm.title}
+                message={customConfirm.message}
+                confirmLabel={customConfirm.confirmLabel}
+                cancelLabel={customConfirm.cancelLabel}
+                onConfirm={() => {
+                    customConfirm.onConfirm();
+                    setCustomConfirm(prev => ({ ...prev, open: false }));
+                }}
+                onCancel={() => setCustomConfirm(prev => ({ ...prev, open: false }))}
+                danger={customConfirm.danger}
             />
 
             <AdminBookingModal
