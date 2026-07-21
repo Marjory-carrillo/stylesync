@@ -73,7 +73,23 @@ export default function Appointments() {
     }, [getServiceById]);
 
     const isPriceConfirmed = useCallback((apt: any) => {
-        return (apt.additionalServices || []).some((s: string) => s.startsWith('Cotización Confirmada:'));
+        // Si ya fue confirmada/editada manualmente por el administrador
+        if ((apt.additionalServices || []).some((s: string) => s.startsWith('Cotización Confirmada:'))) {
+            return true;
+        }
+        // Si no, verificamos si seleccionaron un diseño aproximado (Sencillo o Elaborado)
+        const hasApproxDesign = (apt.additionalServices || []).some((s: string) => 
+            s.startsWith('Diseño:') && (
+                s.includes('Sencillo') || 
+                s.includes('Elaborado') || 
+                s.includes('Complex') || 
+                s.includes('complex') || 
+                s.includes('simple')
+            )
+        );
+        // Si NO seleccionaron un diseño aproximado (ej. es básico o no seleccionaron ninguno),
+        // entonces el precio es exacto/confirmado desde el inicio.
+        return !hasApproxDesign;
     }, []);
 
     const handleSaveCustomPrice = async () => {
@@ -668,7 +684,7 @@ export default function Appointments() {
                                                                         <User size={10} className="opacity-40" />
                                                                         <span className="truncate max-w-[150px]">{stylist?.name || 'Cualquier profesional'}</span>
                                                                     </div>
-                                                                    {tenantConfig?.category === 'nail_bar' && (
+                                                                    {tenantConfig?.category === 'nail_bar' && service?.enableQuoter && (
                                                                         <button
                                                                             onClick={() => {
                                                                                 setSelectedApptForPrice(apt);
