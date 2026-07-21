@@ -93,7 +93,17 @@ export const useNailCalculator = () => {
                 }
                 return DEFAULT_NAIL_CONFIG;
             }
-            return data.config as QuotingCategory[];
+            const dbConfig = (data.config as QuotingCategory[]) || [];
+            
+            // Asegurar que categorías nuevas existan para clientes antiguos (como simplified_designs)
+            const mergedConfig = [...dbConfig];
+            DEFAULT_NAIL_CONFIG.forEach(defaultCat => {
+                const exists = mergedConfig.some(c => c.id === defaultCat.id);
+                if (!exists) {
+                    mergedConfig.push(defaultCat);
+                }
+            });
+            return mergedConfig;
         },
         enabled: !!tenantId,
     });
