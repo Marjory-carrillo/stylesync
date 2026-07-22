@@ -220,7 +220,8 @@ export function getPlanBadgeStyles(plan: PlanType): { bg: string; text: string; 
  */
 export function isAccountActive(
     subscriptionType: 'stripe' | 'manual' = 'manual',
-    paymentStatus: 'active' | 'grace_period' | 'suspended' = 'active'
+    paymentStatus: 'active' | 'grace_period' | 'suspended' = 'active',
+    gracePeriodEndsAt?: string | null
 ): { active: boolean; warning?: string; blocked: boolean } {
     if (subscriptionType === 'manual') {
         return { active: true, blocked: false };
@@ -229,6 +230,9 @@ export function isAccountActive(
         return { active: true, blocked: false };
     }
     if (paymentStatus === 'grace_period') {
+        if (gracePeriodEndsAt && new Date(gracePeriodEndsAt) < new Date()) {
+            return { active: false, blocked: true, warning: 'Tu período de gracia ha expirado. Tu cuenta ha sido suspendida.' };
+        }
         return {
             active: true,
             blocked: false,

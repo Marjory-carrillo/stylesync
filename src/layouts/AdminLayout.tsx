@@ -121,7 +121,11 @@ export default function AdminLayout() {
     `;
 
     // Check if account is suspended/blocked
-    const accountStatus = isAccountActive(businessConfig?.subscription_type, businessConfig?.payment_status);
+    const accountStatus = isAccountActive(
+        businessConfig?.subscription_type, 
+        businessConfig?.payment_status, 
+        businessConfig?.grace_period_ends_at
+    );
     
     // SuperAdmin can bypass blocks for support purposes
     if (accountStatus.blocked && !isSuperAdmin) {

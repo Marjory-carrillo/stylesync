@@ -613,7 +613,14 @@ export default function SuperAdminPanel() {
         let activeTrials = 0;
 
         const now = new Date();
-        const businesses: Record<string, { plan: PlanType; isTrial: boolean; totalExtraEmployees: number; totalExtraBranches: number }> = {};
+        const businesses: Record<string, { 
+            plan: PlanType; 
+            isTrial: boolean; 
+            totalExtraEmployees: number; 
+            totalExtraBranches: number;
+            paymentStatus: string;
+            gracePeriodEndsAt: string | null;
+        }> = {};
 
         allTenants.forEach(tenant => {
             const plan = (tenant.plan || 'free') as PlanType;
@@ -625,7 +632,9 @@ export default function SuperAdminPanel() {
                     plan,
                     isTrial,
                     totalExtraEmployees: tenant.extra_employees_paid || 0,
-                    totalExtraBranches: tenant.extra_branches_paid || 0
+                    totalExtraBranches: tenant.extra_branches_paid || 0,
+                    paymentStatus: tenant.payment_status || 'active',
+                    gracePeriodEndsAt: tenant.grace_period_ends_at || null
                 };
             } else {
                 const currentRank = getPlanRank(businesses[key].plan);
@@ -636,6 +645,14 @@ export default function SuperAdminPanel() {
                 businesses[key].isTrial = businesses[key].isTrial && isTrial;
                 businesses[key].totalExtraEmployees += tenant.extra_employees_paid || 0;
                 businesses[key].totalExtraBranches = Math.max(businesses[key].totalExtraBranches, tenant.extra_branches_paid || 0);
+                
+                // Aggregating payment status
+                if (tenant.payment_status === 'suspended' || businesses[key].paymentStatus === 'suspended') {
+                    businesses[key].paymentStatus = 'suspended';
+                } else if (tenant.payment_status === 'grace_period' || businesses[key].paymentStatus === 'grace_period') {
+                    businesses[key].paymentStatus = 'grace_period';
+                    businesses[key].gracePeriodEndsAt = tenant.grace_period_ends_at || businesses[key].gracePeriodEndsAt;
+                }
             }
         });
 
@@ -647,7 +664,10 @@ export default function SuperAdminPanel() {
         }
 
         Object.values(businesses).forEach(biz => {
-            const { plan, isTrial, totalExtraEmployees, totalExtraBranches } = biz;
+            const { plan, isTrial, totalExtraEmployees, totalExtraBranches, paymentStatus, gracePeriodEndsAt } = biz;
+
+            const isSuspended = paymentStatus === 'suspended' || 
+                               (paymentStatus === 'grace_period' && gracePeriodEndsAt && new Date(gracePeriodEndsAt) < now);
 
             if (isTrial) {
                 activeTrials++;
@@ -658,16 +678,16 @@ export default function SuperAdminPanel() {
                 freeCount++;
             } else if (plan === 'pro') {
                 proCount++;
-                if (!isTrial) basePrice = 649;
+                if (!isTrial && !isSuspended) basePrice = 649;
             } else if (plan === 'business') {
                 businessCount++;
-                if (!isTrial) basePrice = 1249;
+                if (!isTrial && !isSuspended) basePrice = 1249;
             } else if (plan === 'lite') {
                 liteCount++;
-                if (!isTrial) basePrice = 349;
+                if (!isTrial && !isSuspended) basePrice = 349;
             }
 
-            if (!isTrial) {
+            if (!isTrial && !isSuspended) {
                 totalMrr += basePrice;
                 // Sumar profesionales extra: Pro y Business permiten profesionales adicionales pagados ($249 MXN/mes c/u)
                 if (plan === 'pro' || plan === 'business') {
