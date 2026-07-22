@@ -57,7 +57,7 @@ export const useTenantData = (overrideTenantId?: string) => {
             };
         },
         enabled: !!tenantId,
-        staleTime: 1000 * 60 * 5, // 5 minutes cache
+        staleTime: 0,
     });
 
     const updateMutation = useMutation({
