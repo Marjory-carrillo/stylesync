@@ -61,12 +61,6 @@ export default function Booking() {
     const getActiveAnnouncements = () => announcements.filter(a => a.active);
 
 
-    const [isMobileDevice, setIsMobileDevice] = useState(window.innerWidth < 768);
-    useEffect(() => {
-        const handleResize = () => setIsMobileDevice(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
 
     const loading = tenantLoading || (tenantId && configLoading);
@@ -1127,23 +1121,13 @@ export default function Booking() {
                             </p>
                         </div>
 
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                if (!isSendingSms && clientName && clientPhone) {
-                                    handleClientSubmit();
-                                }
-                            }}
-                            className="space-y-4"
-                        >
+                        <div className="space-y-4">
                             <div className="relative">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
                                     <User size={18} />
                                 </div>
                                 <input
                                     type="text"
-                                    name="name"
-                                    autoComplete="name"
                                     value={clientName}
                                     onChange={e => { 
                                         setClientName(e.target.value); 
@@ -1154,6 +1138,7 @@ export default function Booking() {
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
                                     placeholder="Tu nombre completo"
                                     className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
+                                    onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
 
                                 {/* Sugerencias de autocompletado */}
@@ -1192,12 +1177,11 @@ export default function Booking() {
                                 </div>
                                 <input
                                     type="tel"
-                                    name="tel"
-                                    autoComplete="tel"
                                     value={clientPhone}
                                     onChange={e => { setClientPhone(e.target.value); setClientError(null); }}
                                     placeholder="Número de teléfono (10 dígitos)"
                                     className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
+                                    onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
                             </div>
 
@@ -1286,8 +1270,8 @@ export default function Booking() {
                             )}
 
                             <button
-                                type="submit"
                                 className="btn btn-primary w-full py-4 text-base font-bold shadow-glow mt-2 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                onClick={handleClientSubmit}
                                 disabled={isSendingSms || !clientName || !clientPhone}
                             >
                                 {isSendingSms ? (
@@ -1303,8 +1287,7 @@ export default function Booking() {
                                 </p>
                             )}
 
-
-                        </form>
+                        </div>
                     </div>
                 )}
 
@@ -2738,7 +2721,7 @@ export default function Booking() {
                                 {/* Map Container */}
                                 <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
                                     <iframe
-                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(businessConfig?.address)}&t=&z=${isMobileDevice ? 15 : 14}&ie=UTF8&iwloc=&output=embed`}
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(businessConfig?.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                                         className="w-full h-full border-0"
                                         allowFullScreen={false}
                                         loading="lazy"
