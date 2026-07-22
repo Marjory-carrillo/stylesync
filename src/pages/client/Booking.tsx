@@ -53,6 +53,32 @@ export default function Booking() {
     const hasActiveAppointment = (phone: string) => appointments.some(a => a.clientPhone === phone && a.status === 'confirmada');
     const getActiveAppointmentByPhone = (phone: string) => appointments.find(a => a.clientPhone === phone && a.status === 'confirmada');
     const getServiceById = (id: number) => services.find(s => s.id === id);
+    const getActiveAppointmentPrice = (appt: any) => {
+        const service = getServiceById(appt.serviceId);
+        const customPriceItem = (appt.additionalServices || []).find((s: string) => s.startsWith('Cotización Confirmada:') || s.startsWith('Cotización Estimada:'));
+        if (customPriceItem) {
+            const priceMatch = customPriceItem.match(/\$(\d+)/);
+            if (priceMatch) return Number(priceMatch[1]);
+        }
+        const catalogItem = (appt.additionalServices || []).find((s: string) => s.startsWith('Diseño Catálogo:'));
+        if (catalogItem) {
+            const priceMatch = catalogItem.match(/\$(\d+)/);
+            if (priceMatch) {
+                const basePrice = service?.price || 0;
+                const catalogPrice = Number(priceMatch[1]);
+                return basePrice + catalogPrice;
+            }
+        }
+        let total = service?.price || 0;
+        const addOnNames = appt.additionalServices || [];
+        addOnNames.forEach((name: string) => {
+            const matchingService = services.find(s => s.name === name);
+            if (matchingService) {
+                total += matchingService.price;
+            }
+        });
+        return total;
+    };
     const getTodaySchedule = () => schedule[DAY_KEYS[new Date().getDay()] as keyof typeof schedule];
     const getScheduleForDate = (dateStr: string) => {
         const d = new Date(dateStr + 'T00:00:00');
@@ -1230,8 +1256,12 @@ export default function Booking() {
                                             </p>
                                         </div>
                                         <button
-                                            type="button"
                                             onClick={() => {
+                                                const cleanPhone = clientPhone.replace(/\s+/g, '');
+                                                if (hasActiveAppointment(cleanPhone)) {
+                                                    setStep(10);
+                                                    return;
+                                                }
                                                 const svc = services.find(s => s.id === activeProfile.lastServiceId);
                                                 if (!svc) {
                                                     setClientError('El servicio de tu última visita ya no está disponible. Elige un servicio nuevo.');
@@ -1323,7 +1353,7 @@ export default function Booking() {
                                 <div>
                                     <h2 className="text-xl font-bold text-white">{activeService.name}</h2>
                                     {!businessConfig?.hideServicePrices && (
-                                        <p className="text-accent font-bold text-lg">${activeService.price}</p>
+                                        <p className="text-accent font-bold text-lg">${getActiveAppointmentPrice(activeAppt)}</p>
                                     )}
                                 </div>
                             </div>
