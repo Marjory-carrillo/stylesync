@@ -233,7 +233,7 @@ serve(async (req: Request) => {
                 '2': tenant.name ?? 'el negocio',
                 '3': formatDateTime(appt.date, appt.time, tZone),
                 '4': serviceName,
-                '5': `https://app.citalink.app/reagendar/${appt.id}`,
+                '5': `https://www.citalink.app/reagendar/${appt.id}`,
             });
 
             if (ok) {
