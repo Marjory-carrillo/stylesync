@@ -29,7 +29,7 @@ export default function Dashboard() {
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
     const [tomorrowOpen, setTomorrowOpen] = useState(false);
     const [waitingListOpen, setWaitingListOpen] = useState(false);
-    const { userRole, userStylistId } = useAuthStore();
+    const { userRole, userStylistId, userTenants } = useAuthStore();
     const isEmployee = userRole === 'employee';
     const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>(
         isEmployee && userStylistId ? userStylistId : 'all'
@@ -573,8 +573,8 @@ export default function Dashboard() {
                         </div>
 
                         <div className="flex flex-col gap-4 w-full xl:w-auto">
-                            {/* Toggle — solo si tiene brand_slug */}
-                            {businessConfig.brandSlug && (
+                            {/* Toggle — solo si tiene brand_slug y cuenta con más de una sucursal activa */}
+                            {businessConfig.brandSlug && userTenants && userTenants.length >= 2 && (
                                 <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/[0.08] gap-1 w-full sm:w-auto">
                                     <button
                                         onClick={() => setLinkType('branch')}
