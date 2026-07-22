@@ -122,9 +122,9 @@ export default function AdminLayout() {
 
     // Check if account is suspended/blocked
     const accountStatus = isAccountActive(
-        businessConfig?.subscription_type, 
-        businessConfig?.payment_status, 
-        businessConfig?.grace_period_ends_at
+        businessConfig?.subscriptionType, 
+        businessConfig?.paymentStatus, 
+        businessConfig?.gracePeriodEndsAt
     );
     
     // SuperAdmin can bypass blocks for support purposes
