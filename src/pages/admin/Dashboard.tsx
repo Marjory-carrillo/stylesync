@@ -31,7 +31,7 @@ export default function Dashboard() {
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
     const [tomorrowOpen, setTomorrowOpen] = useState(false);
     const [waitingListOpen, setWaitingListOpen] = useState(false);
-    const { userRole, userStylistId, userTenants } = useAuthStore();
+    const { userRole, userStylistId, userTenants, tenantId } = useAuthStore();
     const isEmployee = userRole === 'employee';
     const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>(
         isEmployee && userStylistId ? userStylistId : 'all'
@@ -182,7 +182,6 @@ export default function Dashboard() {
     const queryClient = useQueryClient();
 
     const handleSaveCustomPrice = async () => {
-        const tenantId = businessConfig?.id;
         if (!selectedApptForPrice || !newPriceValue.trim() || !tenantId) return;
         const price = Number(newPriceValue);
         if (isNaN(price)) {

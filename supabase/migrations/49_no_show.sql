@@ -42,18 +42,21 @@ LEFT JOIN services s ON a.service_id = s.id
 GROUP BY c.id, c.tenant_id, c.name, c.phone, c.notes, c.tags, c.created_at, c.no_show_count;
 
 -- 5. Create mark_no_show RPC function
-CREATE OR REPLACE FUNCTION mark_no_show(p_appointment_id uuid, p_tenant_id uuid)
+CREATE OR REPLACE FUNCTION mark_no_show(p_appointment_id uuid, p_tenant_id text)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
     v_appt record;
+    v_tenant_id uuid;
 BEGIN
+    v_tenant_id := p_tenant_id::uuid;
+
     -- 1. Obtener la cita y verificar que pertenezca al tenant
     SELECT * INTO v_appt
     FROM appointments
-    WHERE id = p_appointment_id AND tenant_id = p_tenant_id;
+    WHERE id = p_appointment_id AND tenant_id = v_tenant_id;
 
     IF v_appt IS NULL THEN
         RETURN jsonb_build_object('success', false, 'error', 'Cita no encontrada');
@@ -71,11 +74,11 @@ BEGIN
     -- 3. Incrementar el contador en la tabla de clientes
     UPDATE clients
     SET no_show_count = no_show_count + 1
-    WHERE phone = v_appt.client_phone AND tenant_id = p_tenant_id;
+    WHERE phone = v_appt.client_phone AND tenant_id = v_tenant_id;
 
     -- 4. Bloquear el teléfono (upsert)
     INSERT INTO blocked_phones (phone, tenant_id, reason)
-    VALUES (v_appt.client_phone, p_tenant_id, 'no_show')
+    VALUES (v_appt.client_phone, v_tenant_id, 'no_show')
     ON CONFLICT (phone, tenant_id) 
     DO UPDATE SET reason = 'no_show';
 
