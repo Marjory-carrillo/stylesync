@@ -51,6 +51,9 @@ export const useTenantData = (overrideTenantId?: string) => {
                 extraEmployeesPaid: data.extra_employees_paid || 0,
                 extraBranchesPaid: data.extra_branches_paid || 0,
                 createdAt: data.created_at || null,
+                subscriptionType: (data.subscription_type as 'stripe' | 'manual') || 'manual',
+                paymentStatus: (data.payment_status as 'active' | 'grace_period' | 'suspended') || 'active',
+                gracePeriodEndsAt: data.grace_period_ends_at || null,
             };
         },
         enabled: !!tenantId,

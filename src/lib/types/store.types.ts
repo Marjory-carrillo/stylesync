@@ -146,6 +146,9 @@ export interface BusinessConfig {
     extraEmployeesPaid?: number;
     extraBranchesPaid?: number;
     createdAt?: string | null;
+    subscriptionType?: 'stripe' | 'manual';
+    paymentStatus?: 'active' | 'grace_period' | 'suspended';
+    gracePeriodEndsAt?: string | null;
 }
 
 export interface Tenant extends BusinessConfig {
