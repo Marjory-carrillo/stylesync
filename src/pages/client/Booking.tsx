@@ -50,9 +50,36 @@ export default function Booking() {
 
     
     const isPhoneBlocked = (phone: string) => blockedPhones.includes(phone);
-    const hasActiveAppointment = (phone: string) => appointments.some(a => a.clientPhone === phone && a.status === 'confirmada');
-    const getActiveAppointmentByPhone = (phone: string) => appointments.find(a => a.clientPhone === phone && a.status === 'confirmada');
     const getServiceById = (id: number) => services.find(s => s.id === id);
+
+    const isAppointmentActive = (a: any) => {
+        if (a.status !== 'confirmada') return false;
+        
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        
+        if (a.date > todayStr) return true;
+        if (a.date === todayStr) {
+            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const svc = getServiceById(a.serviceId);
+            const duration = svc?.duration || 30;
+            
+            const [hours, minutes] = a.time.split(':').map(Number);
+            const endMinutes = hours * 60 + minutes + duration;
+            const endHours = Math.floor(endMinutes / 60);
+            const endMins = endMinutes % 60;
+            const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+            
+            return currentTimeStr < endTimeStr;
+        }
+        return false;
+    };
+
+    const hasActiveAppointment = (phone: string) => appointments.some(a => a.clientPhone === phone && isAppointmentActive(a));
+    const getActiveAppointmentByPhone = (phone: string) => appointments.find(a => a.clientPhone === phone && isAppointmentActive(a));
     const getActiveAppointmentPrice = (appt: any) => {
         const service = getServiceById(appt.serviceId);
         const customPriceItem = (appt.additionalServices || []).find((s: string) => s.startsWith('Cotización Confirmada:') || s.startsWith('Cotización Estimada:'));
