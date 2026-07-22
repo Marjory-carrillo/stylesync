@@ -165,32 +165,42 @@ export const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({ isOpen, 
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {appointments.map((apt: any) => (
-                                    <div key={apt.id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getStatusColor(apt.status)}`}>
-                                                    {getStatusLabel(apt.status)}
-                                                </span>
-                                                <span className="text-white font-medium">{apt.services?.name || 'Servicio'}</span>
+                                {appointments.map((apt: any) => {
+                                    let visualStatus = apt.status;
+                                    if (visualStatus === 'confirmada') {
+                                        const end = new Date(`${apt.date}T${apt.time}`);
+                                        end.setMinutes(end.getMinutes() + (apt.services?.duration || 30));
+                                        if (new Date() >= end) {
+                                            visualStatus = 'completada';
+                                        }
+                                    }
+                                    return (
+                                        <div key={apt.id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getStatusColor(visualStatus)}`}>
+                                                        {getStatusLabel(visualStatus)}
+                                                    </span>
+                                                    <span className="text-white font-medium">{apt.services?.name || 'Servicio'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm text-neutral-400">
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar className="w-3.5 h-3.5" />
+                                                        {new Date(apt.date).toLocaleDateString('es-ES', { dateStyle: 'medium' })}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        {apt.time}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-3 text-sm text-neutral-400">
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar className="w-3.5 h-3.5" />
-                                                    {new Date(apt.date).toLocaleDateString('es-ES', { dateStyle: 'medium' })}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Clock className="w-3.5 h-3.5" />
-                                                    {apt.time}
-                                                </span>
+                                            <div className="text-right sm:block flex justify-between items-center">
+                                                <span className="text-neutral-400 text-sm block sm:hidden">Costo</span>
+                                                <span className="text-white font-medium">${apt.services?.price || 0}</span>
                                             </div>
                                         </div>
-                                        <div className="text-right sm:block flex justify-between items-center">
-                                            <span className="text-neutral-400 text-sm block sm:hidden">Costo</span>
-                                            <span className="text-white font-medium">${apt.services?.price || 0}</span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
