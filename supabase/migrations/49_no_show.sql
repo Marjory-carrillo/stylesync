@@ -42,7 +42,7 @@ LEFT JOIN services s ON a.service_id = s.id
 GROUP BY c.id, c.tenant_id, c.name, c.phone, c.notes, c.tags, c.created_at, c.no_show_count;
 
 -- 5. Create mark_no_show RPC function
-CREATE OR REPLACE FUNCTION mark_no_show(p_appointment_id uuid, p_tenant_id text)
+CREATE OR REPLACE FUNCTION mark_no_show(p_appointment_id uuid, p_tenant_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER

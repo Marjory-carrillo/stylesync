@@ -14,12 +14,14 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import ConfirmModal from '../../components/ConfirmModal';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 
@@ -173,6 +175,52 @@ export default function Dashboard() {
             }
         });
     }, [markNoShow, showToast]);
+
+    const [selectedApptForPrice, setSelectedApptForPrice] = useState<any | null>(null);
+    const [newPriceValue, setNewPriceValue] = useState('');
+    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+    const queryClient = useQueryClient();
+
+    const handleSaveCustomPrice = async () => {
+        const tenantId = businessConfig?.id;
+        if (!selectedApptForPrice || !newPriceValue.trim() || !tenantId) return;
+        const price = Number(newPriceValue);
+        if (isNaN(price)) {
+            showToast('Ingresa un precio numérico válido', 'error');
+            return;
+        }
+
+        try {
+            const apt = selectedApptForPrice;
+            const currentAddServices = apt.additionalServices || [];
+            // Limpiar cotización vieja
+            let cleanAddServices = currentAddServices.filter((s: string) => 
+                !s.startsWith('Cotización Estimada:') && 
+                !s.startsWith('Cotización Confirmada:')
+            );
+            // Añadir nueva cotización confirmada
+            cleanAddServices.push(`Cotización Confirmada: $${price} MXN`);
+
+            // Actualizar en base de datos
+            const { error } = await supabase
+                .from('appointments')
+                .update({ additional_services: cleanAddServices })
+                .eq('id', apt.id)
+                .eq('tenant_id', tenantId);
+
+            if (error) throw error;
+
+            showToast('Precio de cita actualizado con éxito', 'success');
+            
+            // Actualizar queries locales
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
+            
+            setIsPriceModalOpen(false);
+            setSelectedApptForPrice(null);
+        } catch (err: any) {
+            showToast(`Error al guardar precio: ${err.message}`, 'error');
+        }
+    };
 
 
     const appointments = useMemo(() => {
@@ -1480,17 +1528,25 @@ export default function Dashboard() {
                                                 <Phone size={12} className="opacity-50" />
                                                 <span>{appt.clientPhone}</span>
                                                 {!businessConfig?.hideServicePrices && (
-                                                    <div className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border ${
-                                                        isPriceConfirmed(appt)
-                                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
-                                                    }`}>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedApptForPrice(appt);
+                                                            setNewPriceValue(String(getAppointmentPrice(appt)));
+                                                            setIsPriceModalOpen(true);
+                                                        }}
+                                                        className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border cursor-pointer hover:bg-white/5 active:scale-95 transition-all ${
+                                                            isPriceConfirmed(appt)
+                                                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
+                                                        }`}
+                                                        title="Ajustar precio de la cita"
+                                                    >
                                                         <DollarSign size={9} />
                                                         <span>{getAppointmentPrice(appt)}</span>
                                                         <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
                                                             {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
                                                         </span>
-                                                    </div>
+                                                    </button>
                                                 )}
                                                 {needsReminder && (
                                                     <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
@@ -1684,17 +1740,25 @@ export default function Dashboard() {
                                                         {!businessConfig?.hideServicePrices && (
                                                             <>
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                                <div className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border ${
-                                                                    isPriceConfirmed(appt)
-                                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
-                                                                }`}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedApptForPrice(appt);
+                                                                        setNewPriceValue(String(getAppointmentPrice(appt)));
+                                                                        setIsPriceModalOpen(true);
+                                                                    }}
+                                                                    className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border cursor-pointer hover:bg-white/5 active:scale-95 transition-all ${
+                                                                        isPriceConfirmed(appt)
+                                                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
+                                                                    }`}
+                                                                    title="Ajustar precio de la cita"
+                                                                >
                                                                     <DollarSign size={9} />
                                                                     <span>${getAppointmentPrice(appt)}</span>
                                                                     <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
                                                                         {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
                                                                     </span>
-                                                                </div>
+                                                                </button>
                                                             </>
                                                         )}
                                                     </div>
@@ -1947,6 +2011,57 @@ export default function Dashboard() {
                                 setIsZoomed(!isZoomed);
                             }}
                         />
+                    </div>
+                </div>
+            )}
+
+            {isPriceModalOpen && selectedApptForPrice && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => { setIsPriceModalOpen(false); setSelectedApptForPrice(null); }} />
+                    <div className="relative w-full max-w-sm bg-[#0a0f1a] border border-white/10 rounded-2xl p-6 shadow-2xl animate-scale-in flex flex-col z-50">
+                        <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2">
+                            Ajustar Precio de la Cita
+                        </h3>
+                        <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                            Ingresa el precio final para la cita de <strong className="text-white">{selectedApptForPrice.clientName}</strong>.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Precio Final (MXN)</label>
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</div>
+                                    <input
+                                        type="number"
+                                        required
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-sm text-white focus:outline-none focus:border-accent bg-[#0b101c]"
+                                        value={newPriceValue}
+                                        onChange={e => setNewPriceValue(e.target.value)}
+                                        placeholder="Ej. 450"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsPriceModalOpen(false);
+                                        setSelectedApptForPrice(null);
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold text-xs uppercase transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveCustomPrice}
+                                    className="flex-1 py-2.5 rounded-xl bg-accent text-[#0a0f1a] font-bold text-xs uppercase tracking-wide hover:brightness-110 transition-all flex items-center justify-center gap-1.5"
+                                >
+                                    <Save size={14} /> Guardar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
