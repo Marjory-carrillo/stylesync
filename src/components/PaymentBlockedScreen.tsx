@@ -112,7 +112,7 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
                         <ul className="space-y-2.5 my-6 text-xs text-slate-300 flex-1">
                             <li className="flex items-center gap-2.5">
                                 <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>
-                                <span>1 Barbero / Profesional</span>
+                                <span>1 Profesional incluido</span>
                             </li>
                             <li className="flex items-center gap-2.5">
                                 <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>
@@ -143,7 +143,7 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
                             )}
                         </button>
                     </div>
-
+ 
                     {/* Plan Pro */}
                     <div className={`relative rounded-3xl p-6 transition-all duration-300 border flex flex-col text-left group ${
                         recommendedPlan === 'pro' 
@@ -168,15 +168,11 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
                         <ul className="space-y-2.5 my-6 text-xs text-slate-300 flex-1">
                             <li className="flex items-center gap-2.5">
                                 <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>
-                                <span>2 Barberos incluidos (+249/mes c/u)</span>
+                                <span>2 Profesionales incluidos (+249/mes c/u)</span>
                             </li>
                             <li className="flex items-center gap-2.5">
                                 <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>
                                 <span>Todo el plan Esencial</span>
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                                <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>
-                                <span>Cotizador de Uñas Inteligente</span>
                             </li>
                             <li className="flex items-center gap-2.5">
                                 <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>
