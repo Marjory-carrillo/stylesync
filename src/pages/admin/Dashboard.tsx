@@ -139,6 +139,22 @@ export default function Dashboard() {
         return service?.price || 0;
     }, [getServiceById]);
 
+    const isPriceConfirmed = useCallback((apt: any) => {
+        if ((apt.additionalServices || []).some((s: string) => s.startsWith('Cotización Confirmada:'))) {
+            return true;
+        }
+        const hasApproxDesign = (apt.additionalServices || []).some((s: string) => 
+            s.startsWith('Diseño:') && (
+                s.includes('Sencillo') || 
+                s.includes('Elaborado') || 
+                s.includes('Complex') || 
+                s.includes('complex') || 
+                s.includes('simple')
+            )
+        );
+        return !hasApproxDesign;
+    }, []);
+
     const handleNoShow = useCallback((appt: any) => {
         setCustomConfirm({
             open: true,
@@ -1460,9 +1476,22 @@ export default function Dashboard() {
                                                 </div>
                                                 <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium">
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium flex-wrap">
                                                 <Phone size={12} className="opacity-50" />
                                                 <span>{appt.clientPhone}</span>
+                                                {!businessConfig?.hideServicePrices && (
+                                                    <div className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border ${
+                                                        isPriceConfirmed(appt)
+                                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
+                                                    }`}>
+                                                        <DollarSign size={9} />
+                                                        <span>{getAppointmentPrice(appt)}</span>
+                                                        <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
+                                                            {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 {needsReminder && (
                                                     <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
                                                 )}
@@ -1652,6 +1681,22 @@ export default function Dashboard() {
                                                             <Phone size={12} className="opacity-70" />
                                                             <span className="underline underline-offset-2 decoration-accent/30">{appt.clientPhone}</span>
                                                         </a>
+                                                        {!businessConfig?.hideServicePrices && (
+                                                            <>
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                                <div className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border ${
+                                                                    isPriceConfirmed(appt)
+                                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                                                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
+                                                                }`}>
+                                                                    <DollarSign size={9} />
+                                                                    <span>${getAppointmentPrice(appt)}</span>
+                                                                    <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
+                                                                        {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
+                                                                    </span>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
