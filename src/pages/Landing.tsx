@@ -7,7 +7,8 @@ import {
     CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight,
     CheckCircle2, X, Sparkles, Scissors, Flower2, Stethoscope,
     Infinity as InfinityIcon, Star, Shield, Zap, Clock,
-    BarChart2, Smartphone, ChevronDown, Instagram, Facebook
+    BarChart2, Smartphone, ChevronDown, Instagram, Facebook,
+    Calculator, Percent, CalendarPlus
 } from 'lucide-react';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -180,12 +181,15 @@ export default function Landing() {
 
     /* ── DATA ──────────────────────── */
     const features = [
-        { icon: <CalendarDays className="w-6 h-6" />, color: 'from-violet-500 to-indigo-500', title: 'Agenda Inteligente', desc: 'Clientes reservan solos, 24/7. Sin llamadas, sin papelería.' },
-        { icon: <MessageCircle className="w-6 h-6" />, color: 'from-emerald-500 to-teal-500', title: 'Recordatorios WhatsApp', desc: 'Reduce inasistencias hasta un 60% con mensajes automáticos.' },
-        { icon: <Users className="w-6 h-6" />, color: 'from-blue-500 to-cyan-500', title: 'Control de Equipo', desc: 'Horarios, comisiones y accesos por rol para cada empleado.' },
-        { icon: <BarChart2 className="w-6 h-6" />, color: 'from-orange-500 to-amber-500', title: 'Reportes en Tiempo Real', desc: 'Analíticas de ingresos, citas y tendencias actualizado al instante.' },
-        { icon: <Shield className="w-6 h-6" />, color: 'from-rose-500 to-pink-500', title: 'Branding Propio', desc: 'Página personalizada con tu logo, colores y dominio.' },
-        { icon: <Smartphone className="w-6 h-6" />, color: 'from-purple-500 to-violet-500', title: 'App Instalable (PWA)', desc: 'Tus clientes guardan la app en su celular con un solo clic.' },
+        { icon: <CalendarDays className="w-6 h-6" />, color: 'from-violet-500 to-indigo-500', title: 'Agenda Inteligente 24/7', desc: 'Clientes reservan solos en 30 segundos. Sin llamadas ni papelería.' },
+        { icon: <MessageCircle className="w-6 h-6" />, color: 'from-emerald-500 to-teal-500', title: 'Recordatorios WhatsApp', desc: 'Reduce inasistencias hasta un 60% con notificaciones y confirmaciones automáticas.' },
+        { icon: <Calculator className="w-6 h-6" />, color: 'from-pink-500 to-rose-500', title: 'Cotizador de Uñas Interactivo', desc: 'Calculadora integrada para cotizar diseños basados en base, largo, estilos y extras.' },
+        { icon: <Percent className="w-6 h-6" />, color: 'from-orange-500 to-amber-500', title: 'Nómina y Comisiones', desc: 'Reportes automáticos de nómina y comisiones por estilista descargables en PDF.' },
+        { icon: <CalendarPlus className="w-6 h-6" />, color: 'from-blue-500 to-cyan-500', title: 'Lista de Espera Activa', desc: 'Tus clientes se anotan automáticamente para cubrir cancelaciones o huecos libres.' },
+        { icon: <Users className="w-6 h-6" />, color: 'from-purple-500 to-violet-500', title: 'Control de Equipo', desc: 'Gestión de turnos, días festivos y niveles de acceso (RBAC) para tus colaboradores.' },
+        { icon: <Shield className="w-6 h-6" />, color: 'from-indigo-500 to-blue-500', title: 'Branding y Personalización', desc: 'Página de reserva personalizada con el logotipo, colores y slug de tu negocio.' },
+        { icon: <Smartphone className="w-6 h-6" />, color: 'from-teal-500 to-emerald-500', title: 'App Instalable (PWA)', desc: 'Los clientes instalan CitaLink en su celular como una app nativa con un solo clic.' },
+        { icon: <BarChart2 className="w-6 h-6" />, color: 'from-red-500 to-orange-500', title: 'Reportes en Tiempo Real', desc: 'Monitorea ventas, ingresos estimados y rendimiento de personal en vivo.' },
     ];
 
     const industries = [
