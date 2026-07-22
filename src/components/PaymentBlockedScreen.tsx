@@ -46,7 +46,7 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
     };
 
     // Direct WhatsApp message link for manual/custom support
-    const supportPhone = '5213312345678'; 
+    const supportPhone = '528681239154'; 
     const whatsappMessage = `Hola, mi negocio "${businessName}" está suspendido por pago en CitaLink. Me gustaría reactivar mi servicio.`;
     const whatsappUrl = `https://wa.me/${supportPhone}?text=${encodeURIComponent(whatsappMessage)}`;
 

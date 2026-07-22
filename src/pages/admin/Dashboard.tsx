@@ -430,7 +430,7 @@ export default function Dashboard() {
                         </div>
                         {isGrace ? (
                             <a
-                                href={`https://wa.me/5213312345678?text=${encodeURIComponent(`Hola, mi negocio "${businessConfig.name || ''}" tiene un aviso de pago pendiente en CitaLink. ¿Me ayudan a verificar?`)}`}
+                                href={`https://wa.me/528681239154?text=${encodeURIComponent(`Hola, mi negocio "${businessConfig.name || ''}" tiene un aviso de pago pendiente en CitaLink. ¿Me ayudan a verificar?`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 shrink-0"
