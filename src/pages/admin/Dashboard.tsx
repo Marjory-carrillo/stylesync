@@ -75,12 +75,32 @@ export default function Dashboard() {
     const { stylists } = useStylists();
     const { data: tenantConfig } = useTenantData();
     const { schedule } = useSchedule();
-    const businessConfig = (tenantConfig || { slug: '', brandSlug: '', name: '', payment_status: 'active', grace_period_ends_at: null }) as any;
+    const businessConfig = (tenantConfig || { slug: '', brandSlug: '', name: '', paymentStatus: 'active', gracePeriodEndsAt: null }) as any;
     const tenantPlan = (tenantConfig as any)?.plan || 'free';
     const trialEndsAt = (tenantConfig as any)?.trialEndsAt || null;
     const inTrial = isInTrial(trialEndsAt);
     const planLimits = getPlanLimits(tenantPlan);
     const monthlyApptLimit = (!inTrial && planLimits.maxAppointmentsPerMonth > 0) ? planLimits.maxAppointmentsPerMonth : -1;
+
+    // Calculate trial and grace days left
+    const trialDaysLeft = useMemo(() => {
+        if (!trialEndsAt) return -1;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const ends = new Date(trialEndsAt);
+        ends.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.ceil((ends.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    }, [trialEndsAt]);
+
+    const isGracePeriod = businessConfig?.paymentStatus === 'grace_period';
+    const graceDaysLeft = useMemo(() => {
+        if (!isGracePeriod || !businessConfig?.gracePeriodEndsAt) return -1;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const ends = new Date(businessConfig.gracePeriodEndsAt);
+        ends.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.ceil((ends.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    }, [isGracePeriod, businessConfig?.gracePeriodEndsAt]);
 
     // Count non-cancelled appointments in the current calendar month
     const monthlyApptCount = useMemo(() => {
@@ -369,37 +389,69 @@ export default function Dashboard() {
 
     return (
         <div className="animate-fade-in space-y-6 md:space-y-8">
-            {/* Grace Period Warning Banner */}
-            {businessConfig?.payment_status === 'grace_period' && (
-                <div className="glass-panel p-5 border border-amber-500/25 bg-amber-500/5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-scale-in">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-amber-500/15 text-amber-400 rounded-2xl shrink-0">
-                            <Activity size={20} className="animate-pulse-soft" />
+            {/* Warning Banner (Grace Period or Trial expiring soon) */}
+            {(() => {
+                const isGrace = businessConfig?.paymentStatus === 'grace_period';
+                const showTrialWarning = inTrial && trialDaysLeft <= 8 && trialDaysLeft >= 0;
+
+                if (!isGrace && !showTrialWarning) return null;
+
+                return (
+                    <div className="glass-panel p-5 border border-amber-500/25 bg-amber-500/5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-scale-in">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-amber-500/15 text-amber-400 rounded-2xl shrink-0">
+                                <Activity size={20} className="animate-pulse-soft" />
+                            </div>
+                            <div className="text-left">
+                                <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                                    {isGrace ? 'Problema con tu método de pago' : 'Tu período de prueba está por vencer'}
+                                </h4>
+                                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                    {isGrace ? (
+                                        <>
+                                            Tu suscripción está en período de gracia. Actualiza tu método de pago antes del{' '}
+                                            <strong className="text-amber-400">
+                                                {businessConfig.gracePeriodEndsAt 
+                                                    ? format(new Date(businessConfig.gracePeriodEndsAt), 'dd/MM/yyyy', { locale: es }) 
+                                                    : 'próximo ciclo'}
+                                            </strong>{' '}
+                                            para evitar la suspensión temporal del servicio.
+                                        </>
+                                    ) : (
+                                        <>
+                                            Tu período de prueba de 30 días gratis expira en{' '}
+                                            <strong className="text-amber-400">
+                                                {trialDaysLeft} {trialDaysLeft === 1 ? 'día' : 'días'}
+                                            </strong>. Elige un plan para continuar usando CitaLink.
+                                        </>
+                                    )}
+                                </p>
+                            </div>
                         </div>
-                        <div className="text-left">
-                            <h4 className="text-sm font-black text-white uppercase tracking-wider">Problema con tu método de pago</h4>
-                            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                                Tu suscripción está en período de gracia. Actualiza tu método de pago antes del{' '}
-                                <strong className="text-amber-400">
-                                    {businessConfig.grace_period_ends_at 
-                                        ? format(new Date(businessConfig.grace_period_ends_at), 'dd/MM/yyyy', { locale: es }) 
-                                        : 'próximo ciclo'}
-                                </strong>{' '}
-                                para evitar la suspensión temporal del servicio.
-                            </p>
-                        </div>
+                        {isGrace ? (
+                            <a
+                                href={`https://wa.me/5213312345678?text=${encodeURIComponent(`Hola, mi negocio "${businessConfig.name || ''}" tiene un aviso de pago pendiente en CitaLink. ¿Me ayudan a verificar?`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 shrink-0"
+                            >
+                                <MessageCircle size={14} />
+                                Contactar Soporte
+                            </a>
+                        ) : (
+                            <button
+                                onClick={() => {
+                                    const el = document.getElementById('pricing-section');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className="py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 shrink-0"
+                            >
+                                Ver Planes
+                            </button>
+                        )}
                     </div>
-                    <a
-                        href={`https://wa.me/5213312345678?text=${encodeURIComponent(`Hola, mi negocio "${businessConfig.name || ''}" tiene un aviso de pago pendiente en CitaLink. ¿Me ayudan a verificar?`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 shrink-0"
-                    >
-                        <MessageCircle size={14} />
-                        Contactar Soporte
-                    </a>
-                </div>
-            )}
+                );
+            })()}
 
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
@@ -789,135 +841,136 @@ export default function Dashboard() {
                             </div>
                         )}
 
-                        {/* Premium Plans Grid */}
-                        {(tenantPlan === 'free' || (inTrial && daysLeft <= 8)) && (
-                            <div className="mt-8 pt-8 border-t border-white/5">
-                                <h4 className="text-sm font-black text-white uppercase tracking-wider mb-6 text-center md:text-left">
-                                    Elige el plan ideal para tu negocio
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* Plan Esencial */}
-                                    <div className="bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative overflow-hidden">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <span className="text-[10px] font-black text-teal-400 uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 px-2.5 py-0.5 rounded-full">
-                                                    Esencial
-                                                </span>
-                                            </div>
-                                            <div className="flex items-baseline gap-1 mb-4">
-                                                <span className="text-3xl font-black text-white">$349</span>
-                                                <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
-                                            </div>
-                                            <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-teal-400 font-bold">✓</span> 1 Profesional (no expandible)
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-teal-400 font-bold">✓</span> 1 Sucursal
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-teal-400 font-bold">✓</span> Citas Ilimitadas
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-teal-400 font-bold">✓</span> App de Reservas Clientes
-                                                </li>
-                                            </ul>
-                                        </div>
-                                        <button
-                                            onClick={() => redirectToCheckout('lite')}
-                                            disabled={isCheckoutLoading}
-                                            className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
-                                        >
-                                            Adquirir Esencial
-                                        </button>
-                                    </div>
-
-                                    {/* Plan Pro */}
-                                    <div className="bg-white/[0.03] hover:bg-white/[0.05] border border-amber-500/30 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative shadow-[0_0_30px_rgba(245,158,11,0.05)] overflow-hidden">
-                                        <div className="absolute -top-1.5 right-6 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[8px] uppercase tracking-widest px-2.5 py-1 rounded-b-xl border border-t-0 border-amber-400/30">
-                                            Recomendado
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
-                                                    Pro
-                                                </span>
-                                            </div>
-                                            <div className="flex items-baseline gap-1 mb-4">
-                                                <span className="text-3xl font-black text-white">$649</span>
-                                                <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
-                                            </div>
-                                            <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-amber-400 font-bold">✓</span> 2 Profesionales (incluidos)
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-amber-400 font-bold">✓</span> Profesionales Extra (+$249/mes c/u)
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-amber-400 font-bold">✓</span> 1 Sucursal
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-amber-400 font-bold">✓</span> Citas Ilimitadas
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-amber-400 font-bold">✓</span> WhatsApp / Recordatorios Auto
-                                                </li>
-                                            </ul>
-                                        </div>
-                                        <button
-                                            onClick={() => redirectToCheckout('pro')}
-                                            disabled={isCheckoutLoading}
-                                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/10 disabled:opacity-50"
-                                        >
-                                            Actualizar a Pro
-                                        </button>
-                                    </div>
-
-                                    {/* Plan Business */}
-                                    <div className="bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative overflow-hidden">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest bg-violet-500/10 border border-violet-500/20 px-2.5 py-0.5 rounded-full">
-                                                    Business
-                                                </span>
-                                            </div>
-                                            <div className="flex items-baseline gap-1 mb-4">
-                                                <span className="text-3xl font-black text-white">$1,249</span>
-                                                <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
-                                            </div>
-                                            <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-violet-400 font-bold">✓</span> Multi-Sucursal (2 incluidas)
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-violet-400 font-bold">✓</span> Sucursales Extra (+$599/mes c/u)
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-violet-400 font-bold">✓</span> 2 Profesionales por Sucursal
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-violet-400 font-bold">✓</span> Citas Ilimitadas
-                                                </li>
-                                                <li className="flex items-center gap-2">
-                                                    <span className="text-violet-400 font-bold">✓</span> WhatsApp / Recordatorios Auto
-                                                </li>
-                                            </ul>
-                                        </div>
-                                        <button
-                                            onClick={() => redirectToCheckout('business')}
-                                            disabled={isCheckoutLoading}
-                                            className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
-                                        >
-                                            Adquirir Business
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 );
             })()}
+
+            {/* Premium Plans Grid (Shown for Free plan, trial expiring soon, or grace period expiring soon) */}
+            {!isEmployee && !isLoading && (tenantPlan === 'free' || (inTrial && trialDaysLeft <= 8) || (isGracePeriod && graceDaysLeft <= 8)) && (
+                <div id="pricing-section" className="glass-panel p-6 md:p-8 rounded-[2rem] border border-white/5 bg-white/[0.01] mb-8">
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider mb-6 text-center md:text-left">
+                        Elige el plan ideal para tu negocio
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Plan Esencial */}
+                        <div className="bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative overflow-hidden">
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-[10px] font-black text-teal-400 uppercase tracking-widest bg-teal-500/10 border border-teal-500/20 px-2.5 py-0.5 rounded-full">
+                                        Esencial
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1 mb-4">
+                                    <span className="text-3xl font-black text-white">$349</span>
+                                    <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
+                                </div>
+                                <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-teal-400 font-bold">✓</span> 1 Profesional (no expandible)
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-teal-400 font-bold">✓</span> 1 Sucursal
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-teal-400 font-bold">✓</span> Citas Ilimitadas
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-teal-400 font-bold">✓</span> App de Reservas Clientes
+                                    </li>
+                                </ul>
+                            </div>
+                            <button
+                                onClick={() => redirectToCheckout('lite')}
+                                disabled={isCheckoutLoading}
+                                className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                            >
+                                Adquirir Esencial
+                            </button>
+                        </div>
+
+                        {/* Plan Pro */}
+                        <div className="bg-white/[0.03] hover:bg-white/[0.05] border border-amber-500/30 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative shadow-[0_0_30px_rgba(245,158,11,0.05)] overflow-hidden">
+                            <div className="absolute -top-1.5 right-6 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[8px] uppercase tracking-widest px-2.5 py-1 rounded-b-xl border border-t-0 border-amber-400/30">
+                                Recomendado
+                            </div>
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                                        Pro
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1 mb-4">
+                                    <span className="text-3xl font-black text-white">$649</span>
+                                    <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
+                                </div>
+                                <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-amber-400 font-bold">✓</span> 2 Profesionales (incluidos)
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-amber-400 font-bold">✓</span> Profesionales Extra (+$249/mes c/u)
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-amber-400 font-bold">✓</span> 1 Sucursal
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-amber-400 font-bold">✓</span> Citas Ilimitadas
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-amber-400 font-bold">✓</span> WhatsApp / Recordatorios Auto
+                                    </li>
+                                </ul>
+                            </div>
+                            <button
+                                onClick={() => redirectToCheckout('pro')}
+                                disabled={isCheckoutLoading}
+                                className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/10 disabled:opacity-50"
+                            >
+                                Actualizar a Pro
+                            </button>
+                        </div>
+
+                        {/* Plan Business */}
+                        <div className="bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-3xl p-6 flex flex-col justify-between transition-all hover:scale-[1.01] relative overflow-hidden">
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest bg-violet-500/10 border border-violet-500/20 px-2.5 py-0.5 rounded-full">
+                                        Business
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1 mb-4">
+                                    <span className="text-3xl font-black text-white">$1,249</span>
+                                    <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
+                                </div>
+                                <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-violet-400 font-bold">✓</span> Multi-Sucursal (2 incluidas)
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-violet-400 font-bold">✓</span> Sucursales Extra (+$599/mes c/u)
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-violet-400 font-bold">✓</span> 2 Profesionales por Sucursal
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-violet-400 font-bold">✓</span> Citas Ilimitadas
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-violet-400 font-bold">✓</span> WhatsApp / Recordatorios Auto
+                                    </li>
+                                </ul>
+                            </div>
+                            <button
+                                onClick={() => redirectToCheckout('business')}
+                                disabled={isCheckoutLoading}
+                                className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                            >
+                                Adquirir Business
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {
                 (cancellationLog.length > 0 && waitingList.length > 0) && (() => {

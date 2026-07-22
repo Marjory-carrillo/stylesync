@@ -6,7 +6,7 @@ import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useRealtimeNotifications } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator } from 'lucide-react';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
@@ -88,7 +88,7 @@ export default function AdminLayout() {
             if (el) el.href = url;
             // No podemos revocar el URL inmediatamente porque el OS puede necesitar descargarlo después
         };
-        
+
         setupManifest();
     }, []);
 
@@ -122,65 +122,15 @@ export default function AdminLayout() {
 
     // Check if account is suspended/blocked
     const accountStatus = isAccountActive(
-        businessConfig?.subscriptionType, 
-        businessConfig?.paymentStatus, 
+        businessConfig?.subscriptionType,
+        businessConfig?.paymentStatus,
         businessConfig?.gracePeriodEndsAt
     );
-    
+
     // SuperAdmin can bypass blocks for support purposes
     if (accountStatus.blocked && !isSuperAdmin) {
         return <PaymentBlockedScreen businessName={businessConfig?.name} />;
     }
-
-    // Calculate days remaining for trial or grace period
-    const getWarningBannerInfo = () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // 1. Check Grace Period
-        if (businessConfig?.subscriptionType === 'stripe' && businessConfig?.paymentStatus === 'grace_period' && businessConfig?.gracePeriodEndsAt) {
-            const graceEnds = new Date(businessConfig.gracePeriodEndsAt);
-            graceEnds.setHours(0, 0, 0, 0);
-            const diffTime = graceEnds.getTime() - today.getTime();
-            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (daysLeft <= 8 && daysLeft >= 0) {
-                return {
-                    type: 'grace',
-                    daysLeft,
-                    message: `Tu período de gracia vence en ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'}. Actualiza tu método de pago para evitar la suspensión.`,
-                    actionLabel: 'Actualizar Tarjeta'
-                };
-            }
-        }
-
-        // 2. Check Trial Period
-        if (businessConfig?.trialEndsAt && businessConfig?.plan === 'free') {
-            // Wait, does trialEndsAt only apply if subscriptionType is not stripe?
-            // If they are on a trial, plan might be free but trial_ends_at is in the future.
-            const trialEnds = new Date(businessConfig.trialEndsAt);
-            trialEnds.setHours(0, 0, 0, 0);
-            
-            // Only show if trial is active
-            if (trialEnds > today) {
-                const diffTime = trialEnds.getTime() - today.getTime();
-                const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (daysLeft <= 8 && daysLeft >= 0) {
-                    return {
-                        type: 'trial',
-                        daysLeft,
-                        message: `🎁 Tu período de prueba gratis expira en ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'}. Actualiza tu plan para continuar sin interrupciones.`,
-                        actionLabel: 'Actualizar Plan'
-                    };
-                }
-            }
-        }
-
-        return null;
-    };
-
-    const bannerInfo = getWarningBannerInfo();
 
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -388,25 +338,6 @@ export default function AdminLayout() {
                 </div>
 
                 <div className="relative z-10 p-4 md:p-8 container mx-auto max-w-7xl pb-32">
-                    {bannerInfo && (
-                        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/25 text-amber-300 text-sm flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in shadow-[0_4px_20px_rgba(245,158,11,0.05)] relative overflow-hidden">
-                            <div className="absolute inset-0 bg-amber-500/[0.01] pointer-events-none" />
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
-                                    <AlertTriangle size={20} />
-                                </div>
-                                <p className="font-semibold leading-relaxed text-center sm:text-left text-xs sm:text-sm">
-                                    {bannerInfo.message}
-                                </p>
-                            </div>
-                            <Link 
-                                to="/admin/settings"
-                                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-[10px] uppercase tracking-wider transition-all duration-300 text-center shadow-lg shadow-amber-500/15 hover:scale-[1.02] active:scale-[0.98] shrink-0"
-                            >
-                                {bannerInfo.actionLabel}
-                            </Link>
-                        </div>
-                    )}
                     <Outlet />
                 </div>
                 <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />
