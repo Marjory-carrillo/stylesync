@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
@@ -508,13 +508,17 @@ export default function Booking() {
             });
     }, [appointments, selectedDate, selectedStylist, services, baseDate]);
 
-    const filteredStylists = useMemo(() => {
-        if (!selectedService) return stylists;
+    const getStylistsForService = useCallback((serviceId: number) => {
         return stylists.filter(stylist => {
             if (!stylist.serviceIds || stylist.serviceIds.length === 0) return true;
-            return stylist.serviceIds.includes(Number(selectedService.id));
+            return stylist.serviceIds.includes(Number(serviceId));
         });
-    }, [stylists, selectedService]);
+    }, [stylists]);
+
+    const filteredStylists = useMemo(() => {
+        if (!selectedService) return stylists;
+        return getStylistsForService(Number(selectedService.id));
+    }, [stylists, selectedService, getStylistsForService]);
 
     // ── Multi-Stylist Logic: Availability Map ──
     // Maps each time slot to a list of available stylist IDs. 
@@ -702,7 +706,7 @@ export default function Booking() {
         try {
             // Solo validamos — el OTP se manda después de elegir hora
             setSmsProvider('demo');
-            setStep(2);
+            setStep(22);
         } finally {
             setIsSendingSms(false);
         }
@@ -1641,8 +1645,7 @@ export default function Booking() {
                                 className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist === null ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
                                 onClick={() => {
                                     setSelectedStylist(null);
-                                    setSelectedAddOns([]);
-                                    setStep(22);
+                                    setStep(25);
                                 }}
                             >
                                 <div className="flex items-center gap-5">
@@ -1665,8 +1668,7 @@ export default function Booking() {
                                     className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist?.id === stylist.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
                                     onClick={() => {
                                         setSelectedStylist(stylist);
-                                        setSelectedAddOns([]);
-                                        setStep(22);
+                                        setStep(25);
                                     }}
                                 >
                                     <div className="flex items-center gap-5">
@@ -1687,7 +1689,7 @@ export default function Booking() {
                                 </div>
                             ))}
                         </div>
-                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar número</button>
+                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(22)}>← Cambiar de servicio</button>
                     </div>
                 )}
 
@@ -1970,7 +1972,7 @@ export default function Booking() {
                                                     if (businessConfig?.enableAddons && hasAddons) {
                                                         setStep(23);
                                                     } else {
-                                                        setStep(25);
+                                                        setStep(2);
                                                     }
                                                 }
                                             }}
@@ -2007,7 +2009,7 @@ export default function Booking() {
                                         </div>
                                     ))}
                                 </div>
-                                <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro {professionalLabel.toLowerCase()}</button>
+                                <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar datos del cliente</button>
                             </>
                         )}
 
@@ -2188,7 +2190,7 @@ export default function Booking() {
                                                                         setSelectedCatalogItem(expandedPhoto);
                                                                         setExpandedPhoto(null);
                                                                         setShowCatalogModal(false);
-                                                                        setStep(25); // Mandar directamente a elegir fecha
+                                                                        setStep(2); // Mandar directamente a elegir fecha
                                                                     }
                                                                 }}
                                                                 className="btn btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 shadow-glow"
@@ -2276,7 +2278,7 @@ export default function Booking() {
                         <div className="flex gap-3 mt-5">
                             <button
                                 className="flex-1 btn btn-ghost text-sm py-3"
-                                onClick={() => { setSelectedAddOns([]); setStep(25); }}
+                                onClick={() => { setSelectedAddOns([]); setStep(2); }}
                             >
                                 Omitir
                             </button>
@@ -2284,7 +2286,7 @@ export default function Booking() {
                                 <button
                                     className="flex-1 btn text-sm py-3 font-bold"
                                     style={{ background: 'var(--color-accent)', color: '#fff' }}
-                                    onClick={() => setStep(25)}
+                                    onClick={() => setStep(2)}
                                 >
                                     Confirmar selección →
                                 </button>
@@ -2322,7 +2324,7 @@ export default function Booking() {
                                 );
                             })}
                         </div>
-                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-md)' }} onClick={() => { setIsUpdating(false); setStep(isUpdating ? 10 : 22); }}>← Atrás</button>
+                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-md)' }} onClick={() => { setIsUpdating(false); setStep(isUpdating ? 10 : 2); }}>← Atrás</button>
                     </div>
                 )}
 

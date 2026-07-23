@@ -154,6 +154,14 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return selectedService?.price ?? 0;
     }, [businessConfig, selectedService, nailTotalPrice]);
 
+    const filteredStylists = useMemo(() => {
+        if (!selectedService) return stylists;
+        return stylists.filter(s => {
+            if (!s.serviceIds || s.serviceIds.length === 0) return true;
+            return s.serviceIds.includes(Number(selectedService.id));
+        });
+    }, [stylists, selectedService]);
+
     // Compute available time slots for selected date + service + stylist
     const availableSlots = useMemo(() => {
         if (!selectedService) return [];
@@ -223,7 +231,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
         setClientPhone(phone);
         setFormError(null);
-        setStep('barbero'); // Step 2 is now Stylist Selection
+        setStep('servicio'); // Step 2 is now Service Selection
     };
 
     // Step: confirm booking
@@ -306,7 +314,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return `${hh}:${m}${ampm}`;
     };
 
-    const stepIndex: Record<Step, number> = { datos: 1, barbero: 2, servicio: 3, fecha: 4, hora: 5, exito: 6 };
+    const stepIndex: Record<Step, number> = { datos: 1, servicio: 2, barbero: 3, fecha: 4, hora: 5, exito: 6 };
     const totalSteps = 5;
     const progress = Math.min((stepIndex[step] - 1) / totalSteps, 1);
 
@@ -440,11 +448,11 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     {/* ══ STEP: Barbero ══ */}
                     {step === 'barbero' && (
                         <div className="animate-fade-in">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 2: Barbero / Profesional</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 3: Barbero / Profesional</p>
                             <div className="space-y-2">
                                 {/* Any option */}
                                 <button
-                                    onClick={() => { setSelectedStylist('any'); setStep('servicio'); }}
+                                    onClick={() => { setSelectedStylist('any'); setStep('fecha'); }}
                                     className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/[0.03] hover:border-accent/20 hover:bg-white/5 transition-all text-left"
                                 >
                                     <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
@@ -455,10 +463,10 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         <p className="text-xs text-slate-500">Primera disponibilidad</p>
                                     </div>
                                 </button>
-                                {stylists.map(st => (
+                                {filteredStylists.map(st => (
                                     <button
                                         key={st.id}
-                                        onClick={() => { setSelectedStylist(st); setStep('servicio'); }}
+                                        onClick={() => { setSelectedStylist(st); setStep('fecha'); }}
                                         className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedStylist !== 'any' && selectedStylist?.id === st.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
                                     >
                                         {st.image ? (
@@ -475,7 +483,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     </button>
                                 ))}
                             </div>
-                            <button onClick={() => setStep('datos')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button onClick={() => setStep('servicio')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
                                 <ChevronLeft size={16} /> Regresar
                             </button>
                         </div>
@@ -484,7 +492,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     {/* ══ STEP: Servicio ══ */}
                     {step === 'servicio' && (
                         <div className="animate-fade-in space-y-4">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-2">Paso 3: Servicio</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-2">Paso 2: Servicio</p>
                             
                             {/* If quoter is enabled and a service is selected, show the quoter form */}
                             {selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter ? (
@@ -580,10 +588,10 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             <span className="text-xl font-black text-emerald-400">${totalPrice} MXN</span>
                                         </div>
                                         <button
-                                            onClick={() => setStep('fecha')}
+                                            onClick={() => setStep('barbero')}
                                             className="px-6 py-3 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/20"
                                         >
-                                            Continuar a Fecha →
+                                            Continuar a Profesional →
                                         </button>
                                     </div>
                                 </div>
@@ -597,7 +605,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                 if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
                                                     // Keep user in step to see customized quoter
                                                 } else {
-                                                    setStep('fecha');
+                                                    setStep('barbero');
                                                 }
                                             }}
                                             className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
@@ -620,7 +628,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     if (selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter) {
                                         setSelectedService(null);
                                     } else {
-                                        setStep('barbero');
+                                        setStep('datos');
                                     }
                                 }} 
                                 className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2"
@@ -653,7 +661,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     );
                                 })}
                             </div>
-                            <button onClick={() => setStep('servicio')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button onClick={() => setStep('barbero')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
                                 <ChevronLeft size={16} /> Regresar
                             </button>
                         </div>
