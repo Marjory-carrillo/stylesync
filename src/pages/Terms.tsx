@@ -56,12 +56,12 @@ export default function Terms() {
                                 <p className="text-slate-400 text-sm mt-1">Hasta 2 estilistas, 1 sucursal y 30 citas por mes. Sin costo, sin tarjeta requerida.</p>
                             </div>
                             <div className="bg-white/[0.02] border border-violet-500/20 rounded-2xl p-4">
-                                <p className="font-bold text-white">Plan Pro — $899 MXN/mes</p>
-                                <p className="text-slate-400 text-sm mt-1">2 estilistas incluidos, citas ilimitadas, 1 sucursal. Estilistas adicionales a $349 MXN/mes c/u.</p>
+                                <p className="font-bold text-white">Plan Pro — $649 MXN/mes</p>
+                                <p className="text-slate-400 text-sm mt-1">2 estilistas incluidos, citas ilimitadas, 1 sucursal. Estilistas adicionales a $249 MXN/mes c/u.</p>
                             </div>
                             <div className="bg-white/[0.02] border border-amber-500/20 rounded-2xl p-4">
-                                <p className="font-bold text-white">Plan Business — $1,649 MXN/mes</p>
-                                <p className="text-slate-400 text-sm mt-1">2 sucursales incluidas, citas ilimitadas. Sucursales adicionales a $749 MXN/mes. Estilistas adicionales a $349 MXN/mes c/u.</p>
+                                <p className="font-bold text-white">Plan Business — $1,249 MXN/mes</p>
+                                <p className="text-slate-400 text-sm mt-1">2 sucursales incluidas, citas ilimitadas. Sucursales adicionales a $599 MXN/mes. Estilistas adicionales a $249 MXN/mes c/u.</p>
                             </div>
                         </div>
                         <p className="mt-4 text-slate-400 text-sm">Todos los precios son en pesos mexicanos (MXN) e IVA no incluido. CitaLink se reserva el derecho de modificar los precios con un aviso mínimo de 30 días.</p>

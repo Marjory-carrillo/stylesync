@@ -634,7 +634,7 @@ export default function Staff() {
                                     <>
                                         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-1">Profesional Extra</p>
-                                            <p className="text-2xl font-black text-white">+$349<span className="text-sm font-medium text-slate-400">/mes</span></p>
+                                            <p className="text-2xl font-black text-white">+$249<span className="text-sm font-medium text-slate-400">/mes</span></p>
                                             <p className="text-xs text-slate-400 mt-1">Agrega profesionales desde tu portal de facturación</p>
                                         </div>
                                         <button
@@ -650,8 +650,8 @@ export default function Staff() {
                                     <>
                                         <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 text-center">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-violet-400 mb-1">Plan Pro</p>
-                                            <p className="text-2xl font-black text-white">$899<span className="text-sm font-medium text-slate-400">/mes</span></p>
-                                            <p className="text-xs text-slate-400 mt-1">2 profesionales incluidos + $349 c/u extra</p>
+                                            <p className="text-2xl font-black text-white">$649<span className="text-sm font-medium text-slate-400">/mes</span></p>
+                                            <p className="text-xs text-slate-400 mt-1">2 profesionales incluidos + $249 c/u extra</p>
                                         </div>
                                         <button
                                             onClick={() => { setShowUpgradeModal(null); redirectToCheckout('pro'); }}
@@ -673,7 +673,7 @@ export default function Staff() {
                             /* Soft warning — allow but warn cost */
                             <div className="space-y-3">
                                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
-                                    <p className="text-xs text-amber-400 font-bold">+$349/mes por este empleado adicional</p>
+                                    <p className="text-xs text-amber-400 font-bold">+$249/mes por este empleado adicional</p>
                                 </div>
                                 <button
                                     onClick={proceedAfterWarning}
