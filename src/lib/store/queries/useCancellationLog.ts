@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabaseClient';
 import type { CancellationLog } from '../../types/store.types';
 import { useAuthStore } from '../authStore';
 
 export const useCancellationLog = () => {
     const { tenantId } = useAuthStore();
+    const queryClient = useQueryClient();
     const queryKey = ['cancellation_log', tenantId];
 
     const query = useQuery({
@@ -27,6 +28,38 @@ export const useCancellationLog = () => {
             })) as CancellationLog[];
         },
         enabled: !!tenantId,
+    });
+
+    // Eliminar un registro individual de cancelaciones
+    const deleteLogMutation = useMutation({
+        mutationFn: async (id: string) => {
+            if (!tenantId) throw new Error('No tenant info');
+            const { error } = await supabase
+                .from('cancellation_log')
+                .delete()
+                .eq('id', id)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+            return id;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+        },
+    });
+
+    // Vaciar todo el historial de cancelaciones
+    const clearAllLogsMutation = useMutation({
+        mutationFn: async () => {
+            if (!tenantId) throw new Error('No tenant info');
+            const { error } = await supabase
+                .from('cancellation_log')
+                .delete()
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+        },
     });
 
     const cancellationLog = query.data || [];
@@ -52,5 +85,9 @@ export const useCancellationLog = () => {
         cancellationLog,
         getWeeklyCancellations,
         getMonthlyCancellations,
+        deleteCancellationLog: deleteLogMutation.mutateAsync,
+        clearAllCancellationLog: clearAllLogsMutation.mutateAsync,
+        isDeletingLog: deleteLogMutation.isPending,
+        isClearingLogs: clearAllLogsMutation.isPending,
     };
 };

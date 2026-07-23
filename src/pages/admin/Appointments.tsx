@@ -65,7 +65,7 @@ export default function Appointments() {
 
     const isLoading = apptsPending || servicesPending || stylistsPending;
     const { data: tenantConfig } = useTenantData();
-    const { cancellationLog, getMonthlyCancellations } = useCancellationLog();
+    const { cancellationLog, getMonthlyCancellations, deleteCancellationLog, clearAllCancellationLog } = useCancellationLog();
     const { isPhoneBlocked, blockPhone, unblockPhone } = useBlockedPhones();
 
     // Helpers locales (ya tenemos services y stylists cargados arriba)
@@ -875,28 +875,51 @@ export default function Appointments() {
 
                             {cancellationLog.length > 0 && (
                                 <div className="flex-1 rounded-2xl bg-[#161b2a]/95 backdrop-blur-md border border-white/5 hover:border-white/10 shadow-xl overflow-hidden transition-all duration-300">
-                                    <button
-                                        onClick={() => setShowLog(!showLog)}
-                                        className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group border-b border-white/5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowLog(!showLog)}
+                                            className="flex items-center gap-3 flex-1 text-left"
+                                        >
                                             <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 group-hover:scale-110 transition-transform">
                                                 <Clock size={16} />
                                             </div>
                                             <span className="text-sm font-bold text-white tracking-wide">
                                                 Historial de Cancelaciones <span className="ml-2 text-muted font-normal text-xs">({cancellationLog.length})</span>
                                             </span>
+                                        </button>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (window.confirm('¿Estás seguro de que deseas borrar todo el historial de cancelaciones? Esta acción no se puede deshacer.')) {
+                                                        clearAllCancellationLog();
+                                                    }
+                                                }}
+                                                className="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+                                                title="Vaciar todo el historial de cancelaciones"
+                                            >
+                                                <Trash2 size={12} />
+                                                <span className="hidden sm:inline">Vaciar todo</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowLog(!showLog)}
+                                                className={`p-1.5 rounded-lg bg-white/5 text-muted transition-transform duration-300 ${showLog ? 'rotate-180 bg-white/10' : ''}`}
+                                            >
+                                                <ChevronDown size={14} />
+                                            </button>
                                         </div>
-                                        <div className={`p-1.5 rounded-lg bg-white/5 text-muted transition-transform duration-300 ${showLog ? 'rotate-180 bg-white/10' : ''}`}>
-                                            <ChevronDown size={14} />
-                                        </div>
-                                    </button>
+                                    </div>
                                     
                                     {/* Expandable Content for Logs */}
                                     <div className={`grid transition-all duration-300 ease-in-out ${showLog ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                                         <div className="overflow-hidden">
-                                            <div className="p-3 pt-0 space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
-                                                {cancellationLog.slice(0, 10).map(log => {
+                                            <div className="p-3 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                                {cancellationLog.map(log => {
                                                     const monthlyCount = getMonthlyCancellations(log.clientPhone);
                                                     const isFrequent = monthlyCount >= 3;
                                                     const isSuspect = monthlyCount >= 4;
@@ -934,7 +957,21 @@ export default function Appointments() {
                                                                 </div>
                                                             </div>
                                                             <div className="flex flex-col items-end gap-1.5 shrink-0 ml-2">
-                                                                <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded">Cancelada</span>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded">Cancelada</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (window.confirm(`¿Borrar el registro de cancelación de ${log.clientName}?`)) {
+                                                                                deleteCancellationLog(log.id);
+                                                                            }
+                                                                        }}
+                                                                        className="p-1 rounded-md text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20"
+                                                                        title="Borrar esta cancelación"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
                                                                 <span className="opacity-50 text-[9px] font-medium text-slate-400">{new Date(log.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                                 {/* Block / Unblock button for 4+ monthly cancels */}
                                                                 {isSuspect && (
