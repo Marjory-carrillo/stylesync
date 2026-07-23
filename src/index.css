@@ -73,8 +73,8 @@ html,
 body,
 #root {
   min-height: calc(100vh / var(--app-zoom-scale, 1));
-  background-color: #0c101d;
-  background: var(--color-bg);
+  background-color: var(--color-bg, #0c101d) !important;
+  background: var(--color-bg, #0c101d) !important;
   background-attachment: fixed;
 }
 

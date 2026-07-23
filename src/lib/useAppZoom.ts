@@ -12,7 +12,6 @@ export const applyZoom = (zoomLevel: number = FIXED_ZOOM) => {
     }
     if (document.documentElement) {
         document.documentElement.style.minHeight = `${minHeightVh}vh`;
-        document.documentElement.style.backgroundColor = '#0c101d';
         document.documentElement.style.setProperty('--app-zoom-scale', `${scale}`);
     }
 };
