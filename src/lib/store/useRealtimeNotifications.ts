@@ -97,16 +97,28 @@ export function useRealtimeNotifications() {
                 filter: `tenant_id=eq.${tenantId}`,
             }, (payload) => {
                 const a = payload.new as any;
-                const old = payload.old as any;
-
-                if (a.status === 'cancelada' && old && old.status !== undefined && old.status !== 'cancelada') {
+                if (a.status === 'cancelada') {
                     addNotification({ type: 'cancel', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
-                } else if (a.status === 'completada' && old && old.status !== undefined && old.status !== 'completada') {
+                } else if (a.status === 'completada') {
                     addNotification({ type: 'complete', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
-                } else if (old && old.time !== undefined && old.date !== undefined && (a.time !== old.time || a.date !== old.date)) {
-                    // Si cambia la fecha u hora (sin importar si es confirmada o pendiente) y tenemos datos anteriores
+                } else {
                     addNotification({ type: 'reschedule', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
                 }
+            })
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'cancellation_log',
+                filter: `tenant_id=eq.${tenantId}`,
+            }, (payload) => {
+                const c = payload.new as any;
+                addNotification({
+                    type: 'cancel',
+                    clientName: c.client_name,
+                    clientPhone: c.client_phone,
+                    date: c.appointment_date || new Date().toISOString().split('T')[0],
+                    time: c.appointment_time || '',
+                });
             })
             .on('postgres_changes', {
                 event: 'INSERT',

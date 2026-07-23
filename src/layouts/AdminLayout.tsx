@@ -312,24 +312,6 @@ export default function AdminLayout() {
                 </div>
 
                 <div className="relative z-10 p-4 md:p-8 container mx-auto max-w-7xl pb-32">
-                    {/* Desktop Header Bar (Laptop & Desktop) */}
-                    <div className="hidden lg:flex items-center justify-between mb-6 pb-4 border-b border-white/5">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                {businessConfig?.name || 'CitaLink'}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <NotificationBell
-                                notifications={notifications}
-                                unreadCount={unreadCount}
-                                onMarkAllRead={markAllRead}
-                                onDismiss={dismiss}
-                                onClearAll={clearAll}
-                                getMonthlyCancellations={getMonthlyCancellations}
-                            />
-                        </div>
-                    </div>
                     <Outlet />
                 </div>
                 <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />
