@@ -11,6 +11,9 @@ export interface Service {
     description?: string; // shown in catalog modal
     isAddon?: boolean; // if true, shown only as add-on; not in main service list
     enableQuoter?: boolean; // if true, nail quoter is enabled for this service
+    priceType?: 'fixed' | 'no_price' | 'range';
+    minPrice?: number;
+    maxPrice?: number;
 }
 
 export interface CatalogItem {
@@ -50,6 +53,8 @@ export interface Appointment {
     reminderSent?: boolean;
     confirmationSent?: boolean;
     additionalServices?: string[]; // names of add-on services
+    finalPriceCharged?: number; // actual price charged upon completion
+    addonPricesCharged?: Record<string, number>;
 }
 
 export interface Client {

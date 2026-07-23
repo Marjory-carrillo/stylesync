@@ -158,6 +158,9 @@ export default function Services() {
     const [formName, setFormName] = useState('');
     const [formDuration, setFormDuration] = useState('');
     const [formPrice, setFormPrice] = useState('');
+    const [formPriceType, setFormPriceType] = useState<'fixed' | 'no_price' | 'range'>('fixed');
+    const [formMinPrice, setFormMinPrice] = useState('');
+    const [formMaxPrice, setFormMaxPrice] = useState('');
     const [formImage, setFormImage] = useState('');
     const [formIsAddon, setFormIsAddon] = useState(false);
     const [formEnableQuoter, setFormEnableQuoter] = useState(false);
@@ -172,6 +175,9 @@ export default function Services() {
         setFormName('');
         setFormDuration('');
         setFormPrice('');
+        setFormPriceType('fixed');
+        setFormMinPrice('');
+        setFormMaxPrice('');
         setFormImage('');
         setFormIsAddon(false);
         setFormEnableQuoter(false);
@@ -186,6 +192,9 @@ export default function Services() {
         setFormName(svc.name);
         setFormDuration(String(svc.duration));
         setFormPrice(String(svc.price));
+        setFormPriceType(svc.priceType || 'fixed');
+        setFormMinPrice(svc.minPrice !== undefined ? String(svc.minPrice) : '');
+        setFormMaxPrice(svc.maxPrice !== undefined ? String(svc.maxPrice) : '');
         setFormImage(svc.image || '');
         setFormIsAddon(svc.isAddon ?? false);
         setFormEnableQuoter(svc.enableQuoter ?? false);
@@ -193,10 +202,15 @@ export default function Services() {
     };
 
     const handleSave = async () => {
+        const calculatedPrice = formPriceType === 'no_price' ? 0 : (formPriceType === 'range' ? (Number(formMinPrice) || 0) : (Number(formPrice) || 0));
+
         const result = serviceSchema.safeParse({
             name: formName,
             duration: Number(formDuration),
-            price: Number(formPrice),
+            price: calculatedPrice,
+            priceType: formPriceType,
+            minPrice: formPriceType === 'range' ? (Number(formMinPrice) || 0) : undefined,
+            maxPrice: formPriceType === 'range' ? (Number(formMaxPrice) || 0) : undefined,
             image: formImage || '',
             isAddon: formIsAddon,
             enableQuoter: formEnableQuoter,
@@ -300,10 +314,20 @@ export default function Services() {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <div className="font-bold text-accent flex items-center gap-1">
-                                                <DollarSign size={16} />
-                                                <span>{service.price}</span>
-                                            </div>
+                                            {service.priceType === 'no_price' ? (
+                                                <span className="inline-flex py-0.5 px-2.5 rounded-full font-bold text-[11px] bg-cyan-400/10 text-cyan-300 border border-cyan-400/20">
+                                                    A cotizar
+                                                </span>
+                                            ) : service.priceType === 'range' ? (
+                                                <span className="font-bold text-purple-300 text-sm">
+                                                    ${service.minPrice} - ${service.maxPrice}
+                                                </span>
+                                            ) : (
+                                                <div className="font-bold text-accent flex items-center gap-1">
+                                                    <DollarSign size={16} />
+                                                    <span>{service.price}</span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="p-4 text-center">
                                             <button
@@ -390,26 +414,88 @@ export default function Services() {
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm font-medium text-muted mb-1 block">Duración (min)</label>
-                                    <input
-                                        type="number"
-                                        value={formDuration}
-                                        onChange={e => setFormDuration(e.target.value)}
-                                        placeholder="30"
-                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
-                                    />
+                            <div>
+                                <label className="text-sm font-medium text-muted mb-1 block">Duración (min)</label>
+                                <input
+                                    type="number"
+                                    value={formDuration}
+                                    onChange={e => setFormDuration(e.target.value)}
+                                    placeholder="30"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                />
+                            </div>
+
+                            {/* Tipo de Precio Selector */}
+                            <div>
+                                <label className="text-sm font-medium text-muted mb-2 block">Tipo de Precio</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormPriceType('fixed')}
+                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'fixed' ? 'bg-accent/15 border-accent text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                    >
+                                        Precio Fijo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormPriceType('no_price')}
+                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'no_price' ? 'bg-cyan-400/15 border-cyan-400 text-cyan-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                    >
+                                        Sin Precio (A cotizar)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormPriceType('range')}
+                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'range' ? 'bg-purple-400/15 border-purple-400 text-purple-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                    >
+                                        Rango Precios
+                                    </button>
                                 </div>
+                            </div>
+
+                            {formPriceType === 'fixed' && (
                                 <div>
-                                    <label className="text-sm font-medium text-muted mb-1 block">Precio ($)</label>
+                                    <label className="text-sm font-medium text-muted mb-1 block">Precio ($ MXN)</label>
                                     <input
                                         type="number"
                                         value={formPrice}
                                         onChange={e => setFormPrice(e.target.value)}
-                                        placeholder="25"
+                                        placeholder="250"
                                         className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
                                     />
                                 </div>
+                            )}
+
+                            {formPriceType === 'no_price' && (
+                                <div className="p-3 rounded-xl bg-cyan-400/10 border border-cyan-400/20 text-xs text-cyan-200">
+                                    💡 Se ocultará el precio en la app de cliente. La profesional registrará el monto cobrado al finalizar la cita.
+                                </div>
+                            )}
+
+                            {formPriceType === 'range' && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-sm font-medium text-muted mb-1 block">Precio Mínimo ($)</label>
+                                        <input
+                                            type="number"
+                                            value={formMinPrice}
+                                            onChange={e => setFormMinPrice(e.target.value)}
+                                            placeholder="300"
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted mb-1 block">Precio Máximo ($)</label>
+                                        <input
+                                            type="number"
+                                            value={formMaxPrice}
+                                            onChange={e => setFormMaxPrice(e.target.value)}
+                                            placeholder="600"
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted mb-1 block">Imagen del Servicio</label>

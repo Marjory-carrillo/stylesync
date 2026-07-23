@@ -48,6 +48,9 @@ export const serviceSchema = z.object({
     image: z.string().url('URL de imagen inválida').optional().or(z.literal('')),
     isAddon: z.boolean().optional().default(false),
     enableQuoter: z.boolean().optional().default(false),
+    priceType: z.enum(['fixed', 'no_price', 'range']).optional().default('fixed'),
+    minPrice: z.number().min(0).optional(),
+    maxPrice: z.number().min(0).optional(),
 });
 
 export type ServiceInput = z.infer<typeof serviceSchema>;

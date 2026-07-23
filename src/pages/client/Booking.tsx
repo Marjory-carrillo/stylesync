@@ -2009,7 +2009,13 @@ export default function Booking() {
                                                     </h4>
                                                     <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
                                                         {!businessConfig?.hideServicePrices && (
-                                                            <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                            service.priceType === 'no_price' ? (
+                                                                <span className="text-cyan-300 font-bold">A cotizar</span>
+                                                            ) : service.priceType === 'range' ? (
+                                                                <span className="text-purple-300 font-bold">${service.minPrice} - ${service.maxPrice}</span>
+                                                            ) : (
+                                                                <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                            )
                                                         )}
                                                         <span className="text-muted flex items-center gap-1">
                                                             <Clock size={12} /> {service.duration} min
@@ -2273,7 +2279,12 @@ export default function Booking() {
                                                     isSelected ? 'text-cyan-300' : 'text-white'
                                                 }`}>{s.name}</span>
                                             </div>
-                                            <span className="text-xs text-cyan-400 font-bold shrink-0">{!businessConfig?.hideServicePrices ? `$${s.price} · ` : ''}{s.duration}min</span>
+                                            <span className="text-xs text-cyan-400 font-bold shrink-0">
+                                                {!businessConfig?.hideServicePrices && (
+                                                    s.priceType === 'no_price' ? '' : s.priceType === 'range' ? `$${s.minPrice} - $${s.maxPrice} · ` : `$${s.price} · `
+                                                )}
+                                                {s.duration}min
+                                            </span>
                                         </button>
                                     );
                                 })

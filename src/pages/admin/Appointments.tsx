@@ -717,27 +717,32 @@ export default function Appointments() {
                                                                         <User size={10} className="opacity-40" />
                                                                         <span className="truncate max-w-[150px]">{stylist?.name || 'Cualquier profesional'}</span>
                                                                     </div>
-                                                                    {tenantConfig?.category === 'nail_bar' && service?.enableQuoter && (
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSelectedApptForPrice(apt);
-                                                                                setNewPriceValue(String(getAppointmentPrice(apt)));
-                                                                                setIsPriceModalOpen(true);
-                                                                            }}
-                                                                            className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border transition-all ${
-                                                                                isPriceConfirmed(apt)
-                                                                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
-                                                                                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 animate-pulse-soft'
-                                                                            }`}
-                                                                            title="Ajustar precio de la cita"
-                                                                        >
-                                                                            <DollarSign size={9} />
-                                                                            <span>${getAppointmentPrice(apt)}</span>
-                                                                            <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
-                                                                                {isPriceConfirmed(apt) ? 'Confirmado' : 'Aprox'}
-                                                                            </span>
-                                                                        </button>
-                                                                    )}
+                                                                    {(() => {
+                                                                        const hasVarPrice = service?.priceType === 'no_price' || service?.priceType === 'range' || (tenantConfig?.category === 'nail_bar' && service?.enableQuoter);
+                                                                        if (!hasVarPrice) return null;
+                                                                        const confirmed = isPriceConfirmed(apt);
+                                                                        return (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setSelectedApptForPrice(apt);
+                                                                                    setNewPriceValue(String(getAppointmentPrice(apt)));
+                                                                                    setIsPriceModalOpen(true);
+                                                                                }}
+                                                                                className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border transition-all ${
+                                                                                    confirmed
+                                                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                                                                                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 animate-pulse-soft'
+                                                                                }`}
+                                                                                title="Registrar / Ajustar precio final cobrado"
+                                                                            >
+                                                                                <DollarSign size={9} />
+                                                                                <span>${getAppointmentPrice(apt)}</span>
+                                                                                <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
+                                                                                    {confirmed ? 'Confirmado' : 'A cotizar'}
+                                                                                </span>
+                                                                            </button>
+                                                                        );
+                                                                    })()}
                                                                     {apt.reminderSent && !isCancelled && (
                                                                         <div className="flex items-center gap-1 text-[9px] font-black text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
                                                                             <MessageCircle size={10} /> Recordatorio

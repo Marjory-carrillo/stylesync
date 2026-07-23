@@ -628,7 +628,9 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                 <p className="font-bold text-white text-sm">{svc.name}</p>
                                                 <p className="text-xs text-slate-500">{svc.duration} min</p>
                                             </div>
-                                            <span className="text-accent font-black text-sm shrink-0">${svc.price}</span>
+                                            <span className="text-accent font-black text-sm shrink-0">
+                                                {svc.priceType === 'no_price' ? 'A cotizar' : svc.priceType === 'range' ? `$${svc.minPrice} - $${svc.maxPrice}` : `$${svc.price}`}
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
