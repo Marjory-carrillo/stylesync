@@ -113,6 +113,53 @@ export default function Commissions() {
         }
     }, [periodType, referenceDate, startDate, endDate]);
 
+    const getAppointmentPrice = (apt: any) => {
+        const service = services.find(s => s.id === apt.serviceId);
+        
+        // 1. Verificar si hay cotización confirmada o estimada
+        const customPriceItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Cotización Confirmada:'));
+        if (customPriceItem) {
+            const priceMatch = customPriceItem.match(/\$(\d+)/);
+            if (priceMatch) return Number(priceMatch[1]);
+        }
+        const quoteItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Cotización Estimada:'));
+        if (quoteItem) {
+            const priceMatch = quoteItem.match(/\$(\d+)/);
+            if (priceMatch) return Number(priceMatch[1]);
+        }
+        
+        // 2. Si no hay cotización, calculamos base + diseño de catálogo + adicionales
+        let total = service?.price || 0;
+        
+        const catalogItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Diseño Catálogo:'));
+        if (catalogItem) {
+            const priceMatch = catalogItem.match(/\$(\d+)/);
+            if (priceMatch) {
+                total += Number(priceMatch[1]);
+            }
+        }
+        
+        // Sumar adicionales normales
+        const addOnNames = apt.additionalServices || [];
+        addOnNames.forEach((name: string) => {
+            if (
+                name.startsWith('Cotización Confirmada:') || 
+                name.startsWith('Cotización Estimada:') || 
+                name.startsWith('Diseño Catálogo:') ||
+                name.startsWith('Referencia:')
+            ) {
+                return;
+            }
+            
+            const matchingService = services.find(s => s.name === name);
+            if (matchingService) {
+                total += matchingService.price;
+            }
+        });
+        
+        return total;
+    };
+
     if (userRole !== 'owner' || !businessConfig?.commissionsEnabled) {
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center h-[60vh]">
@@ -156,8 +203,7 @@ export default function Commissions() {
         let grandTotalGen = 0;
 
         validAppointments.forEach(apt => {
-            const svc = services.find(s => s.id === apt.serviceId);
-            const price = svc?.price || 0;
+            const price = getAppointmentPrice(apt);
             const sId = apt.stylistId!;
 
             if (!totalsByStylist[sId]) totalsByStylist[sId] = { revenue: 0, count: 0 };
@@ -560,8 +606,9 @@ export default function Commissions() {
                                                                         ) : (
                                                                             stylistAppts.map((apt) => {
                                                                                 const svc = services.find(s => s.id === apt.serviceId);
-                                                                                const price = svc?.price || 0;
+                                                                                const price = getAppointmentPrice(apt);
                                                                                 const comm = price * (entry.commissionRate / 100);
+                                                                                const displayAddons = (apt.additionalServices || []).filter((s: string) => !s.startsWith('Referencia:'));
 
                                                                                 return (
                                                                                     <tr key={apt.id} className="hover:bg-white/[0.01] transition-colors">
@@ -578,10 +625,17 @@ export default function Commissions() {
                                                                                             </span>
                                                                                         </td>
                                                                                         <td className="p-3 text-slate-300">
-                                                                                            <span className="flex items-center gap-1.5 font-medium">
-                                                                                                <Scissors size={12} className="opacity-40" />
-                                                                                                {svc?.name || 'Servicio'}
-                                                                                            </span>
+                                                                                            <div className="flex flex-col">
+                                                                                                <span className="flex items-center gap-1.5 font-medium">
+                                                                                                    <Scissors size={12} className="opacity-40" />
+                                                                                                    {svc?.name || 'Servicio'}
+                                                                                                </span>
+                                                                                                {displayAddons.length > 0 && (
+                                                                                                    <span className="text-[10px] text-slate-500 pl-5">
+                                                                                                        + {displayAddons.join(', ')}
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
                                                                                         </td>
                                                                                         <td className="p-3 text-right text-emerald-400 font-bold">
                                                                                             ${price.toFixed(2)}
