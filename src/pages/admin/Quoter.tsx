@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
-import { Calculator, Copy, Share2, Printer, Sparkles, Plus, Minus } from 'lucide-react';
+import { Calculator, Copy, Share2, Printer, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 import html2canvas from 'html2canvas';
 
@@ -19,6 +19,45 @@ export default function Quoter() {
     const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [selectedExtras, setSelectedExtras] = useState<Record<string, boolean>>({});
     const [cardTheme, setCardTheme] = useState<'pink' | 'dark' | 'gold'>('pink');
+
+    // Reference photo state
+    const [referenceImage, setReferenceImage] = useState<string | null>(null);
+    const [showPhotoOnTicket, setShowPhotoOnTicket] = useState<boolean>(true);
+
+    // Listener for Ctrl + V image paste from WhatsApp / Clipboard
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    if (blob) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            setReferenceImage(event.target?.result as string);
+                            showToast('📸 Foto de referencia pegada desde el portapapeles', 'success');
+                        };
+                        reader.readAsDataURL(blob);
+                    }
+                }
+            }
+        };
+        window.addEventListener('paste', handlePaste);
+        return () => window.removeEventListener('paste', handlePaste);
+    }, [showToast]);
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setReferenceImage(event.target?.result as string);
+                showToast('📸 Foto de referencia cargada', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     // Categorized config items
     const baseCategory = useMemo(() => config.find(c => c.id === 'base_services'), [config]);
@@ -267,6 +306,81 @@ export default function Quoter() {
                 {/* ── Left Side: Interactive Calculator Form ── */}
                 <div className="lg:col-span-7 space-y-6">
                     
+                    {/* Reference Design Photo Uploader */}
+                    <div className="glass-card p-5 rounded-2xl border border-white/10 space-y-3 bg-slate-900/60 shadow-xl">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <ImageIcon size={17} className="text-pink-400" /> Foto del Diseño a Cotizar (Opcional)
+                            </h3>
+                            {referenceImage && (
+                                <button
+                                    type="button"
+                                    onClick={() => setReferenceImage(null)}
+                                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold transition-colors bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20"
+                                >
+                                    <Trash2 size={13} /> Eliminar Foto
+                                </button>
+                            )}
+                        </div>
+
+                        {!referenceImage ? (
+                            <label className="border-2 border-dashed border-white/15 hover:border-pink-400/50 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-center gap-3 cursor-pointer bg-slate-950/40 hover:bg-white/5 transition-all text-center sm:text-left group">
+                                <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 shrink-0 group-hover:scale-110 transition-transform">
+                                    <Upload size={18} />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className="text-xs font-bold text-slate-200">
+                                        Subir foto o presionar <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/20 text-[10px] text-pink-300 font-mono">Ctrl + V</kbd> para pegar desde el portapapeles
+                                    </p>
+                                    <p className="text-[11px] text-slate-400">
+                                        Ve la foto enviada por la clienta mientras calculas el precio sin cambiar de app.
+                                    </p>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                        ) : (
+                            <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-950/70 p-3 rounded-xl border border-white/10">
+                                <div className="relative w-full sm:w-28 h-28 rounded-lg overflow-hidden border border-white/20 shrink-0 bg-slate-900 shadow-md">
+                                    <img
+                                        src={referenceImage}
+                                        alt="Diseño de referencia"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <div className="flex-1 space-y-2 text-left w-full">
+                                    <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                        ✨ Vista previa activa para guiar tu cotización
+                                    </p>
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none bg-white/5 p-2 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={showPhotoOnTicket}
+                                            onChange={(e) => setShowPhotoOnTicket(e.target.checked)}
+                                            className="w-4 h-4 rounded text-pink-500 border-white/20 focus:ring-pink-500 bg-slate-900"
+                                        />
+                                        <span>Incluir esta foto dentro de la imagen final del ticket</span>
+                                    </label>
+                                    <div className="flex items-center gap-2 pt-0.5">
+                                        <label className="text-[11px] text-pink-400 hover:text-pink-300 font-bold cursor-pointer underline flex items-center gap-1">
+                                            <Upload size={12} /> Cambiar Foto
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Base Services */}
                     {baseCategory && (
                         <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
@@ -572,6 +686,32 @@ export default function Quoter() {
                                 </p>
                             </div>
                         </div>
+
+                        {/* Optional Reference Design Image in Ticket */}
+                        {referenceImage && showPhotoOnTicket && (
+                            <div className="mb-4 relative z-10">
+                                <div className={`p-2.5 rounded-2xl border shadow-md text-center ${
+                                    cardTheme === 'pink'
+                                        ? 'bg-white/90 border-pink-200'
+                                        : cardTheme === 'gold'
+                                        ? 'bg-white/90 border-amber-200'
+                                        : 'bg-slate-900 border-white/15'
+                                }`}>
+                                    <p className={`text-[10px] font-black uppercase tracking-wider mb-1.5 ${
+                                        cardTheme === 'pink' ? 'text-pink-700' : cardTheme === 'gold' ? 'text-amber-800' : 'text-slate-300'
+                                    }`}>
+                                        📸 Diseño Solicitado
+                                    </p>
+                                    <div className="w-full h-40 rounded-xl overflow-hidden border border-black/5 bg-slate-100">
+                                        <img
+                                            src={referenceImage}
+                                            alt="Diseño Solicitado"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Inner Card Container */}
                         <div className={`rounded-2xl p-5 shadow-lg border relative z-10 ${
