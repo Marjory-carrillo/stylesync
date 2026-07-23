@@ -164,6 +164,20 @@ export default function Booking() {
     });
     const [showSuggestions, setShowSuggestions] = useState(false);
 
+    const handleDeleteProfile = (phoneToDelete: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setSavedProfiles(prev => {
+            const updated = prev.filter(p => p.phone !== phoneToDelete);
+            try {
+                localStorage.setItem('citalink_saved_profiles', JSON.stringify(updated));
+            } catch (err) {
+                console.error('Error saving profiles to localStorage', err);
+            }
+            return updated;
+        });
+    };
+
     const matchedProfiles = useMemo(() => {
         if (!clientName.trim()) return [];
         return savedProfiles.filter(p => 
@@ -1203,29 +1217,40 @@ export default function Booking() {
                                 {/* Sugerencias de autocompletado */}
                                 {showSuggestions && (clientName.trim() === '' ? savedProfiles : matchedProfiles).length > 0 && (
                                     <div className="absolute left-0 right-0 top-full mt-2 bg-[#101424] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto">
-                                        <div className="px-4 py-2 border-b border-white/5 bg-white/2">
+                                        <div className="px-4 py-2 border-b border-white/5 bg-white/2 flex items-center justify-between">
                                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">¿Agendar de nuevo?</span>
+                                            <span className="text-[9px] text-slate-500 font-medium">Toca ✕ para borrar</span>
                                         </div>
                                         {(clientName.trim() === '' ? savedProfiles : matchedProfiles).map((profile, pIdx) => (
-                                            <button
+                                            <div
                                                 key={pIdx}
-                                                type="button"
                                                 onClick={() => {
                                                     setClientName(profile.name);
                                                     setClientPhone(profile.phone);
                                                     setClientError(null);
                                                     setShowSuggestions(false);
                                                 }}
-                                                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 border-b border-white/5 last:border-b-0 transition-colors"
+                                                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 border-b border-white/5 last:border-b-0 transition-colors cursor-pointer group"
                                             >
-                                                <div>
-                                                    <p className="text-sm font-bold text-white uppercase tracking-tight">{profile.name}</p>
+                                                <div className="flex-1 min-w-0 pr-2">
+                                                    <p className="text-sm font-bold text-white uppercase tracking-tight truncate">{profile.name}</p>
                                                     <p className="text-[10px] text-slate-500 font-medium">{profile.phone}</p>
                                                 </div>
-                                                <span className="text-[9px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
-                                                    USAR
-                                                </span>
-                                            </button>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <span className="text-[9px] font-black text-accent bg-accent/10 px-2.5 py-1 rounded-full border border-accent/20">
+                                                        USAR
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                        onClick={(e) => handleDeleteProfile(profile.phone, e)}
+                                                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
+                                                        title="Eliminar este número guardado"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
                                 )}
