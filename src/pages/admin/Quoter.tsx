@@ -635,14 +635,14 @@ export default function Quoter() {
                                         ${quoteBreakdown.total} <span className="text-xs font-semibold">MXN</span>
                                     </p>
                                 </div>
-                                <div className={`px-3 py-1.5 rounded-xl font-bold text-xs tracking-wide border ${
+                                <div className={`flex items-center justify-center text-center px-4 py-2 rounded-full font-bold text-xs tracking-wide border leading-none shrink-0 ${
                                     cardTheme === 'pink'
-                                        ? 'bg-pink-50 border-pink-200 text-pink-700'
+                                        ? 'bg-pink-50/90 border-pink-200 text-pink-700 shadow-sm'
                                         : cardTheme === 'gold'
-                                        ? 'bg-amber-50 border-amber-200 text-amber-800'
-                                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                        ? 'bg-amber-50/90 border-amber-200 text-amber-800 shadow-sm'
+                                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-sm'
                                 }`}>
-                                    Tu Cotización ✨
+                                    <span>Tu Cotización ✨</span>
                                 </div>
                             </div>
                         </div>
