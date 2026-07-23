@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
@@ -508,17 +508,13 @@ export default function Booking() {
             });
     }, [appointments, selectedDate, selectedStylist, services, baseDate]);
 
-    const getStylistsForService = useCallback((serviceId: number) => {
-        return stylists.filter(stylist => {
-            if (!stylist.serviceIds || stylist.serviceIds.length === 0) return true;
-            return stylist.serviceIds.includes(Number(serviceId));
-        });
-    }, [stylists]);
-
-    const filteredStylists = useMemo(() => {
-        if (!selectedService) return stylists;
-        return getStylistsForService(Number(selectedService.id));
-    }, [stylists, selectedService, getStylistsForService]);
+    const filteredServices = useMemo(() => {
+        let base = services.filter(s => !s.isAddon);
+        if (selectedStylist && selectedStylist.serviceIds && selectedStylist.serviceIds.length > 0) {
+            return base.filter(s => selectedStylist.serviceIds!.map(Number).includes(Number(s.id)));
+        }
+        return base;
+    }, [services, selectedStylist]);
 
     // ── Multi-Stylist Logic: Availability Map ──
     // Maps each time slot to a list of available stylist IDs. 
@@ -706,7 +702,7 @@ export default function Booking() {
         try {
             // Solo validamos — el OTP se manda después de elegir hora
             setSmsProvider('demo');
-            setStep(22);
+            setStep(2);
         } finally {
             setIsSendingSms(false);
         }
@@ -1636,17 +1632,18 @@ export default function Booking() {
                             <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                                 ¿Prefieres a alguien en especial?
                             </h3>
+                            <p className="text-xs text-slate-400 mt-1">Elige a tu profesional para ver sus servicios disponibles</p>
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
-                            {/* "Any" Option (solo se muestra si hay 2 o más profesionales capacitados) */}
-                            {filteredStylists.length >= 2 && (
+                            {/* "Any" Option */}
+                            {stylists.length >= 2 && (
                                 <div
                                     key="any-stylist"
                                     className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist === null ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
                                     onClick={() => {
                                         setSelectedStylist(null);
-                                        setStep(25);
+                                        setStep(22);
                                     }}
                                 >
                                     <div className="flex items-center gap-5">
@@ -1657,41 +1654,58 @@ export default function Booking() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">Cualquier {professionalLabel}</h4>
-                                            <p className="text-sm text-muted uppercase tracking-widest">El primer disponible</p>
+                                            <p className="text-xs text-slate-400">El primer disponible · Ver todos los servicios</p>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
                             {/* Stylists List */}
-                            {filteredStylists.map((stylist: Stylist) => (
-                                <div
-                                    key={stylist.id}
-                                    className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist?.id === stylist.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
-                                    onClick={() => {
-                                        setSelectedStylist(stylist);
-                                        setStep(25);
-                                    }}
-                                >
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
-                                            {stylist.image ? (
-                                                <img src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                    <Calendar size={32} />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">{stylist.name}</h4>
-                                            <p className="text-sm text-muted uppercase tracking-widest">{stylist.role}</p>
+                            {stylists.map((stylist: Stylist) => {
+                                // Find services offered by this stylist
+                                const stylistServices = services.filter(s => !s.isAddon && (!stylist.serviceIds || stylist.serviceIds.length === 0 || stylist.serviceIds.map(Number).includes(Number(s.id))));
+                                const servicesText = stylistServices.map(s => s.name).slice(0, 3).join(', ');
+
+                                return (
+                                    <div
+                                        key={stylist.id}
+                                        className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist?.id === stylist.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
+                                        onClick={() => {
+                                            setSelectedStylist(stylist);
+                                            setStep(22);
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
+                                                {stylist.image ? (
+                                                    <img src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                        <Calendar size={32} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-white text-lg mb-0.5 truncate group-hover:text-cyan-400 transition-colors">{stylist.name}</h4>
+                                                
+                                                {/* Highlighted Specialty Badge */}
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-400/10 text-cyan-300 border border-cyan-400/20 mb-1">
+                                                    <Sparkles size={11} className="text-cyan-400" />
+                                                    {stylist.role || 'Especialista'}
+                                                </span>
+
+                                                {servicesText && (
+                                                    <p className="text-xs text-slate-400 font-medium truncate mt-0.5">
+                                                        {servicesText}{stylistServices.length > 3 ? '...' : ''}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
-                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(22)}>← Cambiar de servicio</button>
+                        <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar datos del cliente</button>
                     </div>
                 )}
 
@@ -1960,7 +1974,7 @@ export default function Booking() {
                                 )}
 
                                 <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
-                                    {services.filter(s => !s.isAddon).map((service: Service) => (
+                                    {filteredServices.map((service: Service) => (
                                         <div
                                             key={service.id}
                                             className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
@@ -1974,7 +1988,7 @@ export default function Booking() {
                                                     if (businessConfig?.enableAddons && hasAddons) {
                                                         setStep(23);
                                                     } else {
-                                                        setStep(2);
+                                                        setStep(25);
                                                     }
                                                 }
                                             }}
@@ -2011,7 +2025,7 @@ export default function Booking() {
                                         </div>
                                     ))}
                                 </div>
-                                <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar datos del cliente</button>
+                                <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro {professionalLabel.toLowerCase()}</button>
                             </>
                         )}
 
@@ -2192,7 +2206,7 @@ export default function Booking() {
                                                                         setSelectedCatalogItem(expandedPhoto);
                                                                         setExpandedPhoto(null);
                                                                         setShowCatalogModal(false);
-                                                                        setStep(2); // Mandar directamente a elegir fecha
+                                                                        setStep(25); // Mandar directamente a elegir fecha
                                                                     }
                                                                 }}
                                                                 className="btn btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 shadow-glow"
@@ -2280,7 +2294,7 @@ export default function Booking() {
                         <div className="flex gap-3 mt-5">
                             <button
                                 className="flex-1 btn btn-ghost text-sm py-3"
-                                onClick={() => { setSelectedAddOns([]); setStep(2); }}
+                                onClick={() => { setSelectedAddOns([]); setStep(25); }}
                             >
                                 Omitir
                             </button>
@@ -2288,7 +2302,7 @@ export default function Booking() {
                                 <button
                                     className="flex-1 btn text-sm py-3 font-bold"
                                     style={{ background: 'var(--color-accent)', color: '#fff' }}
-                                    onClick={() => setStep(2)}
+                                    onClick={() => setStep(25)}
                                 >
                                     Confirmar selección →
                                 </button>

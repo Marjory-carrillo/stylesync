@@ -154,13 +154,12 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return selectedService?.price ?? 0;
     }, [businessConfig, selectedService, nailTotalPrice]);
 
-    const filteredStylists = useMemo(() => {
-        if (!selectedService) return stylists;
-        return stylists.filter(s => {
-            if (!s.serviceIds || s.serviceIds.length === 0) return true;
-            return s.serviceIds.includes(Number(selectedService.id));
-        });
-    }, [stylists, selectedService]);
+    const filteredServices = useMemo(() => {
+        if (!selectedStylist || selectedStylist === 'any' || !selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) {
+            return services;
+        }
+        return services.filter(s => selectedStylist.serviceIds!.map(Number).includes(Number(s.id)));
+    }, [services, selectedStylist]);
 
     // Compute available time slots for selected date + service + stylist
     const availableSlots = useMemo(() => {
@@ -448,12 +447,12 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     {/* ══ STEP: Barbero ══ */}
                     {step === 'barbero' && (
                         <div className="animate-fade-in">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 3: Barbero / Profesional</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 2: Barbero / Profesional</p>
                             <div className="space-y-2">
-                                {/* Any option (solo si hay 2 o más profesionales capacitados) */}
-                                {filteredStylists.length >= 2 && (
+                                {/* Any option */}
+                                {stylists.length >= 2 && (
                                     <button
-                                        onClick={() => { setSelectedStylist('any'); setStep('fecha'); }}
+                                        onClick={() => { setSelectedStylist('any'); setStep('servicio'); }}
                                         className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/[0.03] hover:border-accent/20 hover:bg-white/5 transition-all text-left"
                                     >
                                         <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
@@ -461,31 +460,41 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         </div>
                                         <div>
                                             <p className="font-bold text-white text-sm">Cualquier Profesional</p>
-                                            <p className="text-xs text-slate-500">Primera disponibilidad</p>
+                                            <p className="text-xs text-slate-500">Primera disponibilidad · Ver todos los servicios</p>
                                         </div>
                                     </button>
                                 )}
-                                {filteredStylists.map(st => (
-                                    <button
-                                        key={st.id}
-                                        onClick={() => { setSelectedStylist(st); setStep('fecha'); }}
-                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedStylist !== 'any' && selectedStylist?.id === st.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
-                                    >
-                                        {st.image ? (
-                                            <img src={st.image} alt={st.name} className="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" />
-                                        ) : (
-                                            <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-                                                <User size={18} className="text-accent" />
+                                {stylists.map(st => {
+                                    const stServices = services.filter(s => !s.isAddon && (!st.serviceIds || st.serviceIds.length === 0 || st.serviceIds.map(Number).includes(Number(s.id))));
+                                    const servicesSummary = stServices.map(s => s.name).slice(0, 3).join(', ');
+
+                                    return (
+                                        <button
+                                            key={st.id}
+                                            onClick={() => { setSelectedStylist(st); setStep('servicio'); }}
+                                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedStylist !== 'any' && selectedStylist?.id === st.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
+                                        >
+                                            {st.image ? (
+                                                <img src={st.image} alt={st.name} className="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" />
+                                            ) : (
+                                                <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                                                    <User size={18} className="text-accent" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-white text-sm truncate">{st.name}</p>
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-300 bg-cyan-400/10 px-2 py-0.5 rounded-full border border-cyan-400/20 my-0.5">
+                                                    {st.role || 'Especialista'}
+                                                </span>
+                                                {servicesSummary && (
+                                                    <p className="text-xs text-slate-500 truncate">{servicesSummary}</p>
+                                                )}
                                             </div>
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-white text-sm truncate">{st.name}</p>
-                                            {st.role && <p className="text-xs text-slate-500 truncate">{st.role}</p>}
-                                        </div>
-                                    </button>
-                                ))}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                            <button onClick={() => setStep('servicio')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button onClick={() => setStep('datos')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
                                 <ChevronLeft size={16} /> Regresar
                             </button>
                         </div>
@@ -494,7 +503,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     {/* ══ STEP: Servicio ══ */}
                     {step === 'servicio' && (
                         <div className="animate-fade-in space-y-4">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-2">Paso 2: Servicio</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-2">Paso 3: Servicio</p>
                             
                             {/* If quoter is enabled and a service is selected, show the quoter form */}
                             {selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter ? (
@@ -590,16 +599,16 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             <span className="text-xl font-black text-emerald-400">${totalPrice} MXN</span>
                                         </div>
                                         <button
-                                            onClick={() => setStep('barbero')}
+                                            onClick={() => setStep('fecha')}
                                             className="px-6 py-3 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/20"
                                         >
-                                            Continuar a Profesional →
+                                            Continuar a Fecha →
                                         </button>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {services.map(svc => (
+                                    {filteredServices.map(svc => (
                                         <button
                                             key={svc.id}
                                             onClick={() => {
@@ -607,7 +616,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                 if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
                                                     // Keep user in step to see customized quoter
                                                 } else {
-                                                    setStep('barbero');
+                                                    setStep('fecha');
                                                 }
                                             }}
                                             className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
@@ -630,7 +639,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     if (selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter) {
                                         setSelectedService(null);
                                     } else {
-                                        setStep('datos');
+                                        setStep('barbero');
                                     }
                                 }} 
                                 className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2"
@@ -663,7 +672,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     );
                                 })}
                             </div>
-                            <button onClick={() => setStep('barbero')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button onClick={() => setStep('servicio')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
                                 <ChevronLeft size={16} /> Regresar
                             </button>
                         </div>
