@@ -58,7 +58,7 @@ export default function Appointments() {
 
 
 
-    const { appointments: allAppointments, cancelAppointment, markNoShow, isPending: apptsPending } = useAppointments({ startDate });
+    const { appointments: allAppointments, cancelAppointment, markNoShow, markReminderSent, isPending: apptsPending } = useAppointments({ startDate });
     const { services, isPending: servicesPending } = useServices();
     const { stylists, isPending: stylistsPending } = useStylists();
     const { waitingList, removeFromWaitingList } = useWaitingList();
@@ -750,7 +750,7 @@ export default function Appointments() {
                                                             <div className="flex items-center justify-end gap-2 pr-1 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-0 border-dashed">
                                                                 {apt.status === 'confirmada' && (
                                                                     <div className="flex items-center gap-1">
-                                                                        <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
+                                                                        <a href={generateWhatsAppUrl(apt)} target="_blank" rel="noreferrer" onClick={() => markReminderSent(apt.id)} className="p-2.5 rounded-xl text-muted hover:bg-emerald-500/10 hover:text-emerald-400 transition-all border border-transparent hover:border-emerald-500/20" title="WhatsApp">
                                                                             <MessageCircle size={20} />
                                                                         </a>
                                                                         

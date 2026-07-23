@@ -277,8 +277,8 @@ export default function Dashboard() {
 
     // Recordatorios enviados (con reminder_sent = true)
     const remindersSentCount = useMemo(() => {
-        return tomorrowAppts.filter(a => (a as any).reminderSent === true).length;
-    }, [tomorrowAppts]);
+        return allAppointments.filter(a => a.reminderSent === true).length;
+    }, [allAppointments]);
 
     // ── Reports Logic ──
     const currentMonthStats = useMemo(() => {

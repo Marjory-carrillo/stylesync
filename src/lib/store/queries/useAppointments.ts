@@ -213,6 +213,23 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         onError: (err: any) => showToast(`Error al marcar: ${err.message}`, 'error'),
     });
 
+    // MARK REMINDER SENT
+    const markReminderSentMutation = useMutation({
+        mutationFn: async (id: string) => {
+            if (!tenantId) throw new Error('No tenant info');
+            const { error } = await supabase
+                .from('appointments')
+                .update({ reminder_sent: true })
+                .eq('id', id)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+            return id;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+        },
+    });
+
     return {
         ...query,
         appointments: query.data || [],
@@ -221,6 +238,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         completeAppointment: completeMutation.mutateAsync,
         updateAppointmentTime: updateTimeMutation.mutateAsync,
         markNoShow: markNoShowMutation.mutateAsync,
+        markReminderSent: markReminderSentMutation.mutateAsync,
         isAdding: addMutation.isPending,
         isCancelling: cancelMutation.isPending,
         isCompleting: completeMutation.isPending,
