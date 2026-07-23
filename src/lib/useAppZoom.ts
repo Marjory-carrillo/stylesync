@@ -14,7 +14,7 @@ export const applyZoom = (zoomLevel: number) => {
         document.body.style.minHeight = `${minHeightVh}vh`;
     }
     if (document.documentElement) {
-        document.documentElement.style.minHeight = '100vh';
+        document.documentElement.style.minHeight = `${minHeightVh}vh`;
         document.documentElement.style.backgroundColor = '#0c101d';
         document.documentElement.style.setProperty('--app-zoom-scale', `${scale}`);
     }

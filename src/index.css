@@ -59,17 +59,31 @@
   --glass-border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+:root {
+  --app-zoom-scale: 1;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html {
-  min-height: 100vh;
+html,
+body,
+#root {
+  min-height: calc(100vh / var(--app-zoom-scale, 1));
   background-color: #0c101d;
   background: var(--color-bg);
   background-attachment: fixed;
+}
+
+.h-screen {
+  height: calc(100vh / var(--app-zoom-scale, 1)) !important;
+}
+
+.min-h-screen {
+  min-height: calc(100vh / var(--app-zoom-scale, 1)) !important;
 }
 
 html,
@@ -84,7 +98,6 @@ body {
 }
 
 body {
-  min-height: 100vh;
   /* Premium radial gradient background with CitaLink colors */
   background-image:
     radial-gradient(circle at 15% 50%, hsla(var(--hue-primary), 80%, 15%, 0.4) 0, transparent 40%),
@@ -94,7 +107,6 @@ body {
   background-attachment: fixed;
   color: var(--color-text);
   line-height: 1.6;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
