@@ -119,19 +119,35 @@ const SmsConfirmModal = ({ isOpen, onClose, onConfirm, details }: any) => {
     );
 };
 
+const formatDateForInput = (isoString?: string | null) => {
+    if (!isoString) return '';
+    try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch {
+        return '';
+    }
+};
+
+const formatAsEndOfDay = (dateStr: string) => {
+    if (!dateStr) return null;
+    const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    return new Date(`${datePart}T23:59:59`).toISOString();
+};
+
 const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
     const [name, setName] = useState(tenant.name || '');
     const [slug, setSlug] = useState(tenant.slug || '');
     const [category, setCategory] = useState(tenant.category || 'barbershop');
     const [timezone, setTimezone] = useState(tenant.timezone || 'America/Mexico_City');
-    const [trialEndsAt, setTrialEndsAt] = useState(
-        tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toISOString().split('T')[0] : ''
-    );
+    const [trialEndsAt, setTrialEndsAt] = useState(formatDateForInput(tenant.trial_ends_at));
     const [subscriptionType, setSubscriptionType] = useState(tenant.subscription_type || 'manual');
     const [paymentStatus, setPaymentStatus] = useState(tenant.payment_status || 'active');
-    const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(
-        tenant.grace_period_ends_at ? new Date(tenant.grace_period_ends_at).toISOString().split('T')[0] : ''
-    );
+    const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(formatDateForInput(tenant.grace_period_ends_at));
     const [isSaving, setIsSaving] = useState(false);
 
     if (!isOpen) return null;
@@ -144,10 +160,10 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
             slug,
             category,
             timezone,
-            trial_ends_at: trialEndsAt ? new Date(trialEndsAt).toISOString() : null,
+            trial_ends_at: trialEndsAt ? formatAsEndOfDay(trialEndsAt) : null,
             subscription_type: subscriptionType,
             payment_status: paymentStatus,
-            grace_period_ends_at: paymentStatus === 'grace_period' && gracePeriodEndsAt ? new Date(gracePeriodEndsAt).toISOString() : null,
+            grace_period_ends_at: gracePeriodEndsAt ? formatAsEndOfDay(gracePeriodEndsAt) : null,
         };
         await onSave(tenant.id, payload);
         setIsSaving(false);
@@ -289,17 +305,15 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
                         </div>
 
                         {/* Fin del Período de Gracia */}
-                        {paymentStatus === 'grace_period' && (
-                            <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-slate-400 ml-1">Fin Período de Gracia</label>
-                                <input
-                                    type="date"
-                                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
-                                    value={gracePeriodEndsAt}
-                                    onChange={e => setGracePeriodEndsAt(e.target.value)}
-                                />
-                            </div>
-                        )}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Fin Período de Gracia</label>
+                            <input
+                                type="date"
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                value={gracePeriodEndsAt}
+                                onChange={e => setGracePeriodEndsAt(e.target.value)}
+                            />
+                        </div>
 
                         {/* Expiración del Trial */}
                         <div className="space-y-1.5">
