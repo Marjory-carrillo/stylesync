@@ -34,12 +34,17 @@ export const useCancellationLog = () => {
     const deleteLogMutation = useMutation({
         mutationFn: async (id: string) => {
             if (!tenantId) throw new Error('No tenant info');
-            const { error } = await supabase
+            
+            const { error: directErr } = await supabase
                 .from('cancellation_log')
                 .delete()
                 .eq('id', id)
                 .eq('tenant_id', tenantId);
-            if (error) throw error;
+
+            if (directErr) {
+                const { error: rpcErr } = await supabase.rpc('delete_cancellation_log_item', { p_id: id });
+                if (rpcErr) throw rpcErr;
+            }
             return id;
         },
         onSuccess: () => {
@@ -51,11 +56,16 @@ export const useCancellationLog = () => {
     const clearAllLogsMutation = useMutation({
         mutationFn: async () => {
             if (!tenantId) throw new Error('No tenant info');
-            const { error } = await supabase
+
+            const { error: directErr } = await supabase
                 .from('cancellation_log')
                 .delete()
                 .eq('tenant_id', tenantId);
-            if (error) throw error;
+
+            if (directErr) {
+                const { error: rpcErr } = await supabase.rpc('clear_cancellation_log_for_tenant', { p_tenant_id: tenantId });
+                if (rpcErr) throw rpcErr;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
