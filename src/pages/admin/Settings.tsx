@@ -860,6 +860,31 @@ export default function Settings() {
                                     <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                 </label>
                             </div>
+
+                            {/* Toggle: Permitir hasta 2 citas activas por número */}
+                            <div className="flex items-center justify-between pt-2">
+                                <div>
+                                    <h4 className="text-white font-medium flex items-center gap-2">
+                                        <Calendar size={16} className="text-accent" />
+                                        Permitir Hasta 2 Citas Activas por Cliente
+                                    </h4>
+                                    <p className="text-sm text-muted mt-0.5">Permite a tus clientas agendar hasta 2 citas pendientes simultáneas por número de teléfono.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.allowTwoActiveAppointments ?? false}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, allowTwoActiveAppointments: val });
+                                            await updateBusinessConfig({ allowTwoActiveAppointments: val });
+                                            showToast(val ? 'Permitidas hasta 2 citas activas por teléfono' : 'Límite de 1 cita activa por teléfono', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
                         </div>
 
                         {infoError && (

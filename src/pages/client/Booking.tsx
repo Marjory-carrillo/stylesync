@@ -78,7 +78,12 @@ export default function Booking() {
         return false;
     };
 
-    const hasActiveAppointment = (phone: string) => appointments.some(a => a.clientPhone === phone && isAppointmentActive(a));
+    const getActiveAppointmentsCountByPhone = (phone: string) => appointments.filter(a => a.clientPhone === phone && isAppointmentActive(a)).length;
+    const hasActiveAppointment = (phone: string) => {
+        const activeCount = getActiveAppointmentsCountByPhone(phone);
+        const maxAllowed = businessConfig?.allowTwoActiveAppointments ? 2 : 1;
+        return activeCount >= maxAllowed;
+    };
     const getActiveAppointmentByPhone = (phone: string) => appointments.find(a => a.clientPhone === phone && isAppointmentActive(a));
     const getActiveAppointmentPrice = (appt: any) => {
         const service = getServiceById(appt.serviceId);

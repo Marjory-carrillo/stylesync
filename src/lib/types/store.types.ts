@@ -139,6 +139,7 @@ export interface BusinessConfig {
     timezone?: string; // IANA timezone, e.g. 'America/Mexico_City'
     brandSlug?: string;
     hideServicePrices?: boolean;
+    allowTwoActiveAppointments?: boolean;
     plan?: 'free' | 'lite' | 'pro' | 'business';
     trialEndsAt?: string | null;
     stripeCustomerId?: string | null;
