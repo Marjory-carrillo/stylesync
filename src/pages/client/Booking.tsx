@@ -1108,8 +1108,15 @@ export default function Booking() {
     }
 
     return (
-        <div className="container animate-fade-in relative" style={{ maxWidth: '520px', paddingTop: 'max(4rem, env(safe-area-inset-top))', paddingBottom: '3rem', minHeight: '100vh' }}>
-            <div className="absolute top-3 right-4 z-40">
+        <div className="container animate-fade-in relative" style={{ maxWidth: '520px', paddingTop: 'max(1.5rem, env(safe-area-inset-top))', paddingBottom: '3rem', minHeight: '100vh' }}>
+            {/* Top Sticky Header Bar */}
+            <div className="flex items-center justify-between px-4 py-3 mb-5 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-lg">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-white tracking-wide flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+                        {businessConfig?.name || 'CitaLink'}
+                    </span>
+                </div>
                 <AppZoomControl />
             </div>
             <PWAInstallBanner businessName={businessConfig?.name || undefined} />
