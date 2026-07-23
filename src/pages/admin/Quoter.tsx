@@ -18,6 +18,7 @@ export default function Quoter() {
     const [selectedSizeId, setSelectedSizeId] = useState<string>('');
     const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [selectedExtras, setSelectedExtras] = useState<Record<string, boolean>>({});
+    const [cardTheme, setCardTheme] = useState<'pink' | 'dark' | 'gold'>('pink');
 
     // Categorized config items
     const baseCategory = useMemo(() => config.find(c => c.id === 'base_services'), [config]);
@@ -99,44 +100,42 @@ export default function Quoter() {
     const handleReset = () => {
         if (baseCategory && baseCategory.items.length > 0) {
             setSelectedBaseId(baseCategory.items[0].id);
+        } else {
+            setSelectedBaseId('');
         }
         if (sizeCategory && sizeCategory.items.length > 0) {
             setSelectedSizeId(sizeCategory.items[0].id);
+        } else {
+            setSelectedSizeId('');
         }
         setSelectedStyles({});
         setSelectedExtras({});
-        showToast('Cotizador reiniciado', 'info');
     };
 
-    // Format text quote for sharing
-    const getFormattedQuoteText = () => {
-        const name = businessConfig.name || 'CitaLink Nail Salon';
-        let text = `💅 *COTIZACIÓN DE UÑAS* 💅\n*${name}*\n\n`;
+    // Build text format for WhatsApp / Clipboard
+    const generateSummaryText = () => {
+        const bName = businessConfig.name || 'CitaLink Nail Salon';
+        let text = `💅 *COTIZACIÓN DE MANICURA — ${bName.toUpperCase()}*\n\n`;
+        
         quoteBreakdown.items.forEach(item => {
-            const detailText = item.detail ? ` ${item.detail}` : '';
-            text += `• ${item.name}${detailText}: *$${item.price} MXN*\n`;
+            text += `• *${item.name}*: $${item.price} MXN ${item.detail ? item.detail : ''}\n`;
         });
-        text += `\n💵 *TOTAL: $${quoteBreakdown.total} MXN*\n\n`;
-        text += `👉 ¡Reserva tu cita aquí! https://stylesync.citalink.site/${businessConfig.slug}`;
-        return encodeURIComponent(text);
+
+        text += `\n✨ *TOTAL ESTIMADO: $${quoteBreakdown.total} MXN*\n\n`;
+        text += `_Cotización generada el ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}_\n`;
+        text += `Reserva tu cita aquí: ${window.location.origin}/reserva/${businessConfig.slug || ''}`;
+
+        return text;
     };
 
     const handleCopy = () => {
-        const name = businessConfig.name || 'CitaLink Nail Salon';
-        let text = `💅 COTIZACIÓN DE UÑAS 💅\n${name}\n\n`;
-        quoteBreakdown.items.forEach(item => {
-            const detailText = item.detail ? ` ${item.detail}` : '';
-            text += `• ${item.name}${detailText}: $${item.price} MXN\n`;
-        });
-        text += `\nTOTAL: $${quoteBreakdown.total} MXN\n\n`;
-        text += `Reserva tu cita aquí: https://stylesync.citalink.site/${businessConfig.slug}`;
-
+        const text = generateSummaryText();
         navigator.clipboard.writeText(text);
-        showToast('Cotización copiada al portapapeles 📋', 'success');
+        showToast('Resumen copiado al portapapeles 📋', 'success');
     };
 
     const handleShareWhatsApp = () => {
-        const text = getFormattedQuoteText();
+        const text = encodeURIComponent(generateSummaryText());
         window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     };
 
@@ -149,22 +148,11 @@ export default function Quoter() {
         try {
             const element = ticketRef.current;
             const canvas = await html2canvas(element, {
-                backgroundColor: '#0f172a',
+                backgroundColor: null,
                 scale: 3,
                 logging: false,
                 useCORS: true,
-                onclone: (clonedDoc) => {
-                    const clonedEl = clonedDoc.getElementById('printable-quote-card');
-                    if (clonedEl) {
-                        clonedEl.style.background = '#0f172a';
-                        clonedEl.style.backgroundImage = 'none';
-                        clonedEl.style.backdropFilter = 'none';
-                        clonedEl.style.width = '380px';
-                        clonedEl.style.borderRadius = '24px';
-                        clonedEl.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-                        clonedEl.style.boxShadow = 'none';
-                    }
-                }
+                allowTaint: true
             });
             
             const dataUrl = canvas.toDataURL('image/png');
@@ -172,7 +160,7 @@ export default function Quoter() {
             link.download = `cotizacion-${businessConfig.name?.replace(/\s+/g, '-').toLowerCase() || 'nail-design'}.png`;
             link.href = dataUrl;
             link.click();
-            showToast('Imagen descargada con éxito 🎨', 'success');
+            showToast('¡Imagen de cotización descargada! 🎨', 'success');
         } catch (error) {
             console.error('Error generating image:', error);
             showToast('Error al generar la imagen', 'error');
@@ -184,22 +172,11 @@ export default function Quoter() {
         try {
             const element = ticketRef.current;
             const canvas = await html2canvas(element, {
-                backgroundColor: '#0f172a',
+                backgroundColor: null,
                 scale: 3,
                 logging: false,
                 useCORS: true,
-                onclone: (clonedDoc) => {
-                    const clonedEl = clonedDoc.getElementById('printable-quote-card');
-                    if (clonedEl) {
-                        clonedEl.style.background = '#0f172a';
-                        clonedEl.style.backgroundImage = 'none';
-                        clonedEl.style.backdropFilter = 'none';
-                        clonedEl.style.width = '380px';
-                        clonedEl.style.borderRadius = '24px';
-                        clonedEl.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-                        clonedEl.style.boxShadow = 'none';
-                    }
-                }
+                allowTaint: true
             });
             
             canvas.toBlob((blob) => {
@@ -207,10 +184,10 @@ export default function Quoter() {
                     navigator.clipboard.write([
                         new ClipboardItem({ 'image/png': blob })
                     ]).then(() => {
-                        showToast('¡Imagen de ticket copiada al portapapeles! 📋 Lista para pegar en WhatsApp.', 'success');
+                        showToast('¡Foto de cotización copiada! 📋 Pégala directamente en WhatsApp.', 'success');
                     }).catch(err => {
                         console.error('Clipboard write error:', err);
-                        showToast('No se pudo copiar la imagen al portapapeles. Prueba a descargarla.', 'error');
+                        showToast('No se pudo copiar la imagen automáticamente. Descárgala en PNG.', 'error');
                     });
                 }
             }, 'image/png');
@@ -485,51 +462,180 @@ export default function Quoter() {
                 {/* ── Right Side: Quote Summary / Ticket View ── */}
                 <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-4">
                     
+                    {/* Theme Selector for Ticket Card */}
+                    <div className="flex items-center justify-between gap-2 px-1">
+                        <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <Sparkles size={14} className="text-pink-400" /> Estilo de la Foto:
+                        </span>
+                        <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-white/10">
+                            <button
+                                type="button"
+                                onClick={() => setCardTheme('pink')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                                    cardTheme === 'pink'
+                                        ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-sm'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                🌸 Rosa Chic
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCardTheme('dark')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                                    cardTheme === 'dark'
+                                        ? 'bg-gradient-to-r from-indigo-600 to-slate-700 text-white shadow-sm'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                🖤 Dark
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCardTheme('gold')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                                    cardTheme === 'gold'
+                                        ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white shadow-sm'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                👑 Oro
+                            </button>
+                        </div>
+                    </div>
+
                     {/* The Ticket card */}
-                    <div ref={ticketRef} id="printable-quote-card" className="glass-panel p-6 border border-white/10 rounded-3xl shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#0f172a] to-[#1e293b]/70">
-                        {/* Branded elements */}
-                        <div className="text-center pb-6 border-b border-dashed border-white/10 space-y-3">
-                            <div className="w-16 h-16 rounded-full mx-auto overflow-hidden bg-slate-800 border border-white/10 flex items-center justify-center">
+                    <div
+                        ref={ticketRef}
+                        id="printable-quote-card"
+                        className={`p-6 sm:p-7 rounded-[32px] shadow-2xl relative overflow-hidden border transition-all duration-300 ${
+                            cardTheme === 'pink'
+                                ? 'bg-gradient-to-b from-[#fce7f3] via-[#fbcfe8] to-[#f472b6] border-pink-300/50 text-slate-800'
+                                : cardTheme === 'gold'
+                                ? 'bg-gradient-to-b from-[#fef3c7] via-[#fde68a] to-[#d97706] border-amber-300/50 text-slate-900'
+                                : 'bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#0f172a] border-white/15 text-white'
+                        }`}
+                    >
+                        {/* Decorative ambient blobs */}
+                        <div className={`absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none ${
+                            cardTheme === 'pink' ? 'bg-pink-400/30' : cardTheme === 'gold' ? 'bg-amber-400/30' : 'bg-purple-500/20'
+                        }`} />
+                        <div className={`absolute -bottom-12 -left-12 w-36 h-36 rounded-full blur-2xl pointer-events-none ${
+                            cardTheme === 'pink' ? 'bg-rose-400/30' : cardTheme === 'gold' ? 'bg-yellow-400/30' : 'bg-indigo-500/20'
+                        }`} />
+
+                        {/* Header / Brand info */}
+                        <div className="text-center pb-5 space-y-2 relative z-10">
+                            <div className={`w-16 h-16 rounded-full mx-auto overflow-hidden shadow-lg p-0.5 border ${
+                                cardTheme === 'pink'
+                                    ? 'bg-white border-pink-300'
+                                    : cardTheme === 'gold'
+                                    ? 'bg-white border-amber-300'
+                                    : 'bg-slate-900 border-white/20'
+                            }`}>
                                 {businessConfig.logoUrl ? (
-                                    <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                    <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
                                 ) : (
-                                    <Sparkles size={28} className="text-accent" />
+                                    <div className="w-full h-full flex items-center justify-center font-black text-2xl text-pink-500">
+                                        💅
+                                    </div>
                                 )}
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-white">{businessConfig.name || 'CitaLink Nail Salon'}</h3>
-                                <p className="text-[10px] text-slate-500 tracking-widest uppercase">Presupuesto de Diseño</p>
+                                <h3 className={`text-xl font-black tracking-tight ${
+                                    cardTheme === 'pink' ? 'text-pink-950 font-serif' : cardTheme === 'gold' ? 'text-amber-950 font-serif' : 'text-white'
+                                }`}>
+                                    {businessConfig.name || 'Salon de Uñas'}
+                                </h3>
+                                <p className={`text-xs font-bold mt-0.5 ${
+                                    cardTheme === 'pink' ? 'text-pink-800/90' : cardTheme === 'gold' ? 'text-amber-900/90' : 'text-slate-400'
+                                }`}>
+                                    Calcula el precio de tu servicio ✨
+                                </p>
                             </div>
                         </div>
 
-                        {/* Breakdown items */}
-                        <div className="py-6 space-y-4">
-                            {quoteBreakdown.items.length === 0 ? (
-                                <p className="text-sm text-slate-500 italic text-center">Selecciona las técnicas y decoración para cotizar.</p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {quoteBreakdown.items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between items-start text-sm">
-                                            <div className="text-left">
-                                                <p className="font-semibold text-slate-200">{item.name}</p>
-                                                {item.detail && <p className="text-xs text-slate-500">{item.detail}</p>}
+                        {/* Inner Card Container (Matches image layout!) */}
+                        <div className={`rounded-2xl p-5 shadow-lg border relative z-10 ${
+                            cardTheme === 'pink'
+                                ? 'bg-white/90 backdrop-blur-md border-pink-200/60 text-slate-800'
+                                : cardTheme === 'gold'
+                                ? 'bg-white/95 backdrop-blur-md border-amber-200/60 text-slate-900'
+                                : 'bg-slate-950/75 backdrop-blur-md border-white/10 text-slate-100'
+                        }`}>
+                            {/* Title inside card */}
+                            <div className={`flex items-center gap-2 pb-3 mb-3 border-b font-bold text-xs ${
+                                cardTheme === 'pink' ? 'border-pink-100 text-pink-700' : cardTheme === 'gold' ? 'border-amber-100 text-amber-800' : 'border-white/10 text-slate-300'
+                            }`}>
+                                <span className="text-sm">💅</span> Tu Selección de Servicios
+                            </div>
+
+                            {/* Breakdown Items */}
+                            <div className="space-y-3 min-h-[80px]">
+                                {quoteBreakdown.items.length === 0 ? (
+                                    <p className="text-xs text-slate-400 italic text-center py-4">
+                                        Selecciona las opciones para ver el resumen...
+                                    </p>
+                                ) : (
+                                    quoteBreakdown.items.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between items-center text-xs pb-2 border-b border-black/5 last:border-0 last:pb-0">
+                                            <div className="text-left pr-2">
+                                                <p className="font-bold leading-snug">{item.name}</p>
+                                                {item.detail && (
+                                                    <p className={`text-[10px] ${
+                                                        cardTheme === 'pink' ? 'text-pink-600 font-semibold' : cardTheme === 'gold' ? 'text-amber-700 font-semibold' : 'text-slate-400'
+                                                    }`}>
+                                                        {item.detail}
+                                                    </p>
+                                                )}
                                             </div>
-                                            <span className="font-bold text-white shrink-0">${item.price} MXN</span>
+                                            <span className={`font-black text-xs shrink-0 px-2 py-0.5 rounded-lg ${
+                                                cardTheme === 'pink'
+                                                    ? 'bg-pink-100/80 text-pink-700'
+                                                    : cardTheme === 'gold'
+                                                    ? 'bg-amber-100 text-amber-800'
+                                                    : 'bg-white/10 text-emerald-400'
+                                            }`}>
+                                                ${item.price}
+                                            </span>
                                         </div>
-                                    ))}
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Total Box */}
+                            <div className={`mt-4 pt-3 border-t flex justify-between items-center ${
+                                cardTheme === 'pink' ? 'border-pink-200' : cardTheme === 'gold' ? 'border-amber-200' : 'border-white/10'
+                            }`}>
+                                <div>
+                                    <span className={`text-[10px] uppercase font-black tracking-wider block ${
+                                        cardTheme === 'pink' ? 'text-pink-600' : cardTheme === 'gold' ? 'text-amber-700' : 'text-slate-400'
+                                    }`}>
+                                        Total Estimado
+                                    </span>
+                                    <p className="text-2xl font-black leading-none mt-0.5">
+                                        ${quoteBreakdown.total} <span className="text-xs font-semibold">MXN</span>
+                                    </p>
                                 </div>
-                            )}
+                                <div className={`px-3 py-1.5 rounded-xl font-black text-xs tracking-wide shadow-sm ${
+                                    cardTheme === 'pink'
+                                        ? 'bg-pink-600 text-white'
+                                        : cardTheme === 'gold'
+                                        ? 'bg-amber-600 text-white'
+                                        : 'bg-emerald-500 text-white'
+                                }`}>
+                                    Presupuesto ✨
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Grand Total */}
-                        <div className="pt-6 border-t border-dashed border-white/10 flex justify-between items-center">
-                            <div className="text-left">
-                                <span className="text-xs uppercase font-bold text-slate-500">Total</span>
-                                <p className="text-2xl font-black text-white">${quoteBreakdown.total} <span className="text-xs font-semibold text-slate-400">MXN</span></p>
-                            </div>
-                            <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-wider">
-                                Cotizado
-                            </div>
+                        {/* Card Footer branding */}
+                        <div className="mt-4 text-center relative z-10">
+                            <p className={`text-[10px] font-bold tracking-wide ${
+                                cardTheme === 'pink' ? 'text-pink-900/80' : cardTheme === 'gold' ? 'text-amber-950/80' : 'text-slate-400'
+                            }`}>
+                                ¡Gracias por tu preferencia! • Agendado en CitaLink
+                            </p>
                         </div>
                     </div>
 
