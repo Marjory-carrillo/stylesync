@@ -206,8 +206,6 @@ function App() {
       const user = session.user;
       const isSuperAdmin = user.user_metadata?.is_super_admin === true;
 
-      // Siempre limpiamos los tenants del store al inicio
-      // para evitar que queden residuos de una sesión anterior
       if (mounted) setUserTenants([]);
 
       if (isSuperAdmin) {
@@ -218,67 +216,86 @@ function App() {
         return;
       }
 
-      // Primero verificamos si el usuario es DUEÑO (Owner) de uno o más negocios
-      const { data: ownerTenants } = await supabase
-        .from('tenants')
-        .select('id, name, slug, logo_url, category')
-        .eq('owner_id', user.id);
+      try {
+        // Primero verificamos si el usuario es DUEÑO (Owner) de uno o más negocios
+        const { data: ownerTenants } = await supabase
+          .from('tenants')
+          .select('id, name, slug, logo_url, category')
+          .eq('owner_id', user.id);
 
-      if (ownerTenants && ownerTenants.length > 0) {
-        const tenantSummaries = ownerTenants.map(t => ({
-          id: t.id,
-          name: t.name,
-          slug: t.slug,
-          logoUrl: t.logo_url || '',
-          category: t.category || '',
-        }));
+        if (ownerTenants && ownerTenants.length > 0) {
+          const tenantSummaries = ownerTenants.map(t => ({
+            id: t.id,
+            name: t.name,
+            slug: t.slug,
+            logoUrl: t.logo_url || '',
+            category: t.category || '',
+          }));
 
-        if (ownerTenants.length === 1) {
-          // Solo 1 negocio → directo como antes
+          if (ownerTenants.length === 1) {
+            if (mounted) {
+              setAuth({ user, session, loadingAuth: false });
+              setTenantData({ tenantId: ownerTenants[0].id, userRole: 'owner', userStylistId: null });
+              setUserTenants(tenantSummaries);
+            }
+            return;
+          }
+
+          const savedTenantId = localStorage.getItem('citalink_tenant_id');
+          const validSaved = savedTenantId && ownerTenants.some(t => t.id === savedTenantId);
+
           if (mounted) {
             setAuth({ user, session, loadingAuth: false });
-            setTenantData({ tenantId: ownerTenants[0].id, userRole: 'owner', userStylistId: null });
             setUserTenants(tenantSummaries);
+            setTenantData({
+              tenantId: validSaved ? savedTenantId : null,
+              userRole: 'owner',
+              userStylistId: null
+            });
           }
           return;
         }
 
-        // 2+ negocios → revisar si hay uno guardado en localStorage
-        const savedTenantId = localStorage.getItem('citalink_tenant_id');
-        const validSaved = savedTenantId && ownerTenants.some(t => t.id === savedTenantId);
+        // Si no es dueño, verificamos si es EMPLEADO (en tabla tenant_users)
+        const { data: userData } = await supabase
+          .from('tenant_users')
+          .select('tenant_id, role, stylist_id')
+          .eq('email', user.email)
+          .maybeSingle();
 
         if (mounted) {
           setAuth({ user, session, loadingAuth: false });
-          setUserTenants(tenantSummaries);
           setTenantData({
-            tenantId: validSaved ? savedTenantId : null,
-            userRole: 'owner',
-            userStylistId: null
+            tenantId: userData?.tenant_id || null,
+            userRole: userData?.role || null,
+            userStylistId: userData?.stylist_id || null
           });
         }
-        return;
-      }
-
-      // Si no es dueño, verificamos si es EMPLEADO (en tabla tenant_users)
-      const { data: userData } = await supabase
-        .from('tenant_users')
-        .select('tenant_id, role, stylist_id')
-        .eq('email', user.email)
-        .maybeSingle();
-
-      if (mounted) {
-        setAuth({ user, session, loadingAuth: false });
-        setTenantData({
-          tenantId: userData?.tenant_id || null,
-          userRole: userData?.role || null,
-          userStylistId: userData?.stylist_id || null
-        });
+      } catch (err) {
+        console.error("Error in loadUserContext:", err);
+      } finally {
+        if (mounted) {
+          useAuthStore.getState().setLoadingAuth(false);
+        }
       }
     };
 
+    // Safety fallback timer to prevent infinite splash loading on slow mobile networks
+    const safetyTimer = setTimeout(() => {
+      if (mounted && useAuthStore.getState().loadingAuth) {
+        console.warn("Safety timer triggered: forcing loadingAuth to false");
+        useAuthStore.getState().setLoadingAuth(false);
+      }
+    }, 4000);
+
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      await loadUserContext(session);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await loadUserContext(session);
+      } catch (err) {
+        console.error("Error initializing auth:", err);
+        if (mounted) useAuthStore.getState().setLoadingAuth(false);
+      }
     };
     init();
 
@@ -288,6 +305,7 @@ function App() {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, [setAuth, setTenantData, setUserTenants]);

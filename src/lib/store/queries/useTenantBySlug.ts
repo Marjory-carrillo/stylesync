@@ -18,11 +18,12 @@ export const useTenantBySlug = (slug?: string) => {
 
             if (error) {
                 console.error("Error loading tenant by slug:", error);
-                throw error;
+                return null;
             }
-            return data.id;
+            return data?.id || null;
         },
         enabled: !!slug,
+        retry: 2,
         staleTime: 1000 * 60 * 60, // Cache for 1 hour to avoid redundant checks
     });
 
