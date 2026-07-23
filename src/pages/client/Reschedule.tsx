@@ -35,8 +35,7 @@ export default function RescheduleRedirect() {
 
     // Pantalla de carga
     return (
-        <div style={{
-            minHeight: '100vh',
+        <div className="min-h-screen" style={{
             background: 'radial-gradient(ellipse at 30% 0%, #0f1729 0%, #050c15 55%, #000 100%)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             fontFamily: "'Inter', system-ui, sans-serif",
