@@ -1214,27 +1214,30 @@ export default function Settings() {
                                 <div key={category.id} className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-sm font-bold text-white uppercase tracking-wider">{category.name}</h4>
-                                        {category.id !== 'simplified_designs' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newItem = {
-                                                        id: Date.now().toString(),
-                                                        name: 'Nueva Opción',
-                                                        price: 0
-                                                    };
-                                                    const updatedConfig = [...localQuoterConfig];
-                                                    updatedConfig[catIdx] = {
-                                                        ...category,
-                                                        items: [...category.items, newItem]
-                                                    };
-                                                    setLocalQuoterConfig(updatedConfig);
-                                                }}
-                                                className="text-xs text-accent hover:text-white font-bold flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
-                                            >
-                                                <Plus size={14} /> Añadir Opción
-                                            </button>
-                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newItem = category.id === 'simplified_designs' ? {
+                                                    id: `design_${Date.now()}`,
+                                                    name: 'Nuevo Nivel de Diseño',
+                                                    desc: 'Descripción del diseño...',
+                                                    price: 0
+                                                } : {
+                                                    id: Date.now().toString(),
+                                                    name: 'Nueva Opción',
+                                                    price: 0
+                                                };
+                                                const updatedConfig = [...localQuoterConfig];
+                                                updatedConfig[catIdx] = {
+                                                    ...category,
+                                                    items: [...category.items, newItem]
+                                                };
+                                                setLocalQuoterConfig(updatedConfig);
+                                            }}
+                                            className="text-xs text-accent hover:text-white font-bold flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
+                                        >
+                                            <Plus size={14} /> Añadir Opción
+                                        </button>
                                     </div>
 
                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -1302,21 +1305,19 @@ export default function Settings() {
                                                             </select>
                                                         )}
                                                         
-                                                        {/* Delete Button (hide for simplified_designs) */}
-                                                        {category.id !== 'simplified_designs' && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const updatedConfig = [...localQuoterConfig];
-                                                                    const updatedItems = category.items.filter(i => i.id !== item.id);
-                                                                    updatedConfig[catIdx] = { ...category, items: updatedItems };
-                                                                    setLocalQuoterConfig(updatedConfig);
-                                                                }}
-                                                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-white/5 hover:border-red-500/20 shadow-sm shrink-0"
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                        )}
+                                                        {/* Delete Button */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const updatedConfig = [...localQuoterConfig];
+                                                                const updatedItems = category.items.filter(i => i.id !== item.id);
+                                                                updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                                setLocalQuoterConfig(updatedConfig);
+                                                            }}
+                                                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-white/5 hover:border-red-500/20 shadow-sm shrink-0"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
                                                     </div>
                                                 </div>
 

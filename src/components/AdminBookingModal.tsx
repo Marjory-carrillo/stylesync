@@ -530,23 +530,23 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     {/* Design Level Selector */}
                                     <div className="space-y-2">
                                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Nivel de Diseño</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {[
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            {(simplifiedDesignsCategory?.items || [
                                                 { id: 'basic', name: 'Básico', price: 0 },
                                                 { id: 'simple', name: 'Sencillo', price: 50 },
                                                 { id: 'complex', name: 'Elaborado', price: 150 }
-                                            ].map(lvl => {
-                                                const designItem = simplifiedDesignsCategory?.items.find(i => i.id === lvl.id);
-                                                const priceVal = designItem ? designItem.price : lvl.price;
+                                            ]).map(lvl => {
+                                                const priceVal = lvl.price || 0;
                                                 return (
                                                     <button
                                                         key={lvl.id}
+                                                        type="button"
                                                         onClick={() => setDesignLevel(lvl.id as any)}
                                                         className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center ${designLevel === lvl.id ? 'bg-accent/15 border-accent text-white font-black' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
                                                     >
-                                                        <span>{lvl.name}</span>
+                                                        <span className="truncate block">{lvl.name}</span>
                                                         <span className="block text-[10px] text-slate-500 font-normal">
-                                                            {priceVal > 0 ? `+$${priceVal}` : 'Sin costo'}
+                                                            {priceVal > 0 ? `+$${priceVal} (Aprox.)` : 'Sin costo'}
                                                         </span>
                                                     </button>
                                                 );

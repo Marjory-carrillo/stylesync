@@ -1718,7 +1718,7 @@ export default function Booking() {
                                                 ];
                                                 return options.map((opt: any) => {
                                                     const isSelected = designLevel === opt.id;
-                                                    const formattedPrice = opt.price === 0 ? 'Sin costo extra' : `+$${opt.price} MXN`;
+                                                    const formattedPrice = opt.price === 0 ? 'Sin costo extra' : `+$${opt.price} MXN (Aproximado)`;
                                                     return (
                                                         <button
                                                             key={opt.id}
