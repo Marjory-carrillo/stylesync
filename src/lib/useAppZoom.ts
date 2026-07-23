@@ -7,8 +7,11 @@ export const DEFAULT_ZOOM = 100;
 
 export const applyZoom = (zoomLevel: number) => {
     const scale = zoomLevel / 100;
-    // Apply document zoom for Webkit / Chrome / Edge / Safari / Mobile
-    (document.documentElement.style as any).zoom = `${scale}`;
+    // Applying zoom to body keeps the html background full-screen without empty gaps or broken card proportions!
+    if (document.body) {
+        (document.body.style as any).zoom = `${scale}`;
+    }
+    (document.documentElement.style as any).zoom = '1';
     document.documentElement.style.setProperty('--app-zoom-scale', `${scale}`);
 };
 
