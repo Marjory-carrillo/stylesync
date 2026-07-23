@@ -693,6 +693,13 @@ export default function Booking() {
     const createAppointmentAfterOtp = async () => {
         if (!selectedService || !selectedTime || !clientName || !clientPhone) return;
 
+        const cleanPhone = clientPhone.replace(/\s+/g, '');
+        if (isPhoneBlocked(cleanPhone)) {
+            setStep(1);
+            setClientError('blocked_no_show');
+            return;
+        }
+
         const availableStylists = slotsMetadata[selectedTime] || [];
         const assignedStylistId = selectedStylist ? selectedStylist.id : (availableStylists[0] ?? null);
 
@@ -1284,6 +1291,15 @@ export default function Booking() {
                                         <button
                                             onClick={() => {
                                                 const cleanPhone = clientPhone.replace(/\s+/g, '');
+                                                if (isPhoneBlocked(cleanPhone)) {
+                                                    const reason = getBlockReason(cleanPhone);
+                                                    if (reason === 'no_show') {
+                                                        setClientError('blocked_no_show');
+                                                    } else {
+                                                        setClientError('Este número ha sido bloqueado. Contacta al establecimiento para más información.');
+                                                    }
+                                                    return;
+                                                }
                                                 if (hasActiveAppointment(cleanPhone)) {
                                                     setStep(10);
                                                     return;

@@ -118,6 +118,7 @@ export default function Dashboard() {
 
     const [linkType, setLinkType] = useState<'branch' | 'brand'>('branch');
     const [isLinkCardExpanded, setIsLinkCardExpanded] = useState(false);
+    const [isRemindersExpanded, setIsRemindersExpanded] = useState(false);
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
     const [isZoomed, setIsZoomed] = useState(false);
 
@@ -275,10 +276,12 @@ export default function Dashboard() {
         });
     }, [tomorrowAppts]);
 
-    // Recordatorios enviados (con reminder_sent = true)
-    const remindersSentCount = useMemo(() => {
-        return allAppointments.filter(a => a.reminderSent === true).length;
-    }, [allAppointments]);
+    // Recordatorios enviados hoy (con reminder_sent = true para citas de hoy)
+    const todayRemindersSent = useMemo(() => {
+        return todayAppts.filter(a => a.reminderSent === true);
+    }, [todayAppts]);
+
+    const remindersSentCount = todayRemindersSent.length;
 
     // ── Reports Logic ──
     const currentMonthStats = useMemo(() => {
@@ -1238,21 +1241,91 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* ── Recordatorios WhatsApp enviados ── */}
-                <div className="glass-panel p-6 rounded-[2rem] border border-emerald-500/10 flex items-center gap-5 group hover:border-emerald-500/25 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
-                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
-                    <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
-                        <MessageCircle size={26} />
+                {/* ── Recordatorios WhatsApp enviados hoy ── */}
+                <div className="glass-panel p-6 rounded-[2rem] border border-emerald-500/10 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
+                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none"></div>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-5">
+                            <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 shadow-inner border border-white/5 relative z-10 shrink-0">
+                                <MessageCircle size={26} />
+                            </div>
+                            <div className="relative z-10">
+                                <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Recordatorios enviados hoy</p>
+                                {isLoading ? <Skeleton className="h-9 w-16" /> : (
+                                    <>
+                                        <p className="text-3xl font-black text-emerald-400 tracking-tighter">{remindersSentCount}</p>
+                                        <p className="text-[10px] text-slate-600 font-bold mt-0.5 leading-tight">WhatsApp automático · Citas de hoy</p>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setIsRemindersExpanded(!isRemindersExpanded)}
+                            className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-bold shrink-0 relative z-10"
+                            title="Ver citas con recordatorio enviado hoy"
+                        >
+                            <span>{isRemindersExpanded ? 'Ocultar' : 'Ver citas'}</span>
+                            <ChevronDown size={16} className={`transition-transform duration-300 ${isRemindersExpanded ? 'rotate-180' : ''}`} />
+                        </button>
                     </div>
-                    <div className="relative z-10 w-full">
-                        <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Recordatorios enviados</p>
-                        {isLoading ? <Skeleton className="h-9 w-16" /> : (
-                            <>
-                                <p className="text-3xl font-black text-emerald-400 tracking-tighter">{remindersSentCount}</p>
-                                <p className="text-[10px] text-slate-600 font-bold mt-0.5 leading-tight">WhatsApp automático · el mismo día de la cita</p>
-                            </>
-                        )}
-                    </div>
+
+                    {/* Desplegable de Citas con Recordatorio Enviado Hoy */}
+                    {isRemindersExpanded && (
+                        <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5 animate-fade-in relative z-10">
+                            <p className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+                                <span>Citas de hoy con recordatorio enviado:</span>
+                                <span className="text-emerald-400 font-mono text-xs">{todayRemindersSent.length}</span>
+                            </p>
+                            {todayRemindersSent.length === 0 ? (
+                                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-slate-400 italic">
+                                    Aún no se han enviado recordatorios para las citas de hoy.
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                    {todayRemindersSent.map((apt) => {
+                                        const svc = services.find(s => s.id === apt.serviceId);
+                                        const stylist = stylists.find(s => s.id === apt.stylistId);
+                                        return (
+                                            <div key={apt.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-emerald-500/20 text-xs gap-3">
+                                                <div className="space-y-0.5 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-black text-white truncate">{apt.clientName}</span>
+                                                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">
+                                                            Enviado 🟢
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                                        <span className="font-semibold text-slate-300">{apt.time} hrs</span>
+                                                        <span>•</span>
+                                                        <span className="truncate">{svc?.name || 'Servicio'}</span>
+                                                        {stylist && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span className="text-pink-400">{stylist.name}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {apt.clientPhone && (
+                                                    <a
+                                                        href={`https://wa.me/${apt.clientPhone.replace(/\D/g, '')}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors shrink-0"
+                                                        title="WhatsApp del cliente"
+                                                    >
+                                                        <MessageCircle size={16} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
