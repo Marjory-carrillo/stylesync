@@ -388,15 +388,15 @@ export default function Services() {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
-                    <div className="glass-panel w-full max-w-md p-6 rounded-xl animate-fade-in" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md overflow-y-auto" onClick={() => setIsModalOpen(false)}>
+                    <div className="glass-panel w-full max-w-lg p-6 rounded-2xl animate-fade-in max-h-[90vh] overflow-y-auto custom-scrollbar border border-white/10 bg-[#0d1322] shadow-2xl my-auto" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-white">{editingId ? 'Editar' : 'Nuevo'} Servicio</h3>
-                            <button className="text-muted hover:text-white" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
+                            <button className="text-muted hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
                         </div>
 
                         {formError && (
-                            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm animate-pulse-soft flex items-center gap-2">
+                            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-pulse-soft flex items-center gap-2">
                                 <X size={16} />
                                 <span>{formError}</span>
                             </div>
@@ -410,18 +410,18 @@ export default function Services() {
                                     value={formName}
                                     onChange={e => setFormName(e.target.value)}
                                     placeholder="Ej: Corte de Cabello"
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+
                             <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Duración (min)</label>
+                                <label className="text-sm font-medium text-muted mb-1 block">Duración (minutos)</label>
                                 <input
                                     type="number"
                                     value={formDuration}
                                     onChange={e => setFormDuration(e.target.value)}
                                     placeholder="30"
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                 />
                             </div>
 
@@ -432,21 +432,21 @@ export default function Services() {
                                     <button
                                         type="button"
                                         onClick={() => setFormPriceType('fixed')}
-                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'fixed' ? 'bg-accent/15 border-accent text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'fixed' ? 'bg-accent/15 border-accent text-white shadow-sm' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
                                     >
                                         Precio Fijo
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setFormPriceType('no_price')}
-                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'no_price' ? 'bg-cyan-400/15 border-cyan-400 text-cyan-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'no_price' ? 'bg-cyan-400/15 border-cyan-400 text-cyan-300 shadow-sm' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
                                     >
                                         Sin Precio (A cotizar)
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setFormPriceType('range')}
-                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'range' ? 'bg-purple-400/15 border-purple-400 text-purple-300' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                        className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${formPriceType === 'range' ? 'bg-purple-400/15 border-purple-400 text-purple-300 shadow-sm' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
                                     >
                                         Rango Precios
                                     </button>
@@ -461,7 +461,7 @@ export default function Services() {
                                         value={formPrice}
                                         onChange={e => setFormPrice(e.target.value)}
                                         placeholder="250"
-                                        className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                     />
                                 </div>
                             )}
@@ -481,7 +481,7 @@ export default function Services() {
                                             value={formMinPrice}
                                             onChange={e => setFormMinPrice(e.target.value)}
                                             placeholder="300"
-                                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                         />
                                     </div>
                                     <div>
@@ -491,16 +491,16 @@ export default function Services() {
                                             value={formMaxPrice}
                                             onChange={e => setFormMaxPrice(e.target.value)}
                                             placeholder="600"
-                                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                         />
                                     </div>
                                 </div>
                             )}
-                            </div>
+
                             <div>
                                 <label className="text-sm font-medium text-muted mb-1 block">Imagen del Servicio</label>
-                                <div className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/10">
-                                    <div className="w-16 h-16 rounded-lg bg-black/20 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                                    <div className="w-16 h-16 rounded-xl bg-black/20 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                         {formImage ? (
                                             <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
@@ -545,7 +545,7 @@ export default function Services() {
                             <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                                 <label className="flex items-start justify-between cursor-pointer group">
                                     <div>
-                                        <div className="font-medium text-white group-hover:text-accent transition-colors">Servicio Adicional (Extra)</div>
+                                        <div className="font-medium text-white group-hover:text-accent transition-colors text-sm">Servicio Adicional (Extra)</div>
                                         <div className="text-xs text-muted mt-1 w-5/6">
                                             Actívalo si este servicio no se puede agendar solo, sino que se ofrece como un "extra" a otro servicio principal.
                                         </div>
@@ -567,7 +567,7 @@ export default function Services() {
                                 <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                                     <label className="flex items-start justify-between cursor-pointer group">
                                         <div>
-                                            <div className="font-medium text-white group-hover:text-accent transition-colors">Activar Cotizador de Uñas</div>
+                                            <div className="font-medium text-white group-hover:text-accent transition-colors text-sm">Activar Cotizador de Uñas</div>
                                             <div className="text-xs text-muted mt-1 w-5/6">
                                                 Activa la calculadora interactiva (técnica, largo, estilos, cristales) para este servicio en la app de reservas.
                                             </div>
@@ -586,9 +586,9 @@ export default function Services() {
                             )}
                         </div>
 
-                        <div className="flex justify-end gap-3 mt-8">
-                            <button className="btn btn-ghost hover:bg-white/10" onClick={() => setIsModalOpen(false)}>Cancelar</button>
-                            <button className="btn btn-primary" onClick={handleSave}>Guardar</button>
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+                            <button className="btn btn-ghost hover:bg-white/10 text-slate-300" onClick={() => setIsModalOpen(false)}>Cancelar</button>
+                            <button className="btn btn-primary px-6" onClick={handleSave}>Guardar</button>
                         </div>
                     </div>
                 </div>
