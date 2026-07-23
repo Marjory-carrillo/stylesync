@@ -11,7 +11,7 @@ import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles } from 'lucide-react';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush } from 'lucide-react';
 import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
@@ -99,6 +99,55 @@ const getBrandColors = (imgUrl: string): Promise<{ primary: string; accent: stri
     });
 };
 
+const COLOR_PRESETS = [
+    { id: 'rose', label: 'Rosa Pastel', primary: '335', accent: '320', desc: 'Salones & Nail Bars' },
+    { id: 'lavender', label: 'Lavanda', primary: '275', accent: '290', desc: 'Elegante & Chic' },
+    { id: 'mint', label: 'Menta / Turquesa', primary: '175', accent: '160', desc: 'Spas & Relajación' },
+    { id: 'gold', label: 'Oro Champagne', primary: '42', accent: '35', desc: 'Alta Gama & Lujo' },
+    { id: 'cyan', label: 'Azul Cyan', primary: '200', accent: '190', desc: 'CitaLink Clásico' },
+    { id: 'emerald', label: 'Verde Esmeralda', primary: '150', accent: '140', desc: 'Orgánico & Eco' },
+    { id: 'peach', label: 'Durazno / Coral', primary: '15', accent: '25', desc: 'Cálido & Moderno' },
+    { id: 'onyx', label: 'Negro Ónix', primary: '220', accent: '210', desc: 'Minimal Dark' },
+];
+
+function hexToHslHue(hex: string): string {
+    let c = hex.replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    const r = parseInt(c.substring(0, 2), 16) / 255;
+    const g = parseInt(c.substring(2, 4), 16) / 255;
+    const b = parseInt(c.substring(4, 6), 16) / 255;
+
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0;
+
+    if (max !== min) {
+        const d = max - min;
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return Math.round(h * 360).toString();
+}
+
+function hslHueToHex(hueStr: string): string {
+    const h = parseInt(hueStr, 10) || 200;
+    const s = 0.8, l = 0.5;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+    else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+    else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+    else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+    else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+    else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+    const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
 
 export default function Settings() {
     const { uploadLogo } = useImageUpload();
@@ -487,35 +536,100 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        {/* Theme Color Indicator & Reset */}
-                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5">
-                            <div>
-                                <label className="block text-sm font-medium text-white mb-1">Color del Tema</label>
-                                <p className="text-xs text-muted">Extraído del logo. Si no te gusta, puedes restaurarlo.</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {infoForm.primaryColor ? (
-                                    <>
-                                        <div
-                                            className="w-8 h-8 rounded-full border border-white/20 shadow-lg"
-                                            style={{ backgroundColor: `hsl(${infoForm.primaryColor}, 80%, 50%)` }}
-                                            title="Color actual"
-                                        />
+                        {/* Theme Color Personalization & Presets */}
+                        <div className="p-5 bg-slate-900/60 rounded-2xl border border-white/10 space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+                                <div>
+                                    <label className="block text-sm font-bold text-white mb-0.5">Color del Tema (Admin + App de Clientes)</label>
+                                    <p className="text-xs text-muted">Personaliza la apariencia visual del panel admin y de la app de reservas.</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {infoForm.primaryColor && (
                                         <button
                                             type="button"
-                                            className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 text-xs px-3 py-1.5"
+                                            className="text-xs text-slate-400 hover:text-red-400 bg-white/5 hover:bg-red-500/10 px-3 py-1.5 rounded-xl border border-white/10 transition-colors"
                                             onClick={async () => {
                                                 const newConfig = { ...infoForm, primaryColor: '', accentColor: '' };
                                                 setInfoForm(newConfig);
                                                 await updateBusinessConfig({ primaryColor: '', accentColor: '' });
-                                                showToast('Colores restaurados por defecto', 'success');
+                                                showToast('Colores restaurados al azul por defecto', 'info');
                                             }}
                                         >
-                                            Restaurar Azul
+                                            Restaurar Azul Clásico
                                         </button>
-                                    </>
-                                ) : (
-                                    <span className="text-xs text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">Por defecto</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Color Presets */}
+                            <div>
+                                <p className="text-xs font-semibold text-slate-400 mb-2.5">Paletas de Colores Recomendadas</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                    {COLOR_PRESETS.map((preset) => {
+                                        const isSelected = infoForm.primaryColor === preset.primary;
+                                        return (
+                                            <button
+                                                key={preset.id}
+                                                type="button"
+                                                onClick={async () => {
+                                                    const newConfig = { ...infoForm, primaryColor: preset.primary, accentColor: preset.accent };
+                                                    setInfoForm(newConfig);
+                                                    await updateBusinessConfig({ primaryColor: preset.primary, accentColor: preset.accent });
+                                                    showToast(`Tema "${preset.label}" aplicado a Admin y Reservas`, 'success');
+                                                }}
+                                                className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                                                    isSelected
+                                                        ? 'bg-white/10 border-accent shadow-[0_0_15px_rgba(255,255,255,0.1)] ring-1 ring-accent'
+                                                        : 'bg-slate-950/40 border-white/5 hover:border-white/20 hover:bg-white/5'
+                                                }`}
+                                            >
+                                                <div
+                                                    className="w-7 h-7 rounded-lg border border-white/20 shrink-0 shadow-sm"
+                                                    style={{ backgroundColor: `hsl(${preset.primary}, 85%, 55%)` }}
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs font-bold text-white truncate">{preset.label}</p>
+                                                    <p className="text-[9px] text-slate-400 truncate">{preset.desc}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Custom Color Picker */}
+                            <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <input
+                                            type="color"
+                                            id="custom-color-picker"
+                                            value={hslHueToHex(infoForm.primaryColor || '200')}
+                                            onChange={async (e) => {
+                                                const primaryHue = hexToHslHue(e.target.value);
+                                                const accentHue = ((parseInt(primaryHue, 10) + 340) % 360).toString();
+                                                const newConfig = { ...infoForm, primaryColor: primaryHue, accentColor: accentHue };
+                                                setInfoForm(newConfig);
+                                                await updateBusinessConfig({ primaryColor: primaryHue, accentColor: accentHue });
+                                            }}
+                                            className="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-0 opacity-0 absolute inset-0 z-10"
+                                        />
+                                        <div
+                                            className="w-10 h-10 rounded-xl border-2 border-white/20 shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
+                                            style={{ backgroundColor: `hsl(${infoForm.primaryColor || '200'}, 80%, 50%)` }}
+                                        >
+                                            <Paintbrush size={16} className="text-white drop-shadow" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-white">Selector de Color Personalizado</p>
+                                        <p className="text-[10px] text-slate-400">Haz clic en el cuadro de color para elegir cualquier tono exacto.</p>
+                                    </div>
+                                </div>
+                                {infoForm.logoUrl && (
+                                    <p className="text-[10px] text-amber-400/90 font-medium bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20">
+                                        ✨ Extracción automática de logo activa al subir imágenes
+                                    </p>
                                 )}
                             </div>
                         </div>

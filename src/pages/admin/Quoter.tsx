@@ -378,33 +378,57 @@ export default function Quoter() {
                                             </label>
 
                                             {selection.checked && hasUnit && (
-                                                <div className="flex items-center gap-2 bg-slate-950/50 rounded-lg p-1 border border-white/5">
+                                                <div className="flex items-center gap-1 bg-slate-950/70 rounded-xl p-1 border border-white/10 shrink-0">
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             const qty = Math.max(1, selection.qty - 1);
                                                             setSelectedStyles(prev => ({
                                                                 ...prev,
                                                                 [item.id]: { ...selection, qty }
                                                             }));
                                                         }}
-                                                        className="w-6 h-6 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white"
+                                                        className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
+                                                        title="Restar 1"
                                                     >
-                                                        <Minus size={12} />
+                                                        <Minus size={13} />
                                                     </button>
-                                                    <span className="text-xs font-bold w-5 text-center text-white">{selection.qty}</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const qty = Math.min(10, selection.qty + 1);
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max={item.unit === 'por uña' ? 10 : 100}
+                                                        value={selection.qty === 0 ? '' : selection.qty}
+                                                        onFocus={(e) => e.target.select()}
+                                                        onChange={(e) => {
+                                                            const maxVal = item.unit === 'por uña' ? 10 : 100;
+                                                            const rawVal = e.target.value;
+                                                            let parsed = rawVal === '' ? 1 : parseInt(rawVal, 10);
+                                                            if (isNaN(parsed)) parsed = 1;
+                                                            const qty = Math.min(maxVal, Math.max(1, parsed));
                                                             setSelectedStyles(prev => ({
                                                                 ...prev,
                                                                 [item.id]: { ...selection, qty }
                                                             }));
                                                         }}
-                                                        className="w-6 h-6 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 text-white"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="w-10 text-center bg-transparent border-0 text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 rounded py-0.5"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const maxVal = item.unit === 'por uña' ? 10 : 100;
+                                                            const qty = Math.min(maxVal, selection.qty + 1);
+                                                            setSelectedStyles(prev => ({
+                                                                ...prev,
+                                                                [item.id]: { ...selection, qty }
+                                                            }));
+                                                        }}
+                                                        className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
+                                                        title="Sumar 1"
                                                     >
-                                                        <Plus size={12} />
+                                                        <Plus size={13} />
                                                     </button>
                                                 </div>
                                             )}
