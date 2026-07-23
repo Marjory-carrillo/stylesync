@@ -450,19 +450,21 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                         <div className="animate-fade-in">
                             <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 3: Barbero / Profesional</p>
                             <div className="space-y-2">
-                                {/* Any option */}
-                                <button
-                                    onClick={() => { setSelectedStylist('any'); setStep('fecha'); }}
-                                    className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/[0.03] hover:border-accent/20 hover:bg-white/5 transition-all text-left"
-                                >
-                                    <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                        <UserCheck size={18} className="text-slate-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-white text-sm">Cualquier Profesional</p>
-                                        <p className="text-xs text-slate-500">Primera disponibilidad</p>
-                                    </div>
-                                </button>
+                                {/* Any option (solo si hay 2 o más profesionales capacitados) */}
+                                {filteredStylists.length >= 2 && (
+                                    <button
+                                        onClick={() => { setSelectedStylist('any'); setStep('fecha'); }}
+                                        className="w-full flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/[0.03] hover:border-accent/20 hover:bg-white/5 transition-all text-left"
+                                    >
+                                        <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                            <UserCheck size={18} className="text-slate-400" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-white text-sm">Cualquier Profesional</p>
+                                            <p className="text-xs text-slate-500">Primera disponibilidad</p>
+                                        </div>
+                                    </button>
+                                )}
                                 {filteredStylists.map(st => (
                                     <button
                                         key={st.id}

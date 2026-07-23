@@ -1639,27 +1639,29 @@ export default function Booking() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
-                            {/* "Any" Option */}
-                            <div
-                                key="any-stylist"
-                                className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist === null ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
-                                onClick={() => {
-                                    setSelectedStylist(null);
-                                    setStep(25);
-                                }}
-                            >
-                                <div className="flex items-center gap-5">
-                                    <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
-                                        <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                            <RefreshCw size={32} />
+                            {/* "Any" Option (solo se muestra si hay 2 o más profesionales capacitados) */}
+                            {filteredStylists.length >= 2 && (
+                                <div
+                                    key="any-stylist"
+                                    className={`glass-card p-5 group cursor-pointer transition-all duration-500 !rounded-[2rem] border-white/5 hover:border-cyan-500/30 ${selectedStylist === null ? 'ring-2 ring-cyan-400 bg-cyan-400/10' : ''}`}
+                                    onClick={() => {
+                                        setSelectedStylist(null);
+                                        setStep(25);
+                                    }}
+                                >
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
+                                            <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                <RefreshCw size={32} />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">Cualquier {professionalLabel}</h4>
+                                            <p className="text-sm text-muted uppercase tracking-widest">El primer disponible</p>
                                         </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">Cualquier {professionalLabel}</h4>
-                                        <p className="text-sm text-muted uppercase tracking-widest">El primer disponible</p>
-                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Stylists List */}
                             {filteredStylists.map((stylist: Stylist) => (
