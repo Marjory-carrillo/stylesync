@@ -798,6 +798,7 @@ export default function Booking() {
                             date:         selectedDate,
                             time:         selectedTime,
                             design_photo: nailDesignUrl || selectedCatalogItem?.imageUrl || undefined,
+                            stylist_id:   assignedStylistId ? Number(assignedStylistId) : undefined,
                         },
                     }),
                 }).catch(() => { /* fire-and-forget */ });

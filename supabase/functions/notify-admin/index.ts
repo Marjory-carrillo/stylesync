@@ -161,9 +161,46 @@ serve(async (req: Request) => {
             businessName = tenant.name;
         }
 
-        // ── 1. NOTIFICACIÓN AL ADMIN ──────────────────────────────────────────
-        const adminWA = normalizeToWA(adminPhone);
-        console.log('[notify-admin] sending to admin WA:', adminWA);
+        // ── 1. NOTIFICACIÓN AL PROFESIONAL Y/O ADMIN ─────────────────────────────
+        // Búsqueda del profesional (estilista/barbero) si se proporcionó stylist_id
+        let stylistPhone: string | null = null;
+        let stylistName: string | null = null;
+
+        if (appointment.stylist_id) {
+            try {
+                const { data: stylist } = await supabaseLog
+                    .from('stylists')
+                    .select('name, phone')
+                    .eq('id', appointment.stylist_id)
+                    .single();
+                if (stylist?.phone) {
+                    stylistPhone = stylist.phone.trim();
+                }
+                if (stylist?.name) {
+                    stylistName = stylist.name;
+                }
+            } catch (errStylist: any) {
+                console.warn('[notify-admin] error looking up stylist:', errStylist.message);
+            }
+        }
+
+        // Construir lista de teléfonos destino sin duplicados
+        const targetPhones: Array<{ phone: string; role: 'stylist' | 'admin' }> = [];
+        const addedNormalized = new Set<string>();
+
+        if (stylistPhone) {
+            const stylistWA = normalizeToWA(stylistPhone);
+            targetPhones.push({ phone: stylistPhone, role: 'stylist' });
+            addedNormalized.add(stylistWA);
+        }
+
+        if (adminPhone) {
+            const adminWA = normalizeToWA(adminPhone);
+            if (!addedNormalized.has(adminWA)) {
+                targetPhones.push({ phone: adminPhone, role: 'admin' });
+                addedNormalized.add(adminWA);
+            }
+        }
 
         // Obtener timezone del tenant para formateo correcto
         let tZone = 'America/Mexico_City';
@@ -176,67 +213,77 @@ serve(async (req: Request) => {
             if (tenantTz?.timezone) tZone = tenantTz.timezone;
         } catch (_) { /* usar timezone por defecto */ }
 
-        // ── Notificar al admin ──────────────────────────────────────────────────
         const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
         const adminTemplateMap: Record<string, string> = {
             new:        TEMPLATE_ADMIN_NUEVA_CITA,
             reschedule: TEMPLATE_ADMIN_REPROGRAMACION,
             cancel:     TEMPLATE_ADMIN_CANCELACION,
         };
-        // Plantilla admin: {{1}}=negocio, {{2}}=cliente, {{3}}=servicio, {{4}}=fecha, {{5}}=tel
-        let adminSent = await sendTemplate(adminWA, adminTemplateMap[event_type], {
-            '1': businessName,
-            '2': appointment.client_name,
-            '3': appointment.service_name ?? 'Servicio',
-            '4': fechaAdmin,
-            '5': appointment.client_phone,
-        });
 
-        // Fallback: template genérico si el específico falla
-        if (!adminSent) {
-            adminSent = await sendTemplate(adminWA, TEMPLATE_FALLBACK, {
-                '1': appointment.client_name,
-                '2': businessName,
-                '3': fechaAdmin,
-                '4': appointment.service_name ?? 'Servicio',
+        let anyNotified = false;
+
+        // Enviar notificación a cada destinatario (profesional y/o admin)
+        for (const target of targetPhones) {
+            const targetWA = normalizeToWA(target.phone);
+            console.log(`[notify-admin] sending to ${target.role} WA:`, targetWA);
+
+            // Plantilla admin: {{1}}=negocio, {{2}}=cliente, {{3}}=servicio, {{4}}=fecha, {{5}}=tel
+            let sent = await sendTemplate(targetWA, adminTemplateMap[event_type], {
+                '1': businessName,
+                '2': appointment.client_name,
+                '3': appointment.service_name ?? 'Servicio',
+                '4': fechaAdmin,
                 '5': appointment.client_phone,
             });
-        }
 
-        // Fallback final: texto libre
-        if (!adminSent) {
-            const icons: Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
-            const lbls:  Record<string, string> = { new: 'NUEVA CITA', reschedule: 'REPROGRAMADA', cancel: 'CANCELADA' };
-            adminSent = await sendWA(adminWA,
-                `${icons[event_type] ?? '📅'} *${lbls[event_type] ?? 'CITA'}* — ${businessName}
-👤 ${appointment.client_name}  ✂️ ${appointment.service_name ?? 'Servicio'}
-📆 ${fechaAdmin}  📱 ${appointment.client_phone}`);
-        }
-
-        // Si hay una foto de diseño adjunta, intentar enviarla como mensaje multimedia de seguimiento al admin
-        if (adminSent && appointment.design_photo) {
-            console.log('[notify-admin] Intentando enviar foto de diseño al admin:', appointment.design_photo);
-            try {
-                const photoSent = await sendWAMedia(
-                    adminWA,
-                    `📷 Foto de referencia de diseño enviada por ${appointment.client_name} para su cita.`,
-                    appointment.design_photo
-                );
-                console.log('[notify-admin] Resultado del envío de foto:', photoSent);
-            } catch (errPhoto) {
-                console.error('[notify-admin] Error al enviar foto de WhatsApp:', errPhoto.message);
+            // Fallback: template genérico si el específico falla
+            if (!sent) {
+                sent = await sendTemplate(targetWA, TEMPLATE_FALLBACK, {
+                    '1': appointment.client_name,
+                    '2': businessName,
+                    '3': fechaAdmin,
+                    '4': appointment.service_name ?? 'Servicio',
+                    '5': appointment.client_phone,
+                });
             }
-        }
 
-        // Log admin notification
-        if (adminSent && tenant_id) {
-            await supabaseLog.from('sms_logs').insert({
-                tenant_id,
-                phone_to: adminPhone,
-                message_type: `admin_${event_type}`,
-                provider: 'whatsapp',
-                status: 'sent',
-            }).then(r => { if (r.error) console.warn('[notify-admin] sms_logs insert error (admin):', r.error.message); });
+            // Fallback final: texto libre
+            if (!sent) {
+                const icons: Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
+                const lbls:  Record<string, string> = { new: 'NUEVA CITA', reschedule: 'REPROGRAMADA', cancel: 'CANCELADA' };
+                const profInfo = stylistName ? `\n💈 Atiende: ${stylistName}` : '';
+                sent = await sendWA(targetWA,
+                    `${icons[event_type] ?? '📅'} *${lbls[event_type] ?? 'CITA'}* — ${businessName}
+👤 ${appointment.client_name}  ✂️ ${appointment.service_name ?? 'Servicio'}${profInfo}
+📆 ${fechaAdmin}  📱 ${appointment.client_phone}`);
+            }
+
+            // Si hay una foto de diseño adjunta, intentar enviarla como mensaje multimedia
+            if (sent && appointment.design_photo) {
+                console.log(`[notify-admin] Intentando enviar foto de diseño a ${target.role}:`, appointment.design_photo);
+                try {
+                    const photoSent = await sendWAMedia(
+                        targetWA,
+                        `📷 Foto de referencia de diseño enviada por ${appointment.client_name} para su cita.`,
+                        appointment.design_photo
+                    );
+                    console.log(`[notify-admin] Resultado del envío de foto a ${target.role}:`, photoSent);
+                } catch (errPhoto: any) {
+                    console.error(`[notify-admin] Error al enviar foto de WhatsApp a ${target.role}:`, errPhoto.message);
+                }
+            }
+
+            // Registrar en sms_logs
+            if (sent && tenant_id) {
+                anyNotified = true;
+                await supabaseLog.from('sms_logs').insert({
+                    tenant_id,
+                    phone_to: target.phone,
+                    message_type: `${target.role}_${event_type}`,
+                    provider: 'whatsapp',
+                    status: 'sent',
+                }).then(r => { if (r.error) console.warn(`[notify-admin] sms_logs insert error (${target.role}):`, r.error.message); });
+            }
         }
 
 
@@ -288,7 +335,7 @@ serve(async (req: Request) => {
         }
 
         return new Response(
-            JSON.stringify({ success: adminSent, admin_notified: adminSent, client_notified: clientSent }),
+            JSON.stringify({ success: anyNotified, notified: anyNotified, client_notified: clientSent }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 

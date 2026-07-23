@@ -8,7 +8,7 @@ import { useUIStore } from '../uiStore';
 async function notifyAdmin(
     tenantId: string,
     eventType: 'new' | 'reschedule' | 'cancel',
-    appointment: { client_name: string; client_phone: string; service_name?: string; date: string; time: string },
+    appointment: { client_name: string; client_phone: string; service_name?: string; date: string; time: string; stylist_id?: number | null },
     adminPhone?: string,
     businessName?: string,
 ) {
@@ -133,6 +133,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                     service_name: serviceName,
                     date: apt.date,
                     time: apt.time,
+                    stylist_id: apt.stylistId,
                 }, adminPhone, businessName);
             }
         },
@@ -183,6 +184,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                     service_name: serviceName,
                     date: newDate ?? apt.date,
                     time: newTime,
+                    stylist_id: apt.stylistId,
                 }, adminPhone, businessName);
             }
         },
