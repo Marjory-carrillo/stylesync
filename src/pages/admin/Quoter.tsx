@@ -607,12 +607,12 @@ export default function Quoter() {
                                                     </p>
                                                 )}
                                             </div>
-                                            <span className={`font-black text-xs shrink-0 px-2 py-0.5 rounded-lg ${
+                                            <span className={`font-black text-sm shrink-0 ${
                                                 cardTheme === 'pink'
-                                                    ? 'bg-pink-100/80 text-pink-700'
+                                                    ? 'text-pink-700'
                                                     : cardTheme === 'gold'
-                                                    ? 'bg-amber-100 text-amber-800'
-                                                    : 'bg-white/10 text-emerald-400'
+                                                    ? 'text-amber-800'
+                                                    : 'text-emerald-400'
                                             }`}>
                                                 ${item.price}
                                             </span>
@@ -635,12 +635,12 @@ export default function Quoter() {
                                         ${quoteBreakdown.total} <span className="text-xs font-semibold">MXN</span>
                                     </p>
                                 </div>
-                                <div className={`px-3 py-1.5 rounded-xl font-black text-xs tracking-wide shadow-sm ${
+                                <div className={`px-3 py-1.5 rounded-xl font-bold text-xs tracking-wide border ${
                                     cardTheme === 'pink'
-                                        ? 'bg-pink-600 text-white'
+                                        ? 'bg-pink-50 border-pink-200 text-pink-700'
                                         : cardTheme === 'gold'
-                                        ? 'bg-amber-600 text-white'
-                                        : 'bg-emerald-500 text-white'
+                                        ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                                 }`}>
                                     Tu Cotización ✨
                                 </div>
