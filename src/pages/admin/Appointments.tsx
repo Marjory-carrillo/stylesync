@@ -894,9 +894,15 @@ export default function Appointments() {
                                                 type="button"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (window.confirm('¿Estás seguro de que deseas borrar todo el historial de cancelaciones? Esta acción no se puede deshacer.')) {
-                                                        clearAllCancellationLog();
-                                                    }
+                                                    setCustomConfirm({
+                                                        open: true,
+                                                        title: 'Vaciar Historial de Cancelaciones',
+                                                        message: '¿Estás seguro de que deseas borrar todo el historial de cancelaciones? Esta acción no se puede deshacer.',
+                                                        confirmLabel: 'Sí, Borrar Todo',
+                                                        cancelLabel: 'Cancelar',
+                                                        onConfirm: () => clearAllCancellationLog(),
+                                                        danger: true,
+                                                    });
                                                 }}
                                                 className="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
                                                 title="Vaciar todo el historial de cancelaciones"
@@ -962,9 +968,15 @@ export default function Appointments() {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => {
-                                                                            if (window.confirm(`¿Borrar el registro de cancelación de ${log.clientName}?`)) {
-                                                                                deleteCancellationLog(log.id);
-                                                                            }
+                                                                            setCustomConfirm({
+                                                                                open: true,
+                                                                                title: 'Borrar Registro de Cancelación',
+                                                                                message: `¿Estás seguro de que deseas borrar el registro de cancelación de ${log.clientName}?`,
+                                                                                confirmLabel: 'Sí, Borrar',
+                                                                                cancelLabel: 'Cancelar',
+                                                                                onConfirm: () => deleteCancellationLog(log.id),
+                                                                                danger: true,
+                                                                            });
                                                                         }}
                                                                         className="p-1 rounded-md text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20"
                                                                         title="Borrar esta cancelación"

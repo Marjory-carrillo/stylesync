@@ -1,4 +1,4 @@
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, HelpCircle } from 'lucide-react';
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -24,37 +24,64 @@ export default function ConfirmModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in"
+            onClick={onCancel}
+        >
             <div
-                className="glass-panel w-full max-w-sm p-6 rounded-2xl border border-white/10 shadow-2xl"
+                className={`w-full max-w-md p-6 sm:p-7 rounded-[2rem] bg-[#0c101d]/95 border shadow-2xl relative overflow-hidden transition-all duration-300 ${
+                    danger 
+                        ? 'border-red-500/25 shadow-red-500/10' 
+                        : 'border-accent/25 shadow-accent/10'
+                }`}
                 onClick={e => e.stopPropagation()}
             >
-                <div className="flex justify-between items-start mb-4">
-                    <div className={`p-2 rounded-xl ${danger ? 'bg-red-500/10 text-red-500' : 'bg-cyan-500/10 text-cyan-400'}`}>
-                        <AlertTriangle size={24} />
+                {/* Glow Background */}
+                <div 
+                    className={`absolute -top-12 -left-12 w-40 h-40 rounded-full blur-3xl pointer-events-none ${
+                        danger ? 'bg-red-500/15' : 'bg-accent/15'
+                    }`} 
+                />
+
+                <div className="flex justify-between items-start mb-4 relative z-10">
+                    <div className={`p-3.5 rounded-2xl border ${
+                        danger 
+                            ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                            : 'bg-accent/10 text-accent border-accent/20'
+                    }`}>
+                        {danger ? <AlertTriangle size={24} /> : <HelpCircle size={24} />}
                     </div>
                     <button
-                        className="text-muted hover:text-white transition-colors"
+                        type="button"
+                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
                         onClick={onCancel}
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </button>
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-                <p className="text-muted text-sm mb-8 leading-relaxed">
-                    {message}
-                </p>
+                <div className="relative z-10 mb-6">
+                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight mb-2">{title}</h3>
+                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                        {message}
+                    </p>
+                </div>
 
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3 relative z-10">
                     <button
-                        className="flex-1 btn btn-ghost hover:bg-white/5 py-3"
+                        type="button"
+                        className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white font-bold text-xs sm:text-sm transition-all"
                         onClick={onCancel}
                     >
                         {cancelLabel}
                     </button>
                     <button
-                        className={`flex-1 btn py-3 font-bold ${danger ? 'bg-red-500 hover:bg-red-600' : 'btn-primary'}`}
+                        type="button"
+                        className={`flex-1 py-3 px-4 rounded-xl font-black text-xs sm:text-sm transition-all shadow-lg ${
+                            danger 
+                                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20' 
+                                : 'bg-accent hover:bg-accent/90 text-[#0a0f1a] shadow-accent/20'
+                        }`}
                         onClick={onConfirm}
                     >
                         {confirmLabel}
