@@ -31,6 +31,7 @@ import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
+import AppZoomControl from '../../components/AppZoomControl';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 export default function Booking() {
     const { slug } = useParams();
@@ -1107,7 +1108,10 @@ export default function Booking() {
     }
 
     return (
-        <div className="container animate-fade-in" style={{ maxWidth: '520px', paddingTop: 'max(4rem, env(safe-area-inset-top))', paddingBottom: '3rem', minHeight: '100vh' }}>
+        <div className="container animate-fade-in relative" style={{ maxWidth: '520px', paddingTop: 'max(4rem, env(safe-area-inset-top))', paddingBottom: '3rem', minHeight: '100vh' }}>
+            <div className="absolute top-3 right-4 z-40">
+                <AppZoomControl />
+            </div>
             <PWAInstallBanner businessName={businessConfig?.name || undefined} />
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
