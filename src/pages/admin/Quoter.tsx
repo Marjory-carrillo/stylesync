@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
-import { Calculator, Copy, Share2, Printer, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Calculator, Copy, Share2, Printer, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, Eye, X } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 import html2canvas from 'html2canvas';
 
@@ -20,9 +20,9 @@ export default function Quoter() {
     const [selectedExtras, setSelectedExtras] = useState<Record<string, boolean>>({});
     const [cardTheme, setCardTheme] = useState<'pink' | 'dark' | 'gold'>('pink');
 
-    // Reference photo state
+    // Reference photo state & lightbox modal
     const [referenceImage, setReferenceImage] = useState<string | null>(null);
-    const [showPhotoOnTicket, setShowPhotoOnTicket] = useState<boolean>(true);
+    const [isPhotoModalOpen, setIsPhotoModalOpen] = useState<boolean>(false);
 
     // Listener for Ctrl + V image paste from WhatsApp / Clipboard
     useEffect(() => {
@@ -345,28 +345,38 @@ export default function Quoter() {
                             </label>
                         ) : (
                             <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-950/70 p-3 rounded-xl border border-white/10">
-                                <div className="relative w-full sm:w-28 h-28 rounded-lg overflow-hidden border border-white/20 shrink-0 bg-slate-900 shadow-md">
+                                {/* Clickable thumbnail with zoom overlay */}
+                                <div
+                                    onClick={() => setIsPhotoModalOpen(true)}
+                                    className="relative w-full sm:w-28 h-28 rounded-lg overflow-hidden border border-white/20 shrink-0 bg-slate-900 shadow-md cursor-pointer group"
+                                    title="Haz clic para ver en pantalla completa"
+                                >
                                     <img
                                         src={referenceImage}
                                         alt="Diseño de referencia"
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 font-bold text-xs">
+                                        <Maximize2 size={16} />
+                                        <span>Ampliar</span>
+                                    </div>
                                 </div>
                                 <div className="flex-1 space-y-2 text-left w-full">
                                     <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                                        ✨ Vista previa activa para guiar tu cotización
+                                        ✨ Guía activa para calcular tu servicio
                                     </p>
-                                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none bg-white/5 p-2 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                                        <input
-                                            type="checkbox"
-                                            checked={showPhotoOnTicket}
-                                            onChange={(e) => setShowPhotoOnTicket(e.target.checked)}
-                                            className="w-4 h-4 rounded text-pink-500 border-white/20 focus:ring-pink-500 bg-slate-900"
-                                        />
-                                        <span>Incluir esta foto dentro de la imagen final del ticket</span>
-                                    </label>
-                                    <div className="flex items-center gap-2 pt-0.5">
-                                        <label className="text-[11px] text-pink-400 hover:text-pink-300 font-bold cursor-pointer underline flex items-center gap-1">
+                                    <p className="text-[11px] text-slate-300">
+                                        Haz clic en la foto o presiona el botón para examinar detalles, trazos o cristales en tamaño completo.
+                                    </p>
+                                    <div className="flex items-center gap-3 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPhotoModalOpen(true)}
+                                            className="px-3 py-1.5 rounded-lg bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/30 text-pink-300 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                                        >
+                                            <Eye size={14} /> Ampliar Foto 🔍
+                                        </button>
+                                        <label className="text-[11px] text-slate-400 hover:text-slate-200 font-bold cursor-pointer underline flex items-center gap-1">
                                             <Upload size={12} /> Cambiar Foto
                                             <input
                                                 type="file"
@@ -687,32 +697,6 @@ export default function Quoter() {
                             </div>
                         </div>
 
-                        {/* Optional Reference Design Image in Ticket */}
-                        {referenceImage && showPhotoOnTicket && (
-                            <div className="mb-4 relative z-10">
-                                <div className={`p-2.5 rounded-2xl border shadow-md text-center ${
-                                    cardTheme === 'pink'
-                                        ? 'bg-white/90 border-pink-200'
-                                        : cardTheme === 'gold'
-                                        ? 'bg-white/90 border-amber-200'
-                                        : 'bg-slate-900 border-white/15'
-                                }`}>
-                                    <p className={`text-[10px] font-black uppercase tracking-wider mb-1.5 ${
-                                        cardTheme === 'pink' ? 'text-pink-700' : cardTheme === 'gold' ? 'text-amber-800' : 'text-slate-300'
-                                    }`}>
-                                        📸 Diseño Solicitado
-                                    </p>
-                                    <div className="w-full h-40 rounded-xl overflow-hidden border border-black/5 bg-slate-100">
-                                        <img
-                                            src={referenceImage}
-                                            alt="Diseño Solicitado"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Inner Card Container */}
                         <div className={`rounded-2xl p-5 shadow-lg border relative z-10 ${
                             cardTheme === 'pink'
@@ -847,6 +831,39 @@ export default function Quoter() {
                 </div>
 
             </div>
+
+            {/* Lightbox Modal: Foto de Referencia en Pantalla Completa */}
+            {isPhotoModalOpen && referenceImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+                    onClick={() => setIsPhotoModalOpen(false)}
+                >
+                    <div
+                        className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-white/20 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-950/90">
+                            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                <ImageIcon size={16} className="text-pink-400" /> Diseño de Referencia
+                            </h4>
+                            <button
+                                type="button"
+                                onClick={() => setIsPhotoModalOpen(false)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-3 overflow-auto flex items-center justify-center bg-slate-950/90">
+                            <img
+                                src={referenceImage}
+                                alt="Diseño de referencia a detalle"
+                                className="max-h-[78vh] w-auto object-contain rounded-lg shadow-xl"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
