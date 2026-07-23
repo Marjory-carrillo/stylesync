@@ -28,68 +28,42 @@ export default function AdminLayout() {
     const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
     const { getMonthlyCancellations } = useCancellationLog();
 
-    // PWA manifest dinámico para admin — apunta a /admin con iconos de CitaLink
+    // PWA manifest dinámico para admin — apunta a /admin con iconos estáticos (compatible con iOS Safari & Android)
     useEffect(() => {
-        const createIcon = (size: number): Promise<string> => {
-            return new Promise((resolve) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d')!;
-
-                // Fondo oscuro lleno (evita que el OS ponga bordes blancos)
-                ctx.fillStyle = '#0f172a';
-                ctx.fillRect(0, 0, size, size);
-
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    // Dibujamos la imagen original encima del fondo oscuro
-                    ctx.drawImage(img, 0, 0, size, size);
-                    canvas.toBlob((blob) => {
-                        resolve(URL.createObjectURL(blob!));
-                    }, 'image/png');
-                };
-                img.onerror = () => {
-                    // Fallback
-                    ctx.fillStyle = '#7c3aed';
-                    ctx.font = `bold ${size * 0.5}px system-ui`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('∞', size / 2, size / 2);
-                    canvas.toBlob((blob) => {
-                        resolve(URL.createObjectURL(blob!));
-                    }, 'image/png');
-                };
-                img.src = '/assets/icon-512.png';
-            });
+        const adminManifest = {
+            name: 'CitaLink Admin',
+            short_name: 'CitaLink',
+            description: 'Panel de gestión de citas y clientes para administradores',
+            start_url: '/admin',
+            scope: '/',
+            display: 'standalone',
+            orientation: 'portrait-primary',
+            background_color: '#0f172a',
+            theme_color: '#7c3aed',
+            icons: [
+                { src: '/assets/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                { src: '/assets/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+            ],
         };
 
-        const setupManifest = async () => {
-            const [icon192, icon512] = await Promise.all([createIcon(192), createIcon(512)]);
+        const stringManifest = JSON.stringify(adminManifest);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(stringManifest);
+        
+        const el = document.querySelector('#pwa-manifest') as HTMLLinkElement;
+        if (el) el.href = dataUri;
 
-            const adminManifest = {
-                name: 'CitaLink Admin',
-                short_name: 'CitaLink',
-                description: 'Panel de gestión de citas y clientes',
-                start_url: '/admin',
-                scope: '/',
-                display: 'standalone',
-                background_color: '#0f172a',
-                theme_color: '#7c3aed',
-                icons: [
-                    { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                    { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-                ],
-            };
-            const blob = new Blob([JSON.stringify(adminManifest)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const el = document.querySelector('#pwa-manifest') as HTMLLinkElement;
-            if (el) el.href = url;
-            // No podemos revocar el URL inmediatamente porque el OS puede necesitar descargarlo después
-        };
+        // Asegurar apple-touch-icon estático para iOS Safari
+        let appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+        if (!appleIcon) {
+            appleIcon = document.createElement('link');
+            appleIcon.rel = 'apple-touch-icon';
+            document.head.appendChild(appleIcon);
+        }
+        appleIcon.href = '/assets/icon-192.png';
 
-        setupManifest();
+        document.title = 'CitaLink Admin — Panel de Control';
+        let appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement;
+        if (appleTitle) appleTitle.content = 'CitaLink Admin';
     }, []);
 
     const toggleLanguage = () => {

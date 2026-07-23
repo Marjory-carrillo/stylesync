@@ -398,12 +398,10 @@ export default function Booking() {
             };
 
             const stringManifest = JSON.stringify(manifest);
-            const blob = new Blob([stringManifest], { type: 'application/json' });
-            const manifestURL = URL.createObjectURL(blob);
-            blobURLs.push(manifestURL);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(stringManifest);
 
             let manifestElem = document.querySelector('#pwa-manifest') as HTMLLinkElement;
-            if (manifestElem) manifestElem.href = manifestURL;
+            if (manifestElem) manifestElem.href = dataUri;
 
             // apple-touch-icon para iOS: usar el icon de 512px generado
             let appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;

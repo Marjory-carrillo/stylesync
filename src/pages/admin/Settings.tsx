@@ -1151,11 +1151,16 @@ export default function Settings() {
                                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-black">$</span>
                                                             <input
                                                                 type="number"
-                                                                value={item.price}
+                                                                value={item.price === 0 ? '' : item.price}
+                                                                onFocus={e => e.target.select()}
                                                                 onChange={e => {
+                                                                    const rawVal = e.target.value;
                                                                     const updatedConfig = [...localQuoterConfig];
                                                                     const updatedItems = [...category.items];
-                                                                    updatedItems[itemIdx] = { ...item, price: Number(e.target.value) };
+                                                                    updatedItems[itemIdx] = {
+                                                                        ...item,
+                                                                        price: rawVal === '' ? 0 : Math.max(0, parseFloat(rawVal) || 0)
+                                                                    };
                                                                     updatedConfig[catIdx] = { ...category, items: updatedItems };
                                                                     setLocalQuoterConfig(updatedConfig);
                                                                 }}
