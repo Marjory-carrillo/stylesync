@@ -121,7 +121,7 @@ export default function Quoter() {
             text += `• *${item.name}*: $${item.price} MXN ${item.detail ? item.detail : ''}\n`;
         });
 
-        text += `\n✨ *TOTAL ESTIMADO: $${quoteBreakdown.total} MXN*\n\n`;
+        text += `\n✨ *TOTAL: $${quoteBreakdown.total} MXN*\n\n`;
         text += `_Cotización generada el ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}_\n`;
         text += `Reserva tu cita aquí: ${window.location.origin}/reserva/${businessConfig.slug || ''}`;
 
@@ -143,24 +143,49 @@ export default function Quoter() {
         window.print();
     };
 
+    const captureQuoteCanvas = async () => {
+        if (!ticketRef.current) return null;
+        return await html2canvas(ticketRef.current, {
+            backgroundColor: null,
+            scale: 3,
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            onclone: (clonedDoc) => {
+                const clonedEl = clonedDoc.getElementById('printable-quote-card');
+                if (clonedEl) {
+                    clonedEl.style.width = '380px';
+                    clonedEl.style.minWidth = '380px';
+                    clonedEl.style.maxWidth = '380px';
+                    clonedEl.style.margin = '0 auto';
+                    clonedEl.style.boxSizing = 'border-box';
+                    clonedEl.style.transform = 'none';
+
+                    // Eliminar filtros de backdrop-blur que rompen la alineacion en html2canvas
+                    const allElements = clonedEl.querySelectorAll('*');
+                    allElements.forEach((node) => {
+                        const el = node as HTMLElement;
+                        if (el.style) {
+                            el.style.backdropFilter = 'none';
+                            (el.style as any).webkitBackdropFilter = 'none';
+                        }
+                    });
+                }
+            }
+        });
+    };
+
     const handleDownloadImage = async () => {
-        if (!ticketRef.current) return;
         try {
-            const element = ticketRef.current;
-            const canvas = await html2canvas(element, {
-                backgroundColor: null,
-                scale: 3,
-                logging: false,
-                useCORS: true,
-                allowTaint: true
-            });
+            const canvas = await captureQuoteCanvas();
+            if (!canvas) return;
             
             const dataUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
-            link.download = `cotizacion-${businessConfig.name?.replace(/\s+/g, '-').toLowerCase() || 'nail-design'}.png`;
+            link.download = `cotizacion-${businessConfig.name?.replace(/\s+/g, '-').toLowerCase() || 'uñas'}.png`;
             link.href = dataUrl;
             link.click();
-            showToast('¡Imagen de cotización descargada! 🎨', 'success');
+            showToast('¡Foto de cotización descargada con éxito! 🎨', 'success');
         } catch (error) {
             console.error('Error generating image:', error);
             showToast('Error al generar la imagen', 'error');
@@ -168,16 +193,9 @@ export default function Quoter() {
     };
 
     const handleCopyImage = async () => {
-        if (!ticketRef.current) return;
         try {
-            const element = ticketRef.current;
-            const canvas = await html2canvas(element, {
-                backgroundColor: null,
-                scale: 3,
-                logging: false,
-                useCORS: true,
-                allowTaint: true
-            });
+            const canvas = await captureQuoteCanvas();
+            if (!canvas) return;
             
             canvas.toBlob((blob) => {
                 if (blob) {
@@ -550,31 +568,31 @@ export default function Quoter() {
                                 <p className={`text-xs font-bold mt-0.5 ${
                                     cardTheme === 'pink' ? 'text-pink-800/90' : cardTheme === 'gold' ? 'text-amber-900/90' : 'text-slate-400'
                                 }`}>
-                                    Calcula el precio de tu servicio ✨
+                                    Tu Cotización de Uñas ✨
                                 </p>
                             </div>
                         </div>
 
-                        {/* Inner Card Container (Matches image layout!) */}
+                        {/* Inner Card Container */}
                         <div className={`rounded-2xl p-5 shadow-lg border relative z-10 ${
                             cardTheme === 'pink'
-                                ? 'bg-white/90 backdrop-blur-md border-pink-200/60 text-slate-800'
+                                ? 'bg-white border-pink-200/80 text-slate-800'
                                 : cardTheme === 'gold'
-                                ? 'bg-white/95 backdrop-blur-md border-amber-200/60 text-slate-900'
-                                : 'bg-slate-950/75 backdrop-blur-md border-white/10 text-slate-100'
+                                ? 'bg-white border-amber-200/80 text-slate-900'
+                                : 'bg-slate-900 border-white/10 text-slate-100'
                         }`}>
                             {/* Title inside card */}
                             <div className={`flex items-center gap-2 pb-3 mb-3 border-b font-bold text-xs ${
                                 cardTheme === 'pink' ? 'border-pink-100 text-pink-700' : cardTheme === 'gold' ? 'border-amber-100 text-amber-800' : 'border-white/10 text-slate-300'
                             }`}>
-                                <span className="text-sm">💅</span> Tu Selección de Servicios
+                                <span className="text-sm">💅</span> Tus Servicios Seleccionados
                             </div>
 
                             {/* Breakdown Items */}
                             <div className="space-y-3 min-h-[80px]">
                                 {quoteBreakdown.items.length === 0 ? (
                                     <p className="text-xs text-slate-400 italic text-center py-4">
-                                        Selecciona las opciones para ver el resumen...
+                                        Selecciona las opciones para ver tu resumen...
                                     </p>
                                 ) : (
                                     quoteBreakdown.items.map((item, idx) => (
@@ -611,7 +629,7 @@ export default function Quoter() {
                                     <span className={`text-[10px] uppercase font-black tracking-wider block ${
                                         cardTheme === 'pink' ? 'text-pink-600' : cardTheme === 'gold' ? 'text-amber-700' : 'text-slate-400'
                                     }`}>
-                                        Total Estimado
+                                        Total a Pagar
                                     </span>
                                     <p className="text-2xl font-black leading-none mt-0.5">
                                         ${quoteBreakdown.total} <span className="text-xs font-semibold">MXN</span>
@@ -624,7 +642,7 @@ export default function Quoter() {
                                         ? 'bg-amber-600 text-white'
                                         : 'bg-emerald-500 text-white'
                                 }`}>
-                                    Presupuesto ✨
+                                    Tu Cotización ✨
                                 </div>
                             </div>
                         </div>
@@ -634,7 +652,7 @@ export default function Quoter() {
                             <p className={`text-[10px] font-bold tracking-wide ${
                                 cardTheme === 'pink' ? 'text-pink-900/80' : cardTheme === 'gold' ? 'text-amber-950/80' : 'text-slate-400'
                             }`}>
-                                ¡Gracias por tu preferencia! • Agendado en CitaLink
+                                ¡Gracias por tu preferencia! 💕 • Te esperamos pronto
                             </p>
                         </div>
                     </div>
