@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
-import { Calculator, Copy, Share2, Printer, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, Eye, X } from 'lucide-react';
+import { Calculator, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, Eye, X, RotateCcw, Download } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 import html2canvas from 'html2canvas';
 
@@ -151,36 +151,7 @@ export default function Quoter() {
         setSelectedExtras({});
     };
 
-    // Build text format for WhatsApp / Clipboard
-    const generateSummaryText = () => {
-        const bName = businessConfig.name || 'CitaLink Nail Salon';
-        let text = `💅 *COTIZACIÓN DE MANICURA — ${bName.toUpperCase()}*\n\n`;
-        
-        quoteBreakdown.items.forEach(item => {
-            text += `• *${item.name}*: $${item.price} MXN ${item.detail ? item.detail : ''}\n`;
-        });
 
-        text += `\n✨ *TOTAL: $${quoteBreakdown.total} MXN*\n\n`;
-        text += `_Cotización generada el ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}_\n`;
-        text += `Reserva tu cita aquí: ${window.location.origin}/reserva/${businessConfig.slug || ''}`;
-
-        return text;
-    };
-
-    const handleCopy = () => {
-        const text = generateSummaryText();
-        navigator.clipboard.writeText(text);
-        showToast('Resumen copiado al portapapeles 📋', 'success');
-    };
-
-    const handleShareWhatsApp = () => {
-        const text = encodeURIComponent(generateSummaryText());
-        window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-    };
-
-    const handlePrint = () => {
-        window.print();
-    };
 
     const captureQuoteCanvas = async () => {
         if (!ticketRef.current) return null;
@@ -296,8 +267,13 @@ export default function Quoter() {
                     </h2>
                     <p className="text-sm text-muted mt-1">Calcula presupuestos de manicura y compártelos con tus clientas.</p>
                 </div>
-                <button onClick={handleReset} className="btn btn-ghost border border-white/10 text-white hover:bg-white/5">
-                    Reiniciar Cotización
+                <button
+                    type="button"
+                    onClick={handleReset}
+                    className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-xl shadow-pink-500/30 border border-pink-400/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                    <RotateCcw size={16} />
+                    <span>Reiniciar Cotización</span>
                 </button>
             </div>
 
@@ -785,47 +761,21 @@ export default function Quoter() {
                     <div className="space-y-3">
                         <button
                             type="button"
-                            onClick={handleShareWhatsApp}
-                            className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-all text-white font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-500/20"
+                            onClick={handleDownloadImage}
+                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-500 text-white font-black text-sm tracking-wide shadow-xl shadow-pink-500/25 border border-pink-400/30 active:scale-95 transition-all flex items-center justify-center gap-2.5"
                         >
-                            <Share2 size={18} />
-                            Compartir en WhatsApp (Texto)
+                            <Download size={18} />
+                            <span>Descargar Cotización en Imagen (PNG)</span>
                         </button>
                         
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={handleCopy}
-                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
-                            >
-                                <Copy size={16} />
-                                Copiar Texto
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleCopyImage}
-                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 transition-all text-xs font-bold"
-                            >
-                                <Copy size={16} />
-                                Copiar Imagen
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDownloadImage}
-                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
-                            >
-                                <Sparkles size={16} />
-                                Descargar PNG
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handlePrint}
-                                className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all text-xs font-bold"
-                            >
-                                <Printer size={16} />
-                                Imprimir
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={handleCopyImage}
+                            className="w-full py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-white/15 text-slate-200 hover:text-white transition-all text-xs font-bold flex items-center justify-center gap-2 shadow-lg"
+                        >
+                            <ImageIcon size={16} className="text-cyan-400" />
+                            <span>Copiar Imagen para Pegar en WhatsApp</span>
+                        </button>
                     </div>
 
                 </div>
