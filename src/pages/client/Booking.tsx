@@ -31,7 +31,6 @@ import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
-import AppZoomControl from '../../components/AppZoomControl';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 export default function Booking() {
     const { slug } = useParams();
@@ -1109,16 +1108,6 @@ export default function Booking() {
 
     return (
         <div className="container min-h-screen animate-fade-in relative" style={{ maxWidth: '520px', paddingTop: 'max(1.5rem, env(safe-area-inset-top))', paddingBottom: '3rem' }}>
-            {/* Top Sticky Header Bar */}
-            <div className="flex items-center justify-between px-4 py-3 mb-5 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-lg">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-white tracking-wide flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
-                        {businessConfig?.name || 'CitaLink'}
-                    </span>
-                </div>
-                <AppZoomControl />
-            </div>
             <PWAInstallBanner businessName={businessConfig?.name || undefined} />
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>

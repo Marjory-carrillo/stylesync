@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-
 
 import { useAuthStore } from './lib/store/authStore';
 import { supabase } from './lib/supabaseClient';
+import { applyZoom } from './lib/useAppZoom';
 import AdminLayout from './layouts/AdminLayout';
 import ClientLayout from './layouts/ClientLayout';
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -189,6 +190,7 @@ function App() {
   }, [fetchGlobalConfig]);
 
   useEffect(() => {
+    applyZoom(85);
     let mounted = true;
 
     const loadUserContext = async (session: any) => {

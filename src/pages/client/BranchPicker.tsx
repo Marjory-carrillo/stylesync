@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { MapPin, ChevronRight, Infinity as InfinityIcon, Building2, Scissors, Sparkles, Flower2, Briefcase, Clock } from 'lucide-react';
 import SplashScreen from '../../components/SplashScreen';
-import AppZoomControl from '../../components/AppZoomControl';
 
 interface BranchInfo {
     id: string;
@@ -150,9 +149,6 @@ export default function BranchPicker() {
             className="min-h-screen flex flex-col items-center p-4 pt-12 md:pt-20 relative overflow-hidden"
             style={{ background: 'radial-gradient(ellipse at 30% 20%, #0a1018 0%, #040b10 100%)' }}
         >
-            <div className="absolute top-4 right-4 z-40">
-                <AppZoomControl />
-            </div>
             {/* Ambient glows — dynamic by brand category */}
             <div
                 className="absolute top-[-5%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none opacity-60 animate-pulse"

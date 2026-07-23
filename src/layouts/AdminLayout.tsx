@@ -12,7 +12,6 @@ import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
 import PWAInstallBanner from '../components/PWAInstallBanner';
 import PaymentBlockedScreen from '../components/PaymentBlockedScreen';
-import AppZoomControl from '../components/AppZoomControl';
 import { isAccountActive } from '../lib/planLimits';
 
 export default function AdminLayout() {
@@ -120,8 +119,7 @@ export default function AdminLayout() {
                     </div>
                     <span className="font-bold text-white tracking-tight">Cita<span className="text-violet-500">Link</span> Admin</span>
                 </button>
-                <div className="flex items-center gap-1.5">
-                    <AppZoomControl />
+                <div className="flex items-center gap-2">
                     <NotificationBell
                         notifications={notifications}
                         unreadCount={unreadCount}
@@ -322,7 +320,6 @@ export default function AdminLayout() {
                             </span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <AppZoomControl />
                             <NotificationBell
                                 notifications={notifications}
                                 unreadCount={unreadCount}
