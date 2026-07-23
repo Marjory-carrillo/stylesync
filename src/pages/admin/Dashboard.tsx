@@ -1242,20 +1242,18 @@ export default function Dashboard() {
                 </div>
 
                 {/* ── Recordatorios WhatsApp enviados hoy ── */}
-                <div className="glass-panel p-6 rounded-[2rem] border border-emerald-500/10 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
+                <div className="glass-panel p-5 sm:p-6 rounded-[2rem] border border-emerald-500/10 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
                     <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none"></div>
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-5">
-                            <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 shadow-inner border border-white/5 relative z-10 shrink-0">
-                                <MessageCircle size={26} />
+                    
+                    <div className="flex items-start justify-between gap-2 relative z-10">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 shadow-inner border border-white/5 shrink-0">
+                                <MessageCircle size={22} />
                             </div>
-                            <div className="relative z-10">
-                                <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">Recordatorios enviados hoy</p>
-                                {isLoading ? <Skeleton className="h-9 w-16" /> : (
-                                    <>
-                                        <p className="text-3xl font-black text-emerald-400 tracking-tighter">{remindersSentCount}</p>
-                                        <p className="text-[10px] text-slate-600 font-bold mt-0.5 leading-tight">WhatsApp automático · Citas de hoy</p>
-                                    </>
+                            <div className="min-w-0">
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-tight truncate">Recordatorios hoy</p>
+                                {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : (
+                                    <p className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tighter mt-0.5">{remindersSentCount}</p>
                                 )}
                             </div>
                         </div>
@@ -1263,19 +1261,23 @@ export default function Dashboard() {
                         <button
                             type="button"
                             onClick={() => setIsRemindersExpanded(!isRemindersExpanded)}
-                            className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-bold shrink-0 relative z-10"
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 transition-all flex items-center gap-1 text-[11px] font-bold shrink-0 mt-0.5"
                             title="Ver citas con recordatorio enviado hoy"
                         >
                             <span>{isRemindersExpanded ? 'Ocultar' : 'Ver citas'}</span>
-                            <ChevronDown size={16} className={`transition-transform duration-300 ${isRemindersExpanded ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={14} className={`transition-transform duration-300 ${isRemindersExpanded ? 'rotate-180' : ''}`} />
                         </button>
                     </div>
+
+                    <p className="text-[10px] text-slate-500 font-medium mt-2 relative z-10 leading-tight">
+                        WhatsApp automático · Envíos del día
+                    </p>
 
                     {/* Desplegable de Citas con Recordatorio Enviado Hoy */}
                     {isRemindersExpanded && (
                         <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5 animate-fade-in relative z-10">
                             <p className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
-                                <span>Citas de hoy con recordatorio enviado:</span>
+                                <span>Citas de hoy con recordatorio:</span>
                                 <span className="text-emerald-400 font-mono text-xs">{todayRemindersSent.length}</span>
                             </p>
                             {todayRemindersSent.length === 0 ? (
@@ -1288,22 +1290,22 @@ export default function Dashboard() {
                                         const svc = services.find(s => s.id === apt.serviceId);
                                         const stylist = stylists.find(s => s.id === apt.stylistId);
                                         return (
-                                            <div key={apt.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-emerald-500/20 text-xs gap-3">
+                                            <div key={apt.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-emerald-500/20 text-xs gap-2">
                                                 <div className="space-y-0.5 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-black text-white truncate">{apt.clientName}</span>
-                                                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-black text-white truncate text-xs">{apt.clientName}</span>
+                                                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20 shrink-0">
                                                             Enviado 🟢
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 truncate">
                                                         <span className="font-semibold text-slate-300">{apt.time} hrs</span>
                                                         <span>•</span>
                                                         <span className="truncate">{svc?.name || 'Servicio'}</span>
                                                         {stylist && (
                                                             <>
                                                                 <span>•</span>
-                                                                <span className="text-pink-400">{stylist.name}</span>
+                                                                <span className="text-pink-400 truncate">{stylist.name}</span>
                                                             </>
                                                         )}
                                                     </div>
@@ -1313,10 +1315,10 @@ export default function Dashboard() {
                                                         href={`https://wa.me/${apt.clientPhone.replace(/\D/g, '')}`}
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors shrink-0"
+                                                        className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors shrink-0"
                                                         title="WhatsApp del cliente"
                                                     >
-                                                        <MessageCircle size={16} />
+                                                        <MessageCircle size={14} />
                                                     </a>
                                                 )}
                                             </div>
