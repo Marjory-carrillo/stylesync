@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
@@ -503,25 +503,13 @@ export default function Booking() {
             });
     }, [appointments, selectedDate, selectedStylist, services, baseDate]);
 
-    const getStylistsForService = useCallback((serviceId: number) => {
-        return stylists.filter(stylist => {
-            if (!stylist.serviceIds || stylist.serviceIds.length === 0) return true;
-            return stylist.serviceIds.includes(Number(serviceId));
-        });
-    }, [stylists]);
-
     const filteredStylists = useMemo(() => {
         if (!selectedService) return stylists;
-        return getStylistsForService(Number(selectedService.id));
-    }, [stylists, selectedService, getStylistsForService]);
-
-    const filteredServices = useMemo(() => {
-        let base = services.filter(s => !s.isAddon);
-        if (selectedStylist && selectedStylist.serviceIds && selectedStylist.serviceIds.length > 0) {
-            return base.filter(s => selectedStylist.serviceIds!.map(Number).includes(Number(s.id)));
-        }
-        return base;
-    }, [services, selectedStylist]);
+        return stylists.filter(stylist => {
+            if (!stylist.serviceIds || stylist.serviceIds.length === 0) return true;
+            return stylist.serviceIds.includes(Number(selectedService.id));
+        });
+    }, [stylists, selectedService]);
 
     // ── Multi-Stylist Logic: Availability Map ──
     // Maps each time slot to a list of available stylist IDs. 
@@ -709,7 +697,7 @@ export default function Booking() {
         try {
             // Solo validamos — el OTP se manda después de elegir hora
             setSmsProvider('demo');
-            setStep(22);
+            setStep(2);
         } finally {
             setIsSendingSms(false);
         }
@@ -1963,7 +1951,7 @@ export default function Booking() {
                                 )}
 
                                 <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
-                                    {filteredServices.map((service: Service) => (
+                                    {services.filter(s => !s.isAddon).map((service: Service) => (
                                         <div
                                             key={service.id}
                                             className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
