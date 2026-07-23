@@ -88,10 +88,8 @@ body,
 
 html,
 body {
-  overscroll-behavior-y: none;
-  /* Prevent bounce on mobile */
   overflow-x: hidden;
-  /* Prevent horizontal scrolling */
+  overflow-y: auto;
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
