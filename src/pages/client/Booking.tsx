@@ -1845,15 +1845,28 @@ export default function Booking() {
                                 {/* Total and Action Footer */}
                                 <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div className="text-left max-w-sm">
-                                        <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">
-                                            {designLevel === 'basic' ? 'Total' : 'Total estimado'}
-                                        </span>
-                                        <p className="text-2xl font-black text-white">${totalPrice} <span className="text-xs font-semibold text-slate-400">MXN</span></p>
-                                        {designLevel !== 'basic' && (
-                                            <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                                                * Este total es aproximado. Tu profesional validará tu diseño y te enviará un mensaje con el monto exacto en cuanto esté disponible.
-                                            </p>
-                                        )}
+                                        {(() => {
+                                            const options = simplifiedDesignsCategory?.items || [];
+                                            const basicOpt = options.find((o: any) => o.id === 'basic');
+                                            const basicPrice = basicOpt ? (basicOpt.price || 0) : 0;
+                                            const currentOpt = options.find((o: any) => o.id === designLevel);
+                                            const currentPrice = currentOpt ? (currentOpt.price || 0) : (designLevel === 'simple' ? 50 : designLevel === 'complex' ? 150 : 0);
+                                            const isEstimated = currentPrice > 0 || basicPrice > 0 || designLevel !== 'basic';
+
+                                            return (
+                                                <>
+                                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">
+                                                        {isEstimated ? 'Total estimado' : 'Total'}
+                                                    </span>
+                                                    <p className="text-2xl font-black text-white">${totalPrice} <span className="text-xs font-semibold text-slate-400">MXN</span></p>
+                                                    {isEstimated && (
+                                                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                                                            * Este total es aproximado. Tu profesional validará tu diseño y te enviará un mensaje con el monto exacto en cuanto esté disponible.
+                                                        </p>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                     <div className="flex gap-2">
                                         <button
