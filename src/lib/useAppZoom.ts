@@ -7,12 +7,17 @@ export const DEFAULT_ZOOM = 100;
 
 export const applyZoom = (zoomLevel: number) => {
     const scale = zoomLevel / 100;
-    // Applying zoom to body keeps the html background full-screen without empty gaps or broken card proportions!
+    const minHeightVh = (100 / scale).toFixed(3);
+
     if (document.body) {
         (document.body.style as any).zoom = `${scale}`;
+        document.body.style.minHeight = `${minHeightVh}vh`;
     }
-    (document.documentElement.style as any).zoom = '1';
-    document.documentElement.style.setProperty('--app-zoom-scale', `${scale}`);
+    if (document.documentElement) {
+        document.documentElement.style.minHeight = '100vh';
+        document.documentElement.style.backgroundColor = '#0c101d';
+        document.documentElement.style.setProperty('--app-zoom-scale', `${scale}`);
+    }
 };
 
 export function useAppZoom() {

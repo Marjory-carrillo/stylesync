@@ -65,20 +65,26 @@
   padding: 0;
 }
 
+html {
+  min-height: 100vh;
+  background-color: #0c101d;
+  background: var(--color-bg);
+  background-attachment: fixed;
+}
+
 html,
 body {
-  height: 100%;
   overscroll-behavior-y: none;
   /* Prevent bounce on mobile */
   overflow-x: hidden;
   /* Prevent horizontal scrolling */
-  background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
+  min-height: 100vh;
   /* Premium radial gradient background with CitaLink colors */
   background-image:
     radial-gradient(circle at 15% 50%, hsla(var(--hue-primary), 80%, 15%, 0.4) 0, transparent 40%),
