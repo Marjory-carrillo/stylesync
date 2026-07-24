@@ -581,7 +581,7 @@ export default function Quoter() {
                 </div>
 
                 {/* ── Right Side: Quote Summary / Ticket View ── */}
-                <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-4">
+                <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24 z-10">
                     
                     {/* Theme Selector for Ticket Card */}
                     <div className="flex items-center justify-between gap-2 px-1">
@@ -629,7 +629,7 @@ export default function Quoter() {
                     <div
                         ref={ticketRef}
                         id="printable-quote-card"
-                        className={`p-7 sm:p-8 rounded-[36px] shadow-2xl relative overflow-hidden border transition-all duration-300 max-w-[480px] mx-auto ${
+                        className={`pt-8 pb-7 px-6 sm:px-8 rounded-[36px] shadow-2xl relative overflow-hidden border transition-all duration-300 max-w-[480px] mx-auto ${
                             cardTheme === 'pink'
                                 ? 'bg-gradient-to-b from-[#fce7f3] via-[#fbcfe8] to-[#f472b6] border-pink-300/50 text-slate-800'
                                 : cardTheme === 'gold'
@@ -638,7 +638,7 @@ export default function Quoter() {
                         }`}
                     >
                         {/* Header / Brand info */}
-                        <div className="text-center pb-5 space-y-2 relative z-10">
+                        <div className="text-center pt-2 pb-5 space-y-2 relative z-10">
                             <div className={`w-16 h-16 rounded-full mx-auto overflow-hidden shadow-lg p-0.5 border ${
                                 cardTheme === 'pink'
                                     ? 'bg-white border-pink-300'
