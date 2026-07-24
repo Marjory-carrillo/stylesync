@@ -28,6 +28,16 @@ export default function AdminLayout() {
     const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
     const { getMonthlyCancellations } = useCancellationLog();
 
+    // Control dinámico de scroll y alturas para el Panel de Admin
+    useEffect(() => {
+        document.documentElement.classList.add('admin-layout-active');
+        document.body.classList.add('admin-layout-active');
+        return () => {
+            document.documentElement.classList.remove('admin-layout-active');
+            document.body.classList.remove('admin-layout-active');
+        };
+    }, []);
+
     // PWA manifest dinámico para admin — apunta a /admin con iconos estáticos (compatible con iOS Safari & Android)
     useEffect(() => {
         const adminManifest = {

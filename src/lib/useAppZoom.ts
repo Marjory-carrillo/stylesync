@@ -6,13 +6,15 @@ export const applyZoom = (zoomLevel: number = FIXED_ZOOM) => {
     const scale = zoomLevel / 100; // 0.85
 
     if (typeof document !== 'undefined') {
-        if (document.body) {
-            (document.body.style as any).zoom = `${scale}`;
-            document.body.style.minHeight = '100vh';
-        }
         if (document.documentElement) {
+            (document.documentElement.style as any).zoom = `${scale}`;
             document.documentElement.style.minHeight = '100vh';
             document.documentElement.style.setProperty('--app-zoom-scale', `${scale}`);
+        }
+        if (document.body) {
+            // Eliminar zoom de body para evitar duplicación y usar minHeight limpio
+            (document.body.style as any).zoom = 'normal';
+            document.body.style.minHeight = '100vh';
         }
 
         // iOS Safari fallback support for CSS zoom
@@ -25,6 +27,7 @@ export const applyZoom = (zoomLevel: number = FIXED_ZOOM) => {
                 rootEl.style.transform = `scale(${scale})`;
                 rootEl.style.transformOrigin = 'top left';
                 rootEl.style.width = `${(100 / scale).toFixed(3)}%`;
+                rootEl.style.height = `${(100 / scale).toFixed(3)}%`;
             }
         }
     }

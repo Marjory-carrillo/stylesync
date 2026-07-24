@@ -86,6 +86,33 @@ body,
   min-height: 100vh !important;
 }
 
+/* Cuando el panel de administración está activo, fijamos el scroll de la ventana y compensamos el zoom del 85% */
+html.admin-layout-active {
+  overflow: hidden !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+}
+
+body.admin-layout-active {
+  overflow: hidden !important;
+  height: calc(100vh / var(--app-zoom-scale, 0.85)) !important;
+  min-height: calc(100vh / var(--app-zoom-scale, 0.85)) !important;
+}
+
+.admin-layout-active #root {
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.admin-layout-active .h-screen {
+  height: calc(100vh / var(--app-zoom-scale, 0.85)) !important;
+}
+
+.admin-layout-active .min-h-screen {
+  min-height: calc(100vh / var(--app-zoom-scale, 0.85)) !important;
+}
+
 html,
 body {
   overflow-x: hidden;
