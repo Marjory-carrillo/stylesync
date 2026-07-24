@@ -371,212 +371,219 @@ export default function Quoter() {
                         )}
                     </div>
 
-                    {/* Base Services */}
-                    {baseCategory && (
-                        <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
-                            <h3 className="text-md font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
-                                <span className="w-2 h-2 rounded-full bg-accent"></span> {baseCategory.name}
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {baseCategory.items.map(item => {
-                                    const isSelected = selectedBaseId === item.id;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            type="button"
-                                            onClick={() => setSelectedBaseId(prev => prev === item.id ? '' : item.id)}
-                                            className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-300 text-left ${
-                                                isSelected
-                                                    ? 'bg-accent/10 border-accent text-white shadow-glow-sm'
-                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'border-accent bg-accent' : 'border-white/20 bg-slate-900'}`}>
-                                                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                    {/* Base Services & Sizes - Side by side on larger screens */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        {/* Base Services */}
+                        {baseCategory && (
+                            <div className="glass-card p-5 rounded-2xl border border-white/5 space-y-3">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
+                                    <span className="w-2 h-2 rounded-full bg-accent"></span> {baseCategory.name}
+                                </h3>
+                                <div className="grid grid-cols-1 gap-2.5">
+                                    {baseCategory.items.map(item => {
+                                        const isSelected = selectedBaseId === item.id;
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                onClick={() => setSelectedBaseId(prev => prev === item.id ? '' : item.id)}
+                                                className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer select-none transition-all duration-300 text-left ${
+                                                    isSelected
+                                                        ? 'bg-accent/10 border-accent text-white shadow-glow-sm'
+                                                        : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'border-accent bg-accent' : 'border-white/20 bg-slate-900'}`}>
+                                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                                                    </div>
+                                                    <span className="text-xs font-semibold">{item.name}</span>
                                                 </div>
-                                                <span className="text-sm font-semibold">{item.name}</span>
-                                            </div>
-                                            <span className="text-sm font-bold text-accent">${item.price}</span>
-                                        </button>
-                                    );
-                                })}
+                                                <span className="text-xs font-bold text-accent">${item.price}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    {/* Sizes / Length */}
-                    {sizeCategory && (
-                        <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
-                            <h3 className="text-md font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
-                                <span className="w-2 h-2 rounded-full bg-cyan-400"></span> {sizeCategory.name}
-                            </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {sizeCategory.items.map(item => {
-                                    const isSelected = selectedSizeId === item.id;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            type="button"
-                                            onClick={() => setSelectedSizeId(prev => prev === item.id ? '' : item.id)}
-                                            className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer text-center select-none transition-all duration-300 ${
-                                                isSelected
-                                                    ? 'bg-cyan-400/10 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.1)]'
-                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
-                                            }`}
-                                        >
-                                            <span className="text-sm font-bold">{item.name}</span>
-                                            <span className="text-xs text-cyan-400 font-bold mt-1">
-                                                {item.price === 0 ? 'Sin costo' : `+$${item.price}`}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Styles / Designs */}
-                    {styleCategory && (
-                        <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
-                            <h3 className="text-md font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400"></span> {styleCategory.name}
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {styleCategory.items.map(item => {
-                                    const selection = selectedStyles[item.id] || { checked: false, qty: 1 };
-                                    const hasUnit = !!item.unit;
-                                    return (
-                                        <div
-                                            key={item.id}
-                                            className={`p-3.5 rounded-xl border transition-all duration-300 flex items-center justify-between gap-3 ${
-                                                selection.checked
-                                                    ? 'bg-emerald-500/10 border-emerald-500 text-white'
-                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
-                                            }`}
-                                        >
-                                            <label className="flex items-center gap-3 cursor-pointer select-none flex-1">
+                        {/* Sizes / Length */}
+                        {sizeCategory && (
+                            <div className="glass-card p-5 rounded-2xl border border-white/5 space-y-3">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
+                                    <span className="w-2 h-2 rounded-full bg-cyan-400"></span> {sizeCategory.name}
+                                </h3>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {sizeCategory.items.map(item => {
+                                        const isSelected = selectedSizeId === item.id;
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                onClick={() => setSelectedSizeId(prev => prev === item.id ? '' : item.id)}
+                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer text-center select-none transition-all duration-300 ${
+                                                    isSelected
+                                                        ? 'bg-cyan-400/10 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                                                        : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
+                                                }`}
+                                            >
+                                                <span className="text-xs font-bold">{item.name}</span>
+                                                <span className="text-[10px] text-cyan-400 font-bold mt-0.5">
+                                                    {item.price === 0 ? 'Sin costo' : `+$${item.price}`}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Styles & Extras - Side by side on larger screens */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        {/* Styles / Designs */}
+                        {styleCategory && (
+                            <div className="glass-card p-5 rounded-2xl border border-white/5 space-y-3">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span> {styleCategory.name}
+                                </h3>
+                                <div className="grid grid-cols-1 gap-2.5">
+                                    {styleCategory.items.map(item => {
+                                        const selection = selectedStyles[item.id] || { checked: false, qty: 1 };
+                                        const hasUnit = !!item.unit;
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className={`p-3 rounded-xl border transition-all duration-300 flex items-center justify-between gap-2 ${
+                                                    selection.checked
+                                                        ? 'bg-emerald-500/10 border-emerald-500 text-white'
+                                                        : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
+                                                }`}
+                                            >
+                                                <label className="flex items-center gap-2.5 cursor-pointer select-none flex-1 min-w-0">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selection.checked}
+                                                        onChange={e => {
+                                                            const checked = e.target.checked;
+                                                            setSelectedStyles(prev => ({
+                                                                ...prev,
+                                                                [item.id]: { ...selection, checked }
+                                                            }));
+                                                        }}
+                                                        className="w-4 h-4 rounded text-emerald-500 border-white/10 focus:ring-emerald-500 bg-slate-900 cursor-pointer shrink-0"
+                                                    />
+                                                    <div className="text-left min-w-0 flex-1">
+                                                        <p className="text-xs font-semibold truncate">{item.name}</p>
+                                                        <p className="text-[10px] text-emerald-400 font-bold">
+                                                            ${item.price} <span className="text-slate-500 font-normal">{item.unit ? `c/u` : ''}</span>
+                                                        </p>
+                                                    </div>
+                                                </label>
+
+                                                {selection.checked && hasUnit && (
+                                                    <div className="flex items-center gap-1 bg-slate-950/70 rounded-xl p-1 border border-white/10 shrink-0">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const qty = Math.max(1, selection.qty - 1);
+                                                                setSelectedStyles(prev => ({
+                                                                    ...prev,
+                                                                    [item.id]: { ...selection, qty }
+                                                                }));
+                                                            }}
+                                                            className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
+                                                            title="Restar 1"
+                                                        >
+                                                            <Minus size={12} />
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max={item.unit === 'por uña' ? 10 : 100}
+                                                            value={selection.qty === 0 ? '' : selection.qty}
+                                                            onFocus={(e) => e.target.select()}
+                                                            onChange={(e) => {
+                                                                const maxVal = item.unit === 'por uña' ? 10 : 100;
+                                                                const rawVal = e.target.value;
+                                                                let parsed = rawVal === '' ? 1 : parseInt(rawVal, 10);
+                                                                if (isNaN(parsed)) parsed = 1;
+                                                                const qty = Math.min(maxVal, Math.max(1, parsed));
+                                                                setSelectedStyles(prev => ({
+                                                                    ...prev,
+                                                                    [item.id]: { ...selection, qty }
+                                                                }));
+                                                            }}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="w-8 text-center bg-transparent border-0 text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 rounded py-0.5"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const maxVal = item.unit === 'por uña' ? 10 : 100;
+                                                                const qty = Math.min(maxVal, selection.qty + 1);
+                                                                setSelectedStyles(prev => ({
+                                                                    ...prev,
+                                                                    [item.id]: { ...selection, qty }
+                                                                }));
+                                                            }}
+                                                            className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
+                                                            title="Sumar 1"
+                                                        >
+                                                            <Plus size={12} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Extras */}
+                        {extrasCategory && (
+                            <div className="glass-card p-5 rounded-2xl border border-white/5 space-y-3">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
+                                    <span className="w-2 h-2 rounded-full bg-violet-400"></span> {extrasCategory.name}
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    {extrasCategory.items.map(item => {
+                                        const isChecked = !!selectedExtras[item.id];
+                                        return (
+                                            <label
+                                                key={item.id}
+                                                className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer select-none transition-all duration-300 ${
+                                                    isChecked
+                                                        ? 'bg-violet-500/10 border-violet-500 text-white'
+                                                        : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
+                                                }`}
+                                            >
                                                 <input
                                                     type="checkbox"
-                                                    checked={selection.checked}
+                                                    checked={isChecked}
                                                     onChange={e => {
-                                                        const checked = e.target.checked;
-                                                        setSelectedStyles(prev => ({
+                                                        const val = e.target.checked;
+                                                        setSelectedExtras(prev => ({
                                                             ...prev,
-                                                            [item.id]: { ...selection, checked }
+                                                            [item.id]: val
                                                         }));
                                                     }}
-                                                    className="w-4 h-4 rounded text-emerald-500 border-white/10 focus:ring-emerald-500 bg-slate-900 cursor-pointer"
+                                                    className="w-4 h-4 rounded text-violet-500 border-white/10 focus:ring-violet-500 bg-slate-900 cursor-pointer shrink-0"
                                                 />
-                                                <div className="text-left">
-                                                    <p className="text-sm font-semibold">{item.name}</p>
-                                                    <p className="text-xs text-emerald-400 font-bold">
-                                                        ${item.price} <span className="text-slate-500 font-normal">{item.unit ? `c/u` : ''}</span>
-                                                    </p>
+                                                <div className="text-left flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold truncate">{item.name}</p>
+                                                    <p className="text-[10px] text-violet-400 font-bold mt-0.5">${item.price}</p>
                                                 </div>
                                             </label>
-
-                                            {selection.checked && hasUnit && (
-                                                <div className="flex items-center gap-1 bg-slate-950/70 rounded-xl p-1 border border-white/10 shrink-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const qty = Math.max(1, selection.qty - 1);
-                                                            setSelectedStyles(prev => ({
-                                                                ...prev,
-                                                                [item.id]: { ...selection, qty }
-                                                            }));
-                                                        }}
-                                                        className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
-                                                        title="Restar 1"
-                                                    >
-                                                        <Minus size={13} />
-                                                    </button>
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max={item.unit === 'por uña' ? 10 : 100}
-                                                        value={selection.qty === 0 ? '' : selection.qty}
-                                                        onFocus={(e) => e.target.select()}
-                                                        onChange={(e) => {
-                                                            const maxVal = item.unit === 'por uña' ? 10 : 100;
-                                                            const rawVal = e.target.value;
-                                                            let parsed = rawVal === '' ? 1 : parseInt(rawVal, 10);
-                                                            if (isNaN(parsed)) parsed = 1;
-                                                            const qty = Math.min(maxVal, Math.max(1, parsed));
-                                                            setSelectedStyles(prev => ({
-                                                                ...prev,
-                                                                [item.id]: { ...selection, qty }
-                                                            }));
-                                                        }}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="w-10 text-center bg-transparent border-0 text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 rounded py-0.5"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const maxVal = item.unit === 'por uña' ? 10 : 100;
-                                                            const qty = Math.min(maxVal, selection.qty + 1);
-                                                            setSelectedStyles(prev => ({
-                                                                ...prev,
-                                                                [item.id]: { ...selection, qty }
-                                                            }));
-                                                        }}
-                                                        className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
-                                                        title="Sumar 1"
-                                                    >
-                                                        <Plus size={13} />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Extras */}
-                    {extrasCategory && (
-                        <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
-                            <h3 className="text-md font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
-                                <span className="w-2 h-2 rounded-full bg-violet-400"></span> {extrasCategory.name}
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                {extrasCategory.items.map(item => {
-                                    const isChecked = !!selectedExtras[item.id];
-                                    return (
-                                        <label
-                                            key={item.id}
-                                            className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-300 ${
-                                                isChecked
-                                                    ? 'bg-violet-500/10 border-violet-500 text-white'
-                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={e => {
-                                                    const val = e.target.checked;
-                                                    setSelectedExtras(prev => ({
-                                                        ...prev,
-                                                        [item.id]: val
-                                                    }));
-                                                }}
-                                                className="w-4 h-4 rounded text-violet-500 border-white/10 focus:ring-violet-500 bg-slate-900 cursor-pointer"
-                                            />
-                                            <div className="text-left flex-1 min-w-0">
-                                                <p className="text-xs font-semibold truncate">{item.name}</p>
-                                                <p className="text-xs text-violet-400 font-bold mt-0.5">${item.price}</p>
-                                            </div>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                 </div>
 
