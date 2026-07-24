@@ -368,6 +368,41 @@ export default function SuperAdminPanel() {
     const [smsByMonth, setSmsByMonth] = useState<{ month_label: string; count: number }[]>([]);
     const showToast = useUIStore(s => s.showToast);
     const navigate = useNavigate();
+    const [isSlugManual, setIsSlugManual] = useState(false);
+
+    const getCategorySuffix = (catId: string) => {
+        switch (catId) {
+            case 'barbershop': return '-barber';
+            case 'beauty_salon': return '-beauty';
+            case 'nail_bar': return '-nails';
+            case 'spa': return '-spa';
+            case 'pet_grooming': return '-pets';
+            case 'consulting': return '-consulting';
+            default: return '';
+        }
+    };
+
+    const updateNewBusinessSlug = (businessName: string, catId: string, manualOverride: boolean = isSlugManual) => {
+        if (manualOverride) return;
+        const baseSlug = businessName.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^\w\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+        
+        if (!baseSlug) {
+            setNewBusiness(prev => ({ ...prev, slug: '' }));
+            return;
+        }
+
+        const suffix = getCategorySuffix(catId);
+        if (suffix && !baseSlug.endsWith(suffix)) {
+            setNewBusiness(prev => ({ ...prev, slug: baseSlug + suffix }));
+        } else {
+            setNewBusiness(prev => ({ ...prev, slug: baseSlug }));
+        }
+    };
 
     useEffect(() => {
         fetchAllTenants();
@@ -740,6 +775,7 @@ export default function SuperAdminPanel() {
                 await supabase.from('tenants').update({ plan: newBusiness.plan }).eq('id', res.data.id);
             }
             setIsCreateModalOpen(false);
+            setIsSlugManual(false);
             setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free', noTrial: false });
             setIsExistingOwner(false);
             setSelectedOwnerId('');
@@ -1434,14 +1470,8 @@ export default function SuperAdminPanel() {
                                         value={newBusiness.name}
                                         onChange={e => {
                                             const name = e.target.value;
-                                            const autoSlug = name
-                                                .toLowerCase()
-                                                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                                                .replace(/[^\w\s-]/g, '')
-                                                .trim()
-                                                .replace(/\s+/g, '-')
-                                                .replace(/-+/g, '-');
-                                            setNewBusiness({ ...newBusiness, name, slug: autoSlug });
+                                            setNewBusiness({ ...newBusiness, name });
+                                            updateNewBusinessSlug(name, newBusiness.category);
                                         }}
                                     />
                                 </div>
@@ -1456,7 +1486,11 @@ export default function SuperAdminPanel() {
                                             className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-r-xl px-3 py-3 text-white font-mono text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none"
                                             placeholder="mi-negocio"
                                             value={newBusiness.slug}
-                                            onChange={e => setNewBusiness({ ...newBusiness, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })}
+                                            onChange={e => {
+                                                const manualSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                                                setNewBusiness({ ...newBusiness, slug: manualSlug });
+                                                setIsSlugManual(true);
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -1522,7 +1556,10 @@ export default function SuperAdminPanel() {
                                             return (
                                                 <button
                                                     key={cat.id} type="button"
-                                                    onClick={() => setNewBusiness({ ...newBusiness, category: cat.id })}
+                                                    onClick={() => {
+                                                        setNewBusiness({ ...newBusiness, category: cat.id });
+                                                        updateNewBusinessSlug(newBusiness.name, cat.id);
+                                                    }}
                                                     className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border transition-all duration-200 cursor-pointer bg-white/[0.02] ${colorMap[cat.color]}`}
                                                 >
                                                     {cat.icon}

@@ -15,6 +15,16 @@ export default function SuperAdminLayout() {
         setIsMobileMenuOpen(false);
     }, [location.pathname]);
 
+    // Control dinámico de scroll y alturas para el Panel de SuperAdmin bajo zoom
+    useEffect(() => {
+        document.documentElement.classList.add('admin-layout-active');
+        document.body.classList.add('admin-layout-active');
+        return () => {
+            document.documentElement.classList.remove('admin-layout-active');
+            document.body.classList.remove('admin-layout-active');
+        };
+    }, []);
+
     if (!isSuperAdmin) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100">

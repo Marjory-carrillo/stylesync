@@ -22,11 +22,12 @@ export default function CreateBusiness() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [isSlugManual, setIsSlugManual] = useState(false);
 
     const CATEGORIES = [
         { id: 'barbershop', label: 'Barbería', icon: Scissors, desc: 'Cortes, barba y estilo masculino.' },
         { id: 'beauty_salon', label: 'Salón de Belleza', icon: Sparkles, desc: 'Estilismo, cabello y maquillaje.' },
-        { id: 'nail_bar', label: 'Nail Bar', icon: Sparkles, desc: 'Manicure, pedicure y uñas acrílicas.' }, // Re-using Sparkles or finding a better icon if available, or just generic
+        { id: 'nail_bar', label: 'Nail Bar', icon: Sparkles, desc: 'Manicure, pedicure y uñas acrílicas.' },
         { id: 'spa', label: 'Spa & Wellness', icon: Flower2, desc: 'Masajes, relax y tratamientos.' },
         { id: 'pet_grooming', label: 'Peluquería Canina', icon: Dog, desc: 'Estética y cuidado de mascotas.' },
         { id: 'consulting', label: 'Consultorio', icon: Briefcase, desc: 'Citas médicas, legales o coaching.' },
@@ -63,14 +64,44 @@ export default function CreateBusiness() {
         }
     };
 
+    const getCategorySuffix = (catId: string) => {
+        switch (catId) {
+            case 'barbershop': return '-barber';
+            case 'beauty_salon': return '-beauty';
+            case 'nail_bar': return '-nails';
+            case 'spa': return '-spa';
+            case 'pet_grooming': return '-pets';
+            case 'consulting': return '-consulting';
+            default: return '';
+        }
+    };
+
+    const updateSlug = (businessName: string, catId: string, manualOverride: boolean = isSlugManual) => {
+        if (manualOverride) return;
+        const baseSlug = businessName.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^\w\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+        
+        if (!baseSlug) {
+            setSlug('');
+            return;
+        }
+
+        const suffix = getCategorySuffix(catId);
+        if (suffix && !baseSlug.endsWith(suffix)) {
+            setSlug(baseSlug + suffix);
+        } else {
+            setSlug(baseSlug);
+        }
+    };
+
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setName(val);
-        const autoSlug = val.toLowerCase()
-            .replace(/[^\w\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-');
-        setSlug(autoSlug);
+        updateSlug(val, category);
     };
 
     const handleLogout = async () => {
@@ -168,7 +199,11 @@ export default function CreateBusiness() {
                                     <input
                                         type="text"
                                         value={slug}
-                                        onChange={(e) => setSlug(e.target.value)}
+                                        onChange={(e) => {
+                                            const newSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                                            setSlug(newSlug);
+                                            setIsSlugManual(true);
+                                        }}
                                         className="w-full bg-transparent border-none py-3 px-3 text-white placeholder-slate-600 focus:ring-0"
                                         placeholder="tu-negocio"
                                         required
@@ -186,7 +221,10 @@ export default function CreateBusiness() {
                                     <button
                                         key={cat.id}
                                         type="button"
-                                        onClick={() => setCategory(cat.id)}
+                                        onClick={() => {
+                                            setCategory(cat.id);
+                                            updateSlug(name, cat.id);
+                                        }}
                                         className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 relative overflow-hidden group ${category === cat.id
                                             ? 'bg-blue-600/20 border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.2)]'
                                             : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
