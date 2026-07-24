@@ -581,7 +581,7 @@ export default function Quoter() {
                 </div>
 
                 {/* ── Right Side: Quote Summary / Ticket View ── */}
-                <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24 z-10">
+                <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-6 z-10">
                     
                     {/* Theme Selector for Ticket Card */}
                     <div className="flex items-center justify-between gap-2 px-1">
