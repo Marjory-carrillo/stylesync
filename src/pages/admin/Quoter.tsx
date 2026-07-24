@@ -161,10 +161,11 @@ export default function Quoter() {
             onclone: (clonedDoc) => {
                 const clonedEl = clonedDoc.getElementById('printable-quote-card');
                 if (clonedEl) {
-                    clonedEl.style.width = '380px';
-                    clonedEl.style.minWidth = '380px';
-                    clonedEl.style.maxWidth = '380px';
+                    clonedEl.style.width = '480px';
+                    clonedEl.style.minWidth = '480px';
+                    clonedEl.style.maxWidth = '480px';
                     clonedEl.style.margin = '0 auto';
+                    clonedEl.style.padding = '32px';
                     clonedEl.style.boxSizing = 'border-box';
                     clonedEl.style.transform = 'none';
 
@@ -628,7 +629,7 @@ export default function Quoter() {
                     <div
                         ref={ticketRef}
                         id="printable-quote-card"
-                        className={`p-6 sm:p-7 rounded-[32px] shadow-2xl relative overflow-hidden border transition-all duration-300 ${
+                        className={`p-7 sm:p-8 rounded-[36px] shadow-2xl relative overflow-hidden border transition-all duration-300 max-w-[480px] mx-auto ${
                             cardTheme === 'pink'
                                 ? 'bg-gradient-to-b from-[#fce7f3] via-[#fbcfe8] to-[#f472b6] border-pink-300/50 text-slate-800'
                                 : cardTheme === 'gold'
@@ -636,14 +637,6 @@ export default function Quoter() {
                                 : 'bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#0f172a] border-white/15 text-white'
                         }`}
                     >
-                        {/* Decorative ambient blobs */}
-                        <div className={`absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none ${
-                            cardTheme === 'pink' ? 'bg-pink-400/30' : cardTheme === 'gold' ? 'bg-amber-400/30' : 'bg-purple-500/20'
-                        }`} />
-                        <div className={`absolute -bottom-12 -left-12 w-36 h-36 rounded-full blur-2xl pointer-events-none ${
-                            cardTheme === 'pink' ? 'bg-rose-400/30' : cardTheme === 'gold' ? 'bg-yellow-400/30' : 'bg-indigo-500/20'
-                        }`} />
-
                         {/* Header / Brand info */}
                         <div className="text-center pb-5 space-y-2 relative z-10">
                             <div className={`w-16 h-16 rounded-full mx-auto overflow-hidden shadow-lg p-0.5 border ${
@@ -662,54 +655,75 @@ export default function Quoter() {
                                 )}
                             </div>
                             <div>
-                                <h3 className={`text-xl font-black tracking-tight ${
+                                <h3 className={`text-2xl font-black tracking-tight ${
                                     cardTheme === 'pink' ? 'text-pink-950 font-serif' : cardTheme === 'gold' ? 'text-amber-950 font-serif' : 'text-white'
                                 }`}>
                                     {businessConfig.name || 'Salon de Uñas'}
                                 </h3>
-                                <p className={`text-xs font-bold mt-0.5 ${
+                                <p className={`text-xs font-bold mt-1 tracking-wider uppercase ${
                                     cardTheme === 'pink' ? 'text-pink-800/90' : cardTheme === 'gold' ? 'text-amber-900/90' : 'text-slate-400'
                                 }`}>
-                                    Tu Cotización de Uñas ✨
+                                    Presupuesto Personalizado ✨
                                 </p>
                             </div>
                         </div>
 
+                        {/* Optional Reference Image Preview inside card */}
+                        {referenceImage && (
+                            <div className="mb-4 relative z-10">
+                                <div className={`rounded-2xl p-2.5 border shadow-inner text-center ${
+                                    cardTheme === 'pink' ? 'bg-white/80 border-pink-200' : cardTheme === 'gold' ? 'bg-white/80 border-amber-200' : 'bg-slate-900/80 border-white/10'
+                                }`}>
+                                    <p className={`text-[10px] font-black uppercase tracking-wider mb-2 ${
+                                        cardTheme === 'pink' ? 'text-pink-700' : cardTheme === 'gold' ? 'text-amber-800' : 'text-cyan-400'
+                                    }`}>
+                                        📸 Foto de Referencia Solicitada
+                                    </p>
+                                    <div className="w-full h-36 rounded-xl overflow-hidden border border-black/10 bg-slate-950">
+                                        <img src={referenceImage} alt="Diseño solicitado" className="w-full h-full object-cover" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Inner Card Container */}
-                        <div className={`rounded-2xl p-5 shadow-lg border relative z-10 ${
+                        <div className={`rounded-2xl p-5 sm:p-6 shadow-xl border relative z-10 space-y-4 ${
                             cardTheme === 'pink'
-                                ? 'bg-white border-pink-200/80 text-slate-800'
+                                ? 'bg-white border-pink-200/90 text-slate-800'
                                 : cardTheme === 'gold'
-                                ? 'bg-white border-amber-200/80 text-slate-900'
-                                : 'bg-slate-900 border-white/10 text-slate-100'
+                                ? 'bg-white border-amber-200/90 text-slate-900'
+                                : 'bg-slate-900/95 border-white/10 text-slate-100'
                         }`}>
                             {/* Title inside card */}
-                            <div className={`flex items-center gap-2 pb-3 mb-3 border-b font-bold text-xs ${
+                            <div className={`flex items-center justify-between pb-3 border-b font-bold text-xs ${
                                 cardTheme === 'pink' ? 'border-pink-100 text-pink-700' : cardTheme === 'gold' ? 'border-amber-100 text-amber-800' : 'border-white/10 text-slate-300'
                             }`}>
-                                <span className="text-sm">💅</span> Tus Servicios Seleccionados
+                                <span className="flex items-center gap-1.5 font-black uppercase tracking-wider">
+                                    <span>💅</span> Servicios Incluidos
+                                </span>
+                                <span className="text-[10px] opacity-75">MXN</span>
                             </div>
 
                             {/* Breakdown Items */}
-                            <div className="space-y-3 min-h-[80px]">
+                            <div className="space-y-3 min-h-[90px]">
                                 {quoteBreakdown.items.length === 0 ? (
-                                    <p className="text-xs text-slate-400 italic text-center py-4">
-                                        Selecciona las opciones para ver tu resumen...
+                                    <p className="text-xs text-slate-400 italic text-center py-6">
+                                        Selecciona opciones en el panel para generar la cotización...
                                     </p>
                                 ) : (
                                     quoteBreakdown.items.map((item, idx) => (
-                                        <div key={idx} className="w-full flex items-start justify-between gap-3 text-xs py-1.5 border-b border-black/5 last:border-0">
+                                        <div key={idx} className="w-full flex items-center justify-between gap-4 py-2 border-b border-black/5 last:border-0">
                                             <div className="flex-1 text-left min-w-0 pr-2">
-                                                <span className="font-bold text-xs leading-snug block break-words">{item.name}</span>
+                                                <span className="font-bold text-sm leading-snug block break-words">{item.name}</span>
                                                 {item.detail && (
-                                                    <span className={`text-[10px] block mt-0.5 ${
+                                                    <span className={`text-[11px] block mt-0.5 ${
                                                         cardTheme === 'pink' ? 'text-pink-600 font-semibold' : cardTheme === 'gold' ? 'text-amber-700 font-semibold' : 'text-slate-400'
                                                     }`}>
                                                         {item.detail}
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className={`font-black text-sm text-right shrink-0 whitespace-nowrap leading-none ${
+                                            <span className={`font-black text-base text-right shrink-0 whitespace-nowrap leading-none ${
                                                 cardTheme === 'pink'
                                                     ? 'text-pink-700'
                                                     : cardTheme === 'gold'
@@ -723,26 +737,30 @@ export default function Quoter() {
                                 )}
                             </div>
 
-                            {/* Total Box */}
-                            <div className={`mt-4 pt-3 border-t flex justify-between items-center ${
-                                cardTheme === 'pink' ? 'border-pink-200' : cardTheme === 'gold' ? 'border-amber-200' : 'border-white/10'
+                            {/* Total Box Banner */}
+                            <div className={`pt-4 border-t flex justify-between items-center rounded-xl p-3.5 ${
+                                cardTheme === 'pink'
+                                    ? 'bg-pink-50/80 border border-pink-200/80 text-pink-950'
+                                    : cardTheme === 'gold'
+                                    ? 'bg-amber-50/80 border border-amber-200/80 text-amber-950'
+                                    : 'bg-white/5 border border-white/10 text-white'
                             }`}>
                                 <div>
-                                    <span className={`text-[10px] uppercase font-black tracking-wider block ${
-                                        cardTheme === 'pink' ? 'text-pink-600' : cardTheme === 'gold' ? 'text-amber-700' : 'text-slate-400'
+                                    <span className={`text-[10px] uppercase font-black tracking-widest block ${
+                                        cardTheme === 'pink' ? 'text-pink-600' : cardTheme === 'gold' ? 'text-amber-800' : 'text-slate-400'
                                     }`}>
-                                        Total a Pagar
+                                        Total Estimado
                                     </span>
-                                    <p className="text-2xl font-black leading-none mt-0.5">
-                                        ${quoteBreakdown.total} <span className="text-xs font-semibold">MXN</span>
+                                    <p className="text-3xl font-black leading-none mt-1">
+                                        ${quoteBreakdown.total} <span className="text-xs font-bold opacity-75">MXN</span>
                                     </p>
                                 </div>
-                                <div className={`flex items-center justify-center text-center px-4 py-2 rounded-full font-bold text-xs tracking-wide border leading-none shrink-0 ${
+                                <div className={`flex items-center justify-center text-center px-4 py-2 rounded-full font-bold text-xs tracking-wider border leading-none shrink-0 ${
                                     cardTheme === 'pink'
-                                        ? 'bg-pink-50/90 border-pink-200 text-pink-700 shadow-sm'
+                                        ? 'bg-pink-500 text-white border-pink-400 shadow-md shadow-pink-500/20'
                                         : cardTheme === 'gold'
-                                        ? 'bg-amber-50/90 border-amber-200 text-amber-800 shadow-sm'
-                                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-sm'
+                                        ? 'bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/20'
+                                        : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
                                 }`}>
                                     <span>Tu Cotización ✨</span>
                                 </div>
@@ -750,11 +768,16 @@ export default function Quoter() {
                         </div>
 
                         {/* Card Footer branding */}
-                        <div className="mt-4 text-center relative z-10">
-                            <p className={`text-[10px] font-bold tracking-wide ${
-                                cardTheme === 'pink' ? 'text-pink-900/80' : cardTheme === 'gold' ? 'text-amber-950/80' : 'text-slate-400'
+                        <div className="mt-5 text-center relative z-10 space-y-1">
+                            <p className={`text-[11px] font-bold tracking-wide ${
+                                cardTheme === 'pink' ? 'text-pink-900/90' : cardTheme === 'gold' ? 'text-amber-950/90' : 'text-slate-300'
                             }`}>
-                                ¡Gracias por tu preferencia! 💕 • Te esperamos pronto
+                                ¡Gracias por consultar con nosotros! 💕 • Te esperamos pronto
+                            </p>
+                            <p className={`text-[9px] opacity-75 ${
+                                cardTheme === 'pink' ? 'text-pink-800' : cardTheme === 'gold' ? 'text-amber-900' : 'text-slate-400'
+                            }`}>
+                                Precios aproximados sujetos a evaluación presencial
                             </p>
                         </div>
                     </div>
