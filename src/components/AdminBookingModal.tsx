@@ -533,7 +533,13 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                 {sizeCategory.items.map(item => (
                                                     <button
                                                         key={item.id}
-                                                        onClick={() => setNailSize(item)}
+                                                        onClick={() => {
+                                                            if (nailSize?.id === item.id) {
+                                                                setNailSize(null);
+                                                            } else {
+                                                                setNailSize(item);
+                                                            }
+                                                        }}
                                                         className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center ${nailSize?.id === item.id ? 'bg-accent/15 border-accent text-white font-black' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
                                                     >
                                                         <span>{item.name}</span>
@@ -560,7 +566,13 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                     <button
                                                         key={lvl.id}
                                                         type="button"
-                                                        onClick={() => setDesignLevel(lvl.id as any)}
+                                                        onClick={() => {
+                                                            if (designLevel === lvl.id) {
+                                                                setDesignLevel('basic');
+                                                            } else {
+                                                                setDesignLevel(lvl.id as any);
+                                                            }
+                                                        }}
                                                         className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center ${designLevel === lvl.id ? 'bg-accent/15 border-accent text-white font-black' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
                                                     >
                                                         <span className="truncate block">{lvl.name}</span>

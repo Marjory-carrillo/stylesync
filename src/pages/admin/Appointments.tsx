@@ -688,10 +688,30 @@ export default function Appointments() {
                                                                 <div className="flex items-center gap-2 flex-wrap">
                                                                     <div className="flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 w-fit">
                                                                         <Scissors size={12} className="text-accent" />
-                                                                        <span className="tracking-tight truncate max-w-[200px]">
+                                                                        <span className="tracking-tight truncate max-w-[260px]">
                                                                             {service?.name} {(() => {
-                                                                                const clean = (apt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
-                                                                                return clean.length ? ' + ' + clean.join(' + ') : '';
+                                                                                const clean = (apt.additionalServices ?? []).filter((s: string) => 
+                                                                                    !s.startsWith('Referencia:') && 
+                                                                                    !s.startsWith('Cotización Confirmada:') && 
+                                                                                    !s.startsWith('Cotización Estimada:')
+                                                                                );
+                                                                                if (!clean.length) return '';
+                                                                                const formatted = clean.map((s: string) => {
+                                                                                    if (s.startsWith('Largo: ')) {
+                                                                                        const nameOnly = s.replace(/Largo:\s*/, '').replace(/\s*\(\+\$\d+.*?\)/, '');
+                                                                                        return `(${nameOnly})`;
+                                                                                    }
+                                                                                    if (s.startsWith('Diseño: ')) {
+                                                                                        const nameOnly = s.replace(/Diseño:\s*/, '').replace(/\s*\(\+\$\d+.*?\)/, '').replace(/\s*\(Sin costo\)/, '');
+                                                                                        return nameOnly !== 'Básico / 1 Tono' && nameOnly !== 'Básico' ? `(${nameOnly})` : '';
+                                                                                    }
+                                                                                    if (s.startsWith('Extra: ')) {
+                                                                                        const nameOnly = s.replace(/Extra:\s*/, '').replace(/\s*\(\+\$\d+.*?\)/, '');
+                                                                                        return `+ ${nameOnly}`;
+                                                                                    }
+                                                                                    return s;
+                                                                                }).filter(Boolean).join(' ');
+                                                                                return formatted ? ' ' + formatted : '';
                                                                             })()}
                                                                         </span>
                                                                     </div>

@@ -1734,7 +1734,13 @@ export default function Booking() {
                                                 <button
                                                     key={item.id}
                                                     type="button"
-                                                    onClick={() => setNailSize({ id: item.id, name: item.name, price: item.price })}
+                                                    onClick={() => {
+                                                        if (nailSize?.id === item.id) {
+                                                            setNailSize(null);
+                                                        } else {
+                                                            setNailSize({ id: item.id, name: item.name, price: item.price });
+                                                        }
+                                                    }}
                                                     className={`py-3 px-2 rounded-xl text-xs font-bold border transition-all duration-300 ${
                                                         nailSize?.id === item.id
                                                             ? 'bg-cyan-400/10 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
@@ -1771,7 +1777,13 @@ export default function Booking() {
                                                         <button
                                                             key={opt.id}
                                                             type="button"
-                                                            onClick={() => setDesignLevel(opt.id as any)}
+                                                            onClick={() => {
+                                                                if (designLevel === opt.id) {
+                                                                    setDesignLevel('basic');
+                                                                } else {
+                                                                    setDesignLevel(opt.id as any);
+                                                                }
+                                                            }}
                                                             className={`p-4 rounded-xl border text-left transition-all duration-300 flex flex-col gap-1 w-full ${
                                                                 isSelected
                                                                     ? 'bg-emerald-500/10 border-emerald-500/40 text-white shadow-[0_0_15px_rgba(16,185,129,0.08)]'
