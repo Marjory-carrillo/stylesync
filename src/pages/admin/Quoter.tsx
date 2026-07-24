@@ -156,6 +156,8 @@ export default function Quoter() {
             logging: false,
             useCORS: true,
             allowTaint: true,
+            scrollX: 0,
+            scrollY: 0,
             onclone: (clonedDoc) => {
                 const clonedEl = clonedDoc.getElementById('printable-quote-card');
                 if (clonedEl) {
@@ -166,13 +168,19 @@ export default function Quoter() {
                     clonedEl.style.boxSizing = 'border-box';
                     clonedEl.style.transform = 'none';
 
-                    // Eliminar filtros de backdrop-blur que rompen la alineacion en html2canvas
+                    // Ocultar elementos flotantes con blur que desalinean bordes en html2canvas
+                    const blobs = clonedEl.querySelectorAll('.blur-2xl');
+                    blobs.forEach(b => ((b as HTMLElement).style.display = 'none'));
+
+                    // Limpiar animaciones, transiciones y filtros que distorsionan fuentes
                     const allElements = clonedEl.querySelectorAll('*');
                     allElements.forEach((node) => {
                         const el = node as HTMLElement;
                         if (el.style) {
                             el.style.backdropFilter = 'none';
                             (el.style as any).webkitBackdropFilter = 'none';
+                            el.style.animation = 'none';
+                            el.style.transition = 'none';
                         }
                     });
                 }
@@ -690,18 +698,18 @@ export default function Quoter() {
                                     </p>
                                 ) : (
                                     quoteBreakdown.items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between items-center text-xs pb-2 border-b border-black/5 last:border-0 last:pb-0">
-                                            <div className="text-left pr-2">
-                                                <p className="font-bold leading-snug">{item.name}</p>
+                                        <div key={idx} className="w-full flex items-start justify-between gap-3 text-xs py-1.5 border-b border-black/5 last:border-0">
+                                            <div className="flex-1 text-left min-w-0 pr-2">
+                                                <span className="font-bold text-xs leading-snug block break-words">{item.name}</span>
                                                 {item.detail && (
-                                                    <p className={`text-[10px] ${
+                                                    <span className={`text-[10px] block mt-0.5 ${
                                                         cardTheme === 'pink' ? 'text-pink-600 font-semibold' : cardTheme === 'gold' ? 'text-amber-700 font-semibold' : 'text-slate-400'
                                                     }`}>
                                                         {item.detail}
-                                                    </p>
+                                                    </span>
                                                 )}
                                             </div>
-                                            <span className={`font-black text-sm shrink-0 ${
+                                            <span className={`font-black text-sm text-right shrink-0 whitespace-nowrap leading-none ${
                                                 cardTheme === 'pink'
                                                     ? 'text-pink-700'
                                                     : cardTheme === 'gold'
