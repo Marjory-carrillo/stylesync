@@ -157,22 +157,42 @@ export default function Quoter() {
             useCORS: true,
             allowTaint: true,
             onclone: (clonedDoc) => {
+                // Resetear zoom del clon a 100% (1) para evitar bugs de renderizado de html2canvas
+                if (clonedDoc.documentElement) {
+                    (clonedDoc.documentElement.style as any).zoom = '1';
+                }
+                if (clonedDoc.body) {
+                    (clonedDoc.body.style as any).zoom = 'normal';
+                    clonedDoc.body.style.minHeight = 'auto';
+                }
+
                 const clonedEl = clonedDoc.getElementById('printable-quote-card');
                 if (clonedEl) {
-                    clonedEl.style.width = '380px';
-                    clonedEl.style.minWidth = '380px';
-                    clonedEl.style.maxWidth = '380px';
+                    clonedEl.style.width = '480px';
+                    clonedEl.style.minWidth = '480px';
+                    clonedEl.style.maxWidth = '480px';
                     clonedEl.style.margin = '0 auto';
                     clonedEl.style.boxSizing = 'border-box';
                     clonedEl.style.transform = 'none';
 
-                    // Eliminar filtros de backdrop-blur que rompen la alineacion en html2canvas
+                    // Modificar elementos internos del clone para estabilizar renderizado de fuentes en html2canvas
                     const allElements = clonedEl.querySelectorAll('*');
                     allElements.forEach((node) => {
                         const el = node as HTMLElement;
                         if (el.style) {
+                            // Desactivar filtros que rompen la alineación
                             el.style.backdropFilter = 'none';
                             (el.style as any).webkitBackdropFilter = 'none';
+
+                            // Remover letter-spacing (tracking) que causa encimado de letras y eliminación de espacios
+                            el.style.letterSpacing = 'normal';
+                            el.style.wordSpacing = 'normal';
+
+                            // Estabilizar altura de línea para evitar encimado vertical
+                            const tagName = el.tagName.toLowerCase();
+                            if (tagName === 'h3' || tagName === 'p' || tagName === 'span') {
+                                el.style.lineHeight = '1.3';
+                            }
                         }
                     });
                 }
@@ -676,10 +696,11 @@ export default function Quoter() {
                                 : 'bg-slate-900 border-white/10 text-slate-100'
                         }`}>
                             {/* Title inside card */}
-                            <div className={`flex items-center gap-2 pb-3 mb-3 border-b font-bold text-xs ${
+                            <div className={`flex items-center gap-1.5 pb-3 mb-3 border-b font-bold text-xs ${
                                 cardTheme === 'pink' ? 'border-pink-100 text-pink-700' : cardTheme === 'gold' ? 'border-amber-100 text-amber-800' : 'border-white/10 text-slate-300'
                             }`}>
-                                <span className="text-sm">💅</span> Tus Servicios Seleccionados
+                                <span className="text-sm">💅</span>
+                                <span>Tus Servicios Seleccionados</span>
                             </div>
 
                             {/* Breakdown Items */}
@@ -729,7 +750,7 @@ export default function Quoter() {
                                         ${quoteBreakdown.total} <span className="text-xs font-semibold">MXN</span>
                                     </p>
                                 </div>
-                                <div className={`flex items-center justify-center text-center px-4 py-2 rounded-full font-bold text-xs tracking-wide border leading-none shrink-0 ${
+                                <div className={`flex items-center justify-center text-center px-3 py-1 rounded-full font-bold text-xs tracking-wide border leading-none shrink-0 ${
                                     cardTheme === 'pink'
                                         ? 'bg-pink-50/90 border-pink-200 text-pink-700 shadow-sm'
                                         : cardTheme === 'gold'
