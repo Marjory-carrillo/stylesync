@@ -72,18 +72,18 @@
 html,
 body,
 #root {
-  min-height: calc(100vh / var(--app-zoom-scale, 1));
+  min-height: 100vh;
   background-color: var(--color-bg, #0c101d) !important;
   background: var(--color-bg, #0c101d) !important;
   background-attachment: fixed;
 }
 
 .h-screen {
-  height: calc(100vh / var(--app-zoom-scale, 1)) !important;
+  height: 100vh !important;
 }
 
 .min-h-screen {
-  min-height: calc(100vh / var(--app-zoom-scale, 1)) !important;
+  min-height: 100vh !important;
 }
 
 html,
