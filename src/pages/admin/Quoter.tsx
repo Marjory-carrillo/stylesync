@@ -65,37 +65,32 @@ export default function Quoter() {
     const styleCategory = useMemo(() => config.find(c => c.id === 'styles'), [config]);
     const extrasCategory = useMemo(() => config.find(c => c.id === 'extras'), [config]);
 
-    // Set initial base and size on config load
-    useMemo(() => {
-        if (baseCategory && baseCategory.items.length > 0 && !selectedBaseId) {
-            setSelectedBaseId(baseCategory.items[0].id);
-        }
-        if (sizeCategory && sizeCategory.items.length > 0 && !selectedSizeId) {
-            setSelectedSizeId(sizeCategory.items[0].id);
-        }
-    }, [config, baseCategory, sizeCategory, selectedBaseId, selectedSizeId]);
-
     // Calculate details and prices
     const quoteBreakdown = useMemo(() => {
         const items: { name: string; price: number; detail?: string }[] = [];
         let total = 0;
 
-        // Base service
-        if (baseCategory) {
-            const baseItem = baseCategory.items.find(i => i.id === selectedBaseId);
-            if (baseItem) {
+        const baseItem = baseCategory?.items.find(i => i.id === selectedBaseId);
+        const sizeItem = sizeCategory?.items.find(i => i.id === selectedSizeId);
+
+        // Combined Base service + Size into a single line item with summed price
+        if (baseItem) {
+            if (sizeItem && sizeItem.price > 0) {
+                const combinedName = `${baseItem.name} (${sizeItem.name})`;
+                const combinedPrice = baseItem.price + sizeItem.price;
+                items.push({ name: combinedName, price: combinedPrice });
+                total += combinedPrice;
+            } else if (sizeItem) {
+                const combinedName = `${baseItem.name} (${sizeItem.name})`;
+                items.push({ name: combinedName, price: baseItem.price });
+                total += baseItem.price;
+            } else {
                 items.push({ name: baseItem.name, price: baseItem.price });
                 total += baseItem.price;
             }
-        }
-
-        // Size
-        if (sizeCategory) {
-            const sizeItem = sizeCategory.items.find(i => i.id === selectedSizeId);
-            if (sizeItem) {
-                items.push({ name: `${sizeCategory.name}: ${sizeItem.name}`, price: sizeItem.price });
-                total += sizeItem.price;
-            }
+        } else if (sizeItem) {
+            items.push({ name: `Largo: ${sizeItem.name}`, price: sizeItem.price });
+            total += sizeItem.price;
         }
 
         // Styles / Decor
@@ -374,28 +369,29 @@ export default function Quoter() {
                                 <span className="w-2 h-2 rounded-full bg-accent"></span> {baseCategory.name}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {baseCategory.items.map(item => (
-                                    <label
-                                        key={item.id}
-                                        className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-300 ${
-                                            selectedBaseId === item.id
-                                                ? 'bg-accent/10 border-accent text-white shadow-glow-sm'
-                                                : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="radio"
-                                                name="baseService"
-                                                checked={selectedBaseId === item.id}
-                                                onChange={() => setSelectedBaseId(item.id)}
-                                                className="w-4 h-4 text-accent border-white/10 focus:ring-accent bg-slate-900"
-                                            />
-                                            <span className="text-sm font-semibold">{item.name}</span>
-                                        </div>
-                                        <span className="text-sm font-bold text-accent">${item.price}</span>
-                                    </label>
-                                ))}
+                                {baseCategory.items.map(item => {
+                                    const isSelected = selectedBaseId === item.id;
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => setSelectedBaseId(prev => prev === item.id ? '' : item.id)}
+                                            className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-300 text-left ${
+                                                isSelected
+                                                    ? 'bg-accent/10 border-accent text-white shadow-glow-sm'
+                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'border-accent bg-accent' : 'border-white/20 bg-slate-900'}`}>
+                                                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                                                </div>
+                                                <span className="text-sm font-semibold">{item.name}</span>
+                                            </div>
+                                            <span className="text-sm font-bold text-accent">${item.price}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -406,28 +402,26 @@ export default function Quoter() {
                                 <span className="w-2 h-2 rounded-full bg-cyan-400"></span> {sizeCategory.name}
                             </h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {sizeCategory.items.map(item => (
-                                    <label
-                                        key={item.id}
-                                        className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer text-center select-none transition-all duration-300 ${
-                                            selectedSizeId === item.id
-                                                ? 'bg-cyan-400/10 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.1)]'
-                                                : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
-                                        }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="nailSize"
-                                            checked={selectedSizeId === item.id}
-                                            onChange={() => setSelectedSizeId(item.id)}
-                                            className="sr-only"
-                                        />
-                                        <span className="text-sm font-bold">{item.name}</span>
-                                        <span className="text-xs text-cyan-400 font-bold mt-1">
-                                            {item.price === 0 ? 'Sin costo' : `+$${item.price}`}
-                                        </span>
-                                    </label>
-                                ))}
+                                {sizeCategory.items.map(item => {
+                                    const isSelected = selectedSizeId === item.id;
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => setSelectedSizeId(prev => prev === item.id ? '' : item.id)}
+                                            className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer text-center select-none transition-all duration-300 ${
+                                                isSelected
+                                                    ? 'bg-cyan-400/10 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
+                                            }`}
+                                        >
+                                            <span className="text-sm font-bold">{item.name}</span>
+                                            <span className="text-xs text-cyan-400 font-bold mt-1">
+                                                {item.price === 0 ? 'Sin costo' : `+$${item.price}`}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
