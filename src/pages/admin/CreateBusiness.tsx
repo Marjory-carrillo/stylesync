@@ -28,6 +28,7 @@ export default function CreateBusiness() {
         { id: 'barbershop', label: 'Barbería', icon: Scissors, desc: 'Cortes, barba y estilo masculino.' },
         { id: 'beauty_salon', label: 'Salón de Belleza', icon: Sparkles, desc: 'Estilismo, cabello y maquillaje.' },
         { id: 'nail_bar', label: 'Nail Bar', icon: Sparkles, desc: 'Manicure, pedicure y uñas acrílicas.' },
+        { id: 'lashes', label: 'Pestañas / Lashes', icon: Eye, desc: 'Extensiones de pestañas, cejas y diseño de mirada.' },
         { id: 'spa', label: 'Spa & Wellness', icon: Flower2, desc: 'Masajes, relax y tratamientos.' },
         { id: 'pet_grooming', label: 'Peluquería Canina', icon: Dog, desc: 'Estética y cuidado de mascotas.' },
         { id: 'consulting', label: 'Consultorio', icon: Briefcase, desc: 'Citas médicas, legales o coaching.' },
@@ -69,6 +70,7 @@ export default function CreateBusiness() {
             case 'barbershop': return '-barber';
             case 'beauty_salon': return '-beauty';
             case 'nail_bar': return '-nails';
+            case 'lashes': return '-lashes';
             case 'spa': return '-spa';
             case 'pet_grooming': return '-pets';
             case 'consulting': return '-consulting';

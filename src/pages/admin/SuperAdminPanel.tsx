@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
-    DollarSign, Pencil
+    DollarSign, Pencil, Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -375,6 +375,7 @@ export default function SuperAdminPanel() {
             case 'barbershop': return '-barber';
             case 'beauty_salon': return '-beauty';
             case 'nail_bar': return '-nails';
+            case 'lashes': return '-lashes';
             case 'spa': return '-spa';
             case 'pet_grooming': return '-pets';
             case 'consulting': return '-consulting';
@@ -669,6 +670,7 @@ export default function SuperAdminPanel() {
             totalExtraBranches: number;
             paymentStatus: string;
             gracePeriodEndsAt: string | null;
+            hasPayment: boolean;
         }> = {};
 
         allTenants.forEach(tenant => {
@@ -683,7 +685,8 @@ export default function SuperAdminPanel() {
                     totalExtraEmployees: tenant.extra_employees_paid || 0,
                     totalExtraBranches: tenant.extra_branches_paid || 0,
                     paymentStatus: tenant.payment_status || 'active',
-                    gracePeriodEndsAt: tenant.grace_period_ends_at || null
+                    gracePeriodEndsAt: tenant.grace_period_ends_at || null,
+                    hasPayment: !!tenant.stripe_subscription_id || tenant.subscription_type === 'manual'
                 };
             } else {
                 const currentRank = getPlanRank(businesses[key].plan);
@@ -694,6 +697,7 @@ export default function SuperAdminPanel() {
                 businesses[key].isTrial = businesses[key].isTrial && isTrial;
                 businesses[key].totalExtraEmployees += tenant.extra_employees_paid || 0;
                 businesses[key].totalExtraBranches = Math.max(businesses[key].totalExtraBranches, tenant.extra_branches_paid || 0);
+                businesses[key].hasPayment = businesses[key].hasPayment || !!tenant.stripe_subscription_id || tenant.subscription_type === 'manual';
                 
                 // Aggregating payment status
                 if (tenant.payment_status === 'suspended' || businesses[key].paymentStatus === 'suspended') {
@@ -713,7 +717,7 @@ export default function SuperAdminPanel() {
         }
 
         Object.values(businesses).forEach(biz => {
-            const { plan, isTrial, totalExtraEmployees, totalExtraBranches, paymentStatus, gracePeriodEndsAt } = biz;
+            const { plan, isTrial, totalExtraEmployees, totalExtraBranches, paymentStatus, gracePeriodEndsAt, hasPayment } = biz;
 
             const isSuspended = paymentStatus === 'suspended' || 
                                (paymentStatus === 'grace_period' && gracePeriodEndsAt && new Date(gracePeriodEndsAt) < now);
@@ -727,16 +731,16 @@ export default function SuperAdminPanel() {
                 freeCount++;
             } else if (plan === 'pro') {
                 proCount++;
-                if (!isTrial && !isSuspended) basePrice = 649;
+                if (!isTrial && !isSuspended && hasPayment) basePrice = 649;
             } else if (plan === 'business') {
                 businessCount++;
-                if (!isTrial && !isSuspended) basePrice = 1249;
+                if (!isTrial && !isSuspended && hasPayment) basePrice = 1249;
             } else if (plan === 'lite') {
                 liteCount++;
-                if (!isTrial && !isSuspended) basePrice = 349;
+                if (!isTrial && !isSuspended && hasPayment) basePrice = 349;
             }
 
-            if (!isTrial && !isSuspended) {
+            if (!isTrial && !isSuspended && hasPayment) {
                 totalMrr += basePrice;
                 // Sumar profesionales extra: Pro y Business permiten profesionales adicionales pagados ($249 MXN/mes c/u)
                 if (plan === 'pro' || plan === 'business') {
@@ -1540,6 +1544,7 @@ export default function SuperAdminPanel() {
                                             { id: 'barbershop', label: 'Barbería', icon: <Scissors size={16} />, color: 'amber' },
                                             { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={16} />, color: 'pink' },
                                             { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={16} />, color: 'rose' },
+                                            { id: 'lashes', label: 'Pestañas / Lashes', icon: <Eye size={16} />, color: 'violet' },
                                             { id: 'spa', label: 'Spa', icon: <Flower2 size={16} />, color: 'emerald' },
                                             { id: 'consulting', label: 'Clínica', icon: <Briefcase size={16} />, color: 'blue' },
                                             { id: 'other', label: 'Otro', icon: <MoreHorizontal size={16} />, color: 'slate' },
@@ -1549,6 +1554,7 @@ export default function SuperAdminPanel() {
                                                 amber: isSelected ? 'border-amber-400/50 bg-amber-400/10 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.1)]' : 'border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-amber-400',
                                                 pink: isSelected ? 'border-pink-400/50 bg-pink-400/10 text-pink-400 shadow-[0_0_12px_rgba(244,114,182,0.1)]' : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
                                                 rose: isSelected ? 'border-rose-400/50 bg-rose-400/10 text-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.1)]' : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
+                                                violet: isSelected ? 'border-violet-400/50 bg-violet-400/10 text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.1)]' : 'border-white/5 text-slate-500 hover:border-violet-400/30 hover:text-violet-400',
                                                 emerald: isSelected ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.1)]' : 'border-white/5 text-slate-500 hover:border-emerald-400/30 hover:text-emerald-400',
                                                 blue: isSelected ? 'border-blue-400/50 bg-blue-400/10 text-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.1)]' : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
                                                 slate: isSelected ? 'border-slate-400/50 bg-slate-400/10 text-slate-300' : 'border-white/5 text-slate-500 hover:border-slate-400/30 hover:text-slate-400',

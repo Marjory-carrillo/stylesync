@@ -93,6 +93,18 @@ export const CATEGORY_DEFAULTS: Record<string, {
             saturday: { open: false, start: '10:00', end: '14:00' }, // Usually closed weekends
         }
     },
+    lashes: {
+        services: [
+            { name: 'Pestañas Clásicas 1x1', price: 35, duration: 90, image: '' },
+            { name: 'Pestañas Volumen', price: 50, duration: 120, image: '' },
+            { name: 'Lifting de Pestañas', price: 25, duration: 60, image: '' },
+            { name: 'Diseño de Ceja & Henna', price: 15, duration: 30, image: '' },
+        ],
+        stylists: [
+            { name: 'Lashista Principal', role: 'Lash Artist Expert', phone: '', image: '' },
+        ],
+        schedule: STANDARD_SCHEDULE
+    },
     other: {
         services: [
             { name: 'Servicio General', price: 20, duration: 30, image: '' },
