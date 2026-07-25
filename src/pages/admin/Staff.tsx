@@ -246,11 +246,13 @@ export default function Staff() {
                             <h3 className="text-xl font-bold text-white mb-1">{person.name}</h3>
                             <p className="text-accent text-sm font-medium mb-2">{person.role}</p>
 
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md border border-emerald-500/20">
-                                    {person.commissionRate || 0}% COMISIÓN
-                                </span>
-                            </div>
+                            {businessConfig?.commissionsEnabled && (
+                                <div className="flex items-center gap-2 mb-4">
+                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md border border-emerald-500/20">
+                                        {person.commissionRate || 0}% COMISIÓN
+                                    </span>
+                                </div>
+                            )}
 
                             {person.phone && (
                                 <div className="flex items-center gap-2 text-sm text-muted bg-white/5 py-1 px-3 rounded-full">
