@@ -218,7 +218,7 @@ export default function AdminLayout() {
                         <span>{t('nav.appointments')}</span>
                     </Link>
 
-                    {businessConfig?.category === 'nail_bar' && (
+                    {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && (
                         <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
                             <Calculator size={18} />
                             <span>Cotizador de Uñas</span>

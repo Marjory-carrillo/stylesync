@@ -738,7 +738,7 @@ export default function Appointments() {
                                                                         <span className="truncate max-w-[150px]">{stylist?.name || 'Cualquier profesional'}</span>
                                                                     </div>
                                                                     {(() => {
-                                                                        const hasVarPrice = service?.priceType === 'no_price' || service?.priceType === 'range' || (tenantConfig?.category === 'nail_bar' && service?.enableQuoter);
+                                                                        const hasVarPrice = service?.priceType === 'no_price' || service?.priceType === 'range' || ((['nail_bar', 'beauty_salon'] as string[]).includes(tenantConfig?.category || '') && service?.enableQuoter);
                                                                         if (!hasVarPrice) return null;
                                                                         const confirmed = isPriceConfirmed(apt);
                                                                         return (

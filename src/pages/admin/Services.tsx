@@ -562,8 +562,8 @@ export default function Services() {
                                 </label>
                             </div>
 
-                            {/* enableQuoter Toggle (Only for Nail Bars) */}
-                            {businessConfig.category === 'nail_bar' && !formIsAddon && (
+                            {/* enableQuoter Toggle (For Nail Bars and Beauty Salons) */}
+                            {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig.category) && !formIsAddon && (
                                 <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                                     <label className="flex items-start justify-between cursor-pointer group">
                                         <div>

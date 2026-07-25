@@ -1208,8 +1208,8 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* ── Nail Calculator Config Module (Section 7 - Only for Nail Bars) ── */}
-                {userRole === 'owner' && businessConfig.category === 'nail_bar' && (
+                {/* ── Nail Calculator Config Module (Section 7 - For Nail Bars and Beauty Salons) ── */}
+                {userRole === 'owner' && (['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig.category) && (
                     <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10]">
                         <div className="flex items-center justify-between border-b border-white/5 pb-4">
                             <div className="flex items-center gap-3">

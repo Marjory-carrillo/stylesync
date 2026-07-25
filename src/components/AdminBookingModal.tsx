@@ -148,7 +148,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
 
     // Get final computed service price
     const totalPrice = useMemo(() => {
-        if (businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter) {
+        if ((['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService?.enableQuoter) {
             return nailTotalPrice;
         }
         return selectedService?.price ?? 0;
@@ -247,7 +247,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
 
         // Build additionalServices/addOnNames
         let addOnNames: string[] = [];
-        if (businessConfig?.category === 'nail_bar' && selectedService.enableQuoter) {
+        if ((['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService.enableQuoter) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
             
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
@@ -506,7 +506,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                             <p className="text-xs font-bold text-accent uppercase tracking-widest mb-2">Paso 3: Servicio</p>
                             
                             {/* If quoter is enabled and a service is selected, show the quoter form */}
-                            {selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter ? (
+                            {selectedService && (['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService.enableQuoter ? (
                                 <div className="space-y-5">
                                     {/* Selected Service Card */}
                                     <div className="flex items-center gap-4 p-4 rounded-2xl border bg-accent/5 border-accent/20 text-left">
@@ -625,7 +625,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             key={svc.id}
                                             onClick={() => {
                                                 setSelectedService(svc);
-                                                if (businessConfig?.category === 'nail_bar' && svc.enableQuoter) {
+                                                if ((['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && svc.enableQuoter) {
                                                     // Keep user in step to see customized quoter
                                                 } else {
                                                     setStep('fecha');
@@ -650,7 +650,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
 
                             <button 
                                 onClick={() => {
-                                    if (selectedService && businessConfig?.category === 'nail_bar' && selectedService.enableQuoter) {
+                                    if (selectedService && (['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService.enableQuoter) {
                                         setSelectedService(null);
                                     } else {
                                         setStep('barbero');
@@ -738,7 +738,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         </div>
 
                                         {/* Nails Customization details breakdown in admin summary card */}
-                                        {businessConfig?.category === 'nail_bar' && selectedService?.enableQuoter && (
+                                        {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService?.enableQuoter && (
                                             <div className="border-t border-white/5 pt-2.5 mt-2.5 space-y-1.5 text-xs text-slate-400">
                                                 {nailSize && (
                                                     <div className="flex justify-between">
