@@ -346,7 +346,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
 };
 
 export default function SuperAdminPanel() {
-    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant } = useSuperAdmin();
+    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner } = useSuperAdmin();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -369,6 +369,9 @@ export default function SuperAdminPanel() {
     const showToast = useUIStore(s => s.showToast);
     const navigate = useNavigate();
     const [isSlugManual, setIsSlugManual] = useState(false);
+    const [relinkModal, setRelinkModal] = useState<{ tenantId: string; tenantName: string } | null>(null);
+    const [relinkEmail, setRelinkEmail] = useState('');
+    const [isRelinking, setIsRelinking] = useState(false);
 
     const getCategorySuffix = (catId: string) => {
         switch (catId) {
@@ -815,6 +818,25 @@ export default function SuperAdminPanel() {
         }
     };
 
+    const handleRelinkClick = (tenant: any) => {
+        setRelinkEmail('');
+        setRelinkModal({ tenantId: tenant.id, tenantName: tenant.name });
+    };
+
+    const confirmRelink = async () => {
+        if (!relinkModal || !relinkEmail.trim()) return;
+        setIsRelinking(true);
+        const res = await relinkOwner(relinkModal.tenantId, relinkEmail.trim().toLowerCase());
+        setIsRelinking(false);
+        if (res.success) {
+            showToast(`✅ Owner re-vinculado correctamente a "${relinkModal.tenantName}"`, 'success');
+            setRelinkModal(null);
+            setRelinkEmail('');
+        } else {
+            showToast('Error: ' + (res.error || 'No se pudo re-vincular'), 'error');
+        }
+    };
+
     const confirmPlanChange = async () => {
         if (!pendingPlanChange) return;
         const { tenantId, to, tenantName } = pendingPlanChange;
@@ -843,6 +865,45 @@ export default function SuperAdminPanel() {
 
     return (
         <div className="animate-fade-in flex flex-col gap-8 h-full pb-10">
+
+            {/* Modal Re-vincular Owner */}
+            {relinkModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="glass-panel max-w-md w-full p-8 border border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-transparent"></div>
+                        <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-5 mx-auto">
+                            <Eye size={28} />
+                        </div>
+                        <h3 className="text-xl font-black text-white text-center mb-1 uppercase tracking-tight">Re-vincular Owner</h3>
+                        <p className="text-slate-400 text-center text-sm mb-5 leading-relaxed">
+                            Asigna el correo correcto del dueño a <span className="text-white font-bold">"{relinkModal.tenantName}"</span>.
+                            Esto actualizará <code className="text-cyan-400 text-xs">owner_id</code> y <code className="text-cyan-400 text-xs">tenant_users</code> automáticamente.
+                        </p>
+                        <input
+                            type="email"
+                            value={relinkEmail}
+                            onChange={e => setRelinkEmail(e.target.value)}
+                            placeholder="correo_correcto@ejemplo.com"
+                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/30 transition-all outline-none text-sm mb-5"
+                        />
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={confirmRelink}
+                                disabled={isRelinking || !relinkEmail.trim()}
+                                className="w-full py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-900 font-black uppercase tracking-widest transition-all text-sm"
+                            >
+                                {isRelinking ? 'Vinculando...' : '🔗 Re-vincular Owner'}
+                            </button>
+                            <button
+                                onClick={() => { setRelinkModal(null); setRelinkEmail(''); }}
+                                className="w-full py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold uppercase tracking-widest transition-all text-sm"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* HQ Header */}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative">
                 <div className="absolute -top-10 -left-10 w-64 h-64 bg-accent/5 rounded-full blur-3xl -z-10 animate-pulse-soft"></div>
@@ -1202,6 +1263,14 @@ export default function SuperAdminPanel() {
                                             title="Editar Parámetros"
                                         >
                                             <Pencil size={18} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRelinkClick(tenant)}
+                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-400 hover:text-cyan-400 transition-colors border border-transparent hover:border-cyan-500/20"
+                                            title="Re-vincular Owner (arreglar login)"
+                                        >
+                                            <Eye size={18} />
                                         </button>
                                         <button
                                             onClick={async () => {

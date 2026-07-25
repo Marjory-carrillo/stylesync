@@ -141,6 +141,8 @@ export function useSuperAdmin() {
     const deleteTenantMutation = useMutation({
         mutationFn: async (id: string) => {
             if (!isSuperAdmin) throw new Error('No autorizado');
+            // Limpiar tenant_users huérfanos antes de borrar el tenant
+            await supabase.from('tenant_users').delete().eq('tenant_id', id);
             const { error } = await supabase.from('tenants').delete().eq('id', id);
             if (error) throw new Error(error.message);
             return id;
@@ -199,6 +201,64 @@ export function useSuperAdmin() {
             try {
                 const res = await updateTenantMutation.mutateAsync({ id, payload });
                 return { success: true, data: res };
+            } catch (err: any) {
+                return { success: false, error: err.message };
+            }
+        },
+        /**
+         * Re-vincula el owner_id de un tenant al usuario Auth que tiene el email dado.
+         * Útil cuando se borró y re-creó un negocio con distinto correo y el login falla.
+         */
+        relinkOwner: async (tenantId: string, ownerEmail: string): Promise<{ success: boolean; error?: string }> => {
+            if (!isSuperAdmin) return { success: false, error: 'No autorizado' };
+            try {
+                // Llamar a la Edge Function create-owner para obtener/crear el userId
+                const fnRes = await fetch(
+                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                        },
+                        body: JSON.stringify({ email: ownerEmail, password: 'TempPass123!', businessName: '', businessSlug: '' }),
+                    }
+                );
+                const fnData = await fnRes.json();
+                if (!fnData.success || !fnData.userId) {
+                    return { success: false, error: fnData.error || 'No se encontró el usuario Auth con ese correo' };
+                }
+                const userId = fnData.userId;
+                // Actualizar owner_id en tenants
+                const { error: tenantErr } = await supabase
+                    .from('tenants')
+                    .update({ owner_id: userId })
+                    .eq('id', tenantId);
+                if (tenantErr) throw new Error(tenantErr.message);
+                // Actualizar user_id en tenant_users
+                await supabase
+                    .from('tenant_users')
+                    .update({ user_id: userId })
+                    .eq('tenant_id', tenantId)
+                    .eq('role', 'owner');
+                // También asegurar que exista el registro en tenant_users con el email correcto
+                const { data: existingTu } = await supabase
+                    .from('tenant_users')
+                    .select('id')
+                    .eq('tenant_id', tenantId)
+                    .eq('email', ownerEmail)
+                    .maybeSingle();
+                if (!existingTu) {
+                    await supabase.from('tenant_users').insert({
+                        tenant_id: tenantId,
+                        email: ownerEmail,
+                        role: 'owner',
+                        user_id: userId,
+                        stylist_id: null,
+                    });
+                }
+                queryClient.invalidateQueries({ queryKey });
+                return { success: true };
             } catch (err: any) {
                 return { success: false, error: err.message };
             }
