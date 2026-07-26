@@ -4,6 +4,37 @@ import type { Service } from '../../types/store.types';
 import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
 
+/** Convierte un objeto Service (camelCase) al formato snake_case de la DB */
+function toDbService(s: Partial<Service> & Record<string, any>) {
+    const {
+        isAddon,
+        enableQuoter,
+        priceType,
+        minPrice,
+        maxPrice,
+        ...rest
+    } = s;
+    const db: Record<string, any> = { ...rest };
+    if (isAddon !== undefined)       db.is_addon      = isAddon;
+    if (enableQuoter !== undefined)  db.enable_quoter  = enableQuoter;
+    if (priceType !== undefined)     db.price_type     = priceType;
+    if (minPrice !== undefined)      db.min_price      = minPrice;
+    if (maxPrice !== undefined)      db.max_price      = maxPrice;
+    return db;
+}
+
+/** Convierte un row de la DB (snake_case) a Service (camelCase) */
+function fromDbService(d: Record<string, any>): Service {
+    return {
+        ...d,
+        isAddon:      d.is_addon,
+        enableQuoter: d.enable_quoter,
+        priceType:    d.price_type,
+        minPrice:     d.min_price,
+        maxPrice:     d.max_price,
+    } as Service;
+}
+
 export const useServices = () => {
     const { tenantId } = useAuthStore();
     const { showToast } = useUIStore();
@@ -21,11 +52,7 @@ export const useServices = () => {
                 .eq('tenant_id', tenantId)
                 .order('id');
             if (error) throw error;
-            return (data as any[]).map(d => ({
-                ...d,
-                isAddon: d.is_addon,
-                enableQuoter: d.enable_quoter
-            })) as Service[];
+            return (data as any[]).map(fromDbService);
         },
         enabled: !!tenantId,
     });
@@ -33,9 +60,8 @@ export const useServices = () => {
     // ADD Service
     const addMutation = useMutation({
         mutationFn: async (service: Omit<Service, 'id'>) => {
-            if (!tenantId) throw new Error("No tenant info");
-            const { isAddon, enableQuoter, ...rest } = service as any;
-            const dbData = { ...rest, is_addon: isAddon ?? false, enable_quoter: enableQuoter ?? false, tenant_id: tenantId };
+            if (!tenantId) throw new Error('No tenant info');
+            const dbData = { ...toDbService(service as any), tenant_id: tenantId };
             const { data, error } = await supabase
                 .from('services')
                 .insert([dbData])
@@ -54,12 +80,8 @@ export const useServices = () => {
     // UPDATE Service
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }: { id: number; data: Partial<Service> }) => {
-            if (!tenantId) throw new Error("No tenant info");
-            const { isAddon, enableQuoter, ...rest } = data as any;
-            const dbData = { ...rest };
-            if (isAddon !== undefined) dbData.is_addon = isAddon;
-            if (enableQuoter !== undefined) dbData.enable_quoter = enableQuoter;
-
+            if (!tenantId) throw new Error('No tenant info');
+            const dbData = toDbService(data as any);
             const { error } = await supabase
                 .from('services')
                 .update(dbData)
@@ -77,7 +99,7 @@ export const useServices = () => {
     // DELETE Service
     const removeMutation = useMutation({
         mutationFn: async (id: number) => {
-            if (!tenantId) throw new Error("No tenant info");
+            if (!tenantId) throw new Error('No tenant info');
             const { error } = await supabase
                 .from('services')
                 .delete()
