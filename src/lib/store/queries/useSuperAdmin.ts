@@ -221,7 +221,7 @@ export function useSuperAdmin() {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
                         },
-                        body: JSON.stringify({ email: ownerEmail, password: 'TempPass123!', businessName: '', businessSlug: '' }),
+                        body: JSON.stringify({ email: ownerEmail, lookupOnly: true }),
                     }
                 );
                 const fnData = await fnRes.json();

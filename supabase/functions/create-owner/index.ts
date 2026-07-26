@@ -11,16 +11,17 @@ serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
     try {
-        const { email, password, businessName, businessSlug } = await req.json();
+        const { email, password, businessName, businessSlug, lookupOnly } = await req.json();
 
-        if (!email || !password) {
+        if (!email) {
             return new Response(
-                JSON.stringify({ success: false, error: 'Email y contraseña son requeridos.' }),
+                JSON.stringify({ success: false, error: 'Email es requerido.' }),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
 
-        if (password.length < 6) {
+        // lookupOnly = solo buscar el userId sin cambiar contraseña (usado por relinkOwner)
+        if (!lookupOnly && (!password || password.length < 6)) {
             return new Response(
                 JSON.stringify({ success: false, error: 'La contraseña debe tener al menos 6 caracteres.' }),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,7 +46,17 @@ serve(async (req: Request) => {
         const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
         if (existingUser) {
-            // User exists — update their password
+            // lookupOnly: solo devolver el userId sin tocar la contraseña ni enviar emails
+            // Usado por relinkOwner para no bloquear al usuario existente
+            if (lookupOnly) {
+                console.log('[create-owner] lookupOnly → devolviendo userId sin cambiar contraseña:', email);
+                return new Response(
+                    JSON.stringify({ success: true, userId: existingUser.id, isExisting: true }),
+                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+
+            // Flujo normal (creación de negocio): actualizar contraseña y enviar magic link
             const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
                 existingUser.id,
                 { password, email_confirm: true }
