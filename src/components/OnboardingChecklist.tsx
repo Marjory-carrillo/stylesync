@@ -70,22 +70,8 @@ export function OnboardingChecklist({
             })
             : false;
 
-        // Detect if items were manually created (not auto-seeded on tenant creation)
-        // Auto-seeded items are created within the first 3 minutes of the tenant
-        const tenantCreatedAt = tenantConfig?.createdAt ? new Date(tenantConfig.createdAt).getTime() : 0;
-        const AUTO_SEED_WINDOW_MS = 3 * 60 * 1000; // 3 minutes
-
-        const hasRealStylist = stylists.some((s) => {
-            if (!s.created_at) return true; // no timestamp = treat as real
-            const diff = new Date(s.created_at).getTime() - tenantCreatedAt;
-            return diff > AUTO_SEED_WINDOW_MS;
-        });
-
-        const hasRealService = services.some((s) => {
-            if (!s.created_at) return true;
-            const diff = new Date(s.created_at).getTime() - tenantCreatedAt;
-            return diff > AUTO_SEED_WINDOW_MS;
-        });
+        const hasRealStylist = stylists.length > 0;
+        const hasRealService = services.length > 0;
 
         const hasStylistPhoto = stylists.some((s) => !!(s.image || s.photo_url));
 
