@@ -845,7 +845,13 @@ export default function SuperAdminPanel() {
             showToast('Error: ' + error.message, 'error');
         } else {
             fetchAllTenants();
-            showToast(`Plan → ${to === 'pro' ? '⭐ Pro' : to === 'business' ? '🚀 Business' : 'Free'} para ${tenantName}`, 'success');
+            const planNames: Record<string, string> = {
+                free: 'Free',
+                lite: '⚡ Esencial',
+                pro: '⭐ Pro',
+                business: '🚀 Business'
+            };
+            showToast(`Plan → ${planNames[to] || to} para ${tenantName}`, 'success');
         }
         setPendingPlanChange(null);
     };
@@ -1109,7 +1115,7 @@ export default function SuperAdminPanel() {
                             {([
                                 { key: 'all', label: 'Todos' },
                                 { key: 'free', label: 'Free' },
-                                { key: 'lite', label: 'Lite' },
+                                { key: 'lite', label: 'Esencial' },
                                 { key: 'pro', label: 'Pro' },
                                 { key: 'business', label: 'Business' },
                                 { key: 'trial', label: 'Trial Activo' },
@@ -1421,13 +1427,13 @@ export default function SuperAdminPanel() {
                                             <div className="flex flex-col items-start">
                                                 <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
                                                 <span className={`text-[9px] font-bold leading-none ${
-                                                    tenant.plan === 'business' ? 'text-violet-400' : tenant.plan === 'pro' ? 'text-amber-400' : 'text-slate-500'
+                                                    tenant.plan === 'business' ? 'text-violet-400' : tenant.plan === 'pro' ? 'text-amber-400' : tenant.plan === 'lite' ? 'text-teal-400' : 'text-slate-500'
                                                 }`}>
-                                                    {(tenant.plan || 'free').toUpperCase()}
+                                                    {(tenant.plan === 'lite' ? 'esencial' : (tenant.plan || 'free')).toUpperCase()}
                                                 </span>
                                             </div>
                                             <div className="flex gap-1">
-                                                {(['free', 'pro', 'business'] as const).map((p) => (
+                                                {(['free', 'lite', 'pro', 'business'] as const).map((p) => (
                                                     <button
                                                         key={p}
                                                         type="button"
@@ -1445,11 +1451,13 @@ export default function SuperAdminPanel() {
                                                             (tenant.plan || 'free') === p
                                                                 ? p === 'business' ? 'bg-violet-500/20 text-violet-400 border border-violet-500/40'
                                                                 : p === 'pro' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                                                : p === 'lite' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40'
                                                                 : 'bg-slate-500/20 text-slate-400 border border-slate-500/40'
                                                                 : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
                                                         }`}
+                                                        title={p === 'free' ? 'Free ($0)' : p === 'lite' ? 'Esencial ($349, 1 Prof)' : p === 'pro' ? 'Pro ($649, 2 Profs)' : 'Business ($1,249)'}
                                                     >
-                                                        {p === 'free' ? 'F' : p === 'pro' ? '⭐' : '🚀'}
+                                                        {p === 'free' ? 'F' : p === 'lite' ? '⚡' : p === 'pro' ? '⭐' : '🚀'}
                                                     </button>
                                                 ))}
                                             </div>
@@ -1732,17 +1740,18 @@ export default function SuperAdminPanel() {
                             {/* Divider */}
                             <div className="border-t border-white/5" />
 
-                            {/* â”€â”€ Sección: Plan â”€â”€ */}
+                            {/* ── Sección: Plan ── */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Zap size={14} className="text-amber-400" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Plan</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Plan Asignado</span>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     {([
-                                        { key: 'free' as PlanType, label: 'Free', price: '$0', color: 'slate' },
-                                        { key: 'pro' as PlanType, label: 'Pro', price: '$649', color: 'amber' },
-                                        { key: 'business' as PlanType, label: 'Business', price: '$1,249', color: 'violet' },
+                                        { key: 'free' as PlanType, label: 'Free', sub: '30 citas/mes (2 prof.)', price: '$0', color: 'slate' },
+                                        { key: 'lite' as PlanType, label: 'Esencial', sub: 'Ilimitado (1 prof.)', price: '$349', color: 'teal' },
+                                        { key: 'pro' as PlanType, label: 'Pro', sub: 'Ilimitado (2 prof.)', price: '$649', color: 'amber' },
+                                        { key: 'business' as PlanType, label: 'Business', price: '$1,249', sub: 'Multi-sucursal', color: 'violet' },
                                     ]).map(p => {
                                         const isActive = newBusiness.plan === p.key;
                                         return (
@@ -1750,23 +1759,31 @@ export default function SuperAdminPanel() {
                                                 key={p.key}
                                                 type="button"
                                                 onClick={() => setNewBusiness({ ...newBusiness, plan: p.key, monthlyPrice: p.price.replace(/[$,]/g, '') })}
-                                                className={`p-3 rounded-xl border text-center transition-all ${isActive
-                                                    ? p.color === 'amber' ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]'
-                                                    : p.color === 'violet' ? 'border-violet-500/50 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.1)]'
+                                                className={`p-2.5 rounded-xl border text-center transition-all ${isActive
+                                                    ? p.color === 'teal' ? 'border-teal-500/50 bg-teal-500/10 shadow-[0_0_20px_rgba(20,184,166,0.15)]'
+                                                    : p.color === 'amber' ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                                                    : p.color === 'violet' ? 'border-violet-500/50 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
                                                     : 'border-slate-500/50 bg-slate-500/10'
                                                     : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
                                                 }`}
                                             >
                                                 <div className={`text-xs font-black uppercase tracking-wider ${isActive
-                                                    ? p.color === 'amber' ? 'text-amber-400' : p.color === 'violet' ? 'text-violet-400' : 'text-slate-300'
+                                                    ? p.color === 'teal' ? 'text-teal-400'
+                                                    : p.color === 'amber' ? 'text-amber-400'
+                                                    : p.color === 'violet' ? 'text-violet-400'
+                                                    : 'text-slate-300'
                                                     : 'text-slate-500'
                                                 }`}>{p.label}</div>
-                                                <div className={`text-[10px] mt-1 font-bold ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>{p.price}/mes</div>
+                                                <div className={`text-[10px] mt-0.5 font-bold ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>{p.price}/mes</div>
+                                                <div className="text-[9px] text-slate-500 mt-1 leading-tight">{p.sub}</div>
                                             </button>
                                         );
                                     })}
                                 </div>
                             </div>
+
+                            {/* Divider */}
+                            <div className="border-t border-white/5" />
 
                             {/* Trial Toggle */}
                             <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
