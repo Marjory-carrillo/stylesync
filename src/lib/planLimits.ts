@@ -100,15 +100,18 @@ export function canAddEmployee(
     trialEndsAt?: string | null,
     extraEmployeesPaid: number = 0,
 ): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
-    // Trial period: same 2 per branch limit, but with Pro-level features (unlimited appointments)
+    // Trial period: limit per branch according to plan (1 for Esencial/lite, 2 for free/pro/business)
     if (isInTrial(trialEndsAt)) {
-        const baseMax = getPlanLimits('free').maxEmployeesPerBranch; // always 2
+        const planMax = getPlanLimits(plan).maxEmployeesPerBranch;
+        const baseMax = Math.min(2, planMax);
         if (currentCount < baseMax) {
             return { allowed: true };
         }
         return {
             allowed: false,
-            message: `Durante el trial solo puedes tener ${baseMax} profesionales por sucursal. Actualiza tu plan para agregar más.`,
+            message: plan === 'lite'
+                ? `El plan Esencial solo permite 1 profesional. Actualiza a Pro para agregar más.`
+                : `Durante el trial solo puedes tener ${baseMax} profesionales por sucursal. Actualiza tu plan para agregar más.`,
             upgradeTo: 'pro',
         };
     }
