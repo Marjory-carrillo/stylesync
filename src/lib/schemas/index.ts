@@ -43,6 +43,7 @@ export type ClientInput = z.infer<typeof clientSchema>;
 // Esquema para validar un Servicio (Service)
 export const serviceSchema = z.object({
     name: z.preprocess((val) => typeof val === 'string' ? sanitize(val) : val, z.string().min(2, 'El nombre del servicio es muy corto').max(100)),
+    description: z.preprocess((val) => typeof val === 'string' ? sanitize(val) : val, z.string().max(500, 'La descripción no debe exceder 500 caracteres').optional().or(z.literal(''))),
     price: z.number().min(0, 'El precio no puede ser negativo').max(1000000, 'El precio es demasiado alto'),
     duration: z.number().min(5, 'La duración mínima es 5 minutos').max(480, 'La duración máxima es 480 minutos (8 horas)'),
     image: z.string().url('URL de imagen inválida').optional().or(z.literal('')),

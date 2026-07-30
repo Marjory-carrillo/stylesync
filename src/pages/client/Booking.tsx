@@ -2019,6 +2019,11 @@ export default function Booking() {
                                                     <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
                                                         {service.name}
                                                     </h4>
+                                                    {service.description && (
+                                                        <p className="text-xs text-slate-400 font-normal line-clamp-2 mt-0.5 leading-snug">
+                                                            {service.description}
+                                                        </p>
+                                                    )}
                                                     <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
                                                         {!businessConfig?.hideServicePrices && (
                                                             service.priceType === 'no_price' ? (

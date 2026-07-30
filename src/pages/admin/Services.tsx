@@ -159,6 +159,7 @@ export default function Services() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formName, setFormName] = useState('');
+    const [formDescription, setFormDescription] = useState('');
     const [formDuration, setFormDuration] = useState('');
     const [formPrice, setFormPrice] = useState('');
     const [formPriceType, setFormPriceType] = useState<'fixed' | 'no_price' | 'range'>('fixed');
@@ -176,6 +177,7 @@ export default function Services() {
         setFormError(null);
         setEditingId(null);
         setFormName('');
+        setFormDescription('');
         setFormDuration('');
         setFormPrice('');
         setFormPriceType('fixed');
@@ -193,6 +195,7 @@ export default function Services() {
         setFormError(null);
         setEditingId(id);
         setFormName(svc.name);
+        setFormDescription(svc.description || '');
         setFormDuration(String(svc.duration));
         setFormPrice(String(svc.price));
         setFormPriceType(svc.priceType || 'fixed');
@@ -209,6 +212,7 @@ export default function Services() {
 
         const result = serviceSchema.safeParse({
             name: formName,
+            description: formDescription || '',
             duration: Number(formDuration),
             price: calculatedPrice,
             priceType: formPriceType,
@@ -303,7 +307,12 @@ export default function Services() {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <div className="font-bold text-white mb-1">{service.name}</div>
+                                            <div className="font-bold text-white mb-0.5">{service.name}</div>
+                                            {service.description && (
+                                                <p className="text-xs text-slate-400 font-normal line-clamp-2 max-w-xs mb-1">
+                                                    {service.description}
+                                                </p>
+                                            )}
                                             {service.isAddon && (
                                                 <span className="inline-flex py-0.5 px-2 rounded font-bold text-[10px] uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                                                     Servicio Adicional
@@ -414,6 +423,17 @@ export default function Services() {
                                     onChange={e => setFormName(e.target.value)}
                                     placeholder="Ej: Corte de Cabello"
                                     className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium text-muted mb-1 block">Descripción (Opcional)</label>
+                                <textarea
+                                    value={formDescription}
+                                    onChange={e => setFormDescription(e.target.value)}
+                                    placeholder="Ej: Incluye lavado, corte con tijera o máquina y peinado final..."
+                                    rows={2}
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-accent transition-colors resize-none"
                                 />
                             </div>
 
