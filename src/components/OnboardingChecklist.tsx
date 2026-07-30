@@ -11,6 +11,7 @@ import {
     X,
     Rocket,
     ArrowRight,
+    Calculator,
 } from 'lucide-react';
 
 interface OnboardingChecklistProps {
@@ -52,7 +53,6 @@ export function OnboardingChecklist({
     }, [dismissKey]);
 
     const tasks: Task[] = useMemo(() => {
-        // Compare against the known default schedule to detect if admin actually customized it
         const DEFAULT_SCHEDULE = {
             monday:    { open: true,  start: '09:00', end: '18:00' },
             tuesday:   { open: true,  start: '09:00', end: '18:00' },
@@ -72,10 +72,12 @@ export function OnboardingChecklist({
 
         const hasRealStylist = stylists.length > 0;
         const hasRealService = services.length > 0;
-
         const hasStylistPhoto = stylists.some((s) => !!(s.image || s.photo_url));
 
-        return [
+        const isNailCategory = (['nail_bar', 'beauty_salon'] as string[]).includes(tenantConfig?.category || '');
+        const hasQuoterConfigured = services.some((s) => s.enableQuoter) || !!tenantConfig?.nailQuoterConfig;
+
+        const list: Task[] = [
             {
                 id: 'stylist',
                 icon: Scissors,
@@ -116,6 +118,22 @@ export function OnboardingChecklist({
                 color: 'from-cyan-400 to-blue-500',
                 glow: 'shadow-cyan-500/25',
             },
+        ];
+
+        if (isNailCategory) {
+            list.push({
+                id: 'quoter',
+                icon: Calculator,
+                label: 'Cotizador de Uñas',
+                description: 'Activa o personaliza técnicas y extras.',
+                route: '/admin/settings',
+                done: hasQuoterConfigured,
+                color: 'from-rose-400 to-pink-600',
+                glow: 'shadow-rose-500/25',
+            });
+        }
+
+        list.push(
             {
                 id: 'info',
                 icon: Building2,
@@ -135,8 +153,10 @@ export function OnboardingChecklist({
                 done: !!tenantConfig?.logoUrl,
                 color: 'from-indigo-400 to-violet-500',
                 glow: 'shadow-indigo-500/25',
-            },
-        ];
+            }
+        );
+
+        return list;
     }, [stylists, services, tenantConfig, schedule]);
 
     const completedCount = tasks.filter((t) => t.done).length;
@@ -210,10 +230,11 @@ export function OnboardingChecklist({
                         </div>
                         <button
                             onClick={handleDismiss}
-                            className="p-2 rounded-xl text-slate-600 hover:text-slate-300 hover:bg-white/[0.06] transition-all duration-200 shrink-0 mt-0.5"
-                            title="Descartar"
+                            className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 text-xs font-bold text-slate-300 hover:text-red-300 transition-all duration-200 shrink-0 shadow-sm"
+                            title="Descartar guía de configuración"
                         >
-                            <X size={16} />
+                            <X size={14} className="text-slate-400 group-hover:text-red-400 transition-colors" />
+                            <span className="hidden sm:inline">Descartar guía</span>
                         </button>
                     </div>
 
@@ -301,9 +322,10 @@ export function OnboardingChecklist({
                             </div>
                             <button
                                 onClick={handleDismiss}
-                                className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors whitespace-nowrap font-medium"
+                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 text-xs font-bold text-slate-300 hover:text-red-300 transition-all duration-200 shadow-sm"
                             >
-                                Descartar guía
+                                <X size={14} className="text-slate-400" />
+                                <span>Descartar guía</span>
                             </button>
                         </div>
                     )}
