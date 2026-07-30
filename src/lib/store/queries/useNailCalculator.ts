@@ -4,7 +4,7 @@ import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
 import type { QuotingCategory } from '../../types/store.types';
 
-const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
+export const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
     {
       id: "base_services",
       name: "Servicio Base (Técnica)",

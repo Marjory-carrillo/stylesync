@@ -13,6 +13,7 @@ import {
     ArrowRight,
     Calculator,
 } from 'lucide-react';
+import { useNailCalculator, DEFAULT_NAIL_CONFIG } from '../lib/store/queries/useNailCalculator';
 
 interface OnboardingChecklistProps {
     tenantId: string;
@@ -46,6 +47,8 @@ export function OnboardingChecklist({
     const [leaving, setLeaving] = useState(false);
     const [mounted, setMounted] = useState(false);
 
+    const { config: nailConfig } = useNailCalculator();
+
     useEffect(() => {
         setDismissed(!!localStorage.getItem(dismissKey));
         const t = setTimeout(() => setMounted(true), 80);
@@ -75,7 +78,8 @@ export function OnboardingChecklist({
         const hasStylistPhoto = stylists.some((s) => !!(s.image || s.photo_url));
 
         const isNailCategory = (['nail_bar', 'beauty_salon'] as string[]).includes(tenantConfig?.category || '');
-        const hasQuoterConfigured = services.some((s) => s.enableQuoter) || !!tenantConfig?.nailQuoterConfig;
+        const hasQuoterConfigured = services.some((s) => s.enableQuoter) ||
+            (!!nailConfig && JSON.stringify(nailConfig) !== JSON.stringify(DEFAULT_NAIL_CONFIG));
 
         const list: Task[] = [
             {
