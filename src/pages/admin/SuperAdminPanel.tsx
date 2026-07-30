@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
-    DollarSign, Pencil, Eye, Key, Lock, EyeOff
+    DollarSign, Pencil, Eye, Key, EyeOff
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
