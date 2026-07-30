@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
-    DollarSign, Pencil, Eye
+    DollarSign, Pencil, Eye, Key, Lock, EyeOff
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -346,7 +346,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
 };
 
 export default function SuperAdminPanel() {
-    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner } = useSuperAdmin();
+    const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner, resetOwnerPassword } = useSuperAdmin();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -372,6 +372,11 @@ export default function SuperAdminPanel() {
     const [relinkModal, setRelinkModal] = useState<{ tenantId: string; tenantName: string } | null>(null);
     const [relinkEmail, setRelinkEmail] = useState('');
     const [isRelinking, setIsRelinking] = useState(false);
+    const [resetPasswordModal, setResetPasswordModal] = useState<{ tenantId: string; tenantName: string } | null>(null);
+    const [resetPasswordEmail, setResetPasswordEmail] = useState('');
+    const [newPasswordInput, setNewPasswordInput] = useState('');
+    const [isResettingPassword, setIsResettingPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
 
     const getCategorySuffix = (catId: string) => {
         switch (catId) {
@@ -837,6 +842,39 @@ export default function SuperAdminPanel() {
         }
     };
 
+    const handleResetPasswordClick = async (tenant: any) => {
+        let ownerEmail = '';
+        const { data: tu } = await supabase
+            .from('tenant_users')
+            .select('email')
+            .eq('tenant_id', tenant.id)
+            .eq('role', 'owner')
+            .limit(1)
+            .maybeSingle();
+        if (tu?.email) {
+            ownerEmail = tu.email;
+        }
+        setResetPasswordEmail(ownerEmail);
+        setNewPasswordInput('');
+        setShowNewPassword(false);
+        setResetPasswordModal({ tenantId: tenant.id, tenantName: tenant.name });
+    };
+
+    const confirmResetPassword = async () => {
+        if (!resetPasswordModal || !resetPasswordEmail.trim() || !newPasswordInput.trim()) return;
+        setIsResettingPassword(true);
+        const res = await resetOwnerPassword(resetPasswordEmail.trim().toLowerCase(), newPasswordInput.trim());
+        setIsResettingPassword(false);
+        if (res.success) {
+            showToast(`✅ Contraseña cambiada correctamente para ${resetPasswordEmail}`, 'success');
+            setResetPasswordModal(null);
+            setResetPasswordEmail('');
+            setNewPasswordInput('');
+        } else {
+            showToast('Error: ' + (res.error || 'No se pudo actualizar la contraseña'), 'error');
+        }
+    };
+
     const confirmPlanChange = async () => {
         if (!pendingPlanChange) return;
         const { tenantId, to, tenantName } = pendingPlanChange;
@@ -902,6 +940,77 @@ export default function SuperAdminPanel() {
                             </button>
                             <button
                                 onClick={() => { setRelinkModal(null); setRelinkEmail(''); }}
+                                className="w-full py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold uppercase tracking-widest transition-all text-sm"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Restablecer Contraseña */}
+            {resetPasswordModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="glass-panel max-w-md w-full p-8 border border-white/10 shadow-2xl animate-scale-in relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-transparent"></div>
+                        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-5 mx-auto">
+                            <Key size={28} />
+                        </div>
+                        <h3 className="text-xl font-black text-white text-center mb-1 uppercase tracking-tight">Cambiar Contraseña</h3>
+                        <p className="text-slate-400 text-center text-sm mb-5 leading-relaxed">
+                            Asigna una nueva contraseña de acceso para <span className="text-white font-bold">"{resetPasswordModal.tenantName}"</span>.
+                        </p>
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="text-[11px] font-bold text-slate-400 ml-1 block mb-1">Correo Electrónico del Dueño</label>
+                                <input
+                                    type="email"
+                                    value={resetPasswordEmail}
+                                    onChange={e => setResetPasswordEmail(e.target.value)}
+                                    placeholder="dueno@correo.com"
+                                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/30 transition-all outline-none text-sm"
+                                />
+                            </div>
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1 block">Nueva Contraseña</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewPasswordInput('temp1234')}
+                                        className="text-[10px] font-black text-amber-400 hover:underline uppercase tracking-wider"
+                                    >
+                                        ⚡ Usar temp1234
+                                    </button>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type={showNewPassword ? 'text' : 'password'}
+                                        value={newPasswordInput}
+                                        onChange={e => setNewPasswordInput(e.target.value)}
+                                        placeholder="Mínimo 6 caracteres"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-4 pr-10 py-3 text-white font-mono text-sm placeholder-slate-600 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/30 transition-all outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                                    >
+                                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={confirmResetPassword}
+                                disabled={isResettingPassword || !resetPasswordEmail.trim() || !newPasswordInput.trim() || newPasswordInput.length < 6}
+                                className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black uppercase tracking-widest transition-all text-sm shadow-lg shadow-amber-500/20"
+                            >
+                                {isResettingPassword ? 'Guardando...' : '🔑 Guardar Nueva Contraseña'}
+                            </button>
+                            <button
+                                onClick={() => { setResetPasswordModal(null); setNewPasswordInput(''); setResetPasswordEmail(''); }}
                                 className="w-full py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold uppercase tracking-widest transition-all text-sm"
                             >
                                 Cancelar
@@ -1269,6 +1378,14 @@ export default function SuperAdminPanel() {
                                             title="Editar Parámetros"
                                         >
                                             <Pencil size={18} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleResetPasswordClick(tenant)}
+                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-400 hover:text-amber-400 transition-colors border border-transparent hover:border-amber-500/20"
+                                            title="Cambiar Contraseña del Dueño"
+                                        >
+                                            <Key size={18} />
                                         </button>
                                         <button
                                             type="button"

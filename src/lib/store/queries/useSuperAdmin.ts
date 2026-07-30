@@ -263,6 +263,33 @@ export function useSuperAdmin() {
                 return { success: false, error: err.message };
             }
         },
+        /**
+         * Restablece la contraseña del usuario Auth dueño (owner) de un negocio.
+         */
+        resetOwnerPassword: async (ownerEmail: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+            if (!isSuperAdmin) return { success: false, error: 'No autorizado' };
+            if (!newPassword || newPassword.length < 6) return { success: false, error: 'La contraseña debe tener al menos 6 caracteres' };
+            try {
+                const fnRes = await fetch(
+                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                        },
+                        body: JSON.stringify({ email: ownerEmail.trim().toLowerCase(), password: newPassword }),
+                    }
+                );
+                const fnData = await fnRes.json();
+                if (!fnData.success) {
+                    return { success: false, error: fnData.error || 'Error al actualizar contraseña' };
+                }
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err.message };
+            }
+        },
         switchTenant
     };
 }
