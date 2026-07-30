@@ -86,8 +86,11 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
                                 <div className="flex gap-2">
                                     <input
                                         type="number"
+                                        min="0"
+                                        step="any"
                                         defaultValue={item.price ? String(item.price) : ''}
                                         id={`price-${item.id}`}
+                                        onWheel={e => e.currentTarget.blur()}
                                         placeholder="Precio ($)"
                                         className="w-20 bg-slate-900/50 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-accent"
                                     />
@@ -418,8 +421,11 @@ export default function Services() {
                                 <label className="text-sm font-medium text-muted mb-1 block">Duración (minutos)</label>
                                 <input
                                     type="number"
+                                    min="1"
+                                    step="1"
                                     value={formDuration}
                                     onChange={e => setFormDuration(e.target.value)}
+                                    onWheel={e => e.currentTarget.blur()}
                                     placeholder="30"
                                     className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                 />
@@ -458,8 +464,11 @@ export default function Services() {
                                     <label className="text-sm font-medium text-muted mb-1 block">Precio ($ MXN)</label>
                                     <input
                                         type="number"
+                                        min="0"
+                                        step="any"
                                         value={formPrice}
                                         onChange={e => setFormPrice(e.target.value)}
+                                        onWheel={e => e.currentTarget.blur()}
                                         placeholder="250"
                                         className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                     />
@@ -478,8 +487,11 @@ export default function Services() {
                                         <label className="text-sm font-medium text-muted mb-1 block">Precio Mínimo ($)</label>
                                         <input
                                             type="number"
+                                            min="0"
+                                            step="any"
                                             value={formMinPrice}
                                             onChange={e => setFormMinPrice(e.target.value)}
+                                            onWheel={e => e.currentTarget.blur()}
                                             placeholder="300"
                                             className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                         />
@@ -488,8 +500,11 @@ export default function Services() {
                                         <label className="text-sm font-medium text-muted mb-1 block">Precio Máximo ($)</label>
                                         <input
                                             type="number"
+                                            min="0"
+                                            step="any"
                                             value={formMaxPrice}
                                             onChange={e => setFormMaxPrice(e.target.value)}
+                                            onWheel={e => e.currentTarget.blur()}
                                             placeholder="600"
                                             className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                         />
