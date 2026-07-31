@@ -81,16 +81,16 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             if (rpcError) throw rpcError;
             if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Error desconocido al reservar');
 
-            // Save additional services if provided (non-blocking fire-and-forget)
+            // Save additional services if provided (awaited so query refetch has full data)
             if (rpcResult?.id && appt.additionalServices && appt.additionalServices.length > 0) {
-                void (async () => {
-                    try {
-                        await supabase
-                            .from('appointments')
-                            .update({ additional_services: appt.additionalServices })
-                            .eq('id', rpcResult.id);
-                    } catch { /* non-blocking */ }
-                })();
+                try {
+                    await supabase
+                        .from('appointments')
+                        .update({ additional_services: appt.additionalServices })
+                        .eq('id', rpcResult.id);
+                } catch (updateErr) {
+                    console.error('Error updating additional_services:', updateErr);
+                }
             }
 
             return { ...rpcResult, _appt: appt };

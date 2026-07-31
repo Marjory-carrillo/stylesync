@@ -77,18 +77,39 @@ export default function Appointments() {
 
     const getAppointmentPrice = useCallback((apt: any) => {
         const service = getServiceById(apt.serviceId);
-        const customPriceItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Cotización Confirmada:'));
+        const addServices = apt.additionalServices || [];
+
+        const customPriceItem = addServices.find((s: string) => s.startsWith('Cotización Confirmada:'));
         if (customPriceItem) {
             const priceMatch = customPriceItem.match(/\$(\d+)/);
             if (priceMatch) return Number(priceMatch[1]);
         }
-        const quoteItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Cotización Estimada:'));
+
+        const quoteItem = addServices.find((s: string) => s.startsWith('Cotización Estimada:'));
         if (quoteItem) {
             const priceMatch = quoteItem.match(/\$(\d+)/);
             if (priceMatch) return Number(priceMatch[1]);
         }
-        return service?.price || 0;
-    }, [getServiceById]);
+
+        let total = service?.price || 0;
+        addServices.forEach((name: string) => {
+            if (name.startsWith('Referencia:')) return;
+            const extraMatch = name.match(/\(\+\$(\d+)/);
+            if (extraMatch) {
+                total += Number(extraMatch[1]);
+            } else if (name.startsWith('Diseño Catálogo:')) {
+                const priceMatch = name.match(/\$(\d+)/);
+                if (priceMatch) total += Number(priceMatch[1]);
+            } else {
+                const matchingService = services.find(s => s.name === name);
+                if (matchingService) {
+                    total += matchingService.price;
+                }
+            }
+        });
+
+        return total;
+    }, [getServiceById, services]);
 
     const isPriceConfirmed = useCallback((apt: any) => {
         // Si ya fue confirmada/editada manualmente por el administrador
