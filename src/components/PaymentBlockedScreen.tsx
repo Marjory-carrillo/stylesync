@@ -54,10 +54,11 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
 
     return (
         <div 
-            className="min-h-screen w-full flex flex-col items-center justify-start md:justify-center p-4 md:p-8 text-center select-none overflow-y-auto py-10 md:py-12"
+            className="fixed inset-0 z-[9999] overflow-y-auto bg-[#020617] overscroll-contain"
             style={{ background: 'radial-gradient(ellipse at 50% 50%, #0f172a 0%, #020617 100%)' }}
         >
-            <div className="max-w-4xl w-full bg-[#0a0f24]/80 border border-red-500/10 rounded-[3rem] p-6 md:p-12 text-center backdrop-blur-xl shadow-[0_0_80px_rgba(239,68,68,0.07)] relative overflow-hidden animate-scale-in">
+            <div className="min-h-full w-full flex flex-col items-center justify-center py-10 px-4 md:px-8 text-center">
+                <div className="max-w-4xl w-full bg-[#0a0f24]/80 border border-red-500/10 rounded-[3rem] p-6 md:p-12 text-center backdrop-blur-xl shadow-[0_0_80px_rgba(239,68,68,0.07)] relative overflow-hidden animate-scale-in my-auto">
                 {/* Red animated top accent line */}
                 <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
                 
@@ -216,10 +217,10 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
                     </button>
                 </div>
             </div>
-            
-            <p className="mt-8 text-slate-600 text-xs font-bold uppercase tracking-widest">
+            <p className="mt-8 text-slate-600 text-xs font-bold uppercase tracking-widest shrink-0">
                 CitaLink SASS
             </p>
         </div>
-    );
+    </div>
+);
 }
