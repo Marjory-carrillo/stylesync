@@ -14,7 +14,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import ConfirmModal from '../../components/ConfirmModal';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save, CheckCircle2, Plus } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -1641,11 +1641,21 @@ export default function Dashboard() {
                 )}
             </div>
             {/* Today's Appointments */}
-            <div className="glass-card p-6 rounded-xl">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-lg text-white">Próximas Citas de Hoy</h3>
+            <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-accent shrink-0 shadow-lg shadow-accent/5">
+                            <Calendar size={22} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-black text-lg text-white tracking-tight">Próximas Citas de Hoy</h3>
+                            </div>
+                            <p className="text-xs text-slate-400">Citas programadas pendientes para la jornada de hoy</p>
+                        </div>
+                    </div>
                     {!isEmployee && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
                             {/* Short link to waiting list section */}
                             <button
                                 onClick={() => {
@@ -1662,7 +1672,6 @@ export default function Dashboard() {
                                     </span>
                                 )}
                             </button>
-                            <User size={14} className="text-accent hidden sm:block ml-2" />
                             <CustomSelect
                                 value={String(dashboardStylistId)}
                                 onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
@@ -1670,7 +1679,7 @@ export default function Dashboard() {
                                     { value: 'all', label: 'Todos los Profesionales' },
                                     ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
                                 ]}
-                                buttonClassName="bg-slate-900/50 border border-white/10 text-white rounded-2xl px-4 py-1.5 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[160px]"
+                                buttonClassName="bg-slate-900/60 border border-white/10 text-white rounded-2xl px-4 py-2 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[170px] shadow-sm"
                                 dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
                             />
                         </div>
@@ -1701,10 +1710,18 @@ export default function Dashboard() {
 
                     if (upcomingAppts.length === 0) {
                         return (
-                            <div className="text-center py-12 text-muted bg-white/5 rounded-lg border border-dashed border-white/10">
-                                <Calendar size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No hay más citas para lo que queda del día.</p>
-                                <p className="text-xs mt-2">Buen trabajo, has terminado por hoy.</p>
+                            <div className="bg-gradient-to-b from-white/[0.03] via-accent/[0.02] to-transparent rounded-3xl border border-dashed border-white/15 p-10 sm:p-12 text-center relative overflow-hidden shadow-inner">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-purple-500/10 border border-accent/30 text-accent flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent/10 ring-8 ring-accent/5">
+                                    <Calendar size={28} />
+                                </div>
+                                <p className="text-lg font-black text-white tracking-tight">¡Todo al día por hoy!</p>
+                                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">No hay citas pendientes para lo que resta de la jornada. Excelente trabajo.</p>
+                                <button
+                                    onClick={() => navigate('/admin/appointments')}
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 mt-5 bg-accent hover:bg-accent/90 text-slate-950 font-black text-xs rounded-xl hover:scale-105 transition-all shadow-lg shadow-accent/20 cursor-pointer active:scale-95"
+                                >
+                                    <Plus size={16} /> Agendar Cita Manual
+                                </button>
                             </div>
                         );
                     }
@@ -1874,12 +1891,21 @@ export default function Dashboard() {
                 })()}
             </div>
             {/* Completed Appointments Today */}
-            <div className="glass-card p-6 rounded-xl border border-emerald-500/10">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-lg text-emerald-400">Citas Completadas Hoy</h3>
+            <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-emerald-500/15 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/5">
+                            <CheckCircle2 size={22} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-black text-lg text-emerald-400 tracking-tight">Citas Completadas Hoy</h3>
+                            </div>
+                            <p className="text-xs text-slate-400">Historial de atenciones finalizadas el día de hoy</p>
+                        </div>
+                    </div>
                     {!isEmployee && (
-                        <div className="flex items-center gap-2">
-                            <User size={14} className="text-emerald-500 hidden sm:block" />
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
                             <CustomSelect
                                 value={String(dashboardStylistId)}
                                 onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
@@ -1887,7 +1913,7 @@ export default function Dashboard() {
                                     { value: 'all', label: 'Todos los Profesionales' },
                                     ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
                                 ]}
-                                buttonClassName="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-2xl px-4 py-1.5 text-xs focus:outline-none focus:border-emerald-500 flex items-center justify-between min-w-[160px]"
+                                buttonClassName="bg-slate-900/60 border border-emerald-500/20 text-emerald-400 rounded-2xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-500 flex items-center justify-between min-w-[170px] shadow-sm"
                                 dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
                             />
                         </div>
@@ -1920,9 +1946,12 @@ export default function Dashboard() {
 
                     if (completedAppts.length === 0) {
                         return (
-                            <div className="text-center py-12 text-emerald-500/40 bg-emerald-500/5 rounded-lg border border-dashed border-emerald-500/10">
-                                <Activity size={48} className="mx-auto mb-4 opacity-40" />
-                                <p>Aún no hay citas completadas el día de hoy.</p>
+                            <div className="bg-gradient-to-b from-emerald-500/[0.04] via-emerald-500/[0.02] to-transparent rounded-3xl border border-dashed border-emerald-500/20 p-10 sm:p-12 text-center relative overflow-hidden shadow-inner">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/10 ring-8 ring-emerald-500/5">
+                                    <CheckCircle2 size={28} />
+                                </div>
+                                <p className="text-lg font-black text-white tracking-tight">Aún no hay citas completadas hoy</p>
+                                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Las citas que atiendas y finalices a lo largo del día aparecerán registradas aquí.</p>
                             </div>
                         );
                     }
