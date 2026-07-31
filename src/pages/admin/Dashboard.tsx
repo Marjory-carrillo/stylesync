@@ -14,7 +14,8 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import ConfirmModal from '../../components/ConfirmModal';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save, CheckCircle2, Plus } from 'lucide-react';
+import AdminBookingModal from '../../components/AdminBookingModal';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save, CheckCircle2 } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -31,6 +32,7 @@ export default function Dashboard() {
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
     const [tomorrowOpen, setTomorrowOpen] = useState(false);
     const [waitingListOpen, setWaitingListOpen] = useState(false);
+    const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
     const { userRole, userStylistId, userTenants, tenantId } = useAuthStore();
     const isEmployee = userRole === 'employee';
     const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>(
@@ -1716,12 +1718,6 @@ export default function Dashboard() {
                                 </div>
                                 <p className="text-lg font-black text-white tracking-tight">¡Todo al día por hoy!</p>
                                 <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">No hay citas pendientes para lo que resta de la jornada. Excelente trabajo.</p>
-                                <button
-                                    onClick={() => navigate('/admin/appointments')}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 mt-5 bg-accent hover:bg-accent/90 text-slate-950 font-black text-xs rounded-xl hover:scale-105 transition-all shadow-lg shadow-accent/20 cursor-pointer active:scale-95"
-                                >
-                                    <Plus size={16} /> Agendar Cita Manual
-                                </button>
                             </div>
                         );
                     }
@@ -2182,6 +2178,10 @@ export default function Dashboard() {
                 onCancel={() => setCustomConfirm(prev => ({ ...prev, open: false }))}
                 danger={customConfirm.danger}
             />
+
+            {isNewApptModalOpen && (
+                <AdminBookingModal isOpen={true} onClose={() => setIsNewApptModalOpen(false)} />
+            )}
         </div >
     );
 }
