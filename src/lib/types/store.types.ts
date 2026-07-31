@@ -133,6 +133,7 @@ export interface BusinessConfig {
     bookingDaysAhead?: number;
     commissionsEnabled?: boolean;
     enableAddons?: boolean;
+    enableNailCalculator?: boolean;
     weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
     logoUrl?: string;
     description?: string;

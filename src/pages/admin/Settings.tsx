@@ -17,7 +17,7 @@ import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
 import DatePickerInput from '../../components/DatePickerInput';
 import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
-import { getPlanLimits, isInTrial } from '../../lib/planLimits';
+import { getPlanLimits, isInTrial, isNailCalculatorEnabled } from '../../lib/planLimits';
 
 // Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -835,6 +835,35 @@ export default function Settings() {
                             </div>
                         </div>
 
+                        {/* Nail Calculator Toggle (For nail_bar and beauty_salon categories) */}
+                        {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig.category) && (
+                            <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="text-white font-medium flex items-center gap-2">
+                                            <Sparkles size={16} className="text-accent" />
+                                            Calculadora / Cotizador de Uñas
+                                        </h4>
+                                        <p className="text-sm text-muted mt-0.5">Permite a tus clientes cotizar largos, diseños y efectos de uñas en la app de reservas.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={infoForm.enableNailCalculator ?? true}
+                                            onChange={async (e) => {
+                                                const val = e.target.checked;
+                                                setInfoForm({ ...infoForm, enableNailCalculator: val });
+                                                await updateBusinessConfig({ enableNailCalculator: val });
+                                                showToast(val ? 'Calculadora de uñas activada' : 'Calculadora de uñas desactivada', 'success');
+                                            }}
+                                        />
+                                        <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Hide Prices Toggle */}
                         <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
                             <div className="flex items-center justify-between">
@@ -1209,7 +1238,7 @@ export default function Settings() {
                 </section>
 
                 {/* ── Nail Calculator Config Module (Section 7 - For Nail Bars and Beauty Salons) ── */}
-                {userRole === 'owner' && (['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig.category) && (
+                {userRole === 'owner' && isNailCalculatorEnabled(businessConfig) && (
                     <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10]">
                         <div className="flex items-center justify-between border-b border-white/5 pb-4">
                             <div className="flex items-center gap-3">

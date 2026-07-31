@@ -17,6 +17,7 @@ import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import { useAllCatalog } from '../../lib/store/queries/useCatalog';
+import { isNailCalculatorEnabled } from '../../lib/planLimits';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -308,7 +309,7 @@ export default function Booking() {
     }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
 
     const totalPrice = useMemo(() => {
-        if ((['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService?.enableQuoter) {
+        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
             return nailTotalPrice;
         }
         const base = selectedService?.price ?? 0;
@@ -724,7 +725,7 @@ export default function Booking() {
 
         // Build combined service name (main + add-ons)
         let addOnNames: string[] = [];
-        if ((['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService?.enableQuoter && !selectedCatalogItem) {
+        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
             if (designItem) {
@@ -1353,7 +1354,7 @@ export default function Booking() {
                                                 setSelectedStylist(stylist);
                                                 setSelectedAddOns(validAddOns);
                                                 
-                                                if ((['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && svc.enableQuoter) {
+                                                if (isNailCalculatorEnabled(businessConfig) && svc.enableQuoter) {
                                                     // Si es un salón de uñas y el servicio requiere cotizador, los mandamos al cotizador
                                                     // para que elijan su largo/diseño de esta cita, pero ya con el servicio y estilista pre-seleccionados.
                                                     setShowNailQuoterFlow(true);
@@ -1993,7 +1994,7 @@ export default function Booking() {
                                             onClick={() => {
                                                 setSelectedService(service);
                                                 setSelectedCatalogItem(null);
-                                                if ((['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && service.enableQuoter) {
+                                                if (isNailCalculatorEnabled(businessConfig) && service.enableQuoter) {
                                                     setShowNailQuoterFlow(true);
                                                 } else {
                                                     const hasAddons = services.some(s => s.isAddon);
@@ -2726,7 +2727,7 @@ export default function Booking() {
                                     </div>
 
                                     {/* Breakdown of customization details (Nails) */}
-                                    {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService?.enableQuoter && (
+                                    {isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && (
                                         <div className="border-t border-white/5 pt-3 mt-3 space-y-1.5 text-xs text-slate-300">
                                             {nailSize && (
                                                 <div className="flex justify-between">
@@ -2834,7 +2835,7 @@ export default function Booking() {
                             })()}
 
                             {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
-                            {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && selectedService?.enableQuoter && !nailDesignUrl && !selectedCatalogItem && (
+                            {isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !nailDesignUrl && !selectedCatalogItem && (
                                 <a
                                     href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(
                                         `Hola, acabo de agendar una cita en ${businessConfig?.name || 'CitaLink'}.\n\n` +

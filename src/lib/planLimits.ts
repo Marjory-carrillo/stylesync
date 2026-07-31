@@ -242,5 +242,15 @@ export function isAccountActive(
             warning: 'Problema de pago detectado. Por favor, actualiza tu tarjeta para evitar la suspensión del servicio.'
         };
     }
-    return { active: false, blocked: true };
+    return { active: false, blocked: true, warning: 'Tu cuenta ha sido suspendida por falta de pago.' };
+}
+
+/**
+ * Checks if the nail calculator feature is enabled for a business.
+ */
+export function isNailCalculatorEnabled(config?: { category?: string; enableNailCalculator?: boolean } | null): boolean {
+    if (!config) return false;
+    const isSupportedCategory = (['nail_bar', 'beauty_salon'] as string[]).includes(config.category || '');
+    if (!isSupportedCategory) return false;
+    return config.enableNailCalculator ?? true;
 }

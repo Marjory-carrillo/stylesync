@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
+import { isNailCalculatorEnabled } from '../../lib/planLimits';
 import { useCancellationLog } from '../../lib/store/queries/useCancellationLog';
 import { useBlockedPhones } from '../../lib/store/queries/useBlockedPhones';
 import { useAuthStore } from '../../lib/store/authStore';
@@ -738,7 +739,7 @@ export default function Appointments() {
                                                                         <span className="truncate max-w-[150px]">{stylist?.name || 'Cualquier profesional'}</span>
                                                                     </div>
                                                                     {(() => {
-                                                                        const hasVarPrice = service?.priceType === 'no_price' || service?.priceType === 'range' || ((['nail_bar', 'beauty_salon'] as string[]).includes(tenantConfig?.category || '') && service?.enableQuoter);
+                                                                        const hasVarPrice = service?.priceType === 'no_price' || service?.priceType === 'range' || (isNailCalculatorEnabled(tenantConfig) && service?.enableQuoter);
                                                                         if (!hasVarPrice) return null;
                                                                         const confirmed = isPriceConfirmed(apt);
                                                                         return (

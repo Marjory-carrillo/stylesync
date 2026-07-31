@@ -9,6 +9,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import ConfirmModal from '../../components/ConfirmModal';
 import PlaceholderSVG from '../../assets/placeholder-service.svg';
 import { serviceSchema } from '../../lib/schemas';
+import { isNailCalculatorEnabled } from '../../lib/planLimits';
 
 // ── Sub-componente: Galería de un servicio ────────────────────────────────
 function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
@@ -597,8 +598,8 @@ export default function Services() {
                                 </label>
                             </div>
 
-                            {/* enableQuoter Toggle (For Nail Bars and Beauty Salons) */}
-                            {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig.category) && !formIsAddon && (
+                            {/* enableQuoter Toggle (For Nail Bars and Beauty Salons when enabled) */}
+                            {isNailCalculatorEnabled(businessConfig) && !formIsAddon && (
                                 <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                                     <label className="flex items-start justify-between cursor-pointer group">
                                         <div>

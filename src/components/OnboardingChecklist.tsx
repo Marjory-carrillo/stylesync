@@ -14,6 +14,7 @@ import {
     Calculator,
 } from 'lucide-react';
 import { useNailCalculator, DEFAULT_NAIL_CONFIG } from '../lib/store/queries/useNailCalculator';
+import { isNailCalculatorEnabled } from '../lib/planLimits';
 
 interface OnboardingChecklistProps {
     tenantId: string;
@@ -77,7 +78,7 @@ export function OnboardingChecklist({
         const hasRealService = services.length > 0;
         const hasStylistPhoto = stylists.some((s) => !!(s.image || s.photo_url));
 
-        const isNailCategory = (['nail_bar', 'beauty_salon'] as string[]).includes(tenantConfig?.category || '');
+        const isNailCategory = isNailCalculatorEnabled(tenantConfig);
         const hasQuoterConfigured = services.some((s) => s.enableQuoter) ||
             (!!nailConfig && JSON.stringify(nailConfig) !== JSON.stringify(DEFAULT_NAIL_CONFIG));
 

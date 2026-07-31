@@ -12,7 +12,7 @@ import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
 import PWAInstallBanner from '../components/PWAInstallBanner';
 import PaymentBlockedScreen from '../components/PaymentBlockedScreen';
-import { isAccountActive } from '../lib/planLimits';
+import { isAccountActive, isNailCalculatorEnabled } from '../lib/planLimits';
 
 export default function AdminLayout() {
     const { t, i18n } = useTranslation();
@@ -218,7 +218,7 @@ export default function AdminLayout() {
                         <span>{t('nav.appointments')}</span>
                     </Link>
 
-                    {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig?.category || '') && (
+                    {isNailCalculatorEnabled(businessConfig) && (
                         <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
                             <Calculator size={18} />
                             <span>Cotizador de Uñas</span>
