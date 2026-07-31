@@ -1667,7 +1667,7 @@ export default function Dashboard() {
                                 value={String(dashboardStylistId)}
                                 onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
                                 options={[
-                                    { value: 'all', label: 'Todos los integrantes' },
+                                    { value: 'all', label: 'Todos los Profesionales' },
                                     ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
                                 ]}
                                 buttonClassName="bg-slate-900/50 border border-white/10 text-white rounded-2xl px-4 py-1.5 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[160px]"
@@ -1884,7 +1884,7 @@ export default function Dashboard() {
                                 value={String(dashboardStylistId)}
                                 onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
                                 options={[
-                                    { value: 'all', label: 'Todos los barberos' },
+                                    { value: 'all', label: 'Todos los Profesionales' },
                                     ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
                                 ]}
                                 buttonClassName="bg-slate-900/50 border border-emerald-500/20 text-emerald-400 rounded-2xl px-4 py-1.5 text-xs focus:outline-none focus:border-emerald-500 flex items-center justify-between min-w-[160px]"
