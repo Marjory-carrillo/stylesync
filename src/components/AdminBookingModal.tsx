@@ -11,7 +11,7 @@ import { useSchedule } from '../lib/store/queries/useSchedule';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../lib/store/queries/useNailCalculator';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
-import { isNailCalculatorEnabled } from '../lib/planLimits';
+import { isNailCalculatorEnabled, isAppointmentActive } from '../lib/planLimits';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -111,16 +111,17 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return dates;
     }, []);
 
-    // Check if client has an active appointment (status is confirmada/pendiente)
+    // Check if client has an active appointment (status is active AND date/time hasn't passed)
     const activeAppointmentForPhone = useMemo(() => {
         if (!clientPhone || clientPhone.length < 7) return null;
         const normalizedInput = clientPhone.replace(/\D/g, '');
         return appointments.find(a => {
             const normalizedAptPhone = a.clientPhone.replace(/\D/g, '');
-            const isActive = a.status !== 'cancelada' && a.status !== 'completada';
-            return isActive && (normalizedInput.slice(-10) === normalizedAptPhone.slice(-10));
+            const svc = services.find(s => s.id === a.serviceId);
+            const duration = svc?.duration || 30;
+            return isAppointmentActive(a, duration) && (normalizedInput.slice(-10) === normalizedAptPhone.slice(-10));
         });
-    }, [clientPhone, appointments]);
+    }, [clientPhone, appointments, services]);
 
     // Calculate smart nail total price
     const nailTotalPrice = useMemo(() => {

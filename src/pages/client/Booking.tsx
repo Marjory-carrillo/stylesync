@@ -17,7 +17,7 @@ import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import { useAllCatalog } from '../../lib/store/queries/useCatalog';
-import { isNailCalculatorEnabled } from '../../lib/planLimits';
+import { isNailCalculatorEnabled, isAppointmentActive as checkIsApptActive } from '../../lib/planLimits';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -54,29 +54,8 @@ export default function Booking() {
     const getServiceById = (id: number) => services.find(s => s.id === id);
 
     const isAppointmentActive = (a: any) => {
-        if (a.status !== 'confirmada') return false;
-        
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}-${mm}-${dd}`;
-        
-        if (a.date > todayStr) return true;
-        if (a.date === todayStr) {
-            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            const svc = getServiceById(a.serviceId);
-            const duration = svc?.duration || 30;
-            
-            const [hours, minutes] = a.time.split(':').map(Number);
-            const endMinutes = hours * 60 + minutes + duration;
-            const endHours = Math.floor(endMinutes / 60);
-            const endMins = endMinutes % 60;
-            const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-            
-            return currentTimeStr < endTimeStr;
-        }
-        return false;
+        const svc = getServiceById(a.serviceId);
+        return checkIsApptActive(a, svc?.duration || 30);
     };
 
     const getActiveAppointmentsCountByPhone = (phone: string) => appointments.filter(a => a.clientPhone === phone && isAppointmentActive(a)).length;

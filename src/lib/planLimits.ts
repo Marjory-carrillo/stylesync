@@ -254,3 +254,28 @@ export function isNailCalculatorEnabled(config?: { category?: string; enableNail
     if (!isSupportedCategory) return false;
     return config.enableNailCalculator ?? true;
 }
+
+/**
+ * Checks if an appointment is active (not cancelled, not completed, and date/time has not passed).
+ */
+export function isAppointmentActive(a: { status: string; date: string; time: string }, serviceDuration: number = 30): boolean {
+    if (a.status === 'cancelada' || a.status === 'completada') return false;
+
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    if (a.date > todayStr) return true;
+    if (a.date === todayStr) {
+        const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const [hours, minutes] = a.time.split(':').map(Number);
+        const endMinutes = hours * 60 + minutes + serviceDuration;
+        const endHours = Math.floor(endMinutes / 60);
+        const endMins = endMinutes % 60;
+        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+        return currentTimeStr < endTimeStr;
+    }
+    return false;
+}
