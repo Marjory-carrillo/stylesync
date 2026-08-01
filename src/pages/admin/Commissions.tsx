@@ -160,14 +160,18 @@ export default function Commissions() {
         return total;
     };
 
-    if (userRole !== 'owner' || !businessConfig?.commissionsEnabled) {
+    if (userRole !== 'owner' || !businessConfig?.commissionsEnabled || businessConfig?.plan === 'lite') {
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center h-[60vh]">
                 <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
                     <Calculator className="text-red-500 w-8 h-8" />
                 </div>
                 <h2 className="text-xl font-bold text-white mb-2">Acceso Denegado</h2>
-                <p className="text-muted">No tienes permisos para ver el módulo de Nómina y Comisiones.</p>
+                <p className="text-muted">
+                    {businessConfig?.plan === 'lite'
+                        ? 'El módulo de Nómina y Comisiones no está disponible en el plan Esencial (1 solo profesional).'
+                        : 'No tienes permisos para ver el módulo de Nómina y Comisiones.'}
+                </p>
             </div>
         );
     }

@@ -1006,6 +1006,9 @@ export default function Dashboard() {
                                         <span className="text-amber-400 font-bold">✓</span> Citas Ilimitadas
                                     </li>
                                     <li className="flex items-center gap-2">
+                                        <span className="text-amber-400 font-bold">✓</span> Módulo de Nómina y Comisiones
+                                    </li>
+                                    <li className="flex items-center gap-2">
                                         <span className="text-amber-400 font-bold">✓</span> WhatsApp / Recordatorios Auto
                                     </li>
                                 </ul>

@@ -246,7 +246,7 @@ export default function Staff() {
                             <h3 className="text-xl font-bold text-white mb-1">{person.name}</h3>
                             <p className="text-accent text-sm font-medium mb-2">{person.role}</p>
 
-                            {businessConfig?.commissionsEnabled && (
+                            {businessConfig?.commissionsEnabled && businessConfig?.plan !== 'lite' && (
                                 <div className="flex items-center gap-2 mb-4">
                                     <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md border border-emerald-500/20">
                                         {person.commissionRate || 0}% COMISIÓN
@@ -337,20 +337,22 @@ export default function Staff() {
                                         className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors"
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-sm font-medium text-muted mb-1 block">% Comisión (Nómina)</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            min="0" max="100"
-                                            value={formCommission}
-                                            onChange={e => setFormCommission(Number(e.target.value))}
-                                            placeholder="0"
-                                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors pr-10"
-                                        />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">%</span>
+                                {businessConfig?.commissionsEnabled && businessConfig?.plan !== 'lite' && (
+                                    <div>
+                                        <label className="text-sm font-medium text-muted mb-1 block">% Comisión (Nómina)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="0" max="100"
+                                                value={formCommission}
+                                                onChange={e => setFormCommission(Number(e.target.value))}
+                                                placeholder="0"
+                                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent transition-colors pr-10"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">%</span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                                 <div>
                                     <label className="text-sm font-medium text-muted mb-1 block">URL de Foto</label>
                                     <input

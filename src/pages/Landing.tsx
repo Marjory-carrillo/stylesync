@@ -743,7 +743,7 @@ export default function Landing() {
                                         <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />{f}
                                     </li>
                                 ))}
-                                {['Profesionales adicionales'].map((f) => (
+                                {['Profesionales adicionales', 'Módulo de Nómina y Comisiones'].map((f) => (
                                     <li key={f} className="flex items-center gap-2.5 text-sm text-slate-600 line-through">
                                         <X className="w-4 h-4 text-slate-700 shrink-0" />{f}
                                     </li>
@@ -776,6 +776,7 @@ export default function Landing() {
                                     '1 sucursal',
                                     '2 profesionales incluidos',
                                     'Profesional extra: +$249/mes',
+                                    'Módulo de Nómina y Comisiones',
                                     'Citas ilimitadas',
                                     'Agenda online 24/7',
                                     'Recordatorios WhatsApp',

@@ -1402,7 +1402,7 @@ export default function Settings() {
                 )}
 
                 {/* ── Commissions Module (Section 6) ── */}
-                {userRole === 'owner' && (
+                {userRole === 'owner' && tenantPlan !== 'lite' && (
                     <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10]">
                         <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                             <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">

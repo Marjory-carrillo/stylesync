@@ -254,7 +254,7 @@ export default function AdminLayout() {
                                 <SettingsIcon size={18} />
                                 <span>{t('nav.settings')}</span>
                             </Link>
-                            {userRole === 'owner' && businessConfig?.commissionsEnabled && (
+                            {userRole === 'owner' && businessConfig?.commissionsEnabled && businessConfig?.plan !== 'lite' && (
                                 <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')}>
                                     <Percent size={18} />
                                     <span>{t('nav.commissions')}</span>
