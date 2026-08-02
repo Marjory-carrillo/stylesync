@@ -1,7 +1,7 @@
 // Figma REST API integration helper for CitaLink
 import fs from 'fs';
 
-const FIGMA_TOKEN = 'figd_4utQZDMzBtaTaCnRkFIGOpfk0dL-Rb0fD4-ZWjlH';
+const FIGMA_TOKEN = process.env.FIGMA_TOKEN || '';
 
 export async function getFigmaFile(fileKey, depth = 2) {
     const res = await fetch(`https://api.figma.com/v1/files/${fileKey}?depth=${depth}`, {
