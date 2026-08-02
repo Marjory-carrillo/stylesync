@@ -139,9 +139,10 @@ export default function Booking() {
         lastAddOns?: number[];
     }
 
+    const profileStorageKey = `citalink_saved_profiles_${slug || 'default'}`;
     const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>(() => {
         try {
-            const data = localStorage.getItem('citalink_saved_profiles');
+            const data = localStorage.getItem(`citalink_saved_profiles_${slug || 'default'}`);
             return data ? JSON.parse(data) : [];
         } catch {
             return [];
@@ -155,7 +156,7 @@ export default function Booking() {
         setSavedProfiles(prev => {
             const updated = prev.filter(p => p.phone !== phoneToDelete);
             try {
-                localStorage.setItem('citalink_saved_profiles', JSON.stringify(updated));
+                localStorage.setItem(profileStorageKey, JSON.stringify(updated));
             } catch (err) {
                 console.error('Error saving profiles to localStorage', err);
             }
@@ -774,12 +775,12 @@ export default function Booking() {
                     lastStylistName: selectedStylist ? selectedStylist.name : null,
                     lastAddOns: selectedAddOns
                 };
-                const stored = localStorage.getItem('citalink_saved_profiles');
+                const stored = localStorage.getItem(profileStorageKey);
                 let profiles: SavedProfile[] = stored ? JSON.parse(stored) : [];
                 profiles = profiles.filter(p => p.phone !== phone);
                 profiles.unshift(profileData);
                 profiles = profiles.slice(0, 5);
-                localStorage.setItem('citalink_saved_profiles', JSON.stringify(profiles));
+                localStorage.setItem(profileStorageKey, JSON.stringify(profiles));
                 setSavedProfiles(profiles);
             } catch (e) {
                 console.error('Error saving profile to localStorage', e);
