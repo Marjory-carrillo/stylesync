@@ -8,7 +8,7 @@ import {
     CheckCircle2, X, Sparkles, Scissors, Flower2, Stethoscope,
     Infinity as InfinityIcon, Star, Shield, Zap, Clock,
     BarChart2, Smartphone, ChevronDown, Instagram, Facebook,
-    Calculator, Percent, CalendarPlus
+    Calculator, Percent, CalendarPlus, MapPin, Calendar
 } from 'lucide-react';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -93,6 +93,15 @@ export default function Landing() {
         businessName: '', businessType: '', employeeCount: '',
         contactName: '', email: '', phone: ''
     });
+
+    // Interactive Simulator State
+    const [simSector, setSimSector] = useState<'barber' | 'nails' | 'spa'>('barber');
+    const [simService, setSimService] = useState('Corte Clásico + Barba ($280)');
+    const [simTime, setSimTime] = useState('16:00');
+    const [simDone, setSimDone] = useState(false);
+
+    // Interactive ROI Calculator State
+    const [roiProCount, setRoiProCount] = useState(3);
 
     // Navbar scroll
     const [scrolled, setScrolled] = useState(false);
@@ -293,36 +302,36 @@ export default function Landing() {
                 <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto px-4">
-                    {/* Badge */}
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-8">
-                        <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
-                        La plataforma #1 para reservas en México
-                        <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+                    {/* Badge Promocional */}
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/10 via-fuchsia-500/10 to-indigo-500/10 border border-violet-500/30 text-violet-300 text-xs sm:text-sm font-semibold mb-8 shadow-[0_0_25px_rgba(139,92,246,0.15)] animate-pulse">
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        La plataforma #1 de agendamiento automático por WhatsApp
+                        <span className="bg-violet-500/30 px-2 py-0.5 rounded-full text-[10px] font-black text-violet-200 uppercase tracking-wider">Nuevo v2.0</span>
                     </div>
 
-                    <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter mb-6 leading-[0.9]">
+                    <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter mb-6 leading-[0.95]">
                         Llena tu agenda<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400 animate-gradient-x">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400">
                             mientras duermes.
                         </span>
                     </h1>
 
-                    <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-400 mb-10 leading-relaxed">
-                        Reservas automáticas, recordatorios que evitan inasistencias y control total de tu equipo — todo en una plataforma diseñada para <strong className="text-white">salones, spas, barberías y clínicas.</strong>
+                    <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-300 mb-10 leading-relaxed font-normal">
+                        Reservas automáticas, recordatorios que evitan inasistencias y control total de tu equipo — todo en una sola plataforma para <strong className="text-white font-bold underline decoration-violet-500 decoration-2 underline-offset-4">salones, spas, barberías y clínicas.</strong>
                     </p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
                         {user ? (
-                            <Link to={dashboardPath} className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-lg hover:from-violet-500 hover:to-indigo-500 transition-all shadow-[0_0_40px_-5px_rgba(124,58,237,0.5)] flex items-center justify-center gap-3">
+                            <Link to={dashboardPath} className="group w-full sm:w-auto px-8 py-4.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 text-white font-bold text-lg hover:brightness-110 transition-all shadow-[0_0_50px_-5px_rgba(124,58,237,0.6)] flex items-center justify-center gap-3">
                                 Ir a mi Panel <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         ) : (
                             <>
-                                <button onClick={() => setIsModalOpen(true)} className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-lg hover:from-violet-500 hover:to-indigo-500 transition-all shadow-[0_0_40px_-5px_rgba(124,58,237,0.5)] flex items-center justify-center gap-3">
-                                    Solicitar Prueba Gratis
+                                <button onClick={() => setIsModalOpen(true)} className="group w-full sm:w-auto px-8 py-4.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 text-white font-bold text-lg hover:brightness-110 transition-all shadow-[0_0_50px_-5px_rgba(124,58,237,0.6)] flex items-center justify-center gap-3">
+                                    Solicitar Demo Gratis
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </button>
-                                <Link to="/login" className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-semibold text-lg hover:bg-white/10 transition-all">
+                                <Link to="/login" className="w-full sm:w-auto px-8 py-4.5 rounded-2xl bg-white/5 border border-white/10 text-white font-semibold text-lg hover:bg-white/10 transition-all backdrop-blur-md">
                                     Iniciar Sesión
                                 </Link>
                             </>
@@ -330,20 +339,22 @@ export default function Landing() {
                     </div>
 
                     {/* Social proof */}
-                    <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400 mb-16">
+                    <div className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm text-slate-400 mb-16">
                         <div className="flex items-center gap-2">
                             <div className="flex -space-x-2">
                                 {['bg-violet-500', 'bg-pink-500', 'bg-indigo-500', 'bg-emerald-500'].map((c, i) => (
-                                    <div key={i} className={`w-7 h-7 rounded-full ${c} border-2 border-[#020817] flex items-center justify-center text-[10px] font-bold text-white`}>{['S','R','V','M'][i]}</div>
+                                    <div key={i} className={`w-7 h-7 rounded-full ${c} border-2 border-[#020817] flex items-center justify-center text-[10px] font-bold text-white shadow-md`}>{['S','R','V','M'][i]}</div>
                                 ))}
                             </div>
-                            <span>+500 negocios activos</span>
+                            <span className="font-semibold text-white">+500 negocios activos</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
                             {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
-                            <span className="ml-1">4.9/5 en reseñas</span>
+                            <span className="ml-1 font-bold text-white">4.9/5 en reseñas</span>
                         </div>
-                        <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Sin comisiones por reserva</div>
+                        <div className="flex items-center gap-2 font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+                            <CheckCircle2 className="w-4 h-4" /> Sin comisiones por reserva
+                        </div>
                     </div>
 
                     {/* Real App Preview */}
@@ -577,62 +588,277 @@ export default function Landing() {
                 </div>
             </section>
 
-            {/* ═══════════ DEMO SECTION ═══════════ */}
-            <section className="py-28 border-t border-white/5 relative overflow-hidden">
-                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
+            {/* ═══════════ DEMO INTERACTIVA Y CALCULADORA ═══════════ */}
+            <section className="py-28 border-t border-white/5 relative overflow-hidden bg-gradient-to-b from-[#020817] via-[#080f24] to-[#020817]">
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/15 blur-[140px] rounded-full pointer-events-none" />
                 <div ref={s4.ref} className={`max-w-6xl mx-auto px-4 transition-all duration-700 ${s4.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    <div className="grid lg:grid-cols-2 gap-16 items-center">
-                        <div>
-                            <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Vista del cliente</span>
-                            <h2 className="text-4xl md:text-5xl font-black mt-3 mb-6">Tu cliente reserva en 30 segundos</h2>
-                            <p className="text-slate-400 text-lg leading-relaxed mb-8">
-                                Tus clientes entran a <em className="text-violet-300">citalink.app/tu-negocio</em>, ven tus servicios, eligen al profesional y la hora disponible. Sin registro, sin complicaciones.
-                            </p>
-                            <ul className="space-y-4">
-                                {['Selección de servicio con foto y precio', 'Elige su empleado favorito', 'Calendario de horarios disponibles en tiempo real', 'Google Calendar y recordatorio vía WhatsApp'].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3">
-                                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                                        <span className="text-slate-300">{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        {/* Phone mockup */}
-                        <div className="relative flex justify-center">
-                            <div className="relative w-72">
-                                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full" />
-                                <div className="relative bg-[#0f172a] border-4 border-slate-700 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                                    {/* Phone notch */}
-                                    <div className="h-6 bg-[#0f172a] flex items-center justify-center"><div className="w-20 h-4 rounded-full bg-slate-800" /></div>
-                                    {/* App content */}
-                                    <div className="p-4 space-y-3 min-h-[480px] bg-gradient-to-b from-[#0f172a] to-[#080d1a]">
-                                        <div className="text-center py-4 border-b border-white/5">
-                                            <div className="w-12 h-12 rounded-full bg-violet-500/20 border border-violet-500/30 mx-auto mb-2 flex items-center justify-center"><Scissors className="w-6 h-6 text-violet-400" /></div>
-                                            <p className="text-white font-bold text-sm">Barbería Royal</p>
-                                            <p className="text-slate-500 text-xs">📍 Monterrey, NL</p>
-                                        </div>
-                                        <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">Servicios</p>
-                                        {[
-                                            { name: 'Corte Clásico', time: '30 min', price: '$150' },
-                                            { name: 'Corte + Barba', time: '50 min', price: '$220' },
-                                            { name: 'Afeitado Royal', time: '40 min', price: '$180' },
-                                        ].map((svc, i) => (
-                                            <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${i === 0 ? 'border-violet-500/40 bg-violet-500/10' : 'border-white/5 bg-white/[0.02]'}`}>
-                                                <div>
-                                                    <p className={`text-sm font-bold ${i === 0 ? 'text-violet-300' : 'text-white'}`}>{svc.name}</p>
-                                                    <p className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" />{svc.time}</p>
-                                                </div>
-                                                <p className={`font-black text-sm ${i === 0 ? 'text-violet-400' : 'text-slate-300'}`}>{svc.price}</p>
-                                            </div>
-                                        ))}
-                                        <button className="w-full mt-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm shadow-lg">
-                                            Reservar Ahora →
+                    
+                    <div className="text-center mb-16">
+                        <span className="px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold uppercase tracking-widest">
+                            🔥 Pruébalo tú mismo
+                        </span>
+                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">
+                            Simulador en vivo de reservas
+                        </h2>
+                        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+                            Interactúa con el simulador interactivo para ver exactamente cómo tus clientes agendarán cita en 30 segundos.
+                        </p>
+                    </div>
+
+                    <div className="grid lg:grid-cols-12 gap-8 items-stretch mb-20">
+                        {/* Selector interactivo izquierda */}
+                        <div className="lg:col-span-5 bg-white/[0.02] border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between backdrop-blur-xl">
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-3">Paso 1: Elige tu giro</p>
+                                <div className="grid grid-cols-3 gap-2 mb-6">
+                                    {[
+                                        { id: 'barber', label: 'Barbería', icon: <Scissors className="w-4 h-4" /> },
+                                        { id: 'nails', label: 'Nail Bar', icon: <Sparkles className="w-4 h-4" /> },
+                                        { id: 'spa', label: 'Spa / Salón', icon: <Flower2 className="w-4 h-4" /> },
+                                    ].map((s) => (
+                                        <button
+                                            key={s.id}
+                                            onClick={() => {
+                                                setSimSector(s.id as any);
+                                                setSimDone(false);
+                                                if (s.id === 'barber') setSimService('Corte Clásico + Barba ($280)');
+                                                if (s.id === 'nails') setSimService('Uñas Acrílicas XL + Gel ($450)');
+                                                if (s.id === 'spa') setSimService('Facial Hidratante Profundo ($550)');
+                                            }}
+                                            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all border ${
+                                                simSector === s.id
+                                                    ? 'bg-violet-600 text-white border-violet-400 shadow-lg shadow-violet-600/30'
+                                                    : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {s.icon} {s.label}
                                         </button>
+                                    ))}
+                                </div>
+
+                                <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-3">Paso 2: Selecciona Servicio</p>
+                                <div className="space-y-2 mb-6">
+                                    {(simSector === 'barber' ? [
+                                        { name: 'Corte Clásico + Barba ($280)', time: '45 min' },
+                                        { name: 'Corte Adulto Fade ($220)', time: '35 min' },
+                                        { name: 'Perfilado de Barba VIP ($180)', time: '25 min' },
+                                    ] : simSector === 'nails' ? [
+                                        { name: 'Uñas Acrílicas XL + Gel ($450)', time: '90 min' },
+                                        { name: 'Retiro + Manicure Ruso ($320)', time: '60 min' },
+                                        { name: 'Pedicure Spa Gelish ($380)', time: '50 min' },
+                                    ] : [
+                                        { name: 'Facial Hidratante Profundo ($550)', time: '60 min' },
+                                        { name: 'Masaje Relajante Corporal ($650)', time: '60 min' },
+                                        { name: 'Laminado de Cejas + Pestañas ($420)', time: '45 min' },
+                                    ]).map((item) => (
+                                        <div
+                                            key={item.name}
+                                            onClick={() => { setSimService(item.name); setSimDone(false); }}
+                                            className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                                                simService === item.name
+                                                    ? 'bg-violet-500/20 border-violet-500/60 text-white shadow-md'
+                                                    : 'bg-white/[0.02] border-white/5 text-slate-400 hover:border-white/10'
+                                            }`}
+                                        >
+                                            <span className="text-xs font-bold">{item.name}</span>
+                                            <span className="text-[10px] text-slate-500 font-mono">{item.time}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-3">Paso 3: Elige Horario</p>
+                                <div className="grid grid-cols-4 gap-2 mb-6">
+                                    {['10:00', '12:30', '16:00', '18:30'].map((t) => (
+                                        <button
+                                            key={t}
+                                            onClick={() => { setSimTime(t); setSimDone(false); }}
+                                            className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                                                simTime === t
+                                                    ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
+                                                    : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setSimDone(true)}
+                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 text-white font-black text-sm uppercase tracking-wider transition-all shadow-lg shadow-violet-500/30 hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2"
+                            >
+                                <Sparkles className="w-4 h-4 text-amber-400" /> Simular Reserva en Vivo →
+                            </button>
+                        </div>
+
+                        {/* Maqueta celular interactiva derecha */}
+                        <div className="lg:col-span-7 flex flex-col items-center justify-center relative">
+                            <div className="relative w-full max-w-sm">
+                                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full pointer-events-none" />
+                                <div className="relative bg-[#090f1e] border-4 border-slate-700/80 rounded-[2.5rem] overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.8)]">
+                                    {/* Notch */}
+                                    <div className="h-6 bg-[#090f1e] flex items-center justify-center">
+                                        <div className="w-24 h-4 rounded-full bg-slate-800 flex items-center justify-end px-2">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500/60" />
+                                        </div>
+                                    </div>
+
+                                    {/* Contenido interactivo simulado - DISEÑO REAL DE CITALINK */}
+                                    <div className="p-4 space-y-3 min-h-[490px] bg-[#020817] text-slate-100 font-sans">
+                                        {/* Cabecera Real del Negocio */}
+                                        <div className="relative p-4 rounded-2xl bg-gradient-to-b from-violet-900/40 via-[#0b1329] to-[#050b18] border border-violet-500/20 text-center shadow-lg">
+                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-600 to-fuchsia-600 p-0.5 mx-auto mb-2.5 shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+                                                <div className="w-full h-full bg-[#0b1329] rounded-[14px] flex items-center justify-center">
+                                                    {simSector === 'barber' ? <Scissors className="w-7 h-7 text-amber-400" /> : simSector === 'nails' ? <Sparkles className="w-7 h-7 text-pink-400" /> : <Flower2 className="w-7 h-7 text-emerald-400" />}
+                                                </div>
+                                            </div>
+                                            <h3 className="text-white font-black text-base tracking-tight">
+                                                {simSector === 'barber' ? 'Barbería El Estilo' : simSector === 'nails' ? 'Mar Del Rey Nail\'s' : 'Spa Zen & Estética'}
+                                            </h3>
+                                            <div className="flex items-center justify-center gap-2 mt-1">
+                                                <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                                    ★ 4.9 <span className="text-slate-400 font-normal">(120+ opiniones)</span>
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
+                                                    <MapPin className="w-3 h-3 text-slate-500" /> San Pedro, NL
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Barra de progreso de pasos real de CitaLink */}
+                                        <div className="flex items-center justify-between px-2 py-1 bg-white/[0.02] border border-white/5 rounded-xl text-[9px] font-bold text-slate-400">
+                                            <span className="text-violet-400 flex items-center gap-1"><span className="w-4 h-4 rounded-full bg-violet-600 text-white flex items-center justify-center text-[8px]">1</span> Servicio</span>
+                                            <span className="text-slate-600">→</span>
+                                            <span className={`${simDone ? 'text-violet-400' : 'text-slate-500'} flex items-center gap-1`}><span className="w-4 h-4 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[8px]">2</span> Horario</span>
+                                            <span className="text-slate-600">→</span>
+                                            <span className={`${simDone ? 'text-emerald-400' : 'text-slate-500'} flex items-center gap-1`}><span className="w-4 h-4 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[8px]">3</span> Confirmación</span>
+                                        </div>
+
+                                        {simDone ? (
+                                            /* Pantalla de Confirmación / Ticket Real */
+                                            <div className="bg-gradient-to-b from-emerald-950/30 to-[#040c1a] border border-emerald-500/30 rounded-2xl p-4 animate-fade-in space-y-3 shadow-xl">
+                                                <div className="flex items-center gap-2 text-emerald-400 font-black text-xs border-b border-emerald-500/20 pb-2">
+                                                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                                                    <span>¡Reserva Registrada en CitaLink!</span>
+                                                </div>
+                                                
+                                                {/* Detalle Ticket */}
+                                                <div className="bg-[#030814] p-3 rounded-xl border border-white/5 space-y-2 text-xs">
+                                                    <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
+                                                        <span className="text-slate-400 text-[10px]">Cliente:</span>
+                                                        <span className="text-white font-bold">Misael Aguilar</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
+                                                        <span className="text-slate-400 text-[10px]">Servicio:</span>
+                                                        <span className="text-violet-300 font-bold text-right">{simService}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
+                                                        <span className="text-slate-400 text-[10px]">Fecha y Hora:</span>
+                                                        <span className="text-emerald-400 font-bold font-mono">Hoy · {simTime} hrs</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center pt-0.5">
+                                                        <span className="text-slate-400 text-[10px]">Notificación:</span>
+                                                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                                            <MessageCircle className="w-3 h-3" /> WhatsApp Enviado
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-violet-500/10 border border-violet-500/20 p-2.5 rounded-xl text-[10px] text-violet-200 text-center font-medium">
+                                                    🔐 Acceso de Cita: <strong className="text-white font-mono bg-violet-600 px-2 py-0.5 rounded ml-1">4892</strong>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => setSimDone(false)}
+                                                    className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all border border-white/10"
+                                                >
+                                                    ← Probar Otra Cita
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            /* Tarjeta de Selección de Servicio Real */
+                                            <div className="space-y-3">
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Servicio Seleccionado</p>
+                                                
+                                                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-violet-900/30 to-indigo-900/30 border border-violet-500/40 flex items-center justify-between shadow-lg">
+                                                    <div className="space-y-1">
+                                                        <p className="text-white font-black text-xs">{simService}</p>
+                                                        <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                            <Clock className="w-3 h-3 text-violet-400" /> Atendido por profesional asignado
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+                                                        Confirmado
+                                                    </span>
+                                                </div>
+
+                                                <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="w-4 h-4 text-violet-400" />
+                                                        <span className="text-xs text-slate-300">Horario de cita:</span>
+                                                    </div>
+                                                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">{simTime} hrs</span>
+                                                </div>
+
+                                                <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 flex items-center gap-2.5">
+                                                    <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                                                    <p className="text-[10px] text-slate-300 leading-snug">
+                                                        Confirmación y recordatorio vía WhatsApp listos para enviarse.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* ── CALCULADORA INTERACTIVA DE RETORNO DE INVERSIÓN (ROI) ── */}
+                    <div className="bg-gradient-to-r from-violet-950/40 via-[#0a1226] to-indigo-950/40 border border-violet-500/20 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
+                        <div className="grid md:grid-cols-12 gap-8 items-center">
+                            <div className="md:col-span-6 space-y-4">
+                                <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest">
+                                    💰 Calculadora de Impacto
+                                </span>
+                                <h3 className="text-2xl md:text-3xl font-black text-white">
+                                    ¿Cuánto tiempo y dinero ahorrarás?
+                                </h3>
+                                <p className="text-slate-400 text-sm">
+                                    Desliza para seleccionar cuántos profesionales trabajan en tu negocio y calcula tus resultados estimados:
+                                </p>
+                                <div className="pt-2">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm font-bold text-white">Número de Profesionales:</span>
+                                        <span className="text-xl font-black text-violet-400 bg-violet-500/10 px-3 py-1 rounded-xl border border-violet-500/20">{roiProCount} {roiProCount === 1 ? 'profesional' : 'profesionales'}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="10"
+                                        value={roiProCount}
+                                        onChange={(e) => setRoiProCount(parseInt(e.target.value))}
+                                        className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-6 grid grid-cols-2 gap-4">
+                                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 text-center">
+                                    <Clock className="w-6 h-6 text-violet-400 mx-auto mb-2" />
+                                    <p className="text-3xl font-black text-white">{roiProCount * 12} hrs</p>
+                                    <p className="text-xs text-slate-400 font-medium mt-1">Ahorradas al mes respondiendo WhatsApp</p>
+                                </div>
+                                <div className="bg-white/[0.03] border border-emerald-500/20 rounded-2xl p-5 text-center">
+                                    <TrendingUp className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
+                                    <p className="text-3xl font-black text-emerald-400">+${(roiProCount * 3200).toLocaleString()} MXN</p>
+                                    <p className="text-xs text-slate-400 font-medium mt-1">Estimado en ventas extra por reservas 24/7</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </section>
 
