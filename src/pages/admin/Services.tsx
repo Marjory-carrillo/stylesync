@@ -294,106 +294,144 @@ export default function Services() {
                                         No hay servicios registrados. Click en "Nuevo Servicio" para empezar.
                                     </td>
                                 </tr>
-                            ) : services.map(service => (
-                                <>
-                                    <tr key={service.id} className="hover:bg-white/5 transition-colors group">
-                                        <td className="p-4">
-                                            <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden border border-white/10">
-                                                <img
-                                                    src={service.image || PlaceholderSVG}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => { e.currentTarget.src = PlaceholderSVG; }}
-                                                />
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="font-bold text-white mb-0.5">{service.name}</div>
-                                            {service.description && (
-                                                <p className="text-xs text-slate-400 font-normal line-clamp-2 max-w-xs mb-1">
-                                                    {service.description}
-                                                </p>
-                                            )}
-                                            {service.isAddon && (
-                                                <span className="inline-flex py-0.5 px-2 rounded font-bold text-[10px] uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                                                    Servicio Adicional
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-2 text-muted">
-                                                <Clock size={16} />
-                                                <span>{service.duration} {t('services.table.min')}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            {service.priceType === 'no_price' ? (
-                                                <span className="inline-flex py-0.5 px-2.5 rounded-full font-bold text-[11px] bg-cyan-400/10 text-cyan-300 border border-cyan-400/20">
-                                                    A cotizar
-                                                </span>
-                                            ) : service.priceType === 'range' ? (
-                                                <span className="font-bold text-purple-300 text-sm">
-                                                    ${service.minPrice} - ${service.maxPrice}
-                                                </span>
-                                            ) : (
-                                                <div className="font-bold text-accent flex items-center gap-1">
-                                                    <DollarSign size={16} />
-                                                    <span>{service.price}</span>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <button
-                                                onClick={() => setExpandedCatalog(expandedCatalog === service.id ? null : service.id)}
-                                                className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
-                                                    expandedCatalog === service.id
-                                                        ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
-                                                        : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
-                                                }`}
-                                            >
-                                                <Images size={13} />
-                                                <span className="hidden sm:inline">Galería</span>
-                                                {expandedCatalog === service.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                                            </button>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex gap-2 justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-                                                <button className="p-2 hover:bg-white/10 rounded-full text-muted hover:text-white transition-colors" title="Editar" aria-label="Editar" onClick={() => openEdit(service.id)}>
-                                                    <Edit2 size={18} />
-                                                </button>
-                                                <button
-                                                    className="p-2 hover:bg-red-500/20 rounded-full text-muted hover:text-red-500 transition-colors"
-                                                    title="Eliminar"
-                                                    aria-label="Eliminar"
-                                                    onClick={() => handleDelete(service.id)}
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                            ) : (() => {
+                                const mainServices = services.filter(s => !s.isAddon);
+                                const addonServices = services.filter(s => s.isAddon);
 
-                                    {/* ── Catalog Gallery Row ── */}
-                                    {expandedCatalog === service.id && (
-                                        <tr key={`catalog-${service.id}`} className="bg-white/[0.02]">
-                                            <td colSpan={6} className="px-4 pb-5 pt-3">
-                                                <div className="border border-white/10 rounded-2xl p-4 bg-slate-950/30">
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <Images size={15} className="text-violet-400" />
-                                                        <p className="text-xs font-bold text-white uppercase tracking-wider">
-                                                            Galería de Diseños — {service.name}
-                                                        </p>
-                                                        <span className="text-[10px] text-slate-500 ml-auto">
-                                                            Estas fotos son visibles para las clientas en la app de reservas
-                                                        </span>
+                                const renderServiceRow = (service: typeof services[0]) => (
+                                    <>
+                                        <tr key={service.id} className="hover:bg-white/5 transition-colors group">
+                                            <td className="p-4">
+                                                <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden border border-white/10">
+                                                    <img
+                                                        src={service.image || PlaceholderSVG}
+                                                        alt=""
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => { e.currentTarget.src = PlaceholderSVG; }}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-bold text-white mb-0.5">{service.name}</div>
+                                                {service.description && (
+                                                    <p className="text-xs text-slate-400 font-normal line-clamp-2 max-w-xs mb-1">
+                                                        {service.description}
+                                                    </p>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2 text-muted">
+                                                    <Clock size={16} />
+                                                    <span>{service.duration} {t('services.table.min')}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                {service.priceType === 'no_price' ? (
+                                                    <span className="inline-flex py-0.5 px-2.5 rounded-full font-bold text-[11px] bg-cyan-400/10 text-cyan-300 border border-cyan-400/20">
+                                                        A cotizar
+                                                    </span>
+                                                ) : service.priceType === 'range' ? (
+                                                    <span className="font-bold text-purple-300 text-sm">
+                                                        ${service.minPrice} - ${service.maxPrice}
+                                                    </span>
+                                                ) : (
+                                                    <div className="font-bold text-accent flex items-center gap-1">
+                                                        <DollarSign size={16} />
+                                                        <span>{service.price}</span>
                                                     </div>
-                                                    <ServiceCatalogGallery serviceId={service.id} />
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <button
+                                                    onClick={() => setExpandedCatalog(expandedCatalog === service.id ? null : service.id)}
+                                                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                                                        expandedCatalog === service.id
+                                                            ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                                                    }`}
+                                                >
+                                                    <Images size={13} />
+                                                    <span className="hidden sm:inline">Galería</span>
+                                                    {expandedCatalog === service.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                                </button>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex gap-2 justify-center opacity-70 group-hover:opacity-100 transition-opacity">
+                                                    <button className="p-2 hover:bg-white/10 rounded-full text-muted hover:text-white transition-colors" title="Editar" aria-label="Editar" onClick={() => openEdit(service.id)}>
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                    <button
+                                                        className="p-2 hover:bg-red-500/20 rounded-full text-muted hover:text-red-500 transition-colors"
+                                                        title="Eliminar"
+                                                        aria-label="Eliminar"
+                                                        onClick={() => handleDelete(service.id)}
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
-                                    )}
-                                </>
-                            ))}
+
+                                        {/* ── Catalog Gallery Row ── */}
+                                        {expandedCatalog === service.id && (
+                                            <tr key={`catalog-${service.id}`} className="bg-white/[0.02]">
+                                                <td colSpan={6} className="px-4 pb-5 pt-3">
+                                                    <div className="border border-white/10 rounded-2xl p-4 bg-slate-950/30">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <Images size={15} className="text-violet-400" />
+                                                            <p className="text-xs font-bold text-white uppercase tracking-wider">
+                                                                Galería de Diseños — {service.name}
+                                                            </p>
+                                                            <span className="text-[10px] text-slate-500 ml-auto">
+                                                                Estas fotos son visibles para las clientas en la app de reservas
+                                                            </span>
+                                                        </div>
+                                                        <ServiceCatalogGallery serviceId={service.id} />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </>
+                                );
+
+                                return (
+                                    <>
+                                        {/* ── Servicios Principales ── */}
+                                        {mainServices.length > 0 && (
+                                            <>
+                                                <tr>
+                                                    <td colSpan={6} className="px-4 pt-4 pb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-accent/10 text-accent border border-accent/20">
+                                                                ⭐ Servicios Principales
+                                                            </span>
+                                                            <span className="text-[11px] text-slate-500">{mainServices.length} servicio{mainServices.length !== 1 ? 's' : ''}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {mainServices.map(service => renderServiceRow(service))}
+                                            </>
+                                        )}
+
+                                        {/* ── Servicios Adicionales ── */}
+                                        {addonServices.length > 0 && (
+                                            <>
+                                                <tr>
+                                                    <td colSpan={6} className="px-4 pt-6 pb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                                ✦ Servicios Adicionales
+                                                            </span>
+                                                            <span className="text-[11px] text-slate-500">{addonServices.length} servicio{addonServices.length !== 1 ? 's' : ''}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {addonServices.map(service => renderServiceRow(service))}
+                                            </>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </tbody>
                     </table>
                 </div>
