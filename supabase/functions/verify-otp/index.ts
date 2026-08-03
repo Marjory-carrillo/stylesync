@@ -69,6 +69,7 @@ serve(async (req: Request) => {
             clientName         = 'Cliente',
             serviceName        = 'tu servicio',
             appointmentDateTime = 'próximamente',
+            isVariablePrice     = false,
         } = await req.json();
         const e164 = normalizeE164(phone);
 
@@ -111,6 +112,11 @@ serve(async (req: Request) => {
             // {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=código
             const CONFIRM_OTP_SID = 'HX9f85e85c7229648e7e4966e678f8d204';
 
+            let finalServiceName = serviceName || 'tu servicio';
+            if (isVariablePrice) {
+                finalServiceName += ' (⚠️ Requiere cotización. Te notificaremos cuando tu estilista confirme el monto final)';
+            }
+
             const templateRes = await fetch(msgUrl, {
                 method: 'POST',
                 headers: {
@@ -125,7 +131,7 @@ serve(async (req: Request) => {
                         '1': clientName         || 'Cliente',
                         '2': businessName       || 'CitaLink',
                         '3': appointmentDateTime || 'próximamente',
-                        '4': serviceName        || 'tu servicio',
+                        '4': finalServiceName,
                         '5': otp,               // ← el código OTP
                     }),
                 }).toString(),

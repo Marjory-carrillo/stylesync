@@ -123,6 +123,7 @@ serve(async (req: Request) => {
         const directSlug  = payload.business_slug as string | undefined;
         // Nombres de servicios adicionales (para formato ➕ Adicional: ...)
         const additionalServices: string[] = appointment?.additional_services ?? [];
+        const isVariablePrice: boolean = appointment?.is_variable_price ?? payload?.is_variable_price ?? false;
 
         // Supabase client for logging
         const supabaseLog = createClient(
@@ -220,10 +221,14 @@ serve(async (req: Request) => {
 
         const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
 
-        // Formatear nombre de servicio con adicionales si existen
-        const formattedService = additionalServices.length > 0
+        // Formatear nombre de servicio con adicionales y aviso de cotización si aplica
+        let formattedService = additionalServices.length > 0
             ? `${appointment.service_name ?? 'Servicio'}\n➕ Adicional: ${additionalServices.join(', ')}`
             : (appointment.service_name ?? 'Servicio');
+
+        if (isVariablePrice && event_type === 'new') {
+            formattedService += '\n⚠️ PENDIENTE DE COTIZAR (Ingresa a CitaLink para definir el precio)';
+        }
 
         const adminTemplateMap: Record<string, string> = {
             new:        TEMPLATE_ADMIN_NUEVA_CITA,
