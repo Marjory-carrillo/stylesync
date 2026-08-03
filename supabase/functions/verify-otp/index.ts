@@ -107,9 +107,9 @@ serve(async (req: Request) => {
             const waTo   = `whatsapp:${toWaNumber(e164)}`;
 
             // ── Plantilla Utility: confirmación + OTP en un solo mensaje ──────────
-            // citalink_cliente_confirmacion_v2 (Approved, Utility)
+            // citalink_cliente_confirmacion_v3 (Approved, Utility)
             // {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=código
-            const CONFIRM_OTP_SID = 'HXc86774c877ad719610460e035b8c7fd3';
+            const CONFIRM_OTP_SID = 'HX9f85e85c7229648e7e4966e678f8d204';
 
             const templateRes = await fetch(msgUrl, {
                 method: 'POST',

@@ -7,8 +7,8 @@ const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
 // Plantilla aprobada por Meta (Content SID de Twilio)
-// citalink_cliente_recordatorio_v2: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=link
-const TEMPLATE_RECORDATORIO = 'HX2f0c7fb1f9554c71ce7799d432b408eb';
+// citalink_cliente_recordatorio_v3: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=link
+const TEMPLATE_RECORDATORIO = 'HXbad590b4f06658c197bdced221869e03';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -223,10 +223,11 @@ serve(async (req: Request) => {
 
             // Construir nombre del servicio con adicionales si existen
             const addOnNames: string[] = appt.additional_services ?? [];
-            const serviceName = (svc?.name ?? 'Servicio') +
-                (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '');
+            const serviceName = addOnNames.length > 0
+                ? `${svc?.name ?? 'Servicio'}\n➕ Adicional: ${addOnNames.join(', ')}`
+                : (svc?.name ?? 'Servicio');
 
-            // Variables de la plantilla citalink_cliente_recordatorio_v2:
+            // Variables de la plantilla citalink_cliente_recordatorio_v3:
             // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio, {{5}} = link
             const ok = await sendTemplate(appt.client_phone, TEMPLATE_RECORDATORIO, {
                 '1': appt.client_name ?? 'Cliente',

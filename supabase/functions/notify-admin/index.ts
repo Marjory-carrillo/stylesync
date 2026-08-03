@@ -7,13 +7,13 @@ const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
 // ── SIDs de plantillas aprobadas por Meta ── Notificaciones al Admin
-const TEMPLATE_ADMIN_NUEVA_CITA      = 'HX4b316926b4e052833a93cfc485c25d39';
-const TEMPLATE_ADMIN_REPROGRAMACION  = 'HXfe45424793d1a462c99700d880350fb8';
-const TEMPLATE_ADMIN_CANCELACION     = 'HXba4fd144b9e00ea17fcbf38349859d47';
+const TEMPLATE_ADMIN_NUEVA_CITA      = 'HXd19a0ab5d8bf37655221320bb6555ea1';
+const TEMPLATE_ADMIN_REPROGRAMACION  = 'HX16247c41bf5cf9f31236c2e574337308';
+const TEMPLATE_ADMIN_CANCELACION     = 'HXdc7be5995c074f498642e9536b157947';
 // Cliente (cancelacion/reprogramacion)
-const TEMPLATE_CLIENTE_CANCELACION    = 'HX57d98cdadf1b4ba0d560f15c9a6b1ecd';
-const TEMPLATE_CLIENTE_REPROGRAMACION = 'HX197821733621547516ac219bf561c65e';
-// Fallback (confirmacion_v2) — se usa si el template específico falla
+const TEMPLATE_CLIENTE_CANCELACION    = 'HXb2828c0bd3aabc8edd912c81db56884f';
+const TEMPLATE_CLIENTE_REPROGRAMACION = 'HX84b5a4b7cf045e4fe976564f705a0613';
+// Fallback — se usa si el template específico falla
 const TEMPLATE_FALLBACK = 'HXc86774c877ad719610460e035b8c7fd3';
 
 function formatDateTime(date: string, time: string, timezone = 'America/Mexico_City'): string {
@@ -120,6 +120,9 @@ serve(async (req: Request) => {
         const { tenant_id, event_type, appointment } = payload;
         const directPhone = payload.admin_phone as string | undefined;
         const directName  = payload.business_name as string | undefined;
+        const directSlug  = payload.business_slug as string | undefined;
+        // Nombres de servicios adicionales (para formato ➕ Adicional: ...)
+        const additionalServices: string[] = appointment?.additional_services ?? [];
 
         // Supabase client for logging
         const supabaseLog = createClient(
@@ -202,18 +205,26 @@ serve(async (req: Request) => {
             }
         }
 
-        // Obtener timezone del tenant para formateo correcto
+        // Obtener timezone y slug del tenant para formateo correcto
         let tZone = 'America/Mexico_City';
+        let businessSlug = directSlug ?? '';
         try {
             const { data: tenantTz } = await supabaseLog
                 .from('tenants')
-                .select('timezone')
+                .select('timezone, slug')
                 .eq('id', tenant_id ?? '')
                 .single();
             if (tenantTz?.timezone) tZone = tenantTz.timezone;
+            if (!businessSlug && tenantTz?.slug) businessSlug = tenantTz.slug;
         } catch (_) { /* usar timezone por defecto */ }
 
         const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
+
+        // Formatear nombre de servicio con adicionales si existen
+        const formattedService = additionalServices.length > 0
+            ? `${appointment.service_name ?? 'Servicio'}\n➕ Adicional: ${additionalServices.join(', ')}`
+            : (appointment.service_name ?? 'Servicio');
+
         const adminTemplateMap: Record<string, string> = {
             new:        TEMPLATE_ADMIN_NUEVA_CITA,
             reschedule: TEMPLATE_ADMIN_REPROGRAMACION,
@@ -231,7 +242,7 @@ serve(async (req: Request) => {
             let sent = await sendTemplate(targetWA, adminTemplateMap[event_type], {
                 '1': businessName,
                 '2': appointment.client_name,
-                '3': appointment.service_name ?? 'Servicio',
+                '3': formattedService,
                 '4': fechaAdmin,
                 '5': appointment.client_phone,
             });
@@ -242,7 +253,7 @@ serve(async (req: Request) => {
                     '1': appointment.client_name,
                     '2': businessName,
                     '3': fechaAdmin,
-                    '4': appointment.service_name ?? 'Servicio',
+                    '4': formattedService,
                     '5': appointment.client_phone,
                 });
             }
@@ -298,9 +309,12 @@ serve(async (req: Request) => {
                 clientSent = true;
 
             } else if (event_type === 'cancel') {
+                const bookingLink = businessSlug
+                    ? `https://www.citalink.app/b/${businessSlug}`
+                    : 'https://www.citalink.app';
                 clientSent = await sendTemplate(
                     appointment.client_phone, TEMPLATE_CLIENTE_CANCELACION,
-                    { '1': appointment.client_name, '2': businessName, '3': fechaFormateada }
+                    { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': bookingLink }
                 );
                 if (!clientSent) {
                     clientSent = await sendTemplate(
