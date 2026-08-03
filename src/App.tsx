@@ -59,12 +59,12 @@ const MaintenancePage = () => (
 );
 
 const AdminRoute = () => {
-  const { user, loadingAuth, tenantId, userRole, userTenants } = useAuthStore();
+  const { user, loadingAuth, loadingTenant, tenantId, userRole, userTenants } = useAuthStore();
   const config = useGlobalStore(s => s.config);
   const loadingConfig = useGlobalStore(s => s.loadingConfig);
   const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
 
-  if (loadingAuth || loadingConfig) return <SplashScreen />;
+  if (loadingAuth || loadingTenant || loadingConfig) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
 
   // Maintenance Mode BLOCK (Allowed only for Super Admin)
@@ -285,6 +285,8 @@ function App() {
       if (mounted && useAuthStore.getState().loadingAuth) {
         console.warn("Safety timer triggered: forcing loadingAuth to false");
         useAuthStore.getState().setLoadingAuth(false);
+        // También liberar loadingTenant para no quedar en SplashScreen infinito
+        useAuthStore.getState().setTenantData({ tenantId: null, userRole: null, userStylistId: null });
       }
     }, 4000);
 

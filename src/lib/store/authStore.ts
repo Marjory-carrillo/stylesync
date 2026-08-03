@@ -18,6 +18,8 @@ interface AuthState {
     userRole: UserRole;
     userStylistId: number | null;
     loadingAuth: boolean;
+    /** true mientras se consulta el tenant del usuario; evita mostrar "Acceso Pendiente" prematuramente */
+    loadingTenant: boolean;
     isSuperAdmin: boolean;
 
     /** All tenants this owner has access to (only populated for owners with 2+) */
@@ -50,6 +52,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     userRole: null,
     userStylistId: null,
     loadingAuth: true,
+    loadingTenant: true,
     isSuperAdmin: false,
     userTenants: [],
 
@@ -57,7 +60,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         user, session, loadingAuth,
         isSuperAdmin: user?.user_metadata?.is_super_admin === true
     }),
-    setTenantData: ({ tenantId, userRole, userStylistId }) => set({ tenantId, userRole, userStylistId }),
+    setTenantData: ({ tenantId, userRole, userStylistId }) => set({ tenantId, userRole, userStylistId, loadingTenant: false }),
     setUserTenants: (tenants) => set({ userTenants: tenants }),
     switchActiveTenant: (tenantId) => {
         localStorage.setItem('citalink_tenant_id', tenantId);
