@@ -221,11 +221,12 @@ serve(async (req: Request) => {
 
         const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
 
-        // Formatear nombre de servicio principal (limpiando detalles técnicos de la calculadora)
+        // Formatear nombre de servicio principal (limpiando detalles técnicos de la calculadora y links de referencia)
         let mainServiceOnly = (appointment.service_name ?? 'Servicio')
             .split(' + Largo:')[0]
             .split(' + Diseño:')[0]
             .split(' + Extra:')[0]
+            .split(' + Referencia:')[0]
             .split(' + Cotización')[0]
             .trim();
 
@@ -347,12 +348,12 @@ serve(async (req: Request) => {
             } else if (event_type === 'reschedule') {
                 clientSent = await sendTemplate(
                     appointment.client_phone, TEMPLATE_CLIENTE_REPROGRAMACION,
-                    { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': appointment.service_name ?? 'Servicio' }
+                    { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': mainServiceOnly }
                 );
                 if (!clientSent) {
                     clientSent = await sendTemplate(
                         appointment.client_phone, TEMPLATE_FALLBACK,
-                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': appointment.service_name ?? 'Servicio', '5': 'Reprogramada ✅' }
+                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': mainServiceOnly, '5': 'Reprogramada ✅' }
                     );
                 }
             }
