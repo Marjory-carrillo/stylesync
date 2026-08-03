@@ -179,15 +179,15 @@ serve(async (req: Request) => {
 
             if (daysAhead === 0) {
                 // ═══ MISMO DÍA ═══
-                if (hoursGapAtBooking < 10) {
-                    // Cita muy cercana al booking → NO enviar recordatorio
-                    console.log(`[process-reminders] SKIP cita ${appt.id}: mismo día, gap=${hoursGapAtBooking.toFixed(1)}h (<10h)`);
-                    // Marcar como enviada para no procesarla de nuevo
-                    await supabase.from('appointments').update({ reminder_sent: true }).eq('id', appt.id);
+                if (hoursGapAtBooking < 6) {
+                    // Cita muy cercana al booking (<6h) → NO enviar recordatorio
+                    console.log(`[process-reminders] SKIP cita ${appt.id}: mismo día, gap=${hoursGapAtBooking.toFixed(1)}h (<6h)`);
+                    // Marcar reminder_sent como false para evitar falsos conteos de recordatorio enviado
+                    await supabase.from('appointments').update({ reminder_sent: false }).eq('id', appt.id);
                     skipped++;
                     continue;
                 }
-                // Mismo día pero con ≥10h de gap → recordatorio 1h antes
+                // Mismo día pero con ≥6h de gap → recordatorio 1h antes
                 reminderHoursBefore = 1;
                 ruleApplied = `mismo-día (gap=${hoursGapAtBooking.toFixed(1)}h) → 1h antes`;
             } else if (daysAhead === 1) {

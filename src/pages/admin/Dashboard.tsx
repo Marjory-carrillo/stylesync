@@ -265,11 +265,12 @@ export default function Dashboard() {
 
     const revenue = useMemo(() => {
         return todayAppts.reduce((sum, a) => {
+            if (a.status === 'no_show' || a.status === 'cancelada') return sum;
             const svc = services.find(s => s.id === a.serviceId);
             if (!svc) return sum;
 
             let isFinished = a.status === 'completada';
-            if (!isFinished && a.status !== 'cancelada') {
+            if (!isFinished) {
                 const end = new Date(`${a.date}T${a.time}`);
                 end.setMinutes(end.getMinutes() + svc.duration);
                 if (new Date() >= end) isFinished = true;
@@ -326,6 +327,7 @@ export default function Dashboard() {
             const isCurrentMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
             const isLastMonth = d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
             const isCanceled = a.status === 'cancelada';
+            const isNoShow = a.status === 'no_show';
 
             const svc = services.find(s => s.id === a.serviceId);
             const price = getAppointmentPrice(a);
@@ -333,7 +335,7 @@ export default function Dashboard() {
             if (isCurrentMonth) {
                 if (isCanceled) {
                     currentCanceled++;
-                } else {
+                } else if (!isNoShow) {
                     currentCompleted++;
                     let isFinished = a.status === 'completada';
                     if (!isFinished) {
@@ -346,7 +348,7 @@ export default function Dashboard() {
                     }
                 }
             } else if (isLastMonth) {
-                if (!isCanceled) {
+                if (!isCanceled && !isNoShow) {
                     lastCompleted++;
                     let isFinished = a.status === 'completada';
                     if (!isFinished) {
