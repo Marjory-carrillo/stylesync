@@ -112,7 +112,14 @@ serve(async (req: Request) => {
             // {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=código
             const CONFIRM_OTP_SID = 'HX9f85e85c7229648e7e4966e678f8d204';
 
-            let finalServiceName = serviceName || 'tu servicio';
+            let cleanService = (serviceName || 'tu servicio')
+                .split(' + Largo:')[0]
+                .split(' + Diseño:')[0]
+                .split(' + Extra:')[0]
+                .split(' + Cotización')[0]
+                .trim();
+
+            let finalServiceName = cleanService;
             if (isVariablePrice) {
                 finalServiceName += ' (⚠️ Requiere cotización. Te notificaremos cuando tu estilista confirme el monto final)';
             }

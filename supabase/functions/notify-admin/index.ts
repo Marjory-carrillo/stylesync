@@ -221,10 +221,26 @@ serve(async (req: Request) => {
 
         const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
 
-        // Formatear nombre de servicio con adicionales y aviso de cotización si aplica
-        let formattedService = additionalServices.length > 0
-            ? `${appointment.service_name ?? 'Servicio'}\n➕ Adicional: ${additionalServices.join(', ')}`
-            : (appointment.service_name ?? 'Servicio');
+        // Formatear nombre de servicio principal (limpiando detalles técnicos de la calculadora)
+        let mainServiceOnly = (appointment.service_name ?? 'Servicio')
+            .split(' + Largo:')[0]
+            .split(' + Diseño:')[0]
+            .split(' + Extra:')[0]
+            .split(' + Cotización')[0]
+            .trim();
+
+        // Filtrar adicionales reales de la lista (excluyendo entradas de la calculadora)
+        const realAddOns = additionalServices.filter(s => 
+            !s.startsWith('Largo:') && 
+            !s.startsWith('Diseño:') && 
+            !s.startsWith('Extra:') && 
+            !s.startsWith('Cotización') && 
+            !s.startsWith('Referencia:')
+        );
+
+        let formattedService = realAddOns.length > 0
+            ? `${mainServiceOnly}\n➕ Adicional: ${realAddOns.join(', ')}`
+            : mainServiceOnly;
 
         if (isVariablePrice && event_type === 'new') {
             formattedService += '\n⚠️ PENDIENTE DE COTIZAR (Ingresa a CitaLink para definir el precio)';

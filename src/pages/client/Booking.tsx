@@ -2777,27 +2777,7 @@ export default function Booking() {
                                 </div>
                             </div>
 
-                            {/* Quick Actions Grid */}
-                            <div className="w-full grid grid-cols-2 gap-3 mb-4">
-                                <a
-                                    href={businessConfig?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessConfig?.address || '')}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex flex-col items-center justify-center py-4 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
-                                >
-                                    <MapPin size={20} className="mb-2" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest">Ubicación</span>
-                                </a>
-                                <a
-                                    href={`tel:${businessConfig?.phone?.replace(/\D/g, '') || ''}`}
-                                    className="flex flex-col items-center justify-center py-4 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
-                                >
-                                    <Phone size={20} className="mb-2" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest">Llamada</span>
-                                </a>
-                            </div>
-
-                            {/* Add to Calendar Section */}
+                            {/* Quick Actions Grid: Llamada + Agregar a Google Calendar */}
                             {selectedService && selectedTime && selectedDate && (() => {
                                 const calEvent = {
                                     title: `Cita: ${selectedService.name} en ${businessConfig?.name || 'Local'}`,
@@ -2808,16 +2788,22 @@ export default function Booking() {
                                     durationMinutes: selectedService.duration,
                                 };
                                 return (
-                                    <div className="w-full mb-6">
-                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] text-center mb-3">Añadir al Calendario</p>
+                                    <div className="w-full grid grid-cols-2 gap-3 mb-6">
                                         <a
                                             href={generateGoogleCalendarUrl(calEvent)}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-3 w-full py-4 rounded-3xl bg-gradient-to-b from-blue-500/10 to-blue-600/5 border border-blue-500/20 hover:border-blue-400/40 hover:bg-blue-500/15 transition-all text-blue-400 hover:text-blue-300 group"
+                                            className="flex flex-col items-center justify-center py-4 rounded-3xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 hover:bg-blue-500/20 transition-all text-blue-400 hover:text-blue-300 group"
                                         >
-                                            <CalendarPlus size={20} className="group-hover:scale-110 transition-transform" />
-                                            <span className="text-[9px] font-black uppercase tracking-widest">Agregar a Google Calendar</span>
+                                            <CalendarPlus size={20} className="mb-2 group-hover:scale-110 transition-transform" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-center">Agregar a Google Calendar</span>
+                                        </a>
+                                        <a
+                                            href={`tel:${businessConfig?.phone?.replace(/\D/g, '') || ''}`}
+                                            className="flex flex-col items-center justify-center py-4 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
+                                        >
+                                            <Phone size={20} className="mb-2" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Llamada</span>
                                         </a>
                                     </div>
                                 );
