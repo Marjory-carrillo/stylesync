@@ -115,12 +115,16 @@ serve(async (req: Request) => {
     let skipped = 0;
 
     try {
-        // ── Buscar citas confirmadas sin recordatorio enviado ──
+        // ── Buscar citas confirmadas sin recordatorio enviado (filtrando desde hoy para alta escala) ──
+        const todayStr = new Date().toISOString().split('T')[0];
         const { data: pending, error: fetchError } = await supabase
             .from('appointments')
             .select('*, tenants(name, sms_provider, timezone, slug)')
             .eq('status', 'confirmada')
-            .eq('reminder_sent', false);
+            .eq('reminder_sent', false)
+            .gte('date', todayStr)
+            .order('date', { ascending: true })
+            .limit(200);
 
         if (fetchError) {
             console.error('[process-reminders] DB fetch error:', fetchError.message);
