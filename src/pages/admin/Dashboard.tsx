@@ -321,9 +321,9 @@ export default function Dashboard() {
 
             return isVar || hasQuoterDesign;
         }).sort((a, b) => {
-            const dateCmp = a.date.localeCompare(b.date);
+            const dateCmp = b.date.localeCompare(a.date);
             if (dateCmp !== 0) return dateCmp;
-            return a.time.localeCompare(b.time);
+            return b.time.localeCompare(a.time);
         });
     }, [appointments, services]);
 
@@ -1282,6 +1282,107 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {/* ── SECCIÓN DEDICADA: CITAS PENDIENTES DE COTIZACIÓN ── */}
+            {pendingPriceAppts.length > 0 && (
+                <div className="mb-8 p-6 md:p-8 rounded-[2.5rem] bg-gradient-to-br from-amber-500/15 via-slate-900/80 to-slate-950/90 border border-amber-500/30 shadow-2xl relative overflow-hidden animate-fade-in">
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
+                    
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                                <DollarSign size={24} />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-lg md:text-xl font-black text-white tracking-tight">Citas Pendientes de Cotización</h3>
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-slate-950 shadow-sm">
+                                        {pendingPriceAppts.length}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-amber-200/70 font-medium mt-0.5">
+                                    Ordenadas de la más reciente a la más lejana. Confirma el precio para notificar al cliente por WhatsApp.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+                        {pendingPriceAppts.map((apt) => {
+                            const svc = services.find(s => s.id === apt.serviceId);
+                            const stylist = stylists.find(s => s.id === apt.stylistId);
+                            const dateObj = new Date(apt.date + 'T00:00:00');
+                            const dateStr = format(dateObj, 'EEEE d ' + "'de'" + ' MMMM', { locale: es });
+
+                            return (
+                                <div key={apt.id} className="p-5 rounded-[1.8rem] bg-slate-950/80 border border-amber-500/30 flex flex-col justify-between gap-4 hover:border-amber-400/60 transition-all duration-300 shadow-lg group relative overflow-hidden">
+                                    <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/5 blur-xl rounded-full"></div>
+                                    
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="font-black text-white text-base tracking-tight truncate">{apt.clientName}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20 shrink-0">
+                                                📅 {dateStr}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                                            <Clock size={14} className="text-amber-400 shrink-0" />
+                                            <span>{apt.time} hrs</span>
+                                            {stylist && (
+                                                <>
+                                                    <span className="text-slate-600">•</span>
+                                                    <span className="text-pink-400 font-semibold truncate">{stylist.name}</span>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 pt-1">
+                                            <Scissors size={14} className="text-slate-500 shrink-0" />
+                                            <span className="font-bold text-slate-200">{svc?.name || 'Servicio'}</span>
+                                        </div>
+
+                                        {/* Detalles de Calculadora / Adicionales */}
+                                        {apt.additionalServices && apt.additionalServices.length > 0 && (
+                                            <div className="mt-2 text-[11px] text-amber-200/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 space-y-1">
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 block mb-1">Detalles de cotización:</span>
+                                                {apt.additionalServices.map((extra: string, idx: number) => (
+                                                    <div key={idx} className="font-medium truncate">• {extra}</div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                                        {apt.clientPhone && (
+                                            <a
+                                                href={`https://wa.me/${apt.clientPhone.replace(/\D/g, '')}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 border border-white/10 transition-colors"
+                                                title="Contactar al cliente por WhatsApp"
+                                            >
+                                                <MessageCircle size={16} />
+                                            </a>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                setSelectedApptForPrice(apt);
+                                                setNewPriceValue('');
+                                                setIsPriceModalOpen(true);
+                                            }}
+                                            className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5"
+                                        >
+                                            <DollarSign size={14} />
+                                            <span>Confirmar Cotización</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* ── Top Stats Grid ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
