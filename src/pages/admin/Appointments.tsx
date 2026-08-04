@@ -164,21 +164,34 @@ export default function Appointments() {
             // Actualizar queries locales
             queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             
-            // Preguntar si desea notificar por WhatsApp
-            setCustomConfirm({
-                open: true,
-                title: '¿Notificar por WhatsApp?',
-                message: `¿Quieres enviarle una notificación por WhatsApp a ${apt.clientName} con el precio final actualizado de $${price} MXN?`,
-                confirmLabel: 'Enviar Notificación',
-                cancelLabel: 'Omitir',
-                danger: false,
-                onConfirm: () => {
-                    const bookingUrl = `${window.location.origin}/reserva/${tenantConfig?.slug}`;
-                    const msg = `¡Hola ${apt.clientName}! Te notificamos que el precio final de tu cita en *${tenantConfig?.name || 'nuestro salón'}* ha sido ajustado a: *$${price} MXN* (debido a la personalización de tu diseño/largo).\n\nTu cita sigue agendada para el ${apt.date} a las ${apt.time}.\n\nSi deseas revisar los detalles o cancelar tu cita, puedes hacerlo aquí: 🔗 ${bookingUrl}\n\n¡Gracias!`;
-                    const waUrl = `https://wa.me/${apt.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-                    window.open(waUrl, '_blank');
-                }
-            });
+            // Notificar automáticamente vía plantilla de WhatsApp (Meta)
+            const serviceObj = services.find(s => s.id === apt.serviceId);
+            const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+            const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+            
+            fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${ANON_KEY}`,
+                    'apikey': ANON_KEY,
+                },
+                body: JSON.stringify({
+                    tenant_id: tenantId,
+                    event_type: 'price_update',
+                    appointment: {
+                        client_name: apt.clientName,
+                        client_phone: apt.clientPhone,
+                        service_name: serviceObj?.name || 'Servicio',
+                        date: apt.date,
+                        time: apt.time,
+                        confirmed_price: price,
+                        additional_services: cleanAddServices
+                    },
+                    business_name: tenantConfig?.name,
+                    business_slug: tenantConfig?.slug
+                })
+            }).catch(e => console.error('Error al enviar notificacion de precio:', e));
 
             setIsPriceModalOpen(false);
             setSelectedApptForPrice(null);

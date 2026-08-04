@@ -10,9 +10,10 @@ const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349
 const TEMPLATE_ADMIN_NUEVA_CITA      = 'HXd19a0ab5d8bf37655221320bb6555ea1';
 const TEMPLATE_ADMIN_REPROGRAMACION  = 'HX16247c41bf5cf9f31236c2e574337308';
 const TEMPLATE_ADMIN_CANCELACION     = 'HXdc7be5995c074f498642e9536b157947';
-// Cliente (cancelacion/reprogramacion)
-const TEMPLATE_CLIENTE_CANCELACION    = 'HXb2828c0bd3aabc8edd912c81db56884f';
-const TEMPLATE_CLIENTE_REPROGRAMACION = 'HX84b5a4b7cf045e4fe976564f705a0613';
+// Cliente (cancelacion/reprogramacion/precio)
+const TEMPLATE_CLIENTE_CANCELACION          = 'HXb2828c0bd3aabc8edd912c81db56884f';
+const TEMPLATE_CLIENTE_REPROGRAMACION       = 'HX84b5a4b7cf045e4fe976564f705a0613';
+const TEMPLATE_CLIENTE_ACTUALIZACION_PRECIO = 'HX7e31d42fe0693980543f4fb2308e05a8';
 // Fallback — se usa si el template específico falla
 const TEMPLATE_FALLBACK = 'HXc86774c877ad719610460e035b8c7fd3';
 
@@ -354,6 +355,28 @@ serve(async (req: Request) => {
                     clientSent = await sendTemplate(
                         appointment.client_phone, TEMPLATE_FALLBACK,
                         { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': mainServiceOnly, '5': 'Reprogramada ✅' }
+                    );
+                }
+            } else if (event_type === 'price_update') {
+                const bookingLink = businessSlug
+                    ? `https://www.citalink.app/reserva/${businessSlug}`
+                    : 'https://www.citalink.app';
+                const confirmedPriceStr = appointment.confirmed_price ? String(appointment.confirmed_price) : '0';
+                clientSent = await sendTemplate(
+                    appointment.client_phone, TEMPLATE_CLIENTE_ACTUALIZACION_PRECIO,
+                    { 
+                        '1': appointment.client_name, 
+                        '2': businessName, 
+                        '3': fechaFormateada, 
+                        '4': mainServiceOnly, 
+                        '5': confirmedPriceStr,
+                        '6': bookingLink
+                    }
+                );
+                if (!clientSent) {
+                    clientSent = await sendTemplate(
+                        appointment.client_phone, TEMPLATE_FALLBACK,
+                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': mainServiceOnly, '5': `Precio confirmado: $${confirmedPriceStr}` }
                     );
                 }
             }

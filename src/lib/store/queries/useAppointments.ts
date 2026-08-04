@@ -7,8 +7,8 @@ import { useUIStore } from '../uiStore';
 // Helper: notify barber via WhatsApp (fire-and-forget)
 async function notifyAdmin(
     tenantId: string,
-    eventType: 'new' | 'reschedule' | 'cancel',
-    appointment: { client_name: string; client_phone: string; service_name?: string; date: string; time: string; stylist_id?: number | null; additional_services?: string[] },
+    eventType: 'new' | 'reschedule' | 'cancel' | 'price_update',
+    appointment: { client_name: string; client_phone: string; service_name?: string; date: string; time: string; stylist_id?: number | null; additional_services?: string[]; confirmed_price?: number },
     adminPhone?: string,
     businessName?: string,
 ) {

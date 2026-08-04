@@ -121,7 +121,7 @@ serve(async (req: Request) => {
 
             let finalServiceName = cleanService;
             if (isVariablePrice) {
-                finalServiceName += ' (⚠️ Requiere cotización. Te notificaremos cuando tu estilista confirme el monto final)';
+                finalServiceName += ' (⚠️ Requiere cotización. Te notificaremos cuando tu Profesional confirme el monto final)';
             }
 
             const templateRes = await fetch(msgUrl, {
