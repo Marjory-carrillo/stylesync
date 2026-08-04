@@ -28,7 +28,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, Scissors } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -1403,34 +1403,83 @@ export default function Booking() {
                         </div>
 
                         {/* Appointment card */}
-                        <div className="glass-card p-6 rounded-2xl mb-6 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <Calendar size={120} />
-                            </div>
+                        {(() => {
+                            const rawAddOns = (activeAppt.additionalServices || []) as string[];
+                            // Adicionales reales (excluyendo basura de la calculadora si hubiera)
+                            const addOnsList = rawAddOns
+                                .map(s => {
+                                    if (s.startsWith('Extra:')) return s.replace('Extra:', '').split('(+$')[0].trim();
+                                    if (s.startsWith('Diseño:')) return s.replace('Diseño:', '').split('(+$')[0].trim();
+                                    return s;
+                                })
+                                .filter((s: string) => 
+                                    !s.startsWith('Largo:') && 
+                                    !s.startsWith('Cotización') && 
+                                    !s.startsWith('Referencia:') &&
+                                    s !== 'Sin costo'
+                                );
 
-                            <div className="flex items-center gap-4 mb-6 relative z-10">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-orange-600 flex items-center justify-center text-white shadow-lg">
-                                    <Calendar size={32} />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-white">{activeService.name}</h2>
-                                    {!businessConfig?.hideServicePrices && (
-                                        <p className="text-accent font-bold text-lg">${getActiveAppointmentPrice(activeAppt)}</p>
+                            const activeStylist = activeAppt.stylistId ? stylists.find(st => st.id === activeAppt.stylistId) : null;
+                            const formattedDate = format(new Date(activeAppt.date + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es });
+                            const time12 = format12h(activeAppt.time);
+
+                            return (
+                                <div className="p-6 rounded-3xl bg-slate-900/90 border border-white/10 shadow-2xl mb-6 relative overflow-hidden backdrop-blur-xl">
+                                    <div className="absolute -top-12 -right-12 w-40 h-40 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+                                    
+                                    <div className="flex items-start justify-between gap-4 mb-4 relative z-10">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-pink-600 flex items-center justify-center text-white shadow-lg shadow-accent/20 shrink-0 mt-0.5">
+                                                <Scissors size={22} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-lg font-bold text-white leading-snug">
+                                                    {activeService.name}
+                                                </h2>
+                                                {activeStylist && (
+                                                    <p className="text-xs text-slate-400 font-medium flex items-center gap-1 mt-1">
+                                                        <User size={12} className="text-accent" /> {activeStylist.name}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {!businessConfig?.hideServicePrices && (
+                                            <div className="text-right shrink-0">
+                                                <span className="text-xl font-black text-white">${getActiveAppointmentPrice(activeAppt)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Lista de Adicionales y Personalización si existen */}
+                                    {addOnsList.length > 0 && (
+                                        <div className="mb-4 relative z-10 p-3 bg-white/[0.04] rounded-2xl border border-white/5">
+                                            <span className="text-[10px] font-black text-accent uppercase tracking-widest block mb-1.5">✨ Detalle de Reserva</span>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {addOnsList.map((addon, idx) => (
+                                                    <span key={idx} className="text-xs font-semibold px-2.5 py-1 bg-white/5 border border-white/10 text-slate-200 rounded-xl">
+                                                        {addon}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
-                                </div>
-                            </div>
 
-                            <div className="space-y-3 relative z-10">
-                                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                                    <Clock size={18} className="text-muted" />
-                                    <span className="font-medium text-white">{activeAppt.date} — {activeAppt.time}</span>
+                                    <div className="space-y-2.5 relative z-10 pt-2 border-t border-white/5">
+                                        <div className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-2xl border border-white/5 text-slate-300">
+                                            <Calendar size={18} className="text-accent shrink-0" />
+                                            <span className="text-sm font-semibold capitalize">{formattedDate}</span>
+                                            <span className="ml-auto text-xs font-bold px-2.5 py-1 bg-accent/15 text-accent rounded-lg">{time12}</span>
+                                        </div>
+                                        {businessConfig?.address && (
+                                            <div className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-2xl border border-white/5 text-slate-400">
+                                                <MapPin size={18} className="text-slate-500 shrink-0" />
+                                                <span className="text-xs font-medium truncate">{businessConfig.address}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                                    <MapPin size={18} className="text-muted" />
-                                    <span className="text-sm text-muted">{businessConfig?.address || 'Nuestra sucursal'}</span>
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })()}
 
                         {/* Action prompt */}
                         <div className="space-y-3">
