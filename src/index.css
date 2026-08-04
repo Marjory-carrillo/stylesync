@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    font-display: swap;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
 :root {
   /* Colors - CitaLink Futuristic Theme */
   --hue-primary: 200;
