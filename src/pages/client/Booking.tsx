@@ -1348,13 +1348,9 @@ export default function Booking() {
                                                     stylist = stylists.find(s => s.id === activeProfile.lastStylistId) || null;
                                                 }
 
-                                                const validAddOns = (activeProfile.lastAddOns || []).filter(id => 
-                                                    services.some(s => s.id === id)
-                                                );
-
                                                 setSelectedService(svc);
                                                 setSelectedStylist(stylist);
-                                                setSelectedAddOns(validAddOns);
+                                                setSelectedAddOns([]);
                                                 
                                                 if (isNailCalculatorEnabled(businessConfig) && svc.enableQuoter) {
                                                     // Si es un salón de uñas y el servicio requiere cotizador, los mandamos al cotizador
