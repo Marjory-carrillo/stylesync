@@ -332,7 +332,7 @@ serve(async (req: Request) => {
 
             } else if (event_type === 'cancel') {
                 const bookingLink = businessSlug
-                    ? `https://www.citalink.app/b/${businessSlug}`
+                    ? `https://www.citalink.app/reserva/${businessSlug}`
                     : 'https://www.citalink.app';
                 clientSent = await sendTemplate(
                     appointment.client_phone, TEMPLATE_CLIENTE_CANCELACION,
