@@ -300,6 +300,33 @@ export default function Dashboard() {
         });
     }, [tomorrowAppts]);
 
+    const [isPendingQuotesExpanded, setIsPendingQuotesExpanded] = useState(false);
+
+    // Citas pendientes de confirmar precio (servicios sin precio fijo, rango o calculadora con diseño extra)
+    const pendingPriceAppts = useMemo(() => {
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        return appointments.filter(a => {
+            if (a.status === 'cancelada') return false;
+            if (a.date < todayStr) return false;
+            const svc = services.find(s => s.id === a.serviceId);
+            if (!svc) return false;
+            
+            const isConfirmed = (a.additionalServices || []).some((s: string) => s.startsWith('Cotización Confirmada:'));
+            if (isConfirmed) return false;
+
+            const isVar = svc.priceType === 'no_price' || svc.priceType === 'range';
+            const hasQuoterDesign = svc.enableQuoter && (a.additionalServices || []).some((s: string) => 
+                s.startsWith('Diseño:') && (s.includes('+$') || s.includes('Sencillo') || s.includes('Elaborado'))
+            );
+
+            return isVar || hasQuoterDesign;
+        }).sort((a, b) => {
+            const dateCmp = a.date.localeCompare(b.date);
+            if (dateCmp !== 0) return dateCmp;
+            return a.time.localeCompare(b.time);
+        });
+    }, [appointments, services]);
+
     // Recordatorios enviados hoy (con reminder_sent = true para citas de hoy)
     const todayRemindersSent = useMemo(() => {
         return todayAppts.filter(a => a.reminderSent === true);
@@ -1354,6 +1381,108 @@ export default function Dashboard() {
                                     })}
                                 </div>
                             )}
+                        </div>
+                    )}
+                </div>
+
+                {/* ── Citas Pendientes de Cotización ── */}
+                <div className={`glass-panel p-5 sm:p-6 rounded-[2rem] border transition-all duration-500 relative overflow-hidden bg-slate-900/40 ${
+                    pendingPriceAppts.length > 0 ? 'border-amber-500/30 shadow-lg shadow-amber-500/5' : 'border-white/5'
+                }`}>
+                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-amber-500/5 blur-2xl rounded-full pointer-events-none"></div>
+                    
+                    <div className="flex items-start justify-between gap-2 relative z-10">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className={`p-3 rounded-2xl shadow-inner border border-white/5 shrink-0 ${
+                                pendingPriceAppts.length > 0 ? 'bg-amber-500/15 text-amber-400 border-amber-500/20' : 'bg-white/5 text-slate-400'
+                            }`}>
+                                <DollarSign size={22} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-tight truncate">Por Cotizar</p>
+                                {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : (
+                                    <p className={`text-2xl sm:text-3xl font-black tracking-tighter mt-0.5 ${
+                                        pendingPriceAppts.length > 0 ? 'text-amber-400' : 'text-slate-400'
+                                    }`}>{pendingPriceAppts.length}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {pendingPriceAppts.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setIsPendingQuotesExpanded(!isPendingQuotesExpanded)}
+                                className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-300 transition-all flex items-center gap-1 text-[11px] font-bold shrink-0 mt-0.5"
+                                title="Ver citas por cotizar"
+                            >
+                                <span>{isPendingQuotesExpanded ? 'Ocultar' : 'Ver citas'}</span>
+                                <ChevronDown size={14} className={`transition-transform duration-300 ${isPendingQuotesExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                        )}
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 font-medium mt-2 relative z-10 leading-tight">
+                        {pendingPriceAppts.length > 0 ? '⚠️ Requieren confirmar monto' : 'Sin citas pendientes de precio'}
+                    </p>
+
+                    {/* Desplegable de Citas Pendientes de Cotizar */}
+                    {isPendingQuotesExpanded && pendingPriceAppts.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5 animate-fade-in relative z-10">
+                            <p className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+                                <span>Pendientes de cotización:</span>
+                                <span className="text-amber-400 font-mono text-xs">{pendingPriceAppts.length}</span>
+                            </p>
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                {pendingPriceAppts.map((apt) => {
+                                    const svc = services.find(s => s.id === apt.serviceId);
+                                    const stylist = stylists.find(s => s.id === apt.stylistId);
+                                    const dateObj = new Date(apt.date + 'T00:00:00');
+                                    const dateStr = format(dateObj, 'd MMM', { locale: es });
+
+                                    return (
+                                        <div key={apt.id} className="flex flex-col gap-2 p-3 rounded-xl bg-slate-950/80 border border-amber-500/30 text-xs">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="space-y-0.5 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-black text-white truncate text-xs">{apt.clientName}</span>
+                                                        <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
+                                                            📅 {dateStr} - {apt.time}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-[10px] text-slate-400 truncate">
+                                                        <span className="font-semibold text-slate-300">{svc?.name || 'Servicio'}</span>
+                                                        {stylist && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span className="text-pink-400 truncate">{stylist.name}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedApptForPrice(apt);
+                                                        setNewPriceValue('');
+                                                        setIsPriceModalOpen(true);
+                                                    }}
+                                                    className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-wider hover:bg-amber-400 transition-colors shrink-0 shadow-sm"
+                                                >
+                                                    Cotizar
+                                                </button>
+                                            </div>
+
+                                            {apt.additionalServices && apt.additionalServices.length > 0 && (
+                                                <div className="text-[10px] text-slate-400 bg-white/[0.03] p-1.5 rounded-lg border border-white/5 space-y-0.5">
+                                                    {apt.additionalServices.map((extra: string, idx: number) => (
+                                                        <div key={idx} className="truncate">• {extra}</div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>
