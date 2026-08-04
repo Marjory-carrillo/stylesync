@@ -703,8 +703,16 @@ export default function Booking() {
         const availableStylists = slotsMetadata[selectedTime] || [];
         const assignedStylistId = selectedStylist ? selectedStylist.id : (availableStylists[0] ?? null);
 
-        // Build combined service name (main + add-ons)
+        // Build combined service name (main + real add-ons + quoter details)
         let addOnNames: string[] = [];
+
+        // 1. Incluir servicios adicionales reales seleccionados del catálogo (ej. Facial, Ampolleta, Retiro)
+        const realAddOns = selectedAddOns
+            .map(id => services.find(s => s.id === id)?.name)
+            .filter(Boolean) as string[];
+        addOnNames.push(...realAddOns);
+
+        // 2. Incluir detalles de diseño de la calculadora si el servicio la tiene activa
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
@@ -731,12 +739,16 @@ export default function Booking() {
             if (nailDesignUrl) {
                 addOnNames.push(`Referencia: ${nailDesignUrl}`);
             }
-            addOnNames.push(`Cotización Estimada: $${nailTotalPrice} MXN`);
-        } else {
-            addOnNames = selectedAddOns
-                .map(id => services.find(s => s.id === id)?.name)
-                .filter(Boolean) as string[];
 
+            // Calcular total acumulado incluyendo los servicios adicionales reales
+            const realAddOnsTotalPrice = realAddOns.reduce((sum, name) => {
+                const svc = services.find(s => s.name === name);
+                return sum + (svc?.price || 0);
+            }, 0);
+            const totalWithAddOns = nailTotalPrice + realAddOnsTotalPrice;
+
+            addOnNames.push(`Cotización Estimada: $${totalWithAddOns} MXN`);
+        } else {
             if (selectedCatalogItem) {
                 addOnNames.push(`Referencia: ${selectedCatalogItem.imageUrl}`);
                 if (selectedCatalogItem.price) {
@@ -1405,18 +1417,21 @@ export default function Booking() {
                         {/* Appointment card */}
                         {(() => {
                             const rawAddOns = (activeAppt.additionalServices || []) as string[];
-                            // Adicionales reales (excluyendo basura de la calculadora si hubiera)
-                            const addOnsList = rawAddOns
-                                .map(s => {
-                                    if (s.startsWith('Extra:')) return s.replace('Extra:', '').split('(+$')[0].trim();
-                                    if (s.startsWith('Diseño:')) return s.replace('Diseño:', '').split('(+$')[0].trim();
-                                    return s;
-                                })
-                                .filter((s: string) => 
+                            // Buscar cuáles de estos nombres corresponden a servicios adicionales reales del módulo de servicios
+                            const realServiceAddons = rawAddOns.filter(name => {
+                                const svc = services.find(s => s.name === name);
+                                return svc ? (svc.isAddon ?? true) : false;
+                            });
+
+                            // Si no matchean exactamente por id/nombre en services list, filtrar entradas que no sean de calculadora
+                            const addOnsToShow = realServiceAddons.length > 0 
+                                ? realServiceAddons 
+                                : rawAddOns.filter(s => 
                                     !s.startsWith('Largo:') && 
+                                    !s.startsWith('Diseño:') && 
+                                    !s.startsWith('Extra:') && 
                                     !s.startsWith('Cotización') && 
-                                    !s.startsWith('Referencia:') &&
-                                    s !== 'Sin costo'
+                                    !s.startsWith('Referencia:')
                                 );
 
                             const activeStylist = activeAppt.stylistId ? stylists.find(st => st.id === activeAppt.stylistId) : null;
@@ -1427,7 +1442,7 @@ export default function Booking() {
                                 <div className="p-6 rounded-3xl bg-slate-900/90 border border-white/10 shadow-2xl mb-6 relative overflow-hidden backdrop-blur-xl">
                                     <div className="absolute -top-12 -right-12 w-40 h-40 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
                                     
-                                    <div className="flex items-start justify-between gap-4 mb-4 relative z-10">
+                                    <div className="flex items-start justify-between gap-4 mb-5 relative z-10">
                                         <div className="flex items-start gap-3">
                                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-pink-600 flex items-center justify-center text-white shadow-lg shadow-accent/20 shrink-0 mt-0.5">
                                                 <Scissors size={22} />
@@ -1435,6 +1450,9 @@ export default function Booking() {
                                             <div>
                                                 <h2 className="text-lg font-bold text-white leading-snug">
                                                     {activeService.name}
+                                                    {addOnsToShow.length > 0 && (
+                                                        <span className="text-accent font-bold text-base ml-1.5">+ {addOnsToShow.join(' + ')}</span>
+                                                    )}
                                                 </h2>
                                                 {activeStylist && (
                                                     <p className="text-xs text-slate-400 font-medium flex items-center gap-1 mt-1">
@@ -1450,21 +1468,7 @@ export default function Booking() {
                                         )}
                                     </div>
 
-                                    {/* Lista de Adicionales y Personalización si existen */}
-                                    {addOnsList.length > 0 && (
-                                        <div className="mb-4 relative z-10 p-3 bg-white/[0.04] rounded-2xl border border-white/5">
-                                            <span className="text-[10px] font-black text-accent uppercase tracking-widest block mb-1.5">✨ Detalle de Reserva</span>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {addOnsList.map((addon, idx) => (
-                                                    <span key={idx} className="text-xs font-semibold px-2.5 py-1 bg-white/5 border border-white/10 text-slate-200 rounded-xl">
-                                                        {addon}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-2.5 relative z-10 pt-2 border-t border-white/5">
+                                    <div className="space-y-2.5 relative z-10 pt-3 border-t border-white/5">
                                         <div className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-2xl border border-white/5 text-slate-300">
                                             <Calendar size={18} className="text-accent shrink-0" />
                                             <span className="text-sm font-semibold capitalize">{formattedDate}</span>
