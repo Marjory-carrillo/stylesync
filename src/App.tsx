@@ -285,10 +285,12 @@ function App() {
       if (mounted && useAuthStore.getState().loadingAuth) {
         console.warn("Safety timer triggered: forcing loadingAuth to false");
         useAuthStore.getState().setLoadingAuth(false);
-        // También liberar loadingTenant para no quedar en SplashScreen infinito
         useAuthStore.getState().setTenantData({ tenantId: null, userRole: null, userStylistId: null });
       }
-    }, 4000);
+      if (mounted && useGlobalStore.getState().loadingConfig) {
+        useGlobalStore.setState({ loadingConfig: false });
+      }
+    }, 1200);
 
     const init = async () => {
       try {

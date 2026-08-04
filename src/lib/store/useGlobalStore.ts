@@ -23,16 +23,19 @@ export const useGlobalStore = create<GlobalState>((set) => ({
         try {
             set({ loadingConfig: true });
 
-            // 1. Fetch inicial
-            const { data, error } = await supabase
+            const fetchPromise = supabase
                 .from('global_configs')
                 .select('*')
                 .eq('id', 'main')
                 .single();
 
-            if (!error && data) {
-                set({ config: data });
-            } else if (error?.code === 'PGRST116') {
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), 1000));
+
+            const res = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+            if (res && !res.timeout && res.data) {
+                set({ config: res.data, loadingConfig: false });
+            } else {
                 set({
                     config: {
                         basic_plan_price: 499.00,
@@ -40,7 +43,8 @@ export const useGlobalStore = create<GlobalState>((set) => ({
                         trial_days: 21,
                         maintenance_mode: false,
                         system_email: 'soporte@citalink.app'
-                    }
+                    },
+                    loadingConfig: false
                 });
             }
 
