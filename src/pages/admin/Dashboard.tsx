@@ -1283,7 +1283,7 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* ── SECCIÓN DEDICADA: CITAS PENDIENTES DE COTIZACIÓN ── */}
+            {/* ── SECCIÓN DEDICADA: CITAS PENDIENTES DE COTIZACIÓN (Solo si hay pendientes) ── */}
             {pendingPriceAppts.length > 0 && (
                 <div className="mb-8 p-6 md:p-8 rounded-[2.5rem] bg-gradient-to-br from-amber-500/15 via-slate-900/80 to-slate-950/90 border border-amber-500/30 shadow-2xl relative overflow-hidden animate-fade-in">
                     <div className="absolute -right-10 -top-10 w-40 h-40 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
