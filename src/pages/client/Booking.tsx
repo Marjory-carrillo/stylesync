@@ -972,10 +972,9 @@ export default function Booking() {
             return;
         }
 
-        if (isUpdating) { handleUpdateTime(time); return; }
         setSelectedTime(time);
         
-        // Auto-desplazar lo necesario para que el botón "Continuar" sea visible sin ocultar el logo
+        // Auto-desplazar lo necesario para que el botón de acción sea visible sin ocultar el logo
         setTimeout(() => {
             const btn = document.getElementById('continuar-action');
             if (btn) {
@@ -2544,18 +2543,28 @@ export default function Booking() {
                                         {clientError}
                                     </div>
                                 )}
-                                <button
-                                    className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 to-orange-400 hover:from-fuchsia-600 hover:to-orange-500 shadow-lg shadow-fuchsia-500/20 transition-all duration-300 flex items-center justify-center gap-2"
-                                    onClick={handleContinueToOtp}
-                                    disabled={isSendingSms}
-                                >
-                                    {isSendingSms ? (
-                                        <><span className="animate-spin">⏳</span> Enviando código...</>
-                                    ) : (
-                                        <>Continuar <ChevronRight size={20} /></>
-                                    )}
-                                </button>
-                                <button className="btn btn-ghost w-full" onClick={() => { setSelectedTime(null); setClientError(null); }}>Elegir otra hora</button>
+                                {isUpdating ? (
+                                    <button
+                                        className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/20 transition-all duration-300 flex items-center justify-center gap-2"
+                                        onClick={() => handleUpdateTime(selectedTime)}
+                                    >
+                                        <RefreshCw size={20} />
+                                        <span>Confirmar Cambio de Hora ({format12h(selectedTime)})</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 to-orange-400 hover:from-fuchsia-600 hover:to-orange-500 shadow-lg shadow-fuchsia-500/20 transition-all duration-300 flex items-center justify-center gap-2"
+                                        onClick={handleContinueToOtp}
+                                        disabled={isSendingSms}
+                                    >
+                                        {isSendingSms ? (
+                                            <><span className="animate-spin">⏳</span> Enviando código...</>
+                                        ) : (
+                                            <>Continuar <ChevronRight size={20} /></>
+                                        )}
+                                    </button>
+                                )}
+                                <button className="btn btn-ghost w-full text-slate-400" onClick={() => { setSelectedTime(null); setClientError(null); }}>Elegir otra hora</button>
                             </div>
                         )}
 
@@ -2929,13 +2938,41 @@ export default function Booking() {
                 {/* ══ STEP 12: Update Success ══ */}
                 {
                     step === 12 && (
-                        <div className="animate-fade-in text-center" style={{ padding: 'var(--space-xl)' }}>
-                            <RefreshCw size={64} style={{ color: 'var(--color-accent)', margin: '0 auto var(--space-md)' }} />
-                            <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-sm)' }}>¡Hora Actualizada!</h3>
-                            <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-lg)' }}>
-                                Tu cita se cambió a las <strong>{format12h(selectedTime)}</strong>.
-                            </p>
-                            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={resetBooking}>Volver al Inicio</button>
+                        <div className="animate-fade-in text-center py-6 px-4 space-y-6">
+                            <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+                                <CheckCircle size={44} />
+                            </div>
+                            
+                            <div>
+                                <h3 className="text-2xl font-black text-white tracking-tight">¡Cita Reagendada con Éxito!</h3>
+                                <p className="text-sm text-slate-400 mt-1">
+                                    Hola <strong>{clientName}</strong>, tu cita ha sido actualizada correctamente.
+                                </p>
+                            </div>
+
+                            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10 text-left space-y-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-400">Servicio:</span>
+                                    <span className="font-bold text-white">{selectedService?.name || 'Servicio'}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-400">Nueva Fecha:</span>
+                                    <span className="font-bold text-cyan-400 uppercase">
+                                        {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMMM', { locale: es })}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-400">Nueva Hora:</span>
+                                    <span className="font-black text-emerald-400 text-sm">{format12h(selectedTime)}</span>
+                                </div>
+                            </div>
+
+                            <button
+                                className="w-full py-4 rounded-2xl font-bold text-base text-white bg-slate-800 hover:bg-slate-700 border border-white/10 transition-all shadow-md"
+                                onClick={resetBooking}
+                            >
+                                Volver al Inicio
+                            </button>
                         </div>
                     )
                 }
