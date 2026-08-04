@@ -801,12 +801,9 @@ export default function Booking() {
             if (tenantId) {
                 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
                 const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-                const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
-                const hasDesignPrice = designItem ? designItem.price > 0 : (designLevel === 'simple' || designLevel === 'complex');
-
                 const isVariablePrice = selectedService.priceType === 'no_price' || 
                     selectedService.priceType === 'range' || 
-                    (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice));
+                    (selectedService.enableQuoter && nailTotalPrice === 0);
 
                 fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
                     method: 'POST',
@@ -1020,12 +1017,9 @@ export default function Booking() {
 
                 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
                 const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-                const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
-                const hasDesignPrice = designItem ? designItem.price > 0 : (designLevel === 'simple' || designLevel === 'complex');
-
                 const isVariablePrice = selectedService.priceType === 'no_price' || 
                     selectedService.priceType === 'range' || 
-                    (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice));
+                    (selectedService.enableQuoter && nailTotalPrice === 0);
 
                 const funcRes = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
                     method:  'POST',
