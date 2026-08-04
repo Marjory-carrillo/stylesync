@@ -1993,12 +1993,7 @@ export default function Dashboard() {
                                                             title="Ver/ocultar desglose de servicios"
                                                         >
                                                             <Scissors size={12} className="text-accent shrink-0" />
-                                                            <span>
-                                                                {svc?.name} {(() => {
-                                                                    const clean = (appt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
-                                                                    return clean.length ? ' + ' + clean.join(' + ') : '';
-                                                                })()}
-                                                            </span>
+                                                            <span>{svc?.name}</span>
                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === appt.id ? 'rotate-180 text-accent' : ''}`} />
                                                         </button>
                                                         {(() => {
@@ -2249,12 +2244,19 @@ export default function Dashboard() {
                                                         <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
                                                     </div>
                                                     <div className="text-[10px] font-bold text-slate-500 flex items-center flex-wrap gap-3 tracking-wide">
-                                                        <div className="flex items-center gap-1.5 uppercase">
-                                                            <Scissors size={12} className="text-emerald-500/60" /> {svc?.name} {(() => {
-                                                                const clean = (appt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
-                                                                return clean.length ? ' + ' + clean.join(' + ') : '';
-                                                            })()}
-                                                        </div>
+                                                        <button
+                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}
+                                                             className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
+                                                                 expandedServiceApptId === appt.id
+                                                                     ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                                                                     : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
+                                                             }`}
+                                                             title="Ver/ocultar desglose de servicios"
+                                                         >
+                                                             <Scissors size={12} className="text-emerald-400 shrink-0" />
+                                                             <span>{svc?.name}</span>
+                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === appt.id ? 'rotate-180 text-emerald-400' : ''}`} />
+                                                         </button>
                                                         {(() => {
                                                             const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
                                                             if (refItem) {
@@ -2288,6 +2290,38 @@ export default function Dashboard() {
                                                             <span className="underline underline-offset-2 decoration-emerald-500/30">{appt.clientPhone}</span>
                                                         </a>
                                                     </div>
+
+                                                    {/* Desplegable de detalles de servicio */}
+                                                    {expandedServiceApptId === appt.id && (
+                                                         <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/30 text-xs space-y-1 animate-fade-in relative z-10 max-w-sm">
+                                                             <div className="text-[9px] font-black uppercase tracking-wider text-emerald-400 border-b border-white/10 pb-1 flex items-center justify-between">
+                                                                 <span>Desglose Detallado</span>
+                                                             </div>
+                                                             <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
+                                                                 <div className="flex justify-between items-center">
+                                                                     <span className="text-slate-400">Servicio Base:</span>
+                                                                     <span className="font-bold text-white">{svc?.name || 'Servicio'}</span>
+                                                                 </div>
+                                                                 {svc?.duration && (
+                                                                     <div className="flex justify-between items-center">
+                                                                         <span className="text-slate-400">Duración:</span>
+                                                                         <span>{svc.duration} min</span>
+                                                                     </div>
+                                                                 )}
+                                                                 {appt.additionalServices && appt.additionalServices.length > 0 && (
+                                                                     <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
+                                                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
+                                                                         {appt.additionalServices.map((extra: string, idx: number) => (
+                                                                             <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
+                                                                                 <span className="text-slate-500">•</span>
+                                                                                 <span className="break-words">{extra}</span>
+                                                                             </div>
+                                                                         ))}
+                                                                     </div>
+                                                                 )}
+                                                             </div>
+                                                         </div>
+                                                     )}
                                                 </div>
                                             </div>
 

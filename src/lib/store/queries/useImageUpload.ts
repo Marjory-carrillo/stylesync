@@ -23,23 +23,36 @@ export const useImageUpload = () => {
             return null;
         }
 
-        const ext = file.name.split('.').pop();
+        const ext = file.name.split('.').pop() || 'png';
         const fileName = `${folder}/${activeTenantId}_${Date.now()}.${ext}`;
 
-        const { error } = await supabase.storage
-            .from(bucket)
-            .upload(fileName, file, { upsert: true });
+        try {
+            const { error } = await supabase.storage
+                .from(bucket)
+                .upload(fileName, file, { upsert: true });
 
-        if (error) {
-            showToast(`Error al subir imagen: ${error.message}`, 'error');
-            return null;
+            if (!error) {
+                const { data } = supabase.storage
+                    .from(bucket)
+                    .getPublicUrl(fileName);
+                return data.publicUrl;
+            }
+        } catch {
+            // Continuar al fallback de lectura base64 si storage restringe anónimos
         }
 
-        const { data } = supabase.storage
-            .from(bucket)
-            .getPublicUrl(fileName);
-
-        return data.publicUrl;
+        // Fallback robusto: convertir a base64 DataURL si el bucket de Supabase tiene políticas RLS restrictivas para usuarios no autenticados
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                resolve(reader.result as string);
+            };
+            reader.onerror = () => {
+                showToast('No se pudo procesar la imagen', 'error');
+                resolve(null);
+            };
+            reader.readAsDataURL(file);
+        });
     }, [tenantId, showToast]);
 
     const uploadServiceImage = useCallback((file: File) =>
