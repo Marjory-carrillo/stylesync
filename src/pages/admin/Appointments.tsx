@@ -732,32 +732,9 @@ export default function Appointments() {
                                                                         title="Haz clic para ver/ocultar desglose completo del servicio"
                                                                     >
                                                                         <Scissors size={12} className="text-accent shrink-0" />
-                                                                        <span className="tracking-tight truncate max-w-[260px]">
-                                                                            {service?.name} {(() => {
-                                                                                const clean = (apt.additionalServices ?? []).filter((s: string) => 
-                                                                                    !s.startsWith('Referencia:') && 
-                                                                                    !s.startsWith('Cotización Confirmada:') && 
-                                                                                    !s.startsWith('Cotización Estimada:')
-                                                                                );
-                                                                                if (!clean.length) return '';
-                                                                                const formatted = clean.map((s: string) => {
-                                                                                    if (s.startsWith('Largo: ')) {
-                                                                                        const nameOnly = s.replace(/Largo:\s*/, '').replace(/\s*\(\+\$\d+.*?\)/, '');
-                                                                                        return `(${nameOnly})`;
-                                                                                    }
-                                                                                    if (s.startsWith('Diseño: ')) {
-                                                                                        const nameOnly = s.replace(/Diseño:\s*/, '').replace(/\s*\(\+\$\d+.*?\)/, '').replace(/\s*\(Sin costo\)/, '');
-                                                                                        return nameOnly !== 'Básico / 1 Tono' && nameOnly !== 'Básico' ? `(${nameOnly})` : '';
-                                                                                    }
-                                                                                    if (s.startsWith('Extra: ')) {
-                                                                                        const nameOnly = s.replace(/Extra:\s*/, '').replace(/\s*\(\+\$\d+.*?\)/, '');
-                                                                                        return `+ ${nameOnly}`;
-                                                                                    }
-                                                                                    return s;
-                                                                                }).filter(Boolean).join(' ');
-                                                                                return formatted ? ' ' + formatted : '';
-                                                                            })()}
-                                                                        </span>
+                                                                        <span className="tracking-tight truncate max-w-[260px] uppercase font-black">
+                                                                             {service?.name}
+                                                                         </span>
                                                                         <ChevronDown size={12} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === apt.id ? 'rotate-180 text-accent' : ''}`} />
                                                                     </button>
 
@@ -778,6 +755,36 @@ export default function Appointments() {
                                                                         return null;
                                                                     })()}
                                                                 </div>
+                                                                {expandedServiceApptId === apt.id && (
+                                                                    <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-accent/30 text-xs space-y-1 animate-fade-in relative z-10 max-w-sm">
+                                                                        <div className="text-[9px] font-black uppercase tracking-wider text-accent border-b border-white/10 pb-1 flex items-center justify-between">
+                                                                            <span>Desglose Detallado</span>
+                                                                        </div>
+                                                                        <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
+                                                                            <div className="flex justify-between items-center">
+                                                                                <span className="text-slate-400">Servicio Base:</span>
+                                                                                <span className="font-bold text-white">{service?.name || 'Servicio'}</span>
+                                                                            </div>
+                                                                            {service?.duration && (
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="text-slate-400">Duración:</span>
+                                                                                    <span>{service.duration} min</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {apt.additionalServices && apt.additionalServices.length > 0 && (
+                                                                                <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
+                                                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
+                                                                                    {apt.additionalServices.map((extra: string, idx: number) => (
+                                                                                        <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
+                                                                                            <span className="text-slate-500">•</span>
+                                                                                            <span className="break-words">{extra}</span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                                 <div className="flex flex-wrap items-center gap-2">
                                                                     <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 px-2 uppercase tracking-widest leading-none">
                                                                         <User size={10} className="opacity-40" />

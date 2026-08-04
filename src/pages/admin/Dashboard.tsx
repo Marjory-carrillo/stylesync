@@ -1733,23 +1733,18 @@ export default function Dashboard() {
                                                     <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
                                                         <button
-                                                            onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}
-                                                            className={`text-[10px] font-bold tracking-widest px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
-                                                                expandedServiceApptId === appt.id
-                                                                    ? 'bg-accent/20 border-accent/40 text-accent'
-                                                                    : 'bg-accent/10 border-accent/20 text-accent hover:bg-accent/20'
-                                                            }`}
-                                                            title="Ver/ocultar desglose de servicios"
-                                                        >
-                                                            <Scissors size={10} className="shrink-0" />
-                                                            <span>
-                                                                {svc?.name?.toUpperCase() ?? 'SERVICIO'} {(() => {
-                                                                    const clean = (appt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
-                                                                    return clean.length ? ' + ' + clean.join(' + ').toUpperCase() : '';
-                                                                })()}
-                                                            </span>
-                                                            <ChevronDown size={10} className={`transition-transform duration-300 shrink-0 ${expandedServiceApptId === appt.id ? 'rotate-180' : ''}`} />
-                                                        </button>
+                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}
+                                                             className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
+                                                                 expandedServiceApptId === appt.id
+                                                                     ? 'bg-accent/20 border-accent/40 text-accent'
+                                                                     : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
+                                                             }`}
+                                                             title="Ver/ocultar desglose de servicios"
+                                                         >
+                                                             <Scissors size={12} className="text-accent shrink-0" />
+                                                             <span>{svc?.name}</span>
+                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === appt.id ? 'rotate-180 text-accent' : ''}`} />
+                                                         </button>
                                                         {(() => {
                                                             const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
                                                             if (refItem) {
