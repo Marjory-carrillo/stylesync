@@ -2864,30 +2864,6 @@ export default function Booking() {
                                     </div>
                                 );
                             })()}
-
-                            {/* Final Redirect Action Button inside card or just below? Inside looks more unified */}
-                            {isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !nailDesignUrl && !selectedCatalogItem && (
-                                <a
-                                    href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(
-                                        `Hola, acabo de agendar una cita en ${businessConfig?.name || 'CitaLink'}.\n\n` +
-                                        `📅 Fecha: ${selectedDate ? format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMM', { locale: es }) : '---'}\n` +
-                                        `⏰ Hora: ${format12h(selectedTime)}\n` +
-                                        `💅 Detalle de diseño:\n` +
-                                        `  - Técnica base: ${selectedService?.name}\n` +
-                                        (nailSize ? `  - Largo: ${nailSize.name}\n` : '') +
-                                        `  - Diseño: ${designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo (Francés / Efectos)' : 'Elaborado / Full Art'}\n` +
-                                        (Object.keys(nailExtras).some(id => nailExtras[id]) ? `  - Extras: ${Object.keys(nailExtras).filter(id => nailExtras[id]).map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name).join(', ')}\n` : '') +
-                                        `\n💵 Cotización Estimada: $${totalPrice} MXN\n\n` +
-                                        `👉 Adjunto la foto del diseño de uña que quiero para confirmar.`
-                                    )}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-full py-4 mb-3 rounded-[2.5rem] bg-[#25D366] hover:bg-[#20bd5a] text-white font-black uppercase tracking-[0.1em] shadow-lg flex items-center justify-center gap-2 text-sm hover:scale-[1.01] active:scale-95 transition-all duration-300"
-                                >
-                                    <MessageSquare size={16} />
-                                    Enviar Foto de Diseño
-                                </a>
-                            )}
                             <button
                                 onClick={resetBooking}
                                 className="w-full py-5 rounded-[2.5rem] bg-gradient-to-r from-accent to-blue-600 hover:scale-[1.02] active:scale-95 transition-all duration-300 text-slate-900 font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3"
