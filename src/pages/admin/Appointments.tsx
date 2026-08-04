@@ -228,6 +228,7 @@ export default function Appointments() {
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
     const [isZoomed, setIsZoomed] = useState(false);
+    const [expandedServiceApptId, setExpandedServiceApptId] = useState<string | null>(null);
 
     const PAGE_SIZE = 20;
 
@@ -721,8 +722,16 @@ export default function Appointments() {
                                                             {/* Service & Stylist */}
                                                             <div className="flex flex-col gap-1.5 md:min-w-[180px] mt-2 md:mt-0">
                                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                                    <div className="flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 w-fit">
-                                                                        <Scissors size={12} className="text-accent" />
+                                                                    <button
+                                                                        onClick={() => setExpandedServiceApptId(expandedServiceApptId === apt.id ? null : apt.id)}
+                                                                        className={`flex items-center gap-2 text-[11px] font-black text-white px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                                                                            expandedServiceApptId === apt.id
+                                                                                ? 'bg-accent/20 border-accent/40 text-accent shadow-sm'
+                                                                                : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/10'
+                                                                        }`}
+                                                                        title="Haz clic para ver/ocultar desglose completo del servicio"
+                                                                    >
+                                                                        <Scissors size={12} className="text-accent shrink-0" />
                                                                         <span className="tracking-tight truncate max-w-[260px]">
                                                                             {service?.name} {(() => {
                                                                                 const clean = (apt.additionalServices ?? []).filter((s: string) => 
@@ -749,7 +758,9 @@ export default function Appointments() {
                                                                                 return formatted ? ' ' + formatted : '';
                                                                             })()}
                                                                         </span>
-                                                                    </div>
+                                                                        <ChevronDown size={12} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === apt.id ? 'rotate-180 text-accent' : ''}`} />
+                                                                    </button>
+
                                                                     {(() => {
                                                                         const refItem = (apt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
                                                                         if (refItem) {
