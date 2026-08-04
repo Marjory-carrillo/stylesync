@@ -289,15 +289,16 @@ export default function Booking() {
     }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
 
     const totalPrice = useMemo(() => {
-        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
-            return nailTotalPrice;
-        }
-        const base = selectedService?.price ?? 0;
-        const extras = selectedAddOns.reduce((sum, id) => {
+        const addOnsPrice = selectedAddOns.reduce((sum, id) => {
             const svc = services.find(s => s.id === id);
             return sum + (svc?.price ?? 0);
         }, 0);
-        return base + extras;
+
+        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
+            return nailTotalPrice + addOnsPrice;
+        }
+        const base = selectedService?.price ?? 0;
+        return base + addOnsPrice;
     }, [businessConfig, nailTotalPrice, selectedService, selectedAddOns, services]);
     const [bookingResult, setBookingResult] = useState<{ success: boolean; error?: string } | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
