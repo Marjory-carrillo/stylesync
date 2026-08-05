@@ -322,7 +322,12 @@ export default function Booking() {
 
         const updateMeta = (name: string, content: string) => {
             let meta = document.querySelector(`meta[name="${name}"]`);
-            if (meta) meta.setAttribute('content', content);
+            if (!meta) {
+                meta = document.createElement('meta');
+                meta.setAttribute('name', name);
+                document.head.appendChild(meta);
+            }
+            meta.setAttribute('content', content);
         };
         updateMeta('apple-mobile-web-app-title', bName);
 
