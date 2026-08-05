@@ -55,7 +55,7 @@ export default function PWAInstallBanner({ businessName }: { businessName?: stri
     if (!show || dismissed) return null;
 
     return (
-        <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 z-[9999] p-3 sm:p-4 animate-slide-up pb-[env(safe-area-inset-bottom,1rem)]">
+        <div className="fixed bottom-0 left-0 right-0 z-[9999] p-3 sm:p-4 animate-slide-up">
             <div className="max-w-lg mx-auto bg-[#0f1420] border border-violet-500/30 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
                 {/* Purple accent line */}
                 <div className="h-0.5 w-full bg-gradient-to-r from-violet-500 via-accent to-transparent" />
