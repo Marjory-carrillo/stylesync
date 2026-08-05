@@ -424,24 +424,19 @@ export default function Booking() {
             }
 
             // 2. Actualizar favicons e íconos de Apple (iOS/Android Shortcuts) con el logo del negocio
-            const updateIconTag = (selector: string, rel: string, sizes?: string) => {
-                let link = document.querySelector(selector) as HTMLLinkElement;
-                if (!link) {
-                    link = document.createElement('link');
-                    link.rel = rel;
-                    if (sizes) link.sizes.add(sizes);
-                    document.head.appendChild(link);
-                }
-                link.href = icon512;
+            const setHref = (selector: string) => {
+                const elems = document.querySelectorAll(selector);
+                elems.forEach(el => {
+                    (el as HTMLLinkElement).href = icon512;
+                });
             };
 
-            updateIconTag('link[rel="apple-touch-icon"]', 'apple-touch-icon');
-            updateIconTag('link[rel="apple-touch-icon-precomposed"]', 'apple-touch-icon-precomposed');
-            updateIconTag('link[rel="apple-touch-icon"][sizes="180x180"]', 'apple-touch-icon', '180x180');
-            updateIconTag('link[rel="apple-touch-icon"][sizes="512x512"]', 'apple-touch-icon', '512x512');
-            updateIconTag('link[rel="icon"][sizes="192x192"]', 'icon', '192x192');
-            updateIconTag('link[rel="icon"][sizes="512x512"]', 'icon', '512x512');
-            updateIconTag('link[rel="shortcut icon"]', 'shortcut icon');
+            setHref('#dynamic-apple-icon');
+            setHref('#dynamic-favicon');
+            setHref('link[rel="apple-touch-icon"]');
+            setHref('link[rel="apple-touch-icon-precomposed"]');
+            setHref('link[rel="icon"]');
+            setHref('link[rel="shortcut icon"]');
         });
 
         return () => {
