@@ -348,14 +348,29 @@ export default function Booking() {
                 };
 
                 if (logoUrl) {
-                    // Fondo blanco para que no se vea ningún color extra
-                    ctx.fillStyle = '#ffffff';
+                    ctx.fillStyle = brandColor || '#ffffff';
                     ctx.fillRect(0, 0, size, size);
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
                     img.onload = () => {
-                        // Logo llena todo el canvas — el OS aplica las esquinas
-                        ctx.drawImage(img, 0, 0, size, size);
+                        // Object-cover: recortar y centrar exactamente para que siempre sea cuadrado perfecto
+                        const aspect = img.width / img.height;
+                        let sw = img.width;
+                        let sh = img.height;
+                        let sx = 0;
+                        let sy = 0;
+
+                        if (aspect > 1) {
+                            // Más ancha que alta
+                            sw = img.height;
+                            sx = (img.width - img.height) / 2;
+                        } else if (aspect < 1) {
+                            // Más alta que ancha
+                            sh = img.width;
+                            sy = (img.height - img.width) / 2;
+                        }
+
+                        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
                         finalize();
                     };
                     img.onerror = () => {
@@ -384,9 +399,6 @@ export default function Booking() {
         };
 
         Promise.all([generateIcon(192), generateIcon(512)]).then(([icon192, icon512]) => {
-            const finalIcon192 = logoUrl || icon192;
-            const finalIcon512 = logoUrl || icon512;
-
             const manifest = {
                 name: title,
                 short_name: bName,
@@ -396,8 +408,8 @@ export default function Booking() {
                 background_color: brandColor,
                 theme_color: brandColor,
                 icons: [
-                    { src: finalIcon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
-                    { src: finalIcon512, sizes: '512x512', type: 'image/png', purpose: 'any' },
+                    { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+                    { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any' },
                 ],
             };
 
@@ -420,7 +432,7 @@ export default function Booking() {
                     if (sizes) link.sizes.add(sizes);
                     document.head.appendChild(link);
                 }
-                link.href = finalIcon512;
+                link.href = icon512;
             };
 
             updateIconTag('link[rel="apple-touch-icon"]', 'apple-touch-icon');
