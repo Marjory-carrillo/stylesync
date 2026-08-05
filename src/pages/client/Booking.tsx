@@ -399,9 +399,6 @@ export default function Booking() {
         };
 
         Promise.all([generateIcon(192), generateIcon(512)]).then(([icon192, icon512]) => {
-            const finalIcon192 = logoUrl || icon192;
-            const finalIcon512 = logoUrl || icon512;
-
             const manifest = {
                 name: title,
                 short_name: bName,
@@ -411,10 +408,8 @@ export default function Booking() {
                 background_color: brandColor,
                 theme_color: brandColor,
                 icons: [
-                    { src: finalIcon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
-                    { src: finalIcon512, sizes: '512x512', type: 'image/png', purpose: 'any' },
-                    { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-                    { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+                    { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable any' },
+                    { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'maskable any' },
                 ],
             };
 
