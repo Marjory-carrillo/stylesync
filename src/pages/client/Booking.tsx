@@ -1151,7 +1151,6 @@ export default function Booking() {
 
     return (
         <div className="container animate-fade-in relative" style={{ maxWidth: '520px', paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: '1rem' }}>
-            <PWAInstallBanner businessName={businessConfig?.name || undefined} />
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
                     {businessConfig?.logoUrl && (
@@ -3081,6 +3080,8 @@ export default function Booking() {
                     </div>
                 </div>
             )}
+            {/* ══ PWA INSTALL BANNER ══ */}
+            <PWAInstallBanner businessName={businessConfig?.name || undefined} />
         </div >
     );
 }
