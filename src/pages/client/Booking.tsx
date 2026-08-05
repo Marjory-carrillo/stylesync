@@ -398,6 +398,7 @@ export default function Booking() {
                 ],
             };
 
+            // 1. Inyectar Manifest PWA
             const stringManifest = JSON.stringify(manifest);
             const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(stringManifest);
 
@@ -407,14 +408,24 @@ export default function Booking() {
                 manifestElem.setAttribute('data-business-slug', slug || '');
             }
 
-            // apple-touch-icon para iOS: usar el icon de 512px generado
-            let appleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-            if (!appleIcon) {
-                appleIcon = document.createElement('link');
-                appleIcon.rel = 'apple-touch-icon';
-                document.head.appendChild(appleIcon);
-            }
-            appleIcon.href = icon512;
+            // 2. Actualizar favicons e íconos de Apple (iOS/Android Shortcuts) con el logo del negocio
+            const updateIconTag = (selector: string, rel: string, sizes?: string) => {
+                let link = document.querySelector(selector) as HTMLLinkElement;
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = rel;
+                    if (sizes) link.sizes.add(sizes);
+                    document.head.appendChild(link);
+                }
+                link.href = icon512;
+            };
+
+            updateIconTag('link[rel="apple-touch-icon"]', 'apple-touch-icon');
+            updateIconTag('link[rel="apple-touch-icon"][sizes="180x180"]', 'apple-touch-icon', '180x180');
+            updateIconTag('link[rel="apple-touch-icon"][sizes="512x512"]', 'apple-touch-icon', '512x512');
+            updateIconTag('link[rel="icon"][sizes="192x192"]', 'icon', '192x192');
+            updateIconTag('link[rel="icon"][sizes="512x512"]', 'icon', '512x512');
+            updateIconTag('link[rel="shortcut icon"]', 'shortcut icon');
         });
 
         return () => {
