@@ -436,6 +436,7 @@ export default function Booking() {
             };
 
             updateIconTag('link[rel="apple-touch-icon"]', 'apple-touch-icon');
+            updateIconTag('link[rel="apple-touch-icon-precomposed"]', 'apple-touch-icon-precomposed');
             updateIconTag('link[rel="apple-touch-icon"][sizes="180x180"]', 'apple-touch-icon', '180x180');
             updateIconTag('link[rel="apple-touch-icon"][sizes="512x512"]', 'apple-touch-icon', '512x512');
             updateIconTag('link[rel="icon"][sizes="192x192"]', 'icon', '192x192');
