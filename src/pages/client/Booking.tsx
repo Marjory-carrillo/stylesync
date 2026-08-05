@@ -1150,7 +1150,7 @@ export default function Booking() {
     }
 
     return (
-        <div className="container animate-fade-in relative" style={{ maxWidth: '520px', paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: '1rem' }}>
+        <div className="container animate-fade-in relative min-h-[82vh] flex flex-col justify-between pb-28" style={{ maxWidth: '520px', paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
             {step !== 5 && (
                 <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
                     {businessConfig?.logoUrl && (

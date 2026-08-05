@@ -17,17 +17,13 @@ export const applyZoom = (zoomLevel: number = FIXED_ZOOM) => {
             document.body.style.minHeight = '100vh';
         }
 
-        // iOS Safari Native Rendering: avoid CSS scale transform on mobile to prevent layout thrashing and slow render
+        // iOS Safari: aplicar CSS zoom 0.85 directamente en documentElement
+        // esto escala el layout completo al 85% sin franjas vacias ni lentitud
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-            const rootEl = document.getElementById('root');
-            if (rootEl) {
-                rootEl.style.transform = 'none';
-                (rootEl.style as any).webkitTransform = 'none';
-                rootEl.style.width = '100%';
-                rootEl.style.height = '100%';
-            }
+            (document.documentElement.style as any).zoom = '0.85';
+            (document.body.style as any).zoom = '0.85';
         }
     }
 };
