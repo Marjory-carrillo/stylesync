@@ -774,12 +774,14 @@ export default function Appointments() {
                                                                             {apt.additionalServices && apt.additionalServices.length > 0 && (
                                                                                 <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
                                                                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
-                                                                                    {apt.additionalServices.map((extra: string, idx: number) => (
-                                                                                        <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
-                                                                                            <span className="text-slate-500">•</span>
-                                                                                            <span className="break-words">{extra}</span>
-                                                                                        </div>
-                                                                                    ))}
+                                                                                    {apt.additionalServices
+                                                                                        .filter((extra: string) => !extra.startsWith('Referencia:'))
+                                                                                        .map((extra: string, idx: number) => (
+                                                                                            <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
+                                                                                                <span className="text-slate-500">•</span>
+                                                                                                <span className="break-words">{extra}</span>
+                                                                                            </div>
+                                                                                        ))}
                                                                                 </div>
                                                                             )}
                                                                         </div>
