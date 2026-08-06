@@ -2873,9 +2873,29 @@ export default function Booking() {
 
                             {/* Quick Actions Grid: Llamada + Agregar a Google Calendar */}
                             {selectedService && selectedTime && selectedDate && (() => {
+                                const details: string[] = [`Servicio: ${selectedService.name}`];
+                                if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
+                                    if (nailSize) details.push(`Largo: ${nailSize.name}`);
+                                    if (designLevel) details.push(`Diseño: ${designLevel}`);
+                                    const activeExtraIds = Object.keys(nailExtras).filter(id => nailExtras[id]);
+                                    if (activeExtraIds.length > 0) {
+                                        const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+                                        const extraNames = activeExtraIds.map(id => extrasCat?.items.find(i => i.id === id)?.name || id);
+                                        details.push(`Extras: ${extraNames.join(', ')}`);
+                                    }
+                                }
+                                if (selectedAddOns.length > 0) {
+                                    const addOnNames = selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean);
+                                    if (addOnNames.length > 0) details.push(`Adicionales: ${addOnNames.join(', ')}`);
+                                }
+                                details.push(`Duración: ${selectedService.duration} min`);
+                                details.push(`Precio Total: $${totalPrice} MXN`);
+                                details.push(`Profesional: ${selectedStylist?.name ?? 'Cualquiera'}`);
+                                details.push('\nReservado vía CitaLink');
+
                                 const calEvent = {
                                     title: `Cita: ${selectedService.name} en ${businessConfig?.name || 'Local'}`,
-                                    description: `Servicio: ${selectedService.name}\nDuración: ${selectedService.duration} min\nPrecio: $${selectedService.price}\nProfesional: ${selectedStylist?.name ?? 'Cualquiera'}\n\nReservado vía CitaLink`,
+                                    description: details.join('\n'),
                                     location: businessConfig?.address || '',
                                     startDate: selectedDate,
                                     startTime: selectedTime,
