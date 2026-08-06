@@ -1344,15 +1344,43 @@ export default function Dashboard() {
                                             <span className="font-bold text-slate-200">{svc?.name || 'Servicio'}</span>
                                         </div>
 
-                                        {/* Detalles de Calculadora / Adicionales */}
-                                        {apt.additionalServices && apt.additionalServices.length > 0 && (
-                                            <div className="mt-2 text-[11px] text-amber-200/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 block mb-1">Detalles de cotización:</span>
-                                                {apt.additionalServices.map((extra: string, idx: number) => (
-                                                    <div key={idx} className="font-medium truncate">• {extra}</div>
-                                                ))}
-                                            </div>
-                                        )}
+                                         {/* Detalles de Calculadora / Adicionales (Contraídos por defecto) */}
+                                         {apt.additionalServices && apt.additionalServices.length > 0 && (
+                                             <div className="mt-2 text-[11px] text-amber-200/90 bg-amber-500/10 rounded-xl border border-amber-500/20 overflow-hidden">
+                                                 <button
+                                                     type="button"
+                                                     onClick={() => setExpandedServiceApptId(expandedServiceApptId === apt.id ? null : apt.id)}
+                                                     className="w-full p-2.5 flex items-center justify-between gap-2 hover:bg-amber-500/10 transition-colors text-left"
+                                                 >
+                                                     <span className="text-[9px] font-black uppercase tracking-wider text-amber-400">Detalles de cotización ({apt.additionalServices.length})</span>
+                                                     <ChevronDown size={14} className={`text-amber-400 transition-transform duration-300 ${expandedServiceApptId === apt.id ? 'rotate-180' : ''}`} />
+                                                 </button>
+
+                                                 {expandedServiceApptId === apt.id && (
+                                                     <div className="px-2.5 pb-2.5 pt-1 border-t border-amber-500/20 space-y-1 animate-fade-in">
+                                                         {apt.additionalServices.map((extra: string, idx: number) => {
+                                                             if (extra.startsWith('Referencia:')) {
+                                                                 const url = extra.replace('Referencia: ', '');
+                                                                 return (
+                                                                     <div key={idx} className="pt-1.5 pb-0.5 flex items-center justify-between gap-2">
+                                                                         <span className="font-bold text-slate-300">• Referencia:</span>
+                                                                         <button
+                                                                             type="button"
+                                                                             onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                             className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1 rounded-lg hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
+                                                                         >
+                                                                             <Eye size={12} className="text-slate-900" />
+                                                                             <span>Ver Diseño</span>
+                                                                         </button>
+                                                                     </div>
+                                                                 );
+                                                             }
+                                                             return <div key={idx} className="font-medium truncate">• {extra}</div>;
+                                                         })}
+                                                     </div>
+                                                 )}
+                                             </div>
+                                         )}
                                     </div>
 
                                     <div className="flex items-center gap-2 pt-2 border-t border-white/5">
