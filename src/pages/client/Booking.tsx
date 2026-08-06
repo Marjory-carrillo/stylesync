@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { type Announcement, type Service, type Stylist, type CatalogItem } from '../../lib/types/store.types';
-import { appointmentSchema } from '../../lib/schemas';
+import { appointmentSchema, normalizePhone } from '../../lib/schemas';
 import { useTenantBySlug } from '../../lib/store/queries/useTenantBySlug';
 import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
@@ -679,7 +679,7 @@ export default function Booking() {
 
     // ── Step 1: Validate & Init OTP ───
     const handleClientSubmit = async () => {
-        const cleanPhone = clientPhone.replace(/\s+/g, '');
+        const cleanPhone = normalizePhone(clientPhone.trim());
         const result = appointmentSchema.pick({ clientName: true, clientPhone: true }).safeParse({
             clientName: clientName.trim(),
             clientPhone: cleanPhone
@@ -701,7 +701,7 @@ export default function Booking() {
         }
 
         setClientError(null);
-        setClientPhone(cleanPhone); // Update global state to clean value
+        setClientPhone(cleanPhone); // Update global state to normalized E.164 value
 
         if (hasActiveAppointment(cleanPhone)) {
             setStep(10);

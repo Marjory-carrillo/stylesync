@@ -4,25 +4,34 @@ import DOMPurify from 'dompurify';
 // Utilidad para sanitizar strings y eliminar HTML malicioso
 const sanitize = (val: string) => DOMPurify.sanitize(val);
 
-// Utilidad para normalizar teléfonos a formato +52 (México) con longitud flexible
-const normalizePhone = (val: any) => {
+// Utilidad para normalizar teléfonos a formato E.164 internacional (+[código_país][número])
+export const normalizePhone = (val: any) => {
     if (typeof val !== 'string') return val;
-    // Eliminar todo lo que no sea número
-    const digits = val.replace(/\D/g, '');
+    const str = val.trim();
+    if (!str) return val;
+
+    // Si ya trae el signo +, extraemos dígitos manteniendo el + inicial
+    if (str.startsWith('+')) {
+        const digits = str.slice(1).replace(/\D/g, '');
+        return digits ? `+${digits}` : val;
+    }
+
+    const digits = str.replace(/\D/g, '');
     if (digits.length === 0) return val;
 
-    // Si ya empieza con 52 y tiene una longitud razonable, asumimos que ya tiene el código de país
-    if (digits.startsWith('52') && digits.length > 8) {
+    // Si el usuario escribió un código de país conocido (ej. 52 para México, 1 para EE.UU., 57 para Colombia, 34 para España) con su número completo
+    if (digits.length >= 11 && (digits.startsWith('52') || digits.startsWith('57') || digits.startsWith('34'))) {
         return `+${digits}`;
     }
-    // Si no, agregamos el +52 por defecto
+
+    // Por defecto para México / 10 dígitos locales sin código
     return `+52${digits}`;
 };
 
 // Esquema para validar una nueva Cita (Appointment)
 export const appointmentSchema = z.object({
     clientName: z.preprocess((val) => typeof val === 'string' ? sanitize(val) : val, z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100, 'El nombre es demasiado largo')),
-    clientPhone: z.preprocess((val) => normalizePhone(sanitize(String(val))), z.string().regex(/^\+52[0-9]{7,15}$/, 'Número inválido.')),
+    clientPhone: z.preprocess((val) => normalizePhone(sanitize(String(val))), z.string().regex(/^\+[1-9]\d{7,14}$/, 'Número de teléfono inválido (debe incluir 10 dígitos o código internacional).')),
     serviceId: z.number().positive('Debes seleccionar un servicio válido'),
     stylistId: z.number().nullable().optional(),
     date: z.preprocess((val) => typeof val === 'string' ? sanitize(val) : val, z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)')),
