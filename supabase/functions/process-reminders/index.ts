@@ -239,6 +239,19 @@ serve(async (req: Request) => {
                 ? `${svc?.name ?? 'Servicio'} (+ ${realAddOns.join(', ')})`
                 : (svc?.name ?? 'Servicio');
 
+            // ── BLOQUEO ANTI-DUPLICACIÓN (Atomic Lock) ──
+            // Marcamos reminder_sent = true en DB ANTES del envío a Twilio para que ningún cron simultáneo la vuelva a tomar
+            const { error: lockErr } = await supabase
+                .from('appointments')
+                .update({ reminder_sent: true })
+                .eq('id', appt.id)
+                .eq('reminder_sent', false);
+
+            if (lockErr) {
+                console.warn(`[process-reminders] Error de candado para cita ${appt.id}:`, lockErr.message);
+                continue;
+            }
+
             // Variables de la plantilla citalink_cliente_recordatorio_v3:
             // {{1}} = nombre cliente, {{2}} = negocio, {{3}} = fecha, {{4}} = servicio, {{5}} = link
             const ok = await sendTemplate(appt.client_phone, TEMPLATE_RECORDATORIO, {
@@ -250,10 +263,6 @@ serve(async (req: Request) => {
             });
 
             if (ok) {
-                await supabase
-                    .from('appointments')
-                    .update({ reminder_sent: true })
-                    .eq('id', appt.id);
                 reminders++;
                 console.log(`[process-reminders] ✅ Recordatorio enviado a ${appt.client_phone} para cita ${appt.id} (${ruleApplied})`);
 
@@ -265,6 +274,12 @@ serve(async (req: Request) => {
                     status: 'sent',
                     message_type: 'reminder',
                 }).then(r => { if (r.error) console.warn('[process-reminders] sms_logs insert error:', r.error.message); });
+            } else {
+                // Si el envío a Twilio falló por algún motivo, liberar el candado para que reintente después
+                await supabase
+                    .from('appointments')
+                    .update({ reminder_sent: false })
+                    .eq('id', appt.id);
             }
         }
 
