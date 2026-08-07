@@ -41,7 +41,7 @@ export const useClients = () => {
                     noShowCount: Number(c.no_show_count) || 0,
                 })) as Client[];
             }
-            return (data || []).map((c: any) => ({
+            const rawData = (data || []).map((c: any) => ({
                 ...c,
                 tenantId: c.tenant_id,
                 createdAt: c.created_at,
@@ -51,6 +51,42 @@ export const useClients = () => {
                 mainService: c.main_service || null,
                 noShowCount: Number(c.no_show_count) || 0,
             })) as Client[];
+
+            // Consolidar registros por número limpio (10 dígitos puros) para que no salgan tarjetas triplicadas
+            const mapByCleanPhone = new Map<string, Client>();
+
+            for (const c of rawData) {
+                const cleanPhone = (c.phone || '').replace(/\D/g, '').slice(-10);
+                const key = cleanPhone || c.phone;
+
+                if (!mapByCleanPhone.has(key)) {
+                    mapByCleanPhone.set(key, { 
+                        ...c,
+                        phone: cleanPhone || c.phone 
+                    });
+                } else {
+                    const existing = mapByCleanPhone.get(key)!;
+                    existing.phone = cleanPhone || existing.phone;
+                    // Sumar visitas y dinero gastado acumulado
+                    existing.totalVisits = (existing.totalVisits || 0) + (c.totalVisits || 0);
+                    existing.totalSpent = (existing.totalSpent || 0) + (c.totalSpent || 0);
+                    existing.noShowCount = (existing.noShowCount || 0) + (c.noShowCount || 0);
+                    
+                    // Tomar la fecha de última visita más reciente
+                    if (c.lastVisit && (!existing.lastVisit || c.lastVisit > existing.lastVisit)) {
+                        existing.lastVisit = c.lastVisit;
+                    }
+                    if (c.mainService && !existing.mainService) {
+                        existing.mainService = c.mainService;
+                    }
+                    // Preservar nombre si el existente es en minúsculas o menos completo
+                    if (c.name && c.name.length > (existing.name || '').length) {
+                        existing.name = c.name;
+                    }
+                }
+            }
+
+            return Array.from(mapByCleanPhone.values());
         },
         enabled: !!tenantId,
         staleTime: 1000 * 60 * 2, // 2 minutos de caché (los stats no cambian tan seguido)

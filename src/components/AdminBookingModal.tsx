@@ -332,7 +332,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
 
         try {
-            const cleanPhone = clientPhone.replace(/\s+/g, '').trim();
+            const cleanPhone = clientPhone.replace(/\D/g, '').slice(-10);
             const wasBlocked = isPhoneBlocked(cleanPhone);
 
             await addAppointment({

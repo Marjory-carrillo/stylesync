@@ -724,7 +724,7 @@ export default function Booking() {
     const createAppointmentAfterOtp = async () => {
         if (!selectedService || !selectedTime || !clientName || !clientPhone) return;
 
-        const cleanPhone = clientPhone.replace(/\s+/g, '');
+        const cleanPhone = clientPhone.replace(/\D/g, '').slice(-10);
         if (isPhoneBlocked(cleanPhone)) {
             setStep(1);
             setClientError('blocked_no_show');

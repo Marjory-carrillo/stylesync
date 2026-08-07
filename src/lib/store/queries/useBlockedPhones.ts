@@ -26,15 +26,17 @@ export const useBlockedPhones = () => {
     const blockMutation = useMutation({
         mutationFn: async ({ phone, reason }: { phone: string; reason?: string }) => {
             if (!tenantId) throw new Error('Sin tenant');
-            const { error } = await supabase.from('blocked_phones').upsert([{
-                phone,
-                reason: reason || 'Bloqueo manual',
-                tenant_id: tenantId
-            }]);
+            const clean = phone.replace(/\D/g, '').slice(-10);
+            const { error } = await supabase.from('blocked_phones').upsert([
+                { phone, reason: reason || 'Bloqueo manual', tenant_id: tenantId },
+                { phone: clean, reason: reason || 'Bloqueo manual', tenant_id: tenantId },
+                { phone: `+52${clean}`, reason: reason || 'Bloqueo manual', tenant_id: tenantId }
+            ]);
             if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['clients', tenantId] });
             showToast('Teléfono bloqueado', 'success');
         },
         onError: (err: any) => showToast(`Error al bloquear: ${err.message}`, 'error')
@@ -43,14 +45,16 @@ export const useBlockedPhones = () => {
     const unblockMutation = useMutation({
         mutationFn: async (phone: string) => {
             if (!tenantId) throw new Error('Sin tenant');
+            const clean = phone.replace(/\D/g, '').slice(-10);
             const { error } = await supabase.from('blocked_phones')
                 .delete()
-                .eq('phone', phone)
+                .in('phone', [phone, clean, `+52${clean}`, `${clean}.`])
                 .eq('tenant_id', tenantId);
             if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['clients', tenantId] });
             showToast('Teléfono desbloqueado', 'success');
         },
         onError: (err: any) => showToast(`Error al desbloquear: ${err.message}`, 'error')
@@ -62,8 +66,16 @@ export const useBlockedPhones = () => {
     return {
         ...query,
         blockedPhones,
-        isPhoneBlocked: (phone: string) => blockedPhones.includes(phone),
-        getBlockReason: (phone: string) => blockedData.find(d => d.phone === phone)?.reason || null,
+        isPhoneBlocked: (phone: string) => {
+            if (!phone) return false;
+            const clean = phone.replace(/\D/g, '').slice(-10);
+            return blockedPhones.some(p => p === phone || (clean && p.replace(/\D/g, '').slice(-10) === clean));
+        },
+        getBlockReason: (phone: string) => {
+            if (!phone) return null;
+            const clean = phone.replace(/\D/g, '').slice(-10);
+            return blockedData.find(d => d.phone === phone || (clean && d.phone.replace(/\D/g, '').slice(-10) === clean))?.reason || null;
+        },
         blockPhone: blockMutation.mutateAsync,
         unblockPhone: unblockMutation.mutateAsync,
     };

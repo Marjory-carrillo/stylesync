@@ -2,7 +2,8 @@
 import { useState, useMemo } from 'react';
 import { useClients } from '../../lib/store/queries/useClients';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
-import { Search, User, Phone, ChevronRight, Trash2, MessageCircle, Plus, Check, Copy } from 'lucide-react';
+import { useBlockedPhones } from '../../lib/store/queries/useBlockedPhones';
+import { Search, User, Phone, ChevronRight, Trash2, MessageCircle, Plus, Check, Copy, Ban } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -13,6 +14,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 export default function Clients() {
     const { clients: dbClients, isPending: clientsPending, deleteClient, isDeleting, createClient, isCreating } = useClients();
     const { data: tenant } = useTenantData();
+    const { isPhoneBlocked, blockPhone, unblockPhone } = useBlockedPhones();
 
     const isLoading = clientsPending;
     const [searchTerm, setSearchTerm] = useState('');
@@ -168,21 +170,29 @@ export default function Clients() {
                         </div>
                     ))
                 ) : filteredClients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(client => {
-                    const isBlocked = client.noShowCount > 0;
+                    const isBlocked = isPhoneBlocked(client.phone);
                     return (
                     <div key={client.phone} className="liquid-glass p-4 group hover:border-accent/40 transition-all duration-700 shadow-lg hover:shadow-accent/10">
                         {/* Status Dots decoration */}
-                        <div className="absolute top-4 right-4 flex gap-1.5">
+                        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5">
                             {isBlocked ? (
-                                <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-[9px] font-black tracking-widest border border-red-500/20">
-                                    BLOQUEADO ({client.noShowCount})
-                                </span>
+                                <button
+                                    onClick={() => unblockPhone(client.phone)}
+                                    className="px-2 py-0.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] font-black tracking-widest border border-red-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                                    title="Clic para desbloquear"
+                                >
+                                    <Ban size={10} /> BLOQUEADO
+                                </button>
                             ) : (
-                                <>
+                                <button
+                                    onClick={() => blockPhone({ phone: client.phone, reason: 'Bloqueo manual por Admin' })}
+                                    className="flex gap-1.5 p-1 rounded-lg hover:bg-white/5 text-slate-600 hover:text-red-400 transition-all"
+                                    title="Bloquear cliente"
+                                >
                                     <div className="w-1.5 h-1.5 rounded-full bg-accent/30"></div>
                                     <div className="w-1.5 h-1.5 rounded-full bg-accent/20"></div>
                                     <div className="w-1.5 h-1.5 rounded-full bg-accent/10"></div>
-                                </>
+                                </button>
                             )}
                         </div>
 
