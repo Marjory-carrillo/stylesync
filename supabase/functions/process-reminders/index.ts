@@ -225,10 +225,10 @@ serve(async (req: Request) => {
                 .eq('id', appt.service_id)
                 .single();
 
-            // Construir nombre del servicio con adicionales si existen
-            const addOnNames: string[] = appt.additional_services ?? [];
+            // Construir nombre del servicio con adicionales si existen (limpiando saltos de línea e imágenes para Twilio)
+            const addOnNames: string[] = (appt.additional_services ?? []).filter((s: string) => !s.startsWith('Referencia:'));
             const serviceName = addOnNames.length > 0
-                ? `${svc?.name ?? 'Servicio'}\n➕ Adicional: ${addOnNames.join(', ')}`
+                ? `${svc?.name ?? 'Servicio'} (+ ${addOnNames.join(', ')})`
                 : (svc?.name ?? 'Servicio');
 
             // Variables de la plantilla citalink_cliente_recordatorio_v3:
