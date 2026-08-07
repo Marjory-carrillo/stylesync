@@ -294,21 +294,6 @@ serve(async (req: Request) => {
 📆 ${fechaAdmin}  📱 ${appointment.client_phone}`);
             }
 
-            // Si hay una foto de diseño adjunta, intentar enviarla como mensaje multimedia
-            if (sent && appointment.design_photo) {
-                console.log(`[notify-admin] Intentando enviar foto de diseño a ${target.role}:`, appointment.design_photo);
-                try {
-                    const photoSent = await sendWAMedia(
-                        targetWA,
-                        `📷 Foto de referencia de diseño enviada por ${appointment.client_name} para su cita.`,
-                        appointment.design_photo
-                    );
-                    console.log(`[notify-admin] Resultado del envío de foto a ${target.role}:`, photoSent);
-                } catch (errPhoto: any) {
-                    console.error(`[notify-admin] Error al enviar foto de WhatsApp a ${target.role}:`, errPhoto.message);
-                }
-            }
-
             // Registrar en sms_logs
             if (sent && tenant_id) {
                 anyNotified = true;
