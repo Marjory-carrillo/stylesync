@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, addDays, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, User, Phone, Scissors, Calendar, Clock, ChevronLeft, CheckCircle, AlertTriangle, Loader2, UserCheck } from 'lucide-react';
+import { X, User, Phone, Scissors, Calendar, Clock, ChevronLeft, CheckCircle, AlertTriangle, Loader2, UserCheck, Plus, Minus } from 'lucide-react';
 import { useAppointments } from '../lib/store/queries/useAppointments';
 import { useServices } from '../lib/store/queries/useServices';
 import { useStylists } from '../lib/store/queries/useStylists';
@@ -37,10 +37,12 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     // Nail Calculator config & states
     const { config: nailQuoterConfig } = useNailCalculator();
     const sizeCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'sizes'), [nailQuoterConfig]);
+    const stylesCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'styles'), [nailQuoterConfig]);
     const extrasCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'extras'), [nailQuoterConfig]);
     const simplifiedDesignsCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'simplified_designs'), [nailQuoterConfig]);
 
     const [nailSize, setNailSize] = useState<{ id: string; name: string; price: number } | null>(null);
+    const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [nailExtras, setNailExtras] = useState<Record<string, boolean>>({});
     const [designLevel, setDesignLevel] = useState<'basic' | 'simple' | 'complex'>('basic');
     
@@ -69,6 +71,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null | 'any'>('any');
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
     const [formError, setFormError] = useState<string | null>(null);
     const [lastCreated, setLastCreated] = useState<{ clientName: string; date: string; time: string } | null>(null);
 
@@ -84,6 +87,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         setFormError(null);
         setLastCreated(null);
         setNailExtras({});
+        setSelectedStyles({});
+        setSelectedAddons({});
         setDesignLevel('basic');
     };
 
@@ -129,12 +134,27 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         let sum = selectedService.price;
         if (nailSize) sum += nailSize.price;
 
-        const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
-        if (designItem) {
-            sum += designItem.price;
+        // Estilos / Técnicas reales del cotizador
+        if (stylesCategory) {
+            stylesCategory.items.forEach(item => {
+                const stState = selectedStyles[item.id];
+                if (stState?.checked) {
+                    const hasUnit = !!item.unit;
+                    if (hasUnit) {
+                        sum += (item.price || 0) * (stState.qty || 1);
+                    } else {
+                        sum += (item.price || 0);
+                    }
+                }
+            });
         } else {
-            if (designLevel === 'simple') sum += 50;
-            else if (designLevel === 'complex') sum += 150;
+            const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
+            if (designItem) {
+                sum += designItem.price;
+            } else {
+                if (designLevel === 'simple') sum += 50;
+                else if (designLevel === 'complex') sum += 150;
+            }
         }
 
         const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
@@ -146,21 +166,30 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             });
         }
         return sum;
-    }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
+    }, [nailQuoterConfig, stylesCategory, selectedStyles, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
 
-    // Get final computed service price
+    // Get final computed service price (including selected additional services)
     const totalPrice = useMemo(() => {
-        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
-            return nailTotalPrice;
-        }
-        return selectedService?.price ?? 0;
-    }, [businessConfig, selectedService, nailTotalPrice]);
+        let base = (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter)
+            ? nailTotalPrice
+            : (selectedService?.price ?? 0);
+
+        // Sumar servicios adicionales elegidos
+        services.filter(s => s.isAddon).forEach(addon => {
+            if (selectedAddons[addon.id]) {
+                base += (addon.price || 0);
+            }
+        });
+
+        return base;
+    }, [businessConfig, selectedService, nailTotalPrice, services, selectedAddons]);
 
     const filteredServices = useMemo(() => {
+        let list = services.filter(s => !s.isAddon);
         if (!selectedStylist || selectedStylist === 'any' || !selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) {
-            return services;
+            return list;
         }
-        return services.filter(s => selectedStylist.serviceIds!.map(Number).includes(Number(s.id)));
+        return list.filter(s => selectedStylist.serviceIds!.map(Number).includes(Number(s.id)));
     }, [services, selectedStylist]);
 
     // Compute available time slots for selected date + service + stylist
@@ -232,7 +261,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
         setClientPhone(phone);
         setFormError(null);
-        setStep('servicio'); // Step 2 is now Service Selection
+        setStep('barbero'); // Paso 2: Seleccionar Profesional / Barbero
     };
 
     // Step: confirm booking
@@ -252,16 +281,31 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
             if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
             
-            const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
-            if (designItem) {
-                addOnNames.push(`Diseño: ${designItem.name} (+$${designItem.price} MXN)`);
+            if (stylesCategory) {
+                stylesCategory.items.forEach(item => {
+                    const stState = selectedStyles[item.id];
+                    if (stState?.checked) {
+                        const hasUnit = !!item.unit;
+                        if (hasUnit) {
+                            const sub = (item.price || 0) * (stState.qty || 1);
+                            addOnNames.push(`Estilo: ${item.name} x${stState.qty || 1} (+$${sub} MXN)`);
+                        } else {
+                            addOnNames.push(`Estilo: ${item.name} (+$${item.price || 0} MXN)`);
+                        }
+                    }
+                });
             } else {
-                if (designLevel === 'basic') {
-                    addOnNames.push(`Diseño: Básico / 1 Tono (+$0 MXN)`);
-                } else if (designLevel === 'simple') {
-                    addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
-                } else if (designLevel === 'complex') {
-                    addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
+                const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
+                if (designItem) {
+                    addOnNames.push(`Diseño: ${designItem.name} (+$${designItem.price} MXN)`);
+                } else {
+                    if (designLevel === 'basic') {
+                        addOnNames.push(`Diseño: Básico / 1 Tono (+$0 MXN)`);
+                    } else if (designLevel === 'simple') {
+                        addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
+                    } else if (designLevel === 'complex') {
+                        addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
+                    }
                 }
             }
 
@@ -273,6 +317,16 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     }
                 });
             }
+        }
+
+        // Agregar servicios adicionales generales seleccionados
+        services.filter(s => s.isAddon).forEach(addon => {
+            if (selectedAddons[addon.id]) {
+                addOnNames.push(`Adicional: ${addon.name} (+$${addon.price || 0} MXN)`);
+            }
+        });
+
+        if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
             addOnNames.push(`Cotización Estimada: $${totalPrice} MXN`);
         }
 
@@ -449,7 +503,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     {/* ══ STEP: Barbero ══ */}
                     {step === 'barbero' && (
                         <div className="animate-fade-in">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 2: Barbero / Profesional</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 2: Profesional</p>
                             <div className="space-y-2">
                                 {/* Any option */}
                                 {stylists.length >= 2 && (
@@ -554,38 +608,140 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         </div>
                                     )}
 
-                                    {/* Design Level Selector */}
-                                    <div className="space-y-2">
-                                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Nivel de Diseño</label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            {(simplifiedDesignsCategory?.items || [
-                                                { id: 'basic', name: 'Básico', price: 0 },
-                                                { id: 'simple', name: 'Sencillo', price: 50 },
-                                                { id: 'complex', name: 'Elaborado', price: 150 }
-                                            ]).map(lvl => {
-                                                const priceVal = lvl.price || 0;
-                                                return (
-                                                    <button
-                                                        key={lvl.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (designLevel === lvl.id) {
-                                                                setDesignLevel('basic');
-                                                            } else {
-                                                                setDesignLevel(lvl.id as any);
-                                                            }
-                                                        }}
-                                                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center ${designLevel === lvl.id ? 'bg-accent/15 border-accent text-white font-black' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
-                                                    >
-                                                        <span className="truncate block">{lvl.name}</span>
-                                                        <span className="block text-[10px] text-slate-500 font-normal">
-                                                            {priceVal > 0 ? `+$${priceVal} (Aprox.)` : 'Sin costo'}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
+                                    {/* Técnicas y Estilos / Nivel de Diseño Selector */}
+                                    {stylesCategory && stylesCategory.items.length > 0 ? (
+                                        <div className="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-white/10">
+                                            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
+                                                <span className="w-2 h-2 rounded-full bg-emerald-400"></span> {stylesCategory.name}
+                                            </h3>
+                                            <div className="grid grid-cols-1 gap-2.5">
+                                                {stylesCategory.items.map(item => {
+                                                    const selection = selectedStyles[item.id] || { checked: false, qty: 1 };
+                                                    const hasUnit = !!item.unit;
+
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            className={`p-3.5 rounded-xl border transition-all duration-300 flex items-center justify-between gap-3 ${
+                                                                selection.checked
+                                                                    ? 'bg-emerald-500/10 border-emerald-500 text-white'
+                                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
+                                                            }`}
+                                                        >
+                                                            <label className="flex items-center gap-3 cursor-pointer select-none flex-1">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selection.checked}
+                                                                    onChange={e => {
+                                                                        const checked = e.target.checked;
+                                                                        setSelectedStyles(prev => ({
+                                                                            ...prev,
+                                                                            [item.id]: { ...selection, checked }
+                                                                        }));
+                                                                    }}
+                                                                    className="w-4 h-4 rounded text-emerald-500 border-white/10 focus:ring-emerald-500 bg-slate-900 cursor-pointer"
+                                                                />
+                                                                <div className="text-left">
+                                                                    <p className="text-sm font-semibold">{item.name}</p>
+                                                                    <p className="text-xs text-emerald-400 font-bold">
+                                                                        ${item.price} <span className="text-slate-500 font-normal">{item.unit ? `c/u` : ''}</span>
+                                                                    </p>
+                                                                </div>
+                                                            </label>
+
+                                                            {selection.checked && hasUnit && (
+                                                                <div className="flex items-center gap-1 bg-slate-950/70 rounded-xl p-1 border border-white/10 shrink-0">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const qty = Math.max(1, selection.qty - 1);
+                                                                            setSelectedStyles(prev => ({
+                                                                                ...prev,
+                                                                                [item.id]: { ...selection, qty }
+                                                                            }));
+                                                                        }}
+                                                                        className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
+                                                                        title="Restar 1"
+                                                                    >
+                                                                        <Minus size={13} />
+                                                                    </button>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="1"
+                                                                        max={item.unit === 'por uña' ? 10 : 100}
+                                                                        value={selection.qty === 0 ? '' : selection.qty}
+                                                                        onFocus={(e) => e.target.select()}
+                                                                        onChange={(e) => {
+                                                                            const maxVal = item.unit === 'por uña' ? 10 : 100;
+                                                                            const rawVal = e.target.value;
+                                                                            let parsed = rawVal === '' ? 1 : parseInt(rawVal, 10);
+                                                                            if (isNaN(parsed)) parsed = 1;
+                                                                            const qty = Math.min(maxVal, Math.max(1, parsed));
+                                                                            setSelectedStyles(prev => ({
+                                                                                ...prev,
+                                                                                [item.id]: { ...selection, qty }
+                                                                            }));
+                                                                        }}
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        className="w-10 text-center bg-transparent border-0 text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 rounded py-0.5"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const maxVal = item.unit === 'por uña' ? 10 : 100;
+                                                                            const qty = Math.min(maxVal, selection.qty + 1);
+                                                                            setSelectedStyles(prev => ({
+                                                                                ...prev,
+                                                                                [item.id]: { ...selection, qty }
+                                                                            }));
+                                                                        }}
+                                                                        className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/15 text-white active:scale-95 transition-all"
+                                                                        title="Sumar 1"
+                                                                    >
+                                                                        <Plus size={13} />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Nivel de Diseño</label>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                {(simplifiedDesignsCategory?.items || [
+                                                    { id: 'basic', name: 'Básico', price: 0 },
+                                                    { id: 'simple', name: 'Sencillo', price: 50 },
+                                                    { id: 'complex', name: 'Elaborado', price: 150 }
+                                                ]).map(lvl => {
+                                                    const priceVal = lvl.price || 0;
+                                                    return (
+                                                        <button
+                                                            key={lvl.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (designLevel === lvl.id) {
+                                                                    setDesignLevel('basic');
+                                                                } else {
+                                                                    setDesignLevel(lvl.id as any);
+                                                                }
+                                                            }}
+                                                            className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all text-center ${designLevel === lvl.id ? 'bg-accent/15 border-accent text-white font-black' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                        >
+                                                            <span className="truncate block">{lvl.name}</span>
+                                                            <span className="block text-[10px] text-slate-500 font-normal">
+                                                                {priceVal > 0 ? `+$${priceVal} (Aprox.)` : 'Sin costo'}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Extras / Retiro Checklist */}
                                     {extrasCategory && (
@@ -605,6 +761,31 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             </div>
                                         </div>
                                     )}
+                                    {/* Servicios Adicionales Generales */}
+                                    {services.filter(s => s.isAddon).length > 0 && (
+                                        <div className="space-y-2 pt-2 border-t border-white/5">
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Servicios Adicionales (Opcionales)</label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {services.filter(s => s.isAddon).map(addon => {
+                                                    const isChecked = !!selectedAddons[addon.id];
+                                                    return (
+                                                        <button
+                                                            key={addon.id}
+                                                            type="button"
+                                                            onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: !prev[addon.id] }))}
+                                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all text-left ${isChecked ? 'bg-cyan-500/15 border-cyan-400 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                        >
+                                                            <div>
+                                                                <span className="block truncate">{addon.name}</span>
+                                                                <span className="text-[10px] text-slate-500 font-normal">{addon.duration} min</span>
+                                                            </div>
+                                                            <span className="text-xs text-cyan-400 font-bold shrink-0 ml-2">+${addon.price}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Total Price & Continue Button */}
                                     <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
@@ -621,32 +802,73 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="space-y-2">
-                                    {filteredServices.map(svc => (
-                                        <button
-                                            key={svc.id}
-                                            onClick={() => {
-                                                setSelectedService(svc);
-                                                if (isNailCalculatorEnabled(businessConfig) && svc.enableQuoter) {
-                                                    // Keep user in step to see customized quoter
-                                                } else {
-                                                    setStep('fecha');
-                                                }
-                                            }}
-                                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
-                                        >
-                                            <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-                                                <Scissors size={18} className="text-accent" />
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        {filteredServices.map(svc => (
+                                            <button
+                                                key={svc.id}
+                                                onClick={() => {
+                                                    setSelectedService(svc);
+                                                    if (isNailCalculatorEnabled(businessConfig) && svc.enableQuoter) {
+                                                        // Keep user in step to see customized quoter
+                                                    }
+                                                }}
+                                                className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
+                                            >
+                                                <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                                                    <Scissors size={18} className="text-accent" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-white text-sm">{svc.name}</p>
+                                                    <p className="text-xs text-slate-500">{svc.duration} min</p>
+                                                </div>
+                                                <span className="text-accent font-black text-sm shrink-0">
+                                                    {svc.priceType === 'no_price' ? 'A cotizar' : svc.priceType === 'range' ? `$${svc.minPrice} - $${svc.maxPrice}` : `$${svc.price}`}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Servicios Adicionales en seleccion estándar */}
+                                    {selectedService && !selectedService.enableQuoter && services.filter(s => s.isAddon).length > 0 && (
+                                        <div className="space-y-2 pt-3 border-t border-white/5">
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Servicios Adicionales (Opcionales)</label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {services.filter(s => s.isAddon).map(addon => {
+                                                    const isChecked = !!selectedAddons[addon.id];
+                                                    return (
+                                                        <button
+                                                            key={addon.id}
+                                                            type="button"
+                                                            onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: !prev[addon.id] }))}
+                                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all text-left ${isChecked ? 'bg-cyan-500/15 border-cyan-400 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                        >
+                                                            <div>
+                                                                <span className="block truncate">{addon.name}</span>
+                                                                <span className="text-[10px] text-slate-500 font-normal">{addon.duration} min</span>
+                                                            </div>
+                                                            <span className="text-xs text-cyan-400 font-bold shrink-0 ml-2">+${addon.price}</span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-white text-sm">{svc.name}</p>
-                                                <p className="text-xs text-slate-500">{svc.duration} min</p>
+                                        </div>
+                                    )}
+
+                                    {selectedService && !selectedService.enableQuoter && (
+                                        <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
+                                            <div className="text-left">
+                                                <span className="text-[10px] text-slate-500 uppercase tracking-widest block">Total</span>
+                                                <span className="text-xl font-black text-emerald-400">${totalPrice} MXN</span>
                                             </div>
-                                            <span className="text-accent font-black text-sm shrink-0">
-                                                {svc.priceType === 'no_price' ? 'A cotizar' : svc.priceType === 'range' ? `$${svc.minPrice} - $${svc.maxPrice}` : `$${svc.price}`}
-                                            </span>
-                                        </button>
-                                    ))}
+                                            <button
+                                                onClick={() => setStep('fecha')}
+                                                className="px-6 py-3 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/20"
+                                            >
+                                                Continuar a Fecha →
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

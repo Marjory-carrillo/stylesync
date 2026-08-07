@@ -178,6 +178,7 @@ export interface QuotingItem {
     name: string;
     price: number;
     unit?: string;
+    pricingType?: 'set' | 'per_nail';
     desc?: string;
 }
 
