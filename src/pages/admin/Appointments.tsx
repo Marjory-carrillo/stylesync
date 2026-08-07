@@ -50,10 +50,10 @@ export default function Appointments() {
         danger: false
     });
 
-    // Optimize: only load last 6 months for the agenda/list
+    // Cargar historial de hasta 3 años atras (36 meses) para abarcar marzo y fechas anteriores
     const startDate = useMemo(() => {
         const d = new Date();
-        d.setMonth(d.getMonth() - 6);
+        d.setMonth(d.getMonth() - 36);
         return d.toISOString().split('T')[0];
     }, []);
 
@@ -312,9 +312,9 @@ export default function Appointments() {
         }
         return true;
     }).sort((a, b) => {
-        // Sort by date then time
-        if (a.date !== b.date) return a.date.localeCompare(b.date);
-        return a.time.localeCompare(b.time);
+        // Ordenar siempre de arriba para abajo: más reciente arriba, más antigua abajo
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return b.time.localeCompare(a.time);
     });
 
     const handleAdminCancel = (apt: typeof appointments[0]) => {
@@ -639,7 +639,7 @@ export default function Appointments() {
                                         return acc;
                                     }, {} as Record<string, typeof appointments>);
 
-                                    return Object.keys(grouped).sort().map(date => (
+                                    return Object.keys(grouped).sort((a, b) => b.localeCompare(a)).map(date => (
                                         <div key={date} className="space-y-2 mb-6 last:mb-2">
                                             {/* Date Header */}
                                             <div className="flex items-center gap-3 px-4 py-2.5 sticky top-2 mb-3 bg-[#10131c]/95 backdrop-blur-2xl z-20 rounded-2xl border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
