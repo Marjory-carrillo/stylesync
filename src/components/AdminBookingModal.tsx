@@ -12,6 +12,7 @@ import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../lib/store/queries/useNailCalculator';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 import { isNailCalculatorEnabled, isAppointmentActive } from '../lib/planLimits';
+import { useAuthStore } from '../lib/store/authStore';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -355,6 +356,33 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
 
             setLastCreated({ clientName: clientName.trim(), date: selectedDate, time: selectedTime });
             setStep('exito');
+
+            // Notificar al cliente con la plantilla limpia de cita manual y notificar al Admin
+            if (businessConfig) {
+                const tenantId = useAuthStore.getState().tenantId;
+                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+                const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+                fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
+                    body: JSON.stringify({
+                        tenant_id:     tenantId,
+                        event_type:    'manual',
+                        admin_phone:   businessConfig.phone ?? undefined,
+                        business_name: businessConfig.name  ?? undefined,
+                        appointment: {
+                            client_name:        clientName.trim(),
+                            client_phone:       cleanPhone,
+                            service_name:       selectedService.name,
+                            date:               selectedDate,
+                            time:               selectedTime,
+                            stylist_id:         stylistId ? Number(stylistId) : undefined,
+                            additional_services: addOnNames.length > 0 ? addOnNames : undefined,
+                        },
+                    }),
+                }).catch(() => { /* fire-and-forget */ });
+            }
         } catch {
             // Error toast is handled by useAppointments
         }

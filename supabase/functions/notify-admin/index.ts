@@ -14,6 +14,7 @@ const TEMPLATE_ADMIN_CANCELACION     = 'HXdc7be5995c074f498642e9536b157947';
 const TEMPLATE_CLIENTE_CANCELACION          = 'HXb2828c0bd3aabc8edd912c81db56884f';
 const TEMPLATE_CLIENTE_REPROGRAMACION       = 'HX84b5a4b7cf045e4fe976564f705a0613';
 const TEMPLATE_CLIENTE_ACTUALIZACION_PRECIO = 'HX7e31d42fe0693980543f4fb2308e05a8';
+const TEMPLATE_CLIENTE_CITA_MANUAL          = 'HXcc71cca366ff7fa242044edb96ead1bc';
 // Fallback — se usa si el template específico falla
 const TEMPLATE_FALLBACK = 'HXc86774c877ad719610460e035b8c7fd3';
 
@@ -236,6 +237,7 @@ serve(async (req: Request) => {
             !s.startsWith('Largo:') && 
             !s.startsWith('Diseño:') && 
             !s.startsWith('Extra:') && 
+            !s.startsWith('Estilo:') && 
             !s.startsWith('Cotización') && 
             !s.startsWith('Referencia:')
         );
@@ -330,6 +332,29 @@ serve(async (req: Request) => {
             if (event_type === 'new') {
                 // El cliente YA recibió confirmación+OTP vía verify-otp al elegir hora
                 clientSent = true;
+
+            } else if (event_type === 'manual') {
+                // Cita agendada manualmente por el admin -> Enviar plantilla limpia sin PIN ni desglose de cotizador
+                const bookingLink = businessSlug
+                    ? `https://www.citalink.app/reserva/${businessSlug}`
+                    : 'https://www.citalink.app';
+
+                clientSent = await sendTemplate(
+                    appointment.client_phone, TEMPLATE_CLIENTE_CITA_MANUAL,
+                    { 
+                        '1': appointment.client_name, 
+                        '2': businessName, 
+                        '3': fechaFormateada, 
+                        '4': formattedService, 
+                        '5': bookingLink 
+                    }
+                );
+                if (!clientSent) {
+                    clientSent = await sendTemplate(
+                        appointment.client_phone, TEMPLATE_FALLBACK,
+                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': formattedService, '5': '¡Te esperamos pronto!' }
+                    );
+                }
 
             } else if (event_type === 'cancel') {
                 const bookingLink = businessSlug
