@@ -361,7 +361,7 @@ serve(async (req: Request) => {
                 const bookingLink = businessSlug
                     ? `https://www.citalink.app/reserva/${businessSlug}`
                     : 'https://www.citalink.app';
-                const confirmedPriceStr = appointment.confirmed_price ? String(appointment.confirmed_price) : '0';
+                const confirmedPriceStr = appointment.confirmed_price ? `*${appointment.confirmed_price} MXN*` : '*0 MXN*';
                 clientSent = await sendTemplate(
                     appointment.client_phone, TEMPLATE_CLIENTE_ACTUALIZACION_PRECIO,
                     { 
