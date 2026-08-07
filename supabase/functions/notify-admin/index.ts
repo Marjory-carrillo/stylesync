@@ -241,11 +241,11 @@ serve(async (req: Request) => {
         );
 
         let formattedService = realAddOns.length > 0
-            ? `${mainServiceOnly}\n➕ Adicional: ${realAddOns.join(', ')}`
+            ? `${mainServiceOnly} (+ ${realAddOns.join(', ')})`
             : mainServiceOnly;
 
         if (isVariablePrice && event_type === 'new') {
-            formattedService += '\n⚠️ PENDIENTE DE COTIZAR (Ingresa a CitaLink para definir el precio)';
+            formattedService += ' (PENDIENTE DE COTIZAR)';
         }
 
         const adminTemplateMap: Record<string, string> = {
