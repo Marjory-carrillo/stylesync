@@ -94,7 +94,13 @@ export default function Booking() {
     const getTodaySchedule = () => schedule[DAY_KEYS[new Date().getDay()] as keyof typeof schedule];
     const getScheduleForDate = (dateStr: string) => {
         const d = new Date(dateStr + 'T00:00:00');
-        return schedule[DAY_KEYS[d.getDay()] as keyof typeof schedule];
+        const dayKey = DAY_KEYS[d.getDay()] as keyof typeof schedule;
+        
+        if (selectedStylist && selectedStylist.schedule && typeof selectedStylist.schedule === 'object' && Object.keys(selectedStylist.schedule).length > 0) {
+            const stSched = (selectedStylist.schedule as any)[dayKey];
+            if (stSched) return stSched;
+        }
+        return schedule[dayKey];
     };
     const getActiveAnnouncements = () => announcements.filter(a => a.active);
 
@@ -632,7 +638,7 @@ export default function Booking() {
         return !stylistDateSchedule.open;
     }, [selectedStylist, selectedDate, selectedDateSchedule]);
 
-    // Find other stylists who are open and capable of doing this service today
+    // Find other stylists who are open and capable of doing this main service + all selected add-on services today
     const alternativeOpenStylists = useMemo(() => {
         if (!selectedStylist || !selectedService) return [];
         const dayIdx = new Date(selectedDate + 'T00:00:00').getDay();
@@ -641,9 +647,15 @@ export default function Booking() {
         return stylists.filter(s => {
             if (s.id === selectedStylist.id) return false;
             
-            // Check if they support the service
+            // Check if they support the main service
             if (s.serviceIds && s.serviceIds.length > 0 && !s.serviceIds.includes(Number(selectedService.id))) {
                 return false;
+            }
+
+            // Check if they support ALL selected add-on services
+            if (selectedAddOns.length > 0 && s.serviceIds && s.serviceIds.length > 0) {
+                const supportsAllAddOns = selectedAddOns.every(addOnId => s.serviceIds!.includes(Number(addOnId)));
+                if (!supportsAllAddOns) return false;
             }
 
             // Check if they are open on this day
@@ -656,7 +668,7 @@ export default function Booking() {
 
             return !!sDateSchedule?.open;
         });
-    }, [selectedStylist, selectedService, selectedDate, stylists, selectedDateSchedule]);
+    }, [selectedStylist, selectedService, selectedAddOns, selectedDate, stylists, selectedDateSchedule]);
 
     const availableSlots = useMemo(() => {
         return Object.keys(slotsMetadata).sort();
@@ -2425,19 +2437,28 @@ export default function Booking() {
                         </p>
                         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-sm)' }}>
                             {availableDates.map(d => {
+                                const dayDate = new Date(d.dateStr + 'T00:00:00');
+                                const dayKey = DAY_KEYS[dayDate.getDay()] as keyof typeof schedule;
+                                const isBusinessClosed = !schedule[dayKey]?.open;
+                                
                                 const daySchedule = getScheduleForDate(d.dateStr);
-                                const closed = !daySchedule.open;
+                                const isClosed = !daySchedule.open;
+                                
                                 return (
                                     <button
                                         key={d.dateStr}
                                         onClick={() => { setSelectedDate(d.dateStr); setSelectedTime(null); setStep(3); }}
-                                        className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 ${selectedDate === d.dateStr ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${closed ? 'opacity-40 cursor-not-allowed' : ''}`}
-                                        disabled={closed}
+                                        className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 ${selectedDate === d.dateStr ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${isClosed ? 'border-red-500/20 bg-red-500/5' : ''} ${isBusinessClosed ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                        disabled={isBusinessClosed}
                                     >
                                         <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{d.dayName}</span>
                                         <span className="text-sm font-bold">{d.label}</span>
                                         {d.isToday && <span className="text-[8px] uppercase font-black tracking-tighter text-cyan-200">HOY</span>}
-                                        {closed && <span className="text-[8px] uppercase font-black tracking-tighter text-red-400">Cerrado</span>}
+                                        {isClosed && (
+                                            <span className="text-[8px] uppercase font-black tracking-tighter text-red-400">
+                                                {isBusinessClosed ? 'Cerrado' : 'No atiende'}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
@@ -2490,10 +2511,11 @@ export default function Booking() {
 
                                 {isSelectedStylistClosed && alternativeOpenStylists.length > 0 && (
                                     <div className="mt-4 mb-6 text-left w-full space-y-3">
-                                        <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">
+                                        <p className="text-xs font-bold text-[#25D366] uppercase tracking-widest flex items-center gap-1.5">
+                                            <Sparkles size={14} />
                                             {alternativeOpenStylists.length === 1 
-                                                ? 'Pero este profesional sí atiende hoy:' 
-                                                : 'Pero estos profesionales sí atienden hoy:'}
+                                                ? `Recomendación: ${alternativeOpenStylists[0].name} realiza ${selectedService?.name} y sí atiende este día:` 
+                                                : `Recomendados: Estos profesionales realizan ${selectedService?.name} y sí atienden este día:`}
                                         </p>
                                         <div className="flex flex-col gap-2">
                                             {alternativeOpenStylists.map(s => (
@@ -2535,7 +2557,7 @@ export default function Booking() {
                                     const daySched = getScheduleForDate(selectedDate);
                                     const isPastClosing = isToday && nowTime >= daySched.end;
 
-                                    if (isDayBlockedManually || isPastClosing) return null;
+                                    if (isDayBlockedManually || isPastClosing || isSelectedStylistClosed) return null;
 
                                     return (
                                         <button
