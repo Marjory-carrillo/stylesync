@@ -285,7 +285,7 @@ export default function Appointments() {
         let isFinished = apt.status === 'completada';
 
         if (!isFinished && apt.status !== 'cancelada') {
-            const end = new Date(`${apt.date}T${apt.time}`);
+            const end = new Date(`${apt.date.replace(/-/g, '/') } ${apt.time}`);
             end.setMinutes(end.getMinutes() + (service?.duration || 0));
             if (new Date() >= end) isFinished = true;
         }
@@ -662,7 +662,7 @@ export default function Appointments() {
 
                                                 let isCompleted = apt.status === 'completada';
                                                 if (!isCompleted && apt.status !== 'cancelada') {
-                                                    const end = new Date(`${apt.date}T${apt.time}`);
+                                                    const end = new Date(`${apt.date.replace(/-/g, '/') } ${apt.time}`);
                                                     end.setMinutes(end.getMinutes() + (service?.duration || 0));
                                                     if (new Date() >= end) isCompleted = true;
                                                 }

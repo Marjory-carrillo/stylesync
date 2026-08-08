@@ -124,7 +124,7 @@ export const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({ isOpen, 
                                     <Calendar className="w-4 h-4" /> Última Visita
                                 </div>
                                 <div className="text-lg font-medium text-white">
-                                    {client.lastVisit ? new Date(client.lastVisit).toLocaleDateString('es-ES', { dateStyle: 'long' }) : 'Ninguna'}
+                                    {client.lastVisit ? new Date(client.lastVisit.replace(/-/g, '/')).toLocaleDateString('es-ES', { dateStyle: 'long' }) : 'Ninguna'}
                                 </div>
                             </div>
                         </div>

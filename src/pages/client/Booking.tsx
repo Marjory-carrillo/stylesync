@@ -93,7 +93,7 @@ export default function Booking() {
     };
     const getTodaySchedule = () => schedule[DAY_KEYS[new Date().getDay()] as keyof typeof schedule];
     const getScheduleForDate = (dateStr: string) => {
-        const d = new Date(dateStr + 'T00:00:00');
+        const d = new Date(dateStr.replace(/-/g, '/') + ' 00:00:00');
         const dayKey = DAY_KEYS[d.getDay()] as keyof typeof schedule;
         
         if (selectedStylist && selectedStylist.schedule && typeof selectedStylist.schedule === 'object' && Object.keys(selectedStylist.schedule).length > 0) {
@@ -511,7 +511,7 @@ export default function Booking() {
         const todayLocal = format(new Date(), 'yyyy-MM-dd');
         return selectedDate === todayLocal
             ? new Date()
-            : new Date(selectedDate + 'T00:00:00');
+            : new Date(selectedDate.replace(/-/g, '/') + ' 00:00:00');
     }, [selectedDate]);
 
     // Appointments for selected date
@@ -544,7 +544,10 @@ export default function Booking() {
         const todayLocal = format(new Date(), 'yyyy-MM-dd');
         const baseDate = selectedDate === todayLocal
             ? new Date()
-            : new Date(selectedDate + 'T00:00:00');
+            : new Date(selectedDate.replace(/-/g, '/') + ' 00:00:00');
+
+        const dayIdx = new Date(selectedDate.replace(/-/g, '/') + ' 00:00:00').getDay();
+        const dayKey = DAY_KEYS[dayIdx];
 
         const relevantBlockedSlots: BlockedInterval[] = blockedSlots
             .filter(b => b.date === selectedDate)
@@ -577,7 +580,6 @@ export default function Booking() {
         }
 
         stylistsToCheck.forEach(stylist => {
-            const dayKey = DAY_KEYS[new Date(selectedDate + 'T00:00:00').getDay()];
             const stylistSchedule = (stylist.schedule && typeof stylist.schedule === 'object' && Object.keys(stylist.schedule).length > 0)
                 ? (stylist.schedule as any)
                 : null;
@@ -627,7 +629,7 @@ export default function Booking() {
     // Detect if the selected stylist is closed on this day
     const isSelectedStylistClosed = useMemo(() => {
         if (!selectedStylist) return false;
-        const dayIdx = new Date(selectedDate + 'T00:00:00').getDay();
+        const dayIdx = new Date(selectedDate.replace(/-/g, '/') + ' 00:00:00').getDay();
         const dayKey = DAY_KEYS[dayIdx];
         const stylistSchedule = (selectedStylist.schedule && typeof selectedStylist.schedule === 'object' && Object.keys(selectedStylist.schedule).length > 0)
             ? (selectedStylist.schedule as any)
@@ -641,7 +643,7 @@ export default function Booking() {
     // Find other stylists who are open and capable of doing this main service + all selected add-on services today
     const alternativeOpenStylists = useMemo(() => {
         if (!selectedStylist || !selectedService) return [];
-        const dayIdx = new Date(selectedDate + 'T00:00:00').getDay();
+        const dayIdx = new Date(selectedDate.replace(/-/g, '/') + ' 00:00:00').getDay();
         const dayKey = DAY_KEYS[dayIdx];
 
         return stylists.filter(s => {
@@ -2437,7 +2439,7 @@ export default function Booking() {
                         </p>
                         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-sm)' }}>
                             {availableDates.map(d => {
-                                const dayDate = new Date(d.dateStr + 'T00:00:00');
+                                const dayDate = new Date(d.dateStr.replace(/-/g, '/') + ' 00:00:00');
                                 const dayKey = DAY_KEYS[dayDate.getDay()] as keyof typeof schedule;
                                 const isBusinessClosed = !schedule[dayKey]?.open;
                                 

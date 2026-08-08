@@ -30,12 +30,13 @@ function timeAgo(date: Date): string {
 
 function formatDate(date: string, time: string): string {
     const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const cleanDate = date.replace(/-/g, '/');
     if (time === 'Lista de espera' || !time.includes(':')) {
-        const d = new Date(`${date}T00:00:00`);
+        const d = new Date(`${cleanDate} 00:00:00`);
         if (isNaN(d.getTime())) return date;
         return `${days[d.getDay()]} ${d.getDate()} · Lista de espera`;
     }
-    const d = new Date(`${date}T${time}`);
+    const d = new Date(`${cleanDate} ${time}`);
     if (isNaN(d.getTime())) return `${date} · ${time}`;
     return `${days[d.getDay()]} ${d.getDate()} · ${time.slice(0,5)}`;
 }
