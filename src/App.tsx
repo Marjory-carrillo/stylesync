@@ -257,10 +257,11 @@ function App() {
         }
 
         // Si no es dueño, verificamos si es EMPLEADO (en tabla tenant_users)
+        const userEmail = (user.email || '').toLowerCase().trim();
         const { data: userData } = await supabase
           .from('tenant_users')
           .select('tenant_id, role, stylist_id')
-          .eq('email', user.email)
+          .ilike('email', userEmail)
           .maybeSingle();
 
         if (mounted) {
@@ -285,12 +286,11 @@ function App() {
       if (mounted && useAuthStore.getState().loadingAuth) {
         console.warn("Safety timer triggered: forcing loadingAuth to false");
         useAuthStore.getState().setLoadingAuth(false);
-        useAuthStore.getState().setTenantData({ tenantId: null, userRole: null, userStylistId: null });
       }
       if (mounted && useGlobalStore.getState().loadingConfig) {
         useGlobalStore.setState({ loadingConfig: false });
       }
-    }, 1200);
+    }, 5000);
 
     const init = async () => {
       try {

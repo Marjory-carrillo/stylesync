@@ -87,10 +87,12 @@ export default function AdminLayout() {
 
     const confirmLogout = async () => {
         try {
+            localStorage.removeItem('citalink_tenant_id');
             await supabase.auth.signOut();
             navigate('/login');
         } catch (error) {
             console.error("Error signing out:", error);
+            localStorage.removeItem('citalink_tenant_id');
             navigate('/login');
         }
     };
