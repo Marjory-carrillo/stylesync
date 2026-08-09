@@ -1,19 +1,58 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
-import { Calculator, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, Eye, X, RotateCcw, Download } from 'lucide-react';
+import { useStylists } from '../../lib/store/queries/useStylists';
+import { useServices } from '../../lib/store/queries/useServices';
+import { useAuthStore } from '../../lib/store/authStore';
+import { Calculator, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, Eye, X, RotateCcw, Download, User } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 import html2canvas from 'html2canvas';
 
 export default function Quoter() {
     const { showToast } = useUIStore();
+    const { user, userRole } = useAuthStore();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || {} as any;
     const { config, isLoading } = useNailCalculator();
+    const { stylists } = useStylists();
+    const { services } = useServices();
     
     const ticketRef = useRef<HTMLDivElement>(null);
 
+    // Filter stylists who can perform nail calculator services
+    const nailServices = useMemo(() => services.filter(s => s.enableQuoter), [services]);
+
+    const qualifiedStylists = useMemo(() => {
+        if (nailServices.length === 0) return stylists;
+        return stylists.filter(st => {
+            if (!st.serviceIds || st.serviceIds.length === 0) return true; // Can do all
+            return nailServices.some(ns => st.serviceIds?.includes(Number(ns.id)));
+        });
+    }, [stylists, nailServices]);
+
     // Selection states
+    const [selectedStylistId, setSelectedStylistId] = useState<string>('');
+
+    // Auto-select stylist: If user is employee matched by email, OR if there's only 1 qualified stylist
+    useEffect(() => {
+        if (qualifiedStylists.length === 0) return;
+
+        const userEmail = user?.email;
+
+        // If user is employee, match by email or name if possible
+        if (userRole === 'employee' && userEmail) {
+            const employeeStylist = qualifiedStylists.find(st => st.phone?.toLowerCase() === userEmail.toLowerCase() || st.name.toLowerCase().includes(userEmail.split('@')[0].toLowerCase()));
+            if (employeeStylist) {
+                setSelectedStylistId(String(employeeStylist.id));
+                return;
+            }
+        }
+
+        // If only 1 qualified stylist exists, auto-select them
+        if (qualifiedStylists.length === 1) {
+            setSelectedStylistId(String(qualifiedStylists[0].id));
+        }
+    }, [qualifiedStylists, userRole, user]);
     const [selectedBaseId, setSelectedBaseId] = useState<string>('');
     const [selectedSizeId, setSelectedSizeId] = useState<string>('');
     const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
@@ -65,6 +104,11 @@ export default function Quoter() {
     const styleCategory = useMemo(() => config.find(c => c.id === 'styles'), [config]);
     const extrasCategory = useMemo(() => config.find(c => c.id === 'extras'), [config]);
 
+    const currentStylist = useMemo(() => {
+        if (!selectedStylistId) return null;
+        return stylists.find(s => String(s.id) === selectedStylistId) || null;
+    }, [selectedStylistId, stylists]);
+
     // Calculate details and prices
     const quoteBreakdown = useMemo(() => {
         const items: { name: string; price: number; detail?: string }[] = [];
@@ -73,24 +117,27 @@ export default function Quoter() {
         const baseItem = baseCategory?.items.find(i => i.id === selectedBaseId);
         const sizeItem = sizeCategory?.items.find(i => i.id === selectedSizeId);
 
+        let basePrice = baseItem ? (currentStylist?.customQuoterConfig?.[baseItem.id] ?? baseItem.price) : 0;
+        let sizePrice = sizeItem ? (currentStylist?.customQuoterConfig?.[sizeItem.id] ?? sizeItem.price) : 0;
+
         // Combined Base service + Size into a single line item with summed price
         if (baseItem) {
-            if (sizeItem && sizeItem.price > 0) {
+            if (sizeItem && sizePrice > 0) {
                 const combinedName = `${baseItem.name} (${sizeItem.name})`;
-                const combinedPrice = baseItem.price + sizeItem.price;
+                const combinedPrice = basePrice + sizePrice;
                 items.push({ name: combinedName, price: combinedPrice });
                 total += combinedPrice;
             } else if (sizeItem) {
                 const combinedName = `${baseItem.name} (${sizeItem.name})`;
-                items.push({ name: combinedName, price: baseItem.price });
-                total += baseItem.price;
+                items.push({ name: combinedName, price: basePrice });
+                total += basePrice;
             } else {
-                items.push({ name: baseItem.name, price: baseItem.price });
-                total += baseItem.price;
+                items.push({ name: baseItem.name, price: basePrice });
+                total += basePrice;
             }
         } else if (sizeItem) {
-            items.push({ name: `Largo: ${sizeItem.name}`, price: sizeItem.price });
-            total += sizeItem.price;
+            items.push({ name: `Largo: ${sizeItem.name}`, price: sizePrice });
+            total += sizePrice;
         }
 
         // Styles / Decor
@@ -98,9 +145,11 @@ export default function Quoter() {
             styleCategory.items.forEach(item => {
                 const selection = selectedStyles[item.id];
                 if (selection?.checked) {
+                    const customPrice = currentStylist?.customQuoterConfig?.[item.id];
+                    const unitPrice = customPrice !== undefined ? customPrice : item.price;
                     const hasUnit = !!item.unit;
                     const qty = hasUnit ? selection.qty : 1;
-                    const price = item.price * qty;
+                    const price = unitPrice * qty;
                     let unitText = item.unit;
                     if (item.unit === 'por pieza') {
                         unitText = qty === 1 ? 'pieza' : 'piezas';
@@ -121,14 +170,16 @@ export default function Quoter() {
         if (extrasCategory) {
             extrasCategory.items.forEach(item => {
                 if (selectedExtras[item.id]) {
-                    items.push({ name: item.name, price: item.price });
-                    total += item.price;
+                    const customPrice = currentStylist?.customQuoterConfig?.[item.id];
+                    const price = customPrice !== undefined ? customPrice : item.price;
+                    items.push({ name: item.name, price });
+                    total += price;
                 }
             });
         }
 
         return { items, total };
-    }, [config, selectedBaseId, selectedSizeId, selectedStyles, selectedExtras, baseCategory, sizeCategory, styleCategory, extrasCategory]);
+    }, [config, selectedBaseId, selectedSizeId, selectedStyles, selectedExtras, baseCategory, sizeCategory, styleCategory, extrasCategory, currentStylist]);
 
     // Reset all selections
     const handleReset = () => {
@@ -282,14 +333,33 @@ export default function Quoter() {
                     </h2>
                     <p className="text-sm text-muted mt-1">Calcula presupuestos de manicura y compártelos con tus clientas.</p>
                 </div>
-                <button
-                    type="button"
-                    onClick={handleReset}
-                    className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-xl shadow-pink-500/30 border border-pink-400/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                    <RotateCcw size={16} />
-                    <span>Reiniciar Cotización</span>
-                </button>
+                <div className="flex items-center gap-3">
+                    {qualifiedStylists.length > 1 && (
+                        <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-2 rounded-2xl">
+                            <User size={16} className="text-accent" />
+                            <select
+                                value={selectedStylistId}
+                                onChange={e => setSelectedStylistId(e.target.value)}
+                                className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer"
+                            >
+                                <option value="" className="bg-slate-900 text-white">General / Sin asignar</option>
+                                {qualifiedStylists.map(st => (
+                                    <option key={st.id} value={st.id} className="bg-slate-900 text-white">
+                                        Cotizar con: {st.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleReset}
+                        className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-xl shadow-pink-500/30 border border-pink-400/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                        <RotateCcw size={16} />
+                        <span>Reiniciar Cotización</span>
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -391,6 +461,7 @@ export default function Quoter() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {baseCategory.items.map(item => {
                                     const isSelected = selectedBaseId === item.id;
+                                    const effectivePrice = currentStylist?.customQuoterConfig?.[item.id] ?? item.price;
                                     return (
                                         <button
                                             key={item.id}
@@ -408,7 +479,7 @@ export default function Quoter() {
                                                 </div>
                                                 <span className="text-sm font-semibold">{item.name}</span>
                                             </div>
-                                            <span className="text-sm font-bold text-accent">${item.price}</span>
+                                            <span className="text-sm font-bold text-accent">${effectivePrice}</span>
                                         </button>
                                     );
                                 })}
@@ -424,6 +495,7 @@ export default function Quoter() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 {sizeCategory.items.map(item => {
                                     const isSelected = selectedSizeId === item.id;
+                                    const effectivePrice = currentStylist?.customQuoterConfig?.[item.id] ?? item.price;
                                     return (
                                         <button
                                             key={item.id}
@@ -437,7 +509,7 @@ export default function Quoter() {
                                         >
                                             <span className="text-sm font-bold">{item.name}</span>
                                             <span className="text-xs text-cyan-400 font-bold mt-1">
-                                                {item.price === 0 ? 'Sin costo' : `+$${item.price}`}
+                                                {effectivePrice === 0 ? 'Sin costo' : `+$${effectivePrice}`}
                                             </span>
                                         </button>
                                     );
@@ -481,7 +553,7 @@ export default function Quoter() {
                                                 <div className="text-left">
                                                     <p className="text-sm font-semibold">{item.name}</p>
                                                     <p className="text-xs text-emerald-400 font-bold">
-                                                        ${item.price} <span className="text-slate-500 font-normal">{item.unit ? `c/u` : ''}</span>
+                                                        ${currentStylist?.customQuoterConfig?.[item.id] ?? item.price} <span className="text-slate-500 font-normal">{item.unit ? `c/u` : ''}</span>
                                                     </p>
                                                 </div>
                                             </label>
@@ -580,7 +652,7 @@ export default function Quoter() {
                                             />
                                             <div className="text-left flex-1 min-w-0">
                                                 <p className="text-xs font-semibold truncate">{item.name}</p>
-                                                <p className="text-xs text-violet-400 font-bold mt-0.5">${item.price}</p>
+                                                <p className="text-xs text-violet-400 font-bold mt-0.5">${currentStylist?.customQuoterConfig?.[item.id] ?? item.price}</p>
                                             </div>
                                         </label>
                                     );
@@ -684,6 +756,16 @@ export default function Quoter() {
                                 }`}>
                                     Tu Cotización de Uñas ✨
                                 </p>
+                                {selectedStylistId && (() => {
+                                    const st = stylists.find(s => String(s.id) === selectedStylistId);
+                                    if (!st) return null;
+                                    return (
+                                        <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-white/40 border border-white/60 text-[11px] font-bold shadow-sm">
+                                            <span>✨ Atendido por:</span>
+                                            <span className="font-extrabold underline">{st.name}</span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
 

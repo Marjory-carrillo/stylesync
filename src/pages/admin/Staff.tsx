@@ -4,11 +4,12 @@ import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useServices } from '../../lib/store/queries/useServices';
-import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees } from '../../lib/planLimits';
+import { DEFAULT_NAIL_CONFIG } from '../../lib/store/queries/useNailCalculator';
+import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, isNailCalculatorEnabled } from '../../lib/planLimits';
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight, ExternalLink } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
 import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
-import type { WeekSchedule } from '../../lib/types/store.types';
+import type { WeekSchedule, QuotingCategory, QuotingItem } from '../../lib/types/store.types';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
@@ -72,10 +73,12 @@ export default function Staff() {
     const [formCommission, setFormCommission] = useState<number>(0);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'profile' | 'schedule' | 'services'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'schedule' | 'services' | 'quoter'>('profile');
     const [formUseCustomSchedule, setFormUseCustomSchedule] = useState(false);
     const [formSchedule, setFormSchedule] = useState<WeekSchedule>(DEFAULT_STAFF_SCHEDULE);
     const [formServiceIds, setFormServiceIds] = useState<number[]>([]);
+    const [formCustomPrices, setFormCustomPrices] = useState<Record<number, { price?: number; duration?: number }>>({});
+    const [formCustomQuoterConfig, setFormCustomQuoterConfig] = useState<Record<string, number>>({});
     const { services } = useServices();
 
     const openAdd = () => {
@@ -101,6 +104,8 @@ export default function Staff() {
         setFormUseCustomSchedule(false);
         setFormSchedule(DEFAULT_STAFF_SCHEDULE);
         setFormServiceIds([]);
+        setFormCustomPrices({});
+        setFormCustomQuoterConfig({});
         setIsModalOpen(true);
     };
 
@@ -117,6 +122,8 @@ export default function Staff() {
         setFormUseCustomSchedule(false);
         setFormSchedule(DEFAULT_STAFF_SCHEDULE);
         setFormServiceIds([]);
+        setFormCustomPrices({});
+        setFormCustomQuoterConfig({});
         setIsModalOpen(true);
     };
 
@@ -139,6 +146,8 @@ export default function Staff() {
             setFormSchedule(DEFAULT_STAFF_SCHEDULE);
         }
         setFormServiceIds(stylist.serviceIds || []);
+        setFormCustomPrices(stylist.customServicePrices || {});
+        setFormCustomQuoterConfig(stylist.customQuoterConfig || {});
         setIsModalOpen(true);
     };
 
@@ -159,6 +168,17 @@ export default function Staff() {
         }
         setFormError(null);
 
+        // Filtrar customPrices solo para servicios activos en formServiceIds
+        const cleanedCustomPrices: Record<number, { price?: number; duration?: number }> = {};
+        formServiceIds.forEach(sId => {
+            if (formCustomPrices[sId]) {
+                const item = formCustomPrices[sId];
+                if (item.price !== undefined || item.duration !== undefined) {
+                    cleanedCustomPrices[sId] = item;
+                }
+            }
+        });
+
         const data = {
             name: result.data.name,
             role: result.data.role,
@@ -166,7 +186,9 @@ export default function Staff() {
             image: result.data.image || '',
             commissionRate: result.data.commissionRate,
             schedule: formUseCustomSchedule ? formSchedule : null,
-            serviceIds: formServiceIds
+            serviceIds: formServiceIds,
+            customServicePrices: cleanedCustomPrices,
+            customQuoterConfig: formCustomQuoterConfig
         };
 
         if (editingId !== null) {
@@ -274,28 +296,37 @@ export default function Staff() {
                         </div>
 
                         {/* Tabs Navigation */}
-                        <div className="flex gap-4 border-b border-white/10 mb-6">
+                        <div className="flex gap-4 border-b border-white/10 mb-6 overflow-x-auto custom-scrollbar pb-1">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('profile')}
-                                className={`pb-2 font-bold text-sm border-b-2 transition-all ${activeTab === 'profile' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                                className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'profile' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
                             >
                                 Perfil
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('schedule')}
-                                className={`pb-2 font-bold text-sm border-b-2 transition-all ${activeTab === 'schedule' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                                className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'schedule' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
                             >
                                 Horario de Trabajo
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('services')}
-                                className={`pb-2 font-bold text-sm border-b-2 transition-all ${activeTab === 'services' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                                className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'services' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
                             >
                                 Servicios Asignados
                             </button>
+                            {isNailCalculatorEnabled(businessConfig) && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('quoter')}
+                                    className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'quoter' ? 'border-pink-400 text-pink-300' : 'border-transparent text-slate-500'}`}
+                                >
+                                    <span>💅</span> Tabulador de Arte
+                                </button>
+                            )}
                         </div>
 
                         {formError && (
@@ -532,29 +563,71 @@ export default function Staff() {
                                     {services.filter(s => !s.isAddon).length === 0 ? (
                                         <p className="text-xs text-slate-500 italic pl-1">No hay servicios principales creados.</p>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 gap-2">
                                             {services.filter(s => !s.isAddon).map(service => {
-                                                const isChecked = formServiceIds.includes(Number(service.id));
+                                                const sId = Number(service.id);
+                                                const isChecked = formServiceIds.includes(sId);
+                                                const customPrice = formCustomPrices[sId]?.price;
+                                                const customDuration = formCustomPrices[sId]?.duration;
+
                                                 return (
-                                                    <label key={service.id} className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-colors select-none">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isChecked}
-                                                            onChange={() => {
-                                                                const sId = Number(service.id);
-                                                                if (isChecked) {
-                                                                    setFormServiceIds(prev => prev.filter(id => id !== sId));
-                                                                } else {
-                                                                    setFormServiceIds(prev => [...prev, sId]);
-                                                                }
-                                                            }}
-                                                            className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
-                                                        />
-                                                        <div className="text-left">
-                                                            <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
-                                                            <p className="text-xs text-slate-400 font-medium">${service.price} MXN • {service.duration} min</p>
-                                                        </div>
-                                                    </label>
+                                                    <div key={service.id} className={`p-3 bg-white/5 border ${isChecked ? 'border-accent/40 bg-accent/5' : 'border-white/5'} rounded-xl transition-all`}>
+                                                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={() => {
+                                                                    if (isChecked) {
+                                                                        setFormServiceIds(prev => prev.filter(id => id !== sId));
+                                                                    } else {
+                                                                        setFormServiceIds(prev => [...prev, sId]);
+                                                                    }
+                                                                }}
+                                                                className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
+                                                            />
+                                                            <div className="text-left flex-1">
+                                                                <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
+                                                                <p className="text-xs text-slate-400 font-medium">Base: ${service.price} MXN • {service.duration} min</p>
+                                                            </div>
+                                                        </label>
+
+                                                        {isChecked && (
+                                                            <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-3 animate-fade-in">
+                                                                <div>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Precio Personalizado ($)</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder={`Base: $${service.price}`}
+                                                                        value={customPrice !== undefined ? customPrice : ''}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                            setFormCustomPrices(prev => ({
+                                                                                ...prev,
+                                                                                [sId]: { ...prev[sId], price: val }
+                                                                            }));
+                                                                        }}
+                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Duración (min)</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder={`Base: ${service.duration} min`}
+                                                                        value={customDuration !== undefined ? customDuration : ''}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                            setFormCustomPrices(prev => ({
+                                                                                ...prev,
+                                                                                [sId]: { ...prev[sId], duration: val }
+                                                                            }));
+                                                                        }}
+                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 );
                                             })}
                                         </div>
@@ -567,33 +640,244 @@ export default function Staff() {
                                     {services.filter(s => s.isAddon).length === 0 ? (
                                         <p className="text-xs text-slate-500 italic pl-1">No hay servicios adicionales creados.</p>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 gap-2">
                                             {services.filter(s => s.isAddon).map(service => {
-                                                const isChecked = formServiceIds.includes(Number(service.id));
+                                                const sId = Number(service.id);
+                                                const isChecked = formServiceIds.includes(sId);
+                                                const customPrice = formCustomPrices[sId]?.price;
+                                                const customDuration = formCustomPrices[sId]?.duration;
+
                                                 return (
-                                                    <label key={service.id} className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-colors select-none">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isChecked}
-                                                            onChange={() => {
-                                                                const sId = Number(service.id);
-                                                                if (isChecked) {
-                                                                    setFormServiceIds(prev => prev.filter(id => id !== sId));
-                                                                } else {
-                                                                    setFormServiceIds(prev => [...prev, sId]);
-                                                                }
-                                                            }}
-                                                            className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
-                                                        />
-                                                        <div className="text-left">
-                                                            <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
-                                                            <p className="text-xs text-slate-400 font-medium">${service.price} MXN • {service.duration} min</p>
-                                                        </div>
-                                                    </label>
+                                                    <div key={service.id} className={`p-3 bg-white/5 border ${isChecked ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-white/5'} rounded-xl transition-all`}>
+                                                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={() => {
+                                                                    if (isChecked) {
+                                                                        setFormServiceIds(prev => prev.filter(id => id !== sId));
+                                                                    } else {
+                                                                        setFormServiceIds(prev => [...prev, sId]);
+                                                                    }
+                                                                }}
+                                                                className="w-4 h-4 rounded bg-slate-900 border-white/10 text-emerald-400 focus:ring-emerald-400 cursor-pointer"
+                                                            />
+                                                            <div className="text-left flex-1">
+                                                                <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
+                                                                <p className="text-xs text-slate-400 font-medium">Base: ${service.price} MXN • {service.duration} min</p>
+                                                            </div>
+                                                        </label>
+
+                                                        {isChecked && (
+                                                            <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-3 animate-fade-in">
+                                                                <div>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Precio Personalizado ($)</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder={`Base: $${service.price}`}
+                                                                        value={customPrice !== undefined ? customPrice : ''}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                            setFormCustomPrices(prev => ({
+                                                                                ...prev,
+                                                                                [sId]: { ...prev[sId], price: val }
+                                                                            }));
+                                                                        }}
+                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Duración (min)</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder={`Base: ${service.duration} min`}
+                                                                        value={customDuration !== undefined ? customDuration : ''}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                            setFormCustomPrices(prev => ({
+                                                                                ...prev,
+                                                                                [sId]: { ...prev[sId], duration: val }
+                                                                            }));
+                                                                        }}
+                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 );
                                             })}
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'quoter' && (
+                            <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="p-4 bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-pink-500/10 border border-pink-500/20 rounded-xl text-xs leading-relaxed space-y-1">
+                                    <p className="font-bold text-pink-300 flex items-center gap-1.5">
+                                        ✨ Tabulador Personalizado de Arte & Decoración
+                                    </p>
+                                    <p className="text-slate-300">
+                                        Asigna tarifas individuales para este profesional en cristales, mano alzada, francés, retirado u otros extras. Si dejas un campo vacío, se usará la tarifa estándar del salón.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {/* Servicios Base (Técnica) */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs uppercase font-bold tracking-wider text-cyan-400">💅 Servicios Base (Técnica)</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'base_services')?.items.map((item: QuotingItem) => {
+                                                const customVal = formCustomQuoterConfig[item.id];
+                                                return (
+                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
+                                                        <div className="text-left min-w-0 flex-1">
+                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium">Base: ${item.price} MXN</p>
+                                                        </div>
+                                                        <div className="w-24 shrink-0">
+                                                            <div className="relative">
+                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder={`${item.price}`}
+                                                                    value={customVal !== undefined ? customVal : ''}
+                                                                    onChange={e => {
+                                                                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                        setFormCustomQuoterConfig(prev => {
+                                                                            const copy = { ...prev };
+                                                                            if (val === undefined) delete copy[item.id];
+                                                                            else copy[item.id] = val;
+                                                                            return copy;
+                                                                        });
+                                                                    }}
+                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Tamaños / Largo */}
+                                    <div className="space-y-2 pt-2 border-t border-white/5">
+                                        <h4 className="text-xs uppercase font-bold tracking-wider text-amber-400">📏 Largo / Tamaños</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'sizes')?.items.map((item: QuotingItem) => {
+                                                const customVal = formCustomQuoterConfig[item.id];
+                                                return (
+                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
+                                                        <div className="text-left min-w-0 flex-1">
+                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium">Base: ${item.price} MXN</p>
+                                                        </div>
+                                                        <div className="w-24 shrink-0">
+                                                            <div className="relative">
+                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder={`${item.price}`}
+                                                                    value={customVal !== undefined ? customVal : ''}
+                                                                    onChange={e => {
+                                                                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                        setFormCustomQuoterConfig(prev => {
+                                                                            const copy = { ...prev };
+                                                                            if (val === undefined) delete copy[item.id];
+                                                                            else copy[item.id] = val;
+                                                                            return copy;
+                                                                        });
+                                                                    }}
+                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Estilos y Diseños */}
+                                    <div className="space-y-2 pt-2 border-t border-white/5">
+                                        <h4 className="text-xs uppercase font-bold tracking-wider text-pink-400">🎨 Estilos / Diseños</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'styles')?.items.map((item: QuotingItem) => {
+                                                const customVal = formCustomQuoterConfig[item.id];
+                                                return (
+                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
+                                                        <div className="text-left min-w-0 flex-1">
+                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium">
+                                                                Base: ${item.price} MXN {item.unit ? `(${item.unit})` : ''}
+                                                            </p>
+                                                        </div>
+                                                        <div className="w-24 shrink-0">
+                                                            <div className="relative">
+                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder={`${item.price}`}
+                                                                    value={customVal !== undefined ? customVal : ''}
+                                                                    onChange={e => {
+                                                                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                        setFormCustomQuoterConfig(prev => {
+                                                                            const copy = { ...prev };
+                                                                            if (val === undefined) delete copy[item.id];
+                                                                            else copy[item.id] = val;
+                                                                            return copy;
+                                                                        });
+                                                                    }}
+                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-pink-400"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Extras y Retiros */}
+                                    <div className="space-y-2 pt-2 border-t border-white/5">
+                                        <h4 className="text-xs uppercase font-bold tracking-wider text-purple-400">✨ Extras & Retiros</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'extras')?.items.map((item: QuotingItem) => {
+                                                const customVal = formCustomQuoterConfig[item.id];
+                                                return (
+                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
+                                                        <div className="text-left min-w-0 flex-1">
+                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium">Base: ${item.price} MXN</p>
+                                                        </div>
+                                                        <div className="w-24 shrink-0">
+                                                            <div className="relative">
+                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder={`${item.price}`}
+                                                                    value={customVal !== undefined ? customVal : ''}
+                                                                    onChange={e => {
+                                                                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                        setFormCustomQuoterConfig(prev => {
+                                                                            const copy = { ...prev };
+                                                                            if (val === undefined) delete copy[item.id];
+                                                                            else copy[item.id] = val;
+                                                                            return copy;
+                                                                        });
+                                                                    }}
+                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}

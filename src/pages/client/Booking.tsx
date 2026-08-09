@@ -259,19 +259,24 @@ export default function Booking() {
         }
     }, [nailQuoterConfig, nailSize]);
 
-    // Add-ons computed values: duration adds up, price adds up
+    // Add-ons computed values: duration adds up, price adds up (taking into account selectedStylist custom prices)
     const totalDuration = useMemo(() => {
-        const base = selectedService?.duration ?? 0;
+        if (!selectedService) return 0;
+        const customServicePrices = selectedStylist?.customServicePrices;
+        const baseDuration = customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration;
+
         const extras = selectedAddOns.reduce((sum, id) => {
             const svc = services.find(s => s.id === id);
-            return sum + (svc?.duration ?? 0);
+            const customAddonDuration = customServicePrices?.[id]?.duration ?? (svc?.duration ?? 0);
+            return sum + customAddonDuration;
         }, 0);
-        return base + extras;
-    }, [selectedService, selectedAddOns, services]);
+        return baseDuration + extras;
+    }, [selectedService, selectedStylist, selectedAddOns, services]);
 
     const nailTotalPrice = useMemo(() => {
         if (!selectedService) return 0;
-        let sum = selectedService.price;
+        const customServicePrices = selectedStylist?.customServicePrices;
+        let sum = customServicePrices?.[selectedService.id]?.price ?? selectedService.price;
         if (nailSize) sum += nailSize.price;
 
         const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
@@ -292,20 +297,22 @@ export default function Booking() {
         }
 
         return sum;
-    }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
+    }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, selectedStylist, nailSize, designLevel, nailExtras]);
 
     const totalPrice = useMemo(() => {
+        const customServicePrices = selectedStylist?.customServicePrices;
         const addOnsPrice = selectedAddOns.reduce((sum, id) => {
             const svc = services.find(s => s.id === id);
-            return sum + (svc?.price ?? 0);
+            const customAddonPrice = customServicePrices?.[id]?.price ?? (svc?.price ?? 0);
+            return sum + customAddonPrice;
         }, 0);
 
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
             return nailTotalPrice + addOnsPrice;
         }
-        const base = selectedService?.price ?? 0;
+        const base = (selectedService ? (customServicePrices?.[selectedService.id]?.price ?? selectedService.price) : 0);
         return base + addOnsPrice;
-    }, [businessConfig, nailTotalPrice, selectedService, selectedAddOns, services]);
+    }, [businessConfig, nailTotalPrice, selectedService, selectedStylist, selectedAddOns, services]);
     const [bookingResult, setBookingResult] = useState<{ success: boolean; error?: string } | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
@@ -2119,11 +2126,13 @@ export default function Booking() {
                                                             ) : service.priceType === 'range' ? (
                                                                 <span className="text-purple-300 font-bold">${service.minPrice} - ${service.maxPrice}</span>
                                                             ) : (
-                                                                <span className="text-cyan-400 font-bold">${service.price}</span>
+                                                                <span className="text-cyan-400 font-bold">
+                                                                    ${selectedStylist?.customServicePrices?.[service.id]?.price ?? service.price}
+                                                                </span>
                                                             )
                                                         )}
                                                         <span className="text-muted flex items-center gap-1">
-                                                            <Clock size={12} /> {service.duration} min
+                                                            <Clock size={12} /> {selectedStylist?.customServicePrices?.[service.id]?.duration ?? service.duration} min
                                                         </span>
                                                     </div>
                                                 </div>
@@ -2386,8 +2395,9 @@ export default function Booking() {
                                             </div>
                                             <span className="text-xs text-cyan-400 font-bold shrink-0">
                                                 {!businessConfig?.hideServicePrices && (
-                                                    s.priceType === 'no_price' ? '' : s.priceType === 'range' ? `$${s.minPrice} - $${s.maxPrice} · ` : `$${s.price} · `
+                                                    `+$${selectedStylist?.customServicePrices?.[s.id]?.price ?? s.price}`
                                                 )}
+                                                {s.priceType === 'no_price' ? '' : s.priceType === 'range' ? ` · $${s.minPrice} - $${s.maxPrice} · ` : ` · `}
                                                 {s.duration}min
                                             </span>
                                         </button>

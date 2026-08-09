@@ -38,6 +38,8 @@ export interface Stylist {
     commissionRate?: number; // percentage (0-100)
     schedule?: WeekSchedule | null; // custom working schedule
     serviceIds?: number[] | null; // IDs of services assigned to this stylist
+    customServicePrices?: Record<number, { price?: number; duration?: number }> | null;
+    customQuoterConfig?: Record<string, number> | null; // custom pricing for nail art/decor per stylist (e.g. d1: 80, d4: 20)
 }
 
 export interface Appointment {

@@ -23,11 +23,20 @@ export const useStylists = () => {
             if (error) throw error;
 
             // Map db columns to frontend interface
-            return data.map(st => ({
-                ...st,
-                commissionRate: st.commission_rate,
-                serviceIds: st.service_ids
-            })) as Stylist[];
+            return data.map(st => {
+                const csp = st.custom_service_prices || {};
+                const customQuoterConfig = csp._quoter || st.custom_quoter_config || null;
+                const cleanedCsp = { ...csp };
+                delete cleanedCsp._quoter;
+
+                return {
+                    ...st,
+                    commissionRate: st.commission_rate,
+                    serviceIds: st.service_ids,
+                    customServicePrices: cleanedCsp,
+                    customQuoterConfig
+                };
+            }) as Stylist[];
         },
         enabled: !!tenantId,
     });
@@ -36,14 +45,22 @@ export const useStylists = () => {
     const addMutation = useMutation({
         mutationFn: async (stylist: Omit<Stylist, 'id'>) => {
             if (!tenantId) throw new Error("No tenant info");
+            const combinedCustomPrices = {
+                ...(stylist.customServicePrices || {}),
+                ...(stylist.customQuoterConfig ? { _quoter: stylist.customQuoterConfig } : {})
+            };
+
             const payload = {
                 ...stylist,
                 tenant_id: tenantId,
                 commission_rate: stylist.commissionRate,
-                service_ids: stylist.serviceIds
+                service_ids: stylist.serviceIds,
+                custom_service_prices: combinedCustomPrices
             };
-            delete (payload as any).commissionRate; // remove camelCase
+            delete (payload as any).commissionRate;
             delete (payload as any).serviceIds;
+            delete (payload as any).customServicePrices;
+            delete (payload as any).customQuoterConfig;
 
             const { data, error } = await supabase
                 .from('stylists')
@@ -73,6 +90,15 @@ export const useStylists = () => {
             if (payload.serviceIds !== undefined) {
                 (payload as any).service_ids = payload.serviceIds;
                 delete payload.serviceIds;
+            }
+            if (payload.customServicePrices !== undefined || payload.customQuoterConfig !== undefined) {
+                const combinedCustomPrices = {
+                    ...(payload.customServicePrices || {}),
+                    ...(payload.customQuoterConfig ? { _quoter: payload.customQuoterConfig } : {})
+                };
+                (payload as any).custom_service_prices = combinedCustomPrices;
+                delete payload.customServicePrices;
+                delete payload.customQuoterConfig;
             }
 
             const { error } = await supabase
