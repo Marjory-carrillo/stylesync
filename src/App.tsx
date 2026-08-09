@@ -217,11 +217,23 @@ function App() {
       }
 
       try {
-        // Primero verificamos si el usuario es DUEÑO (Owner) de uno o más negocios
-        const { data: ownerTenants } = await supabase
-          .from('tenants')
-          .select('id, name, slug, logo_url, category')
-          .eq('owner_id', user.id);
+        const userEmail = (user.email || '').toLowerCase().trim();
+
+        // Ejecutar consultas de dueño y empleado en paralelo para reducir latencia de red en móviles
+        const [ownerRes, employeeRes] = await Promise.all([
+          supabase
+            .from('tenants')
+            .select('id, name, slug, logo_url, category')
+            .eq('owner_id', user.id),
+          supabase
+            .from('tenant_users')
+            .select('tenant_id, role, stylist_id')
+            .ilike('email', userEmail)
+            .maybeSingle()
+        ]);
+
+        const ownerTenants = ownerRes.data;
+        const userData = employeeRes.data;
 
         if (ownerTenants && ownerTenants.length > 0) {
           const tenantSummaries = ownerTenants.map(t => ({
@@ -256,14 +268,7 @@ function App() {
           return;
         }
 
-        // Si no es dueño, verificamos si es EMPLEADO (en tabla tenant_users)
-        const userEmail = (user.email || '').toLowerCase().trim();
-        const { data: userData } = await supabase
-          .from('tenant_users')
-          .select('tenant_id, role, stylist_id')
-          .ilike('email', userEmail)
-          .maybeSingle();
-
+        // Si no es dueño pero es empleado
         if (mounted) {
           setAuth({ user, session, loadingAuth: false });
           setTenantData({
