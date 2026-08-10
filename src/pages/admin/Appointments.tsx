@@ -736,11 +736,20 @@ export default function Appointments() {
                                                                         }`}
                                                                         title="Haz clic para ver/ocultar desglose completo del servicio"
                                                                     >
-                                                                        <Scissors size={12} className="text-accent shrink-0" />
-                                                                        <span className="tracking-tight truncate max-w-[260px] uppercase font-black">
-                                                                             {service?.name}
+                                                                         <Scissors size={12} className="text-accent shrink-0" />
+                                                                         <span className="tracking-tight truncate max-w-[320px] uppercase font-black flex items-center gap-1">
+                                                                             <span>{service?.name}</span>
+                                                                             {(() => {
+                                                                                 const addOns = (apt.additionalServices || []).filter((s: string) => !s.startsWith('Referencia:'));
+                                                                                 if (addOns.length === 0) return null;
+                                                                                 return (
+                                                                                     <span className="text-amber-400 font-bold text-[10px] normal-case truncate max-w-[180px]">
+                                                                                         + {addOns.join(' + ')}
+                                                                                     </span>
+                                                                                 );
+                                                                             })()}
                                                                          </span>
-                                                                        <ChevronDown size={12} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === apt.id ? 'rotate-180 text-accent' : ''}`} />
+                                                                         <ChevronDown size={12} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === apt.id ? 'rotate-180 text-accent' : ''}`} />
                                                                     </button>
 
                                                                     {(() => {

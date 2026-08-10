@@ -40,6 +40,7 @@ export default function Booking() {
     const { stylists } = useStylists();
     const { data: businessConfig, isLoading: configLoading } = useTenantData(tenantId);
     const { appointments, addAppointment, cancelAppointment, updateAppointmentTime } = useAppointments({
+        tenantId: tenantId ?? undefined,
         adminPhone:   businessConfig?.phone ?? undefined,
         businessName: businessConfig?.name  ?? undefined,
     });
@@ -51,20 +52,30 @@ export default function Booking() {
 
     
     const isPhoneBlocked = (phone: string) => blockedPhones.includes(phone);
-    const getServiceById = (id: number) => services.find(s => s.id === id);
+    const getServiceById = (id: number) => services.find(s => Number(s.id) === Number(id));
 
     const isAppointmentActive = (a: any) => {
         const svc = getServiceById(a.serviceId);
         return checkIsApptActive(a, svc?.duration || 30);
     };
 
-    const getActiveAppointmentsCountByPhone = (phone: string) => appointments.filter(a => a.clientPhone === phone && isAppointmentActive(a)).length;
+    const cleanDigits = (p?: string) => p ? p.replace(/\D/g, '').slice(-10) : '';
+
+    const getActiveAppointmentsCountByPhone = (phone: string) => {
+        const target = cleanDigits(phone);
+        if (!target) return 0;
+        return appointments.filter(a => cleanDigits(a.clientPhone) === target && isAppointmentActive(a)).length;
+    };
     const hasActiveAppointment = (phone: string) => {
         const activeCount = getActiveAppointmentsCountByPhone(phone);
         const maxAllowed = businessConfig?.allowTwoActiveAppointments ? 2 : 1;
         return activeCount >= maxAllowed;
     };
-    const getActiveAppointmentByPhone = (phone: string) => appointments.find(a => a.clientPhone === phone && isAppointmentActive(a));
+    const getActiveAppointmentByPhone = (phone: string) => {
+        const target = cleanDigits(phone);
+        if (!target) return undefined;
+        return appointments.find(a => cleanDigits(a.clientPhone) === target && isAppointmentActive(a));
+    };
     const getActiveAppointmentPrice = (appt: any) => {
         const service = getServiceById(appt.serviceId);
         const customPriceItem = (appt.additionalServices || []).find((s: string) => s.startsWith('Cotización Confirmada:') || s.startsWith('Cotización Estimada:'));
@@ -266,7 +277,7 @@ export default function Booking() {
         const baseDuration = customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration;
 
         const extras = selectedAddOns.reduce((sum, id) => {
-            const svc = services.find(s => s.id === id);
+            const svc = services.find(s => Number(s.id) === Number(id));
             const customAddonDuration = customServicePrices?.[id]?.duration ?? (svc?.duration ?? 0);
             return sum + customAddonDuration;
         }, 0);
@@ -302,7 +313,7 @@ export default function Booking() {
     const totalPrice = useMemo(() => {
         const customServicePrices = selectedStylist?.customServicePrices;
         const addOnsPrice = selectedAddOns.reduce((sum, id) => {
-            const svc = services.find(s => s.id === id);
+            const svc = services.find(s => Number(s.id) === Number(id));
             const customAddonPrice = customServicePrices?.[id]?.price ?? (svc?.price ?? 0);
             return sum + customAddonPrice;
         }, 0);
@@ -766,7 +777,7 @@ export default function Booking() {
 
         // 1. Incluir servicios adicionales reales seleccionados del catálogo (ej. Facial, Ampolleta, Retiro)
         const realAddOns = selectedAddOns
-            .map(id => services.find(s => s.id === id)?.name)
+            .map(id => services.find(s => Number(s.id) === Number(id))?.name)
             .filter(Boolean) as string[];
         addOnNames.push(...realAddOns);
 

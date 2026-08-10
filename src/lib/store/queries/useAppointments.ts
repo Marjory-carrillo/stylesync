@@ -33,8 +33,9 @@ async function notifyAdmin(
     } catch (_) { /* fire-and-forget */ }
 }
 
-export const useAppointments = (options?: { startDate?: string; adminPhone?: string; businessName?: string }) => {
-    const { tenantId } = useAuthStore();
+export const useAppointments = (options?: { startDate?: string; adminPhone?: string; businessName?: string; tenantId?: string }) => {
+    const { tenantId: authTenantId } = useAuthStore();
+    const tenantId = options?.tenantId || authTenantId;
     const { showToast, setDeviceHasPending, getDevicePendingId, clearDevicePending } = useUIStore();
     const queryClient = useQueryClient();
     const queryKey = ['appointments', tenantId, options?.startDate];
