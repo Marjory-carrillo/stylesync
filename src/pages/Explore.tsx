@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import {
     Search, Store, MapPin, ArrowRight, Instagram, Facebook,
     X, ChevronLeft, Sparkles, Zap, ShieldCheck, Clock, ChevronDown,
-    Compass, CheckCircle2, SlidersHorizontal, Star
+    Compass, CheckCircle2, SlidersHorizontal, Star, Navigation
 } from 'lucide-react';
 
 function BusinessScheduleAccordion({ schedule }: { schedule?: any }) {
@@ -367,10 +367,22 @@ export default function Explore() {
                                             {t.name}
                                         </h3>
                                         {t.address && (
-                                            <p className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                                                <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                                                <span className="truncate">{t.address}</span>
-                                            </p>
+                                            <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                                                <p className="text-xs font-medium text-slate-400 flex items-center gap-1.5 min-w-0 flex-1">
+                                                    <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                                    <span className="truncate">{t.address}</span>
+                                                </p>
+                                                <a
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.name + ' ' + t.address)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[10px] font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white px-2.5 py-1 rounded-lg transition-all shrink-0 uppercase tracking-wider shadow-sm"
+                                                    title="Abrir ubicación en Google Maps"
+                                                >
+                                                    <Navigation className="w-3 h-3" />
+                                                    <span>Cómo llegar</span>
+                                                </a>
+                                            </div>
                                         )}
                                     </div>
 
