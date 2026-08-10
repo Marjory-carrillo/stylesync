@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,11 +35,6 @@ import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 export default function Booking() {
     const { slug } = useParams();
-    const [searchParams] = useSearchParams();
-    const isFromMarketplace = searchParams.get('source') === 'marketplace';
-    const cleanBookingUrl = isFromMarketplace
-        ? `${window.location.origin}/reserva/${slug}`
-        : undefined;
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
     const { services } = useServices();
     const { stylists } = useStylists();
@@ -3191,10 +3186,7 @@ export default function Booking() {
                 </div>
             )}
             {/* ══ PWA INSTALL BANNER ══ */}
-            <PWAInstallBanner
-                businessName={businessConfig?.name || undefined}
-                cleanUrl={cleanBookingUrl}
-            />
+            <PWAInstallBanner businessName={businessConfig?.name || undefined} />
         </div >
     );
 }
