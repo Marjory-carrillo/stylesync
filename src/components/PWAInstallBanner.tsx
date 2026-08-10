@@ -9,32 +9,29 @@ export default function PWAInstallBanner({ businessName }: { businessName?: stri
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        // Don't show if already installed as PWA
         const isStandalone =
             window.matchMedia('(display-mode: standalone)').matches ||
             (window.navigator as any).standalone === true;
         if (isStandalone) return;
 
-        // Don't show if previously dismissed this session
         if (sessionStorage.getItem('pwa_banner_dismissed')) return;
 
         const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
         setIsIOS(ios);
 
-        // Capturar el prompt nativo si está disponible (Android)
+        if (ios) {
+            const timer = setTimeout(() => setShow(true), 3000);
+            return () => clearTimeout(timer);
+        }
+
+        // Android: solo mostrar si Chrome ofrece el prompt nativo
         const handler = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
+            setShow(true);
         };
         window.addEventListener('beforeinstallprompt', handler);
-
-        // Siempre mostrar el banner a los 3s (iOS y Android)
-        const timer = setTimeout(() => setShow(true), 3000);
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handler);
-            clearTimeout(timer);
-        };
+        return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
     const handleInstall = async () => {
@@ -79,8 +76,8 @@ export default function PWAInstallBanner({ businessName }: { businessName?: stri
                                 : 'Toca el menú de opciones (⋮) y elige "Agregar a la pantalla de inicio"'}
                         </p>
 
-                        {isIOS || !deferredPrompt ? (
-                            // iOS o Android sin prompt nativo → instrucciones manuales
+                        {isIOS ? (
+                            // iOS manual instructions
                             <div className="mt-2.5 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/5">
                                 <Share size={14} className="text-violet-400 shrink-0" />
                                 <span className="text-xs text-slate-300 font-medium">Compartir</span>
@@ -89,7 +86,6 @@ export default function PWAInstallBanner({ businessName }: { businessName?: stri
                                 <span className="text-xs text-slate-300 font-medium">Agregar a inicio</span>
                             </div>
                         ) : (
-                            // Android con prompt nativo disponible
                             <button
                                 onClick={handleInstall}
                                 className="mt-2.5 flex items-center gap-2 bg-violet-500 hover:bg-violet-600 active:scale-95 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg shadow-violet-500/20"
