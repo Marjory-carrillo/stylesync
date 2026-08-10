@@ -154,16 +154,8 @@ export default function Explore() {
             />
 
             {/* ═══════════ HEADER ═══════════ */}
-            <header className="sticky top-0 z-50 backdrop-blur-2xl bg-[#030712]/90 border-b border-white/10 px-4 py-4">
-                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <Link
-                        to="/"
-                        className="flex items-center gap-2 text-slate-400 hover:text-emerald-400 font-bold text-xs sm:text-sm transition-all group self-start sm:self-auto"
-                    >
-                        <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                        <span>Regresar a CitaLink</span>
-                    </Link>
-
+            <header className="sticky top-0 z-50 backdrop-blur-2xl bg-[#030712]/90 border-b border-white/10 px-4 py-3.5">
+                <div className="max-w-7xl mx-auto flex items-center justify-center">
                     {/* Logo Center */}
                     <div className="flex items-center justify-center gap-3">
                         <Link to="/" className="flex items-center gap-2 group">
