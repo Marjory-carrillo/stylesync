@@ -322,6 +322,12 @@ export default function Booking() {
     // Scroll to top when step changes so the layout header is fully visible
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (step === 5) {
+            if (window.location.search.includes('source=')) {
+                const cleanPath = window.location.pathname;
+                window.history.replaceState(null, '', cleanPath);
+            }
+        }
     }, [step]);
 
     // Dynamically update document head (title, apple title) and manifest for this tenant
