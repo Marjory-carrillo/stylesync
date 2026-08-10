@@ -15,6 +15,7 @@ export interface MarketplaceAppointment {
     clientName: string;
     clientPhone: string;
     serviceName: string;
+    servicePrice: number;
     date: string;
     time: string;
     status: string;
@@ -29,6 +30,67 @@ export interface MarketplaceAnalyticsSummary {
     totalAppointments: number;
     totalCommissions: number;
     marketplaceAppointments: MarketplaceAppointment[];
+}
+
+export function downloadCommissionReportCSV(
+    appointments: MarketplaceAppointment[],
+    businessFilterName?: string
+) {
+    if (!appointments || appointments.length === 0) {
+        alert('No hay citas de Marketplace registradas para exportar.');
+        return;
+    }
+
+    const filtered = businessFilterName && businessFilterName !== 'all'
+        ? appointments.filter(a => a.tenantName === businessFilterName)
+        : appointments;
+
+    if (filtered.length === 0) {
+        alert(`No hay citas de Marketplace encontradas para "${businessFilterName}".`);
+        return;
+    }
+
+    const headers = [
+        'ID Cita',
+        'Negocio / Salón',
+        'Cliente',
+        'Teléfono Cliente',
+        'Fecha Cita',
+        'Hora Cita',
+        'Servicio Reservado',
+        'Monto Servicio (MXN)',
+        'Comisión CitaLink (MXN)',
+        'Estatus Cobro',
+        'Fecha de Reserva'
+    ];
+
+    const rows = filtered.map(a => [
+        `"${a.id}"`,
+        `"${a.tenantName.replace(/"/g, '""')}"`,
+        `"${a.clientName.replace(/"/g, '""')}"`,
+        `"${a.clientPhone}"`,
+        `"${a.date}"`,
+        `"${a.time}"`,
+        `"${a.serviceName.replace(/"/g, '""')}"`,
+        a.servicePrice.toFixed(2),
+        a.commissionAmount.toFixed(2),
+        a.commissionBilled ? 'COBRADA' : 'PENDIENTE',
+        `"${a.bookedAt}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = businessFilterName && businessFilterName !== 'all'
+        ? `Estado_de_Cuenta_CitaLink_${businessFilterName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`
+        : `Estado_de_Cuenta_Marketplace_CitaLink_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 export function useMarketplaceAnalytics() {
@@ -120,6 +182,7 @@ export function useMarketplaceAnalytics() {
                             clientName: a.client_name || 'Cliente sin nombre',
                             clientPhone: a.client_phone || '',
                             serviceName: serviceNameMap[a.service_id] || `Servicio #${a.service_id}`,
+                            servicePrice: Number(a.price || 0),
                             date: a.date,
                             time: a.time,
                             status: a.status || 'confirmed',

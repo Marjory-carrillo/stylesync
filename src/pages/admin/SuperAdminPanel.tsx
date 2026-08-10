@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
-import { useMarketplaceAnalytics, useToggleCommissionBilled } from '../../lib/store/queries/useMarketplaceAnalytics';
+import { useMarketplaceAnalytics, useToggleCommissionBilled, downloadCommissionReportCSV } from '../../lib/store/queries/useMarketplaceAnalytics';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
@@ -390,6 +390,7 @@ export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner, resetOwnerPassword } = useSuperAdmin();
     const { data: mktData, refetch: refetchMarketplaceAnalytics } = useMarketplaceAnalytics();
     const toggleCommissionBilled = useToggleCommissionBilled();
+    const [mktBusinessFilter, setMktBusinessFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -1274,14 +1275,24 @@ export default function SuperAdminPanel() {
                         </div>
                     </div>
 
-                    {/* Action Button: Recargar */}
-                    <button
-                        onClick={() => refetchMarketplaceAnalytics && refetchMarketplaceAnalytics()}
-                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 self-start sm:self-auto"
-                    >
-                        <Sparkles size={14} className="text-emerald-400" />
-                        <span>Actualizar Métricas</span>
-                    </button>
+                    {/* Action Buttons: Exportar Estado de Cuenta & Recargar */}
+                    <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+                        <button
+                            onClick={() => downloadCommissionReportCSV(mktData?.marketplaceAppointments || [], mktBusinessFilter)}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-125 text-black font-black text-xs uppercase shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2 transition-all hover:scale-105"
+                            title="Descargar reporte en formato CSV para cobro a negocios"
+                        >
+                            <Download size={14} />
+                            <span>📄 Exportar Estado de Cuenta</span>
+                        </button>
+                        <button
+                            onClick={() => refetchMarketplaceAnalytics && refetchMarketplaceAnalytics()}
+                            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2"
+                        >
+                            <Sparkles size={14} className="text-emerald-400" />
+                            <span>Actualizar</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Metrics Cards */}
@@ -1364,8 +1375,24 @@ export default function SuperAdminPanel() {
 
                     {/* Right Column: Citas Marketplace Agendadas */}
                     <div className="bg-slate-950/60 border border-white/10 p-5 rounded-2xl flex flex-col space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
                             <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <Calendar size={16} className="text-cyan-400" />
+                                📅 Citas Marketplace Agendadas
+                            </h4>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={mktBusinessFilter}
+                                    onChange={(e) => setMktBusinessFilter(e.target.value)}
+                                    className="bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-slate-200 focus:outline-none focus:border-emerald-500/40"
+                                >
+                                    <option value="all">Todos los Negocios</option>
+                                    {Array.from(new Set((mktData?.marketplaceAppointments || []).map(a => a.tenantName))).map(name => (
+                                        <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
                                 <Calendar size={16} className="text-cyan-400" />
                                 📅 Citas Agendadas vía Marketplace
                             </h4>
