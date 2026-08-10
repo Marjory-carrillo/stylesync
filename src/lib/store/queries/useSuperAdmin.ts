@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabaseClient';
 import { useAuthStore } from '../authStore';
@@ -183,10 +184,14 @@ export function useSuperAdmin() {
         else window.location.href = '/admin'; // reload to init tenant properly
     };
 
+    const fetchAllTenants = useCallback(() => {
+        queryClient.invalidateQueries({ queryKey });
+    }, [queryClient]);
+
     return {
         allTenants: query.data || [],
         isLoading: query.isLoading,
-        fetchAllTenants: () => queryClient.invalidateQueries({ queryKey }),
+        fetchAllTenants,
         createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone: string = 'America/Mexico_City', existingOwnerId?: string, brandSlug?: string, noTrial?: boolean): Promise<{ success: boolean; data?: any; error?: string; accountCreated?: boolean }> => {
             try {
                 const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail, ownerPassword, timezone, existingOwnerId, brandSlug, noTrial });

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
-import { useMarketplaceAnalytics, useToggleCommissionBilled, downloadCommissionReportCSV } from '../../lib/store/queries/useMarketplaceAnalytics';
+import { useMarketplaceAnalytics, useToggleCommissionBilled } from '../../lib/store/queries/useMarketplaceAnalytics';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
@@ -141,32 +141,16 @@ const formatAsEndOfDay = (dateStr: string) => {
 };
 
 const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
-    const [name, setName] = useState(tenant?.name || '');
-    const [slug, setSlug] = useState(tenant?.slug || '');
-    const [category, setCategory] = useState(tenant?.category || 'barbershop');
-    const [timezone, setTimezone] = useState(tenant?.timezone || 'America/Mexico_City');
-    const [trialEndsAt, setTrialEndsAt] = useState(formatDateForInput(tenant?.trial_ends_at));
-    const [subscriptionType, setSubscriptionType] = useState(tenant?.subscription_type || 'manual');
-    const [paymentStatus, setPaymentStatus] = useState(tenant?.payment_status || 'active');
-    const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(formatDateForInput(tenant?.grace_period_ends_at));
-    const [marketplaceEnabled, setMarketplaceEnabled] = useState<boolean>(tenant?.marketplace_enabled ?? false);
-    const [marketplaceCommissionRate, setMarketplaceCommissionRate] = useState<number>(Number(tenant?.marketplace_commission_rate) || 15);
+    const [name, setName] = useState(tenant.name || '');
+    const [slug, setSlug] = useState(tenant.slug || '');
+    const [category, setCategory] = useState(tenant.category || 'barbershop');
+    const [timezone, setTimezone] = useState(tenant.timezone || 'America/Mexico_City');
+    const [trialEndsAt, setTrialEndsAt] = useState(formatDateForInput(tenant.trial_ends_at));
+    const [subscriptionType, setSubscriptionType] = useState(tenant.subscription_type || 'manual');
+    const [paymentStatus, setPaymentStatus] = useState(tenant.payment_status || 'active');
+    const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(formatDateForInput(tenant.grace_period_ends_at));
+    const [marketplaceCommissionRate, setMarketplaceCommissionRate] = useState<number>(tenant.marketplace_commission_rate ?? 15);
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        if (tenant) {
-            setName(tenant.name || '');
-            setSlug(tenant.slug || '');
-            setCategory(tenant.category || 'barbershop');
-            setTimezone(tenant.timezone || 'America/Mexico_City');
-            setTrialEndsAt(formatDateForInput(tenant.trial_ends_at));
-            setSubscriptionType(tenant.subscription_type || 'manual');
-            setPaymentStatus(tenant.payment_status || 'active');
-            setGracePeriodEndsAt(formatDateForInput(tenant.grace_period_ends_at));
-            setMarketplaceEnabled(tenant.marketplace_enabled ?? false);
-            setMarketplaceCommissionRate(Number(tenant.marketplace_commission_rate) || 15);
-        }
-    }, [tenant]);
 
     if (!isOpen) return null;
 
@@ -182,8 +166,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
             subscription_type: subscriptionType,
             payment_status: paymentStatus,
             grace_period_ends_at: gracePeriodEndsAt ? formatAsEndOfDay(gracePeriodEndsAt) : null,
-            marketplace_enabled: marketplaceEnabled,
-            marketplace_commission_rate: Number(marketplaceCommissionRate),
+            marketplace_commission_rate: marketplaceCommissionRate,
         };
         await onSave(tenant.id, payload);
         setIsSaving(false);
@@ -390,7 +373,6 @@ export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner, resetOwnerPassword } = useSuperAdmin();
     const { data: mktData, refetch: refetchMarketplaceAnalytics } = useMarketplaceAnalytics();
     const toggleCommissionBilled = useToggleCommissionBilled();
-    const [mktBusinessFilter, setMktBusinessFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -472,7 +454,7 @@ export default function SuperAdminPanel() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [fetchAllTenants]);
+    }, []);
 
     const fetchSmsMetrics = async () => {
         try {
@@ -1275,24 +1257,14 @@ export default function SuperAdminPanel() {
                         </div>
                     </div>
 
-                    {/* Action Buttons: Exportar Estado de Cuenta & Recargar */}
-                    <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-                        <button
-                            onClick={() => downloadCommissionReportCSV(mktData?.marketplaceAppointments || [], mktBusinessFilter)}
-                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-125 text-black font-black text-xs uppercase shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2 transition-all hover:scale-105"
-                            title="Descargar reporte en formato CSV para cobro a negocios"
-                        >
-                            <Download size={14} />
-                            <span>📄 Exportar Estado de Cuenta</span>
-                        </button>
-                        <button
-                            onClick={() => refetchMarketplaceAnalytics && refetchMarketplaceAnalytics()}
-                            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2"
-                        >
-                            <Sparkles size={14} className="text-emerald-400" />
-                            <span>Actualizar</span>
-                        </button>
-                    </div>
+                    {/* Action Button: Recargar */}
+                    <button
+                        onClick={() => refetchMarketplaceAnalytics && refetchMarketplaceAnalytics()}
+                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 self-start sm:self-auto"
+                    >
+                        <Sparkles size={14} className="text-emerald-400" />
+                        <span>Actualizar Métricas</span>
+                    </button>
                 </div>
 
                 {/* Metrics Cards */}
@@ -1375,24 +1347,13 @@ export default function SuperAdminPanel() {
 
                     {/* Right Column: Citas Marketplace Agendadas */}
                     <div className="bg-slate-950/60 border border-white/10 p-5 rounded-2xl flex flex-col space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+                        <div className="flex items-center justify-between">
                             <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                                 <Calendar size={16} className="text-cyan-400" />
-                                📅 Citas Marketplace Agendadas
+                                📅 Citas Agendadas vía Marketplace
                             </h4>
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={mktBusinessFilter}
-                                    onChange={(e) => setMktBusinessFilter(e.target.value)}
-                                    className="bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-slate-200 focus:outline-none focus:border-emerald-500/40"
-                                >
-                                    <option value="all">Todos los Negocios</option>
-                                    {Array.from(new Set((mktData?.marketplaceAppointments || []).map(a => a.tenantName))).map(name => (
-                                        <option key={name} value={name}>{name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
+                            <span className="text-[10px] text-slate-400 font-medium">Recientes</span>
+                        </div>
 
                         <div className="space-y-2.5 overflow-y-auto max-h-72 pr-1 custom-scrollbar">
                             {(!mktData?.marketplaceAppointments || mktData.marketplaceAppointments.length === 0) ? (
@@ -1575,39 +1536,10 @@ export default function SuperAdminPanel() {
                                                 </span>
                                             )}
                                             {tenant.marketplace_enabled && (
-                                                <div className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-400">
-                                                    <span>🛒 MARKETPLACE:</span>
-                                                    <div className="flex items-center gap-1">
-                                                        {[10, 15].map((rate) => {
-                                                            const currentRate = Number(tenant.marketplace_commission_rate) || 15;
-                                                            const isActiveRate = currentRate === rate;
-                                                            return (
-                                                                <button
-                                                                    key={rate}
-                                                                    type="button"
-                                                                    onClick={async (e) => {
-                                                                        e.stopPropagation();
-                                                                        const res = await updateTenant(tenant.id, { marketplace_commission_rate: rate });
-                                                                        if (res.success) {
-                                                                            showToast(`Comisión para ${tenant.name} cambiada al ${rate}%`, 'success');
-                                                                            fetchAllTenants();
-                                                                        } else {
-                                                                            showToast('Error al cambiar comisión', 'error');
-                                                                        }
-                                                                    }}
-                                                                    className={`px-1.5 py-0.5 rounded text-[9px] font-black transition-all ${
-                                                                        isActiveRate
-                                                                            ? 'bg-emerald-500 text-slate-950 shadow-md scale-105'
-                                                                            : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                                                                    }`}
-                                                                >
-                                                                    {rate}%
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
+                                                 <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.1)]">
+                                                     🛒 MARKETPLACE ({tenant.marketplace_commission_rate || 15}%)
+                                                 </span>
+                                             )}
                                             {tenant.extra_branches_paid > 0 && (
                                                 <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_12px_rgba(147,51,234,0.05)]">
                                                     +{tenant.extra_branches_paid} SUC. EXTRA
