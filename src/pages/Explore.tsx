@@ -367,19 +367,19 @@ export default function Explore() {
                                             {t.name}
                                         </h3>
                                         {t.address && (
-                                            <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
-                                                <p className="text-xs font-medium text-slate-400 flex items-center gap-1.5 min-w-0 flex-1">
-                                                    <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                                                    <span className="truncate">{t.address}</span>
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1.5 bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                                                <p className="text-xs font-medium text-slate-300 flex items-start gap-1.5 leading-snug break-words flex-1">
+                                                    <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                                                    <span className="text-slate-200 font-semibold">{t.address}</span>
                                                 </p>
                                                 <a
-                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.name + ' ' + t.address)}`}
+                                                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(t.name + ', ' + t.address)}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1 text-[10px] font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white px-2.5 py-1 rounded-lg transition-all shrink-0 uppercase tracking-wider shadow-sm"
-                                                    title="Abrir ubicación en Google Maps"
+                                                    className="inline-flex items-center justify-center gap-1.5 text-[11px] font-black text-white bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 px-3.5 py-1.5 rounded-xl transition-all shrink-0 uppercase tracking-wider shadow-md shadow-rose-500/20 active:scale-95 border border-rose-400/30 self-start sm:self-auto"
+                                                    title="Abrir indicaciones de cómo llegar en Google Maps"
                                                 >
-                                                    <Navigation className="w-3 h-3" />
+                                                    <Navigation className="w-3.5 h-3.5" />
                                                     <span>Cómo llegar</span>
                                                 </a>
                                             </div>
