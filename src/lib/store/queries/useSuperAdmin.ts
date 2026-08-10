@@ -164,7 +164,13 @@ export function useSuperAdmin() {
             if (error) throw new Error(error.message);
             return data;
         },
-        onSuccess: () => {
+        onSuccess: (updatedTenant) => {
+            if (updatedTenant) {
+                queryClient.setQueryData(queryKey, (old: any[] | undefined) => {
+                    if (!old) return [updatedTenant];
+                    return old.map((t: any) => (t.id === updatedTenant.id ? { ...t, ...updatedTenant } : t));
+                });
+            }
             queryClient.invalidateQueries({ queryKey });
         }
     });
