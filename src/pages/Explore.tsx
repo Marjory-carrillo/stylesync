@@ -4,7 +4,7 @@ import { usePublicTenants, type PublicTenant } from '../lib/store/queries/usePub
 import { supabase } from '../lib/supabaseClient';
 import {
     Search, Store, MapPin, ArrowRight, Instagram, Facebook,
-    X, ChevronLeft, Sparkles, Zap, ShieldCheck, Clock, ChevronDown,
+    X, Sparkles, Zap, ShieldCheck, Clock, ChevronDown,
     Compass, CheckCircle2, SlidersHorizontal, Star, Navigation
 } from 'lucide-react';
 
