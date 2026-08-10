@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicTenants, type PublicTenant } from '../lib/store/queries/usePublicTenants';
+import { supabase } from '../lib/supabaseClient';
 import {
     Search, Store, MapPin, ArrowRight, Instagram, Facebook,
     X, ChevronLeft, Sparkles, Zap, ShieldCheck, Clock,
@@ -11,6 +12,24 @@ export default function Explore() {
     const [directorySearch, setDirectorySearch] = useState('');
     const [directoryCategory, setDirectoryCategory] = useState('all');
     const { data: publicTenants = [], isLoading: loadingTenants } = usePublicTenants(directorySearch, directoryCategory);
+
+    // Registrar los términos de búsqueda más frecuentes (debounced a 1.5s)
+    useEffect(() => {
+        const query = directorySearch.trim();
+        if (query.length < 3) return;
+
+        const timer = setTimeout(async () => {
+            try {
+                await supabase.from('marketplace_searches').insert({
+                    search_term: query,
+                });
+            } catch (e) {
+                // Captura silenciosa si aún no existe la tabla
+            }
+        }, 1500);
+
+        return () => clearTimeout(timer);
+    }, [directorySearch]);
 
     return (
         <div className="min-h-screen bg-[#030712] text-white selection:bg-emerald-500 selection:text-black relative overflow-hidden font-sans">
@@ -55,13 +74,6 @@ export default function Explore() {
                             MARKETPLACE LIVE
                         </span>
                     </div>
-
-                    <Link
-                        to="/login"
-                        className="px-4 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-xs font-bold text-slate-300 hover:text-emerald-400 transition-all shadow-md"
-                    >
-                        Acceso Salones
-                    </Link>
                 </div>
             </header>
 
@@ -117,7 +129,7 @@ export default function Explore() {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Buscar por nombre, servicio o ubicación (ej. Barbería, Uñas, Matamoros)..."
+                                placeholder="Buscar por ciudad (ej. Palmares), servicio (ej. Corte, Uñas) o nombre..."
                                 className="w-full bg-transparent px-4 py-3 text-white placeholder-slate-500 focus:outline-none text-base font-semibold"
                                 value={directorySearch}
                                 onChange={(e) => setDirectorySearch(e.target.value)}
@@ -202,8 +214,8 @@ export default function Explore() {
                                     />
                                     {/* Top subtle vignette for top badges readability */}
                                     <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
-                                    {/* Bottom smooth gradient transition blending seamlessly into card background */}
-                                    <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-[#0b1329] via-[#0b1329]/80 to-transparent pointer-events-none" />
+                                    {/* Bottom smooth gradient transition sitting strictly at the lower edge */}
+                                    <div className="absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-[#0b1329] to-transparent pointer-events-none" />
 
                                     {/* Top Badges */}
                                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
@@ -255,6 +267,25 @@ export default function Explore() {
                                             </p>
                                         )}
                                     </div>
+
+                                    {/* Service Badges Preview */}
+                                    {t.servicesNames && t.servicesNames.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 pt-1">
+                                            {t.servicesNames.slice(0, 3).map((sName, sIdx) => (
+                                                <span
+                                                    key={sIdx}
+                                                    className="text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/20 px-2.5 py-1 rounded-lg"
+                                                >
+                                                    ✨ {sName}
+                                                </span>
+                                            ))}
+                                            {t.servicesNames.length > 3 && (
+                                                <span className="text-[10px] font-bold text-slate-400 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                                                    +{t.servicesNames.length - 3} más
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Description */}
                                     {t.description ? (

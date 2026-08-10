@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
+import { useMarketplaceAnalytics } from '../../lib/store/queries/useMarketplaceAnalytics';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
-    DollarSign, Pencil, Eye, Key, EyeOff, Download
+    DollarSign, Pencil, Eye, Key, EyeOff, Download, ShoppingBag
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -347,6 +348,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
 
 export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner, resetOwnerPassword } = useSuperAdmin();
+    const { data: mktData, refetch: refetchMarketplaceAnalytics } = useMarketplaceAnalytics();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -1204,6 +1206,161 @@ export default function SuperAdminPanel() {
                                 </div>
                             ))
                         )}
+                    </div>
+                </div>
+            </div>
+
+
+            {/* ═══════════ MARKETPLACE LIVE ANALYTICS SECTION ═══════════ */}
+            <div className="glass-panel p-6 border border-emerald-500/20 bg-gradient-to-b from-emerald-950/20 via-slate-900/40 to-slate-950/60 rounded-3xl shadow-2xl space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                            <ShoppingBag size={24} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xl font-black text-white tracking-tight uppercase">
+                                    Marketplace Analytics & Métricas
+                                </h3>
+                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
+                                    LIVE
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-400">
+                                Búsquedas realizadas por clientes y seguimiento de citas/comisiones generadas.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Action Button: Recargar */}
+                    <button
+                        onClick={() => refetchMarketplaceAnalytics && refetchMarketplaceAnalytics()}
+                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 self-start sm:self-auto"
+                    >
+                        <Sparkles size={14} className="text-emerald-400" />
+                        <span>Actualizar Métricas</span>
+                    </button>
+                </div>
+
+                {/* Metrics Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Búsquedas</p>
+                            <p className="text-2xl font-black text-emerald-400 mt-1">{mktData?.totalSearches ?? 0}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <Search size={20} />
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Citas Marketplace</p>
+                            <p className="text-2xl font-black text-cyan-400 mt-1">{mktData?.totalAppointments ?? 0}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                            <Calendar size={20} />
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Comisiones Calculadas</p>
+                            <p className="text-2xl font-black text-amber-400 mt-1">
+                                ${(mktData?.totalCommissions ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                            </p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <DollarSign size={20} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Split View: Top Searched Terms vs Marketplace Appointments List */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Column: Lo más buscado */}
+                    <div className="bg-slate-950/60 border border-white/10 p-5 rounded-2xl flex flex-col space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <Search size={16} className="text-emerald-400" />
+                                🔥 Lo Más Buscado en el Marketplace
+                            </h4>
+                            <span className="text-[10px] text-slate-400 font-medium">Top 10 Términos</span>
+                        </div>
+
+                        <div className="space-y-2.5 overflow-y-auto max-h-72 pr-1 custom-scrollbar">
+                            {(!mktData?.topSearches || mktData.topSearches.length === 0) ? (
+                                <div className="text-center py-8 text-slate-500 text-xs italic">
+                                    No hay búsquedas registradas aún en el Marketplace.
+                                </div>
+                            ) : (
+                                mktData.topSearches.map((item, idx) => (
+                                    <div key={idx} className="space-y-1 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-bold text-slate-200 capitalize flex items-center gap-2">
+                                                <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 font-black text-[10px] flex items-center justify-center">
+                                                    #{idx + 1}
+                                                </span>
+                                                "{item.term}"
+                                            </span>
+                                            <span className="font-mono text-emerald-400 font-black text-xs">
+                                                {item.count} {item.count === 1 ? 'búsqueda' : 'búsquedas'}
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                            <div
+                                                className="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all duration-500"
+                                                style={{ width: `${Math.max(item.percentage, 8)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Citas Marketplace Agendadas */}
+                    <div className="bg-slate-950/60 border border-white/10 p-5 rounded-2xl flex flex-col space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <Calendar size={16} className="text-cyan-400" />
+                                📅 Citas Agendadas vía Marketplace
+                            </h4>
+                            <span className="text-[10px] text-slate-400 font-medium">Recientes</span>
+                        </div>
+
+                        <div className="space-y-2.5 overflow-y-auto max-h-72 pr-1 custom-scrollbar">
+                            {(!mktData?.marketplaceAppointments || mktData.marketplaceAppointments.length === 0) ? (
+                                <div className="text-center py-8 text-slate-500 text-xs italic">
+                                    Aún no se han agendado citas a través de la fuente Marketplace.
+                                </div>
+                            ) : (
+                                mktData.marketplaceAppointments.map((appt) => (
+                                    <div key={appt.id} className="bg-white/[0.02] border border-white/5 p-3.5 rounded-xl space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black text-emerald-400 uppercase tracking-tight">
+                                                {appt.tenantName}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                                Comisión: ${appt.commissionAmount}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-slate-300">
+                                            <span className="font-semibold">{appt.clientName} ({appt.clientPhone})</span>
+                                            <span className="text-slate-400">{appt.date} • {appt.time}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/5">
+                                            <span>{appt.serviceName}</span>
+                                            <span className={`font-bold ${appt.commissionBilled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                {appt.commissionBilled ? '✓ Cobrada' : 'Pendiente de cobro'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
