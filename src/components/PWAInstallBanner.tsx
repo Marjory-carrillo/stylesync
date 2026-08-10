@@ -32,18 +32,13 @@ export default function PWAInstallBanner({ businessName, cleanUrl }: PWAInstallB
         setIsIOS(ios);
 
         if (ios) {
-            // iOS doesn't fire beforeinstallprompt — show manual instructions
+            // iOS: siempre mostrar instrucciones manuales (no hay beforeinstallprompt)
             const timer = setTimeout(() => setShow(true), 3000);
             return () => clearTimeout(timer);
         }
 
-        if (isMarketplaceMode) {
-            // En modo marketplace en Android, mostramos el banner manual con el link limpio
-            const timer = setTimeout(() => setShow(true), 3000);
-            return () => clearTimeout(timer);
-        }
-
-        // Android / Chrome — wait for the browser's install event
+        // Android: SIEMPRE escuchar beforeinstallprompt (con o sin modo marketplace)
+        // Así deferredPrompt nunca queda null y el botón siempre funciona
         const handler = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
