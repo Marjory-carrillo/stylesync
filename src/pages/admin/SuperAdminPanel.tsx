@@ -1392,12 +1392,7 @@ export default function SuperAdminPanel() {
                                     ))}
                                 </select>
                             </div>
-                        </div>
-                                <Calendar size={16} className="text-cyan-400" />
-                                📅 Citas Agendadas vía Marketplace
-                            </h4>
-                            <span className="text-[10px] text-slate-400 font-medium">Recientes</span>
-                        </div>
+
 
                         <div className="space-y-2.5 overflow-y-auto max-h-72 pr-1 custom-scrollbar">
                             {(!mktData?.marketplaceAppointments || mktData.marketplaceAppointments.length === 0) ? (
