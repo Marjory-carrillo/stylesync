@@ -55,6 +55,9 @@ export const useTenantData = (overrideTenantId?: string) => {
                 subscriptionType: (data.subscription_type as 'stripe' | 'manual') || 'manual',
                 paymentStatus: (data.payment_status as 'active' | 'grace_period' | 'suspended') || 'active',
                 gracePeriodEndsAt: data.grace_period_ends_at || null,
+                instagramUrl: data.instagram_url || '',
+                facebookUrl: data.facebook_url || '',
+                tiktokUrl: data.tiktok_url || '',
             };
         },
         enabled: !!tenantId,
@@ -84,6 +87,9 @@ export const useTenantData = (overrideTenantId?: string) => {
             if (newData.showDashboardMetrics !== undefined) payload.show_dashboard_metrics = newData.showDashboardMetrics;
             if (newData.breakBetweenAppointments !== undefined) payload.break_between_appointments = newData.breakBetweenAppointments;
             if (newData.hideServicePrices !== undefined) payload.hide_service_prices = newData.hideServicePrices;
+            if (newData.instagramUrl !== undefined) payload.instagram_url = newData.instagramUrl || null;
+            if (newData.facebookUrl !== undefined) payload.facebook_url = newData.facebookUrl || null;
+            if (newData.tiktokUrl !== undefined) payload.tiktok_url = newData.tiktokUrl || null;
 
             const { error } = await supabase
                 .from('tenants')

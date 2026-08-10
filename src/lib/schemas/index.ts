@@ -103,4 +103,7 @@ export const businessConfigSchema = z.object({
         .optional()
         .or(z.literal('')),
     category: z.string().optional(),
+    instagramUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
+    facebookUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
+    tiktokUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
 });

@@ -1191,8 +1191,54 @@ export default function Booking() {
                             {businessConfig.description}
                         </p>
                     )}
+
+                    {/* Redes Sociales del negocio */}
+                    {((businessConfig as any)?.instagramUrl || (businessConfig as any)?.facebookUrl || (businessConfig as any)?.tiktokUrl) && step !== 10 && (
+                        <div className="flex items-center justify-center gap-3 mt-4">
+                            {(businessConfig as any).instagramUrl && (
+                                <a
+                                    href={(businessConfig as any).instagramUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-pink-500/20 to-purple-600/20 border border-pink-500/20 text-pink-400 hover:scale-110 hover:border-pink-400/50 transition-all duration-300"
+                                    title="Instagram"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                                    </svg>
+                                </a>
+                            )}
+                            {(businessConfig as any).facebookUrl && (
+                                <a
+                                    href={(businessConfig as any).facebookUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-10 h-10 rounded-2xl flex items-center justify-center bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:scale-110 hover:border-blue-400/50 transition-all duration-300"
+                                    title="Facebook"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
+                                    </svg>
+                                </a>
+                            )}
+                            {(businessConfig as any).tiktokUrl && (
+                                <a
+                                    href={(businessConfig as any).tiktokUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-10 h-10 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-white hover:scale-110 hover:border-white/30 transition-all duration-300"
+                                    title="TikTok"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.77a4.85 4.85 0 01-1.01-.08z"/>
+                                    </svg>
+                                </a>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
+
 
             {/* Step Titles for internal steps */}
             {step === 2 && <h2 className="text-xl font-black text-white text-center mb-6">Elige un Servicio</h2>}

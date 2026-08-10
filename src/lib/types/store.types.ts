@@ -158,6 +158,9 @@ export interface BusinessConfig {
     subscriptionType?: 'stripe' | 'manual';
     paymentStatus?: 'active' | 'grace_period' | 'suspended';
     gracePeriodEndsAt?: string | null;
+    instagramUrl?: string;
+    facebookUrl?: string;
+    tiktokUrl?: string;
 }
 
 export interface Tenant extends BusinessConfig {

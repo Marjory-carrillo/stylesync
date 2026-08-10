@@ -11,7 +11,7 @@ import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush } from 'lucide-react';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook } from 'lucide-react';
 import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
@@ -913,6 +913,65 @@ export default function Settings() {
                                     />
                                     <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                                 </label>
+                            </div>
+                        </div>
+
+
+                        {/* Redes Sociales */}
+                        <div className="p-5 bg-gradient-to-br from-pink-500/5 via-purple-500/5 to-blue-500/5 rounded-2xl border border-white/10 space-y-4">
+                            <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+                                <div className="p-2 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/20">
+                                    <Instagram size={18} className="text-pink-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-white font-bold text-sm">Redes Sociales</h4>
+                                    <p className="text-xs text-slate-500">Aparecerán como íconos en tu página de reservas para que tus clientes te sigan.</p>
+                                </div>
+                            </div>
+
+                            {/* Instagram */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                    <Instagram size={13} className="text-pink-400" /> Instagram
+                                </label>
+                                <input
+                                    type="url"
+                                    placeholder="https://instagram.com/tu_negocio"
+                                    className="w-full glass-card bg-transparent border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 transition-all placeholder:text-slate-600"
+                                    value={(infoForm as any).instagramUrl || ''}
+                                    onChange={e => setInfoForm({ ...infoForm, instagramUrl: e.target.value } as any)}
+                                />
+                            </div>
+
+                            {/* Facebook */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                    <Facebook size={13} className="text-blue-400" /> Facebook
+                                </label>
+                                <input
+                                    type="url"
+                                    placeholder="https://facebook.com/tu_negocio"
+                                    className="w-full glass-card bg-transparent border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all placeholder:text-slate-600"
+                                    value={(infoForm as any).facebookUrl || ''}
+                                    onChange={e => setInfoForm({ ...infoForm, facebookUrl: e.target.value } as any)}
+                                />
+                            </div>
+
+                            {/* TikTok */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                                        <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.77a4.85 4.85 0 01-1.01-.08z"/>
+                                    </svg>
+                                    TikTok
+                                </label>
+                                <input
+                                    type="url"
+                                    placeholder="https://tiktok.com/@tu_negocio"
+                                    className="w-full glass-card bg-transparent border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all placeholder:text-slate-600"
+                                    value={(infoForm as any).tiktokUrl || ''}
+                                    onChange={e => setInfoForm({ ...infoForm, tiktokUrl: e.target.value } as any)}
+                                />
                             </div>
                         </div>
 
