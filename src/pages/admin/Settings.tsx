@@ -11,7 +11,7 @@ import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook } from 'lucide-react';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign } from 'lucide-react';
 import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
@@ -916,6 +916,64 @@ export default function Settings() {
                             </div>
                         </div>
 
+
+                        {/* Marketplace & Directorio Público CitaLink */}
+                        <div className="p-5 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-blue-500/10 rounded-2xl border border-emerald-500/20 space-y-4 shadow-lg shadow-emerald-950/20">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">
+                                        <Store size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white font-bold text-base flex items-center gap-2">
+                                            Aparecer en el Buscador Público CitaLink
+                                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                Atrae Clientes Nuevos
+                                            </span>
+                                        </h4>
+                                        <p className="text-xs text-slate-400 mt-0.5">
+                                            Tu negocio se mostrará en el directorio público de CitaLink para que clientes nuevos de tu ciudad te descubran y agenden.
+                                        </p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.marketplaceEnabled ?? false}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, marketplaceEnabled: val });
+                                            await updateBusinessConfig({ marketplaceEnabled: val });
+                                            showToast(
+                                                val
+                                                    ? '¡Excelente! Tu negocio ahora aparece en el Buscador Público CitaLink'
+                                                    : 'Negocio oculto del Buscador Público',
+                                                'success'
+                                            );
+                                        }}
+                                    />
+                                    <div className="w-12 h-6.5 bg-slate-700/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2.5px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                </label>
+                            </div>
+
+                            {infoForm.marketplaceEnabled && (
+                                <div className="p-4 bg-emerald-950/40 rounded-xl border border-emerald-500/20 text-xs text-slate-300 space-y-2 animate-fade-in">
+                                    <div className="flex items-center gap-2 font-bold text-emerald-400 text-sm">
+                                        <DollarSign size={16} /> Términos del Plan de Crecimiento:
+                                    </div>
+                                    <p className="leading-relaxed">
+                                        • Las reservas hechas desde tu enlace directo (redes sociales / WhatsApp) siguen teniendo <strong>0% de comisión</strong>.
+                                    </p>
+                                    <p className="leading-relaxed">
+                                        • Únicamente las citas registradas desde el <strong>Buscador Público de CitaLink</strong> generan una pequeña comisión del <strong>15%</strong> sobre el total del servicio.
+                                    </p>
+                                    <p className="leading-relaxed text-slate-400 italic">
+                                        Las comisiones acumuladas del mes se sumarán de manera clara en tu factura/corte mensual.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Redes Sociales */}
                         <div className="p-5 bg-gradient-to-br from-pink-500/5 via-purple-500/5 to-blue-500/5 rounded-2xl border border-white/10 space-y-4">

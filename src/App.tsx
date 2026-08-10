@@ -26,6 +26,7 @@ const Leads = lazy(() => import('./pages/admin/Leads'));
 const GlobalSettings = lazy(() => import('./pages/admin/GlobalSettings'));
 const Branding = lazy(() => import('./pages/admin/Branding'));
 const Landing = lazy(() => import('./pages/Landing'));
+const Explore = lazy(() => import('./pages/Explore'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
@@ -326,8 +327,9 @@ function App() {
           <ToastContainer />
           <Suspense fallback={<SplashScreen />}>
             <Routes>
-              {/* Main Landing */}
+              {/* Main Landing & Marketplace */}
               <Route path="/" element={<Landing />} />
+              <Route path="/explorar" element={<Explore />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
 

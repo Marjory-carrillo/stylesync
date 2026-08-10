@@ -60,6 +60,9 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 reminderSent: a.reminder_sent,
                 confirmationSent: a.confirmation_sent,
                 additionalServices: a.additional_services,
+                bookingSource: a.booking_source || 'direct',
+                marketplaceCommissionAmount: a.marketplace_commission_amount || 0,
+                commissionBilled: a.commission_billed || false,
             })) as Appointment[];
         },
         enabled: !!tenantId,
@@ -81,15 +84,28 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             if (rpcError) throw rpcError;
             if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Error desconocido al reservar');
 
-            // Save additional services if provided (awaited so query refetch has full data)
-            if (rpcResult?.id && appt.additionalServices && appt.additionalServices.length > 0) {
-                try {
-                    await supabase
-                        .from('appointments')
-                        .update({ additional_services: appt.additionalServices })
-                        .eq('id', rpcResult.id);
-                } catch (updateErr) {
-                    console.error('Error updating additional_services:', updateErr);
+            // Save additional services and marketplace commission fields if provided
+            if (rpcResult?.id) {
+                const updatePayload: any = {};
+                if (appt.additionalServices && appt.additionalServices.length > 0) {
+                    updatePayload.additional_services = appt.additionalServices;
+                }
+                if (appt.bookingSource) {
+                    updatePayload.booking_source = appt.bookingSource;
+                }
+                if (appt.marketplaceCommissionAmount !== undefined && appt.marketplaceCommissionAmount > 0) {
+                    updatePayload.marketplace_commission_amount = appt.marketplaceCommissionAmount;
+                }
+
+                if (Object.keys(updatePayload).length > 0) {
+                    try {
+                        await supabase
+                            .from('appointments')
+                            .update(updatePayload)
+                            .eq('id', rpcResult.id);
+                    } catch (updateErr) {
+                        console.error('Error updating appointment metadata:', updateErr);
+                    }
                 }
             }
 

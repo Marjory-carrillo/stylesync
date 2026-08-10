@@ -713,6 +713,11 @@ export default function Appointments() {
                                                                         {apt.clientName}
                                                                     </button>
                                                                     {blocked && <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[10px] font-bold text-red-500 border border-red-500/20">BLOQUEADO</span>}
+                                                                    {apt.bookingSource === 'marketplace' && (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                            🛒 Buscador CitaLink
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                                 <a href={`tel:${apt.clientPhone}`} className="text-xs font-medium text-muted hover:text-accent transition-colors flex items-center gap-2 w-fit">
                                                                     <div className="p-1 rounded-md bg-white/5"><Phone size={10} /></div> {apt.clientPhone}

@@ -3,12 +3,14 @@ import { useAuthStore } from '../lib/store/authStore';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { CustomSelect } from '../components/CustomSelect';
+
 import {
     CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight,
     CheckCircle2, X, Sparkles, Scissors, Flower2, Stethoscope,
     Infinity as InfinityIcon, Star, Shield, Zap, Clock,
     BarChart2, Smartphone, ChevronDown, Instagram, Facebook,
-    Calculator, Percent, CalendarPlus, MapPin, Calendar
+    Calculator, Percent, CalendarPlus, MapPin, Calendar,
+    Search, Store
 } from 'lucide-react';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -102,6 +104,8 @@ export default function Landing() {
 
     // Interactive ROI Calculator State
     const [roiProCount, setRoiProCount] = useState(3);
+
+
 
     // Navbar scroll
     const [scrolled, setScrolled] = useState(false);
@@ -269,6 +273,9 @@ export default function Landing() {
                             <span className="text-lg sm:text-xl font-black tracking-tight">Cita<span className="text-violet-400">Link</span></span>
                         </div>
                         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+                            <Link to="/explorar" className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors flex items-center gap-1.5">
+                                <Search className="w-4 h-4" /> Buscar Negocios
+                            </Link>
                             <a href="#features" className="hover:text-white transition-colors">Funciones</a>
                             <a href="#how" className="hover:text-white transition-colors">¿Cómo funciona?</a>
                             <a href="#precios" className="hover:text-white transition-colors">Precios</a>
@@ -528,6 +535,38 @@ export default function Landing() {
                             </div>
                         ))}
                     </div>
+                </div>
+            </section>
+
+            {/* ═══════════ MARKETPLACE CTA BANNER ═══════════ */}
+            <section className="py-16 border-b border-white/5 bg-gradient-to-r from-emerald-500/10 via-violet-500/10 to-indigo-500/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+                <div className="max-w-6xl mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+                    <div className="flex flex-col md:flex-row items-center gap-5">
+                        <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-lg shadow-emerald-950/40">
+                            <Store className="w-8 h-8" />
+                        </div>
+                        <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-black uppercase tracking-widest mb-2">
+                                🛒 Directorio CitaLink
+                            </div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                                ¿Buscas cortarte el pelo, hacerte las uñas o consentirte en un spa?
+                            </h3>
+                            <p className="text-sm text-slate-400 mt-1 max-w-xl">
+                                Explora barberías, salones, spas y clínicas cerca de ti. Compara servicios y agenda tu cita en segundos.
+                            </p>
+                        </div>
+                    </div>
+
+                    <Link
+                        to="/explorar"
+                        className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-base transition-all shadow-xl shadow-emerald-950/50 hover:scale-105 shrink-0 flex items-center gap-3 group border border-emerald-400/30"
+                    >
+                        <Search className="w-5 h-5" />
+                        <span>Explorar Negocios</span>
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
                 </div>
             </section>
 

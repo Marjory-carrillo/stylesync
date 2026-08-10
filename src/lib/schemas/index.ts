@@ -106,4 +106,6 @@ export const businessConfigSchema = z.object({
     instagramUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
     facebookUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
     tiktokUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
+    marketplaceEnabled: z.boolean().optional(),
+    marketplaceCommissionRate: z.number().min(0).max(100).optional(),
 });

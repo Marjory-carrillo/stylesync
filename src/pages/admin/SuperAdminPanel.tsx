@@ -1339,6 +1339,11 @@ export default function SuperAdminPanel() {
                                                     +{tenant.extra_employees_paid} PROF. EXTRA
                                                 </span>
                                             )}
+                                            {tenant.marketplace_enabled && (
+                                                 <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.1)]">
+                                                     🛒 MARKETPLACE ({tenant.marketplace_commission_rate || 15}%)
+                                                 </span>
+                                             )}
                                             {tenant.extra_branches_paid > 0 && (
                                                 <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_12px_rgba(147,51,234,0.05)]">
                                                     +{tenant.extra_branches_paid} SUC. EXTRA

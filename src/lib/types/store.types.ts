@@ -57,6 +57,9 @@ export interface Appointment {
     additionalServices?: string[]; // names of add-on services
     finalPriceCharged?: number; // actual price charged upon completion
     addonPricesCharged?: Record<string, number>;
+    bookingSource?: 'direct' | 'marketplace';
+    marketplaceCommissionAmount?: number;
+    commissionBilled?: boolean;
 }
 
 export interface Client {
@@ -161,6 +164,9 @@ export interface BusinessConfig {
     instagramUrl?: string;
     facebookUrl?: string;
     tiktokUrl?: string;
+    coverUrl?: string;
+    marketplaceEnabled?: boolean;
+    marketplaceCommissionRate?: number;
 }
 
 export interface Tenant extends BusinessConfig {

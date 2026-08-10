@@ -58,6 +58,9 @@ export const useTenantData = (overrideTenantId?: string) => {
                 instagramUrl: data.instagram_url || '',
                 facebookUrl: data.facebook_url || '',
                 tiktokUrl: data.tiktok_url || '',
+                coverUrl: data.cover_url || '',
+                marketplaceEnabled: data.marketplace_enabled ?? false,
+                marketplaceCommissionRate: data.marketplace_commission_rate ?? 15.0,
             };
         },
         enabled: !!tenantId,
@@ -90,6 +93,9 @@ export const useTenantData = (overrideTenantId?: string) => {
             if (newData.instagramUrl !== undefined) payload.instagram_url = newData.instagramUrl || null;
             if (newData.facebookUrl !== undefined) payload.facebook_url = newData.facebookUrl || null;
             if (newData.tiktokUrl !== undefined) payload.tiktok_url = newData.tiktokUrl || null;
+            if (newData.coverUrl !== undefined) payload.cover_url = newData.coverUrl || null;
+            if (newData.marketplaceEnabled !== undefined) payload.marketplace_enabled = newData.marketplaceEnabled;
+            if (newData.marketplaceCommissionRate !== undefined) payload.marketplace_commission_rate = newData.marketplaceCommissionRate;
 
             const { error } = await supabase
                 .from('tenants')

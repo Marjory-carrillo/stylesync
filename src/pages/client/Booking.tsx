@@ -812,6 +812,9 @@ export default function Booking() {
         }
 
         const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.filter(n => !n.startsWith('Cotización') && !n.startsWith('Referencia:')).join(' + ') : '');
+        const isMarketplace = (typeof window !== 'undefined' && window.location.search.includes('source=marketplace'));
+        const commRate = (businessConfig as any)?.marketplaceCommissionRate ?? 15.0;
+        const commAmount = isMarketplace ? (selectedService.price * (commRate / 100)) : 0;
 
         const result = await addAppointment({
             clientName: clientName.trim(),
@@ -821,6 +824,8 @@ export default function Booking() {
             date: selectedDate,
             time: selectedTime,
             additionalServices: addOnNames.length > 0 ? addOnNames as string[] : undefined,
+            bookingSource: isMarketplace ? 'marketplace' : 'direct',
+            marketplaceCommissionAmount: commAmount,
         });
 
         setBookingResult(result);
