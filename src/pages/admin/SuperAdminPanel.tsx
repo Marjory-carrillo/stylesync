@@ -307,6 +307,17 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
                             </select>
                         </div>
 
+                        {/* Fin del Período de Gracia */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Fin Período de Gracia</label>
+                            <input
+                                type="date"
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                value={gracePeriodEndsAt}
+                                onChange={e => setGracePeriodEndsAt(e.target.value)}
+                            />
+                        </div>
+
                         {/* Comisión de Marketplace */}
                         <div className="space-y-1.5">
                             <label className="text-[11px] font-bold text-slate-400 ml-1">Comisión del Marketplace</label>
