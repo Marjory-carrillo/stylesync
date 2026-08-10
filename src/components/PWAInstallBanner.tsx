@@ -118,14 +118,13 @@ export default function PWAInstallBanner({ businessName, cleanUrl }: PWAInstallB
                         {/* ── Acciones según dispositivo y modo ── */}
                         {isMarketplaceMode ? (
                             <div className="mt-2.5 space-y-2">
-                                {/* Link limpio visible */}
-                                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10 text-xs text-slate-300 font-mono overflow-hidden">
-                                    <span className="truncate text-emerald-300 text-[11px]">{cleanUrl}</span>
-                                </div>
-
                                 {isIOS ? (
-                                    /* iOS: copiar link + instrucciones */
+                                    /* iOS: mostrar link limpio + instrucciones manuales */
                                     <div className="space-y-1.5">
+                                        {/* Link limpio visible */}
+                                        <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10 overflow-hidden">
+                                            <span className="truncate text-emerald-300 text-[11px] font-mono">{cleanUrl}</span>
+                                        </div>
                                         <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/5">
                                             <Share size={14} className="text-emerald-400 shrink-0" />
                                             <span className="text-xs text-slate-300 font-medium">Copia el link → ábrelo en Safari</span>
@@ -135,26 +134,21 @@ export default function PWAInstallBanner({ businessName, cleanUrl }: PWAInstallB
                                         </div>
                                         <button
                                             onClick={handleCopyLink}
-                                            className={`w-full flex items-center justify-center gap-2 text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg ${copied ? 'bg-emerald-600 text-white shadow-emerald-500/20' : 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30'}`}
+                                            className={`w-full flex items-center justify-center gap-2 text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg ${copied ? 'bg-emerald-600 text-white' : 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30'}`}
                                         >
                                             {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
                                             {copied ? '¡Link copiado!' : 'Copiar link directo'}
                                         </button>
                                     </div>
                                 ) : (
-                                    /* Android: copiar link + instrucción breve */
-                                    <div className="space-y-1.5">
-                                        <p className="text-[11px] text-slate-500">
-                                            Copia el link, ábrelo en Chrome y usa el menú (⋮) → "Agregar a pantalla de inicio"
-                                        </p>
-                                        <button
-                                            onClick={handleCopyLink}
-                                            className={`flex items-center gap-2 text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg ${copied ? 'bg-emerald-600 text-white shadow-emerald-500/20' : 'bg-emerald-500 hover:bg-emerald-600 text-black shadow-emerald-500/20'}`}
-                                        >
-                                            {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
-                                            {copied ? '¡Link copiado!' : 'Copiar link directo'}
-                                        </button>
-                                    </div>
+                                    /* Android en modo Marketplace: prompt nativo, sin instrucciones */
+                                    <button
+                                        onClick={handleInstall}
+                                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-black text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+                                    >
+                                        <Plus size={13} />
+                                        Agregar a pantalla de inicio
+                                    </button>
                                 )}
                             </div>
                         ) : isIOS ? (
