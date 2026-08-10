@@ -145,3 +145,17 @@ export function useMarketplaceAnalytics() {
         staleTime: 1000 * 60 * 2, // 2 minutes
     });
 }
+
+export function useToggleCommissionBilled() {
+    return async (appointmentId: string, currentStatus: boolean) => {
+        const { error } = await supabase
+            .from('appointments')
+            .update({ commission_billed: !currentStatus })
+            .eq('id', appointmentId);
+        if (error) {
+            console.error('[useToggleCommissionBilled] Error updating status:', error);
+            throw error;
+        }
+    };
+}
+

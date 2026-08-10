@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
-import { useMarketplaceAnalytics } from '../../lib/store/queries/useMarketplaceAnalytics';
+import { useMarketplaceAnalytics, useToggleCommissionBilled } from '../../lib/store/queries/useMarketplaceAnalytics';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
@@ -149,6 +149,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
     const [subscriptionType, setSubscriptionType] = useState(tenant.subscription_type || 'manual');
     const [paymentStatus, setPaymentStatus] = useState(tenant.payment_status || 'active');
     const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(formatDateForInput(tenant.grace_period_ends_at));
+    const [marketplaceCommissionRate, setMarketplaceCommissionRate] = useState<number>(tenant.marketplace_commission_rate ?? 15);
     const [isSaving, setIsSaving] = useState(false);
 
     if (!isOpen) return null;
@@ -165,6 +166,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
             subscription_type: subscriptionType,
             payment_status: paymentStatus,
             grace_period_ends_at: gracePeriodEndsAt ? formatAsEndOfDay(gracePeriodEndsAt) : null,
+            marketplace_commission_rate: marketplaceCommissionRate,
         };
         await onSave(tenant.id, payload);
         setIsSaving(false);
@@ -305,15 +307,25 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
                             </select>
                         </div>
 
-                        {/* Fin del Período de Gracia */}
+                        {/* Comisión de Marketplace */}
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Fin Período de Gracia</label>
-                            <input
-                                type="date"
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
-                                value={gracePeriodEndsAt}
-                                onChange={e => setGracePeriodEndsAt(e.target.value)}
-                            />
+                            <label className="text-[11px] font-bold text-slate-400 ml-1">Comisión del Marketplace</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {[10, 15].map((rate) => (
+                                    <button
+                                        key={rate}
+                                        type="button"
+                                        onClick={() => setMarketplaceCommissionRate(rate)}
+                                        className={`py-2.5 px-4 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                                            marketplaceCommissionRate === rate
+                                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                                : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:bg-white/10 hover:text-white'
+                                        }`}
+                                    >
+                                        <span>🛒 {rate}% Comisión</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Expiración del Trial */}
@@ -349,6 +361,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
 export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner, resetOwnerPassword } = useSuperAdmin();
     const { data: mktData, refetch: refetchMarketplaceAnalytics } = useMarketplaceAnalytics();
+    const toggleCommissionBilled = useToggleCommissionBilled();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -1353,9 +1366,24 @@ export default function SuperAdminPanel() {
                                         </div>
                                         <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/5">
                                             <span>{appt.serviceName}</span>
-                                            <span className={`font-bold ${appt.commissionBilled ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                {appt.commissionBilled ? '✓ Cobrada' : 'Pendiente de cobro'}
-                                            </span>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await toggleCommissionBilled(appt.id, appt.commissionBilled);
+                                                        refetchMarketplaceAnalytics();
+                                                        showToast(appt.commissionBilled ? 'Marcada como pendiente' : 'Marcada como cobrada', 'success');
+                                                    } catch (e) {
+                                                        showToast('Error al actualizar estado', 'error');
+                                                    }
+                                                }}
+                                                className={`font-bold px-2 py-0.5 rounded-md border transition-all ${
+                                                    appt.commissionBilled
+                                                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
+                                                        : 'text-slate-400 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                            >
+                                                {appt.commissionBilled ? '✓ Cobrada' : 'Marcar Cobrada'}
+                                            </button>
                                         </div>
                                     </div>
                                 ))
