@@ -154,28 +154,28 @@ export default function Explore() {
             />
 
             {/* ═══════════ HEADER ═══════════ */}
-            <header className="sticky top-0 z-50 backdrop-blur-2xl bg-[#030712]/80 border-b border-white/10 px-4 py-4">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <header className="sticky top-0 z-50 backdrop-blur-2xl bg-[#030712]/90 border-b border-white/10 px-4 py-4">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
                     <Link
                         to="/"
-                        className="flex items-center gap-2 text-slate-400 hover:text-emerald-400 font-bold text-xs sm:text-sm transition-all group"
+                        className="flex items-center gap-2 text-slate-400 hover:text-emerald-400 font-bold text-xs sm:text-sm transition-all group self-start sm:self-auto"
                     >
                         <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         <span>Regresar a CitaLink</span>
                     </Link>
 
                     {/* Logo Center */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center gap-3">
                         <Link to="/" className="flex items-center gap-2 group">
                             <div className="relative">
                                 <div className="absolute inset-0 bg-emerald-500 blur-md opacity-40 group-hover:opacity-100 transition-opacity rounded-full" />
-                                <Zap className="w-6 h-6 text-emerald-400 relative z-10" />
+                                <Zap className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400 relative z-10" />
                             </div>
-                            <span className="text-xl font-black tracking-tighter text-white">
+                            <span className="text-xl sm:text-2xl font-black tracking-tighter text-white">
                                 CITA<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">LINK</span>
                             </span>
                         </Link>
-                        <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                             MARKETPLACE LIVE
                         </span>
@@ -184,68 +184,68 @@ export default function Explore() {
             </header>
 
             {/* ═══════════ MAIN CONTENT ═══════════ */}
-            <main className="max-w-7xl mx-auto px-4 py-12 sm:py-16 relative z-10">
+            <main className="max-w-7xl mx-auto px-4 py-8 sm:py-16 relative z-10">
 
                 {/* Hero Title Section */}
-                <div className="text-center max-w-4xl mx-auto mb-14">
+                <div className="text-center max-w-4xl mx-auto mb-10 sm:mb-14">
                     {/* Badge */}
-                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/15 via-cyan-500/15 to-violet-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black uppercase tracking-widest mb-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md">
+                    <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/15 via-cyan-500/15 to-violet-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] sm:text-xs font-black uppercase tracking-widest mb-6 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur-md">
                         <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
                         DIRECTORIO INTERACTIVO DE CITAS EN TIEMPO REAL
                     </div>
 
-                    <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tighter mb-6 leading-[0.95]">
+                    <h1 className="text-3xl sm:text-6xl md:text-7xl font-black text-white tracking-tighter mb-4 sm:mb-6 leading-[1.05] sm:leading-[0.95]">
                         Encuentra y agenda tu cita{' '}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 drop-shadow-[0_0_35px_rgba(16,185,129,0.4)]">
                             en segundos.
                         </span>
                     </h1>
 
-                    <p className="text-slate-300 text-base sm:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
+                    <p className="text-slate-300 text-sm sm:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
                         Explora barberías, salones de uñas, spas y clínicas cerca de ti. Selecciona tu profesional y confirma sin llamadas ni esperas.
                     </p>
 
                     {/* Stats Ticker */}
-                    <div className="flex items-center justify-center gap-6 sm:gap-12 mt-8 pt-8 border-t border-white/10 text-slate-400 text-xs sm:text-sm font-semibold">
+                    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-12 mt-8 pt-8 border-t border-white/10 text-slate-400 text-xs sm:text-sm font-semibold">
                         <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                             <span>Negocios Verificados</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-cyan-400" />
+                            <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
                             <span>Confirmación Inmediata</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                             <span>Sin Cargos Ocultos</span>
                         </div>
                     </div>
                 </div>
 
                 {/* ═══════════ FUTURISTIC SEARCH & FILTERS ═══════════ */}
-                <div className="max-w-4xl mx-auto mb-16 space-y-6">
+                <div className="max-w-4xl mx-auto mb-12 sm:mb-16 space-y-6">
                     {/* Glowing Search Box */}
                     <div className="relative group">
                         {/* Glow effect behind search */}
                         <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 opacity-30 group-hover:opacity-70 blur-xl transition-all duration-500" />
 
                         <div className="relative flex items-center bg-[#0b1329]/90 border border-white/20 rounded-2xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
-                            <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-400 ml-1">
-                                <Search className="w-6 h-6" />
+                            <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-400 ml-1 shrink-0">
+                                <Search className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Buscar por ciudad (ej. Palmares), servicio (ej. Corte, Uñas) o nombre..."
-                                className="w-full bg-transparent px-4 py-3 text-white placeholder-slate-500 focus:outline-none text-base font-semibold"
+                                className="w-full bg-transparent px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-slate-500 focus:outline-none text-sm sm:text-base font-semibold"
                                 value={directorySearch}
                                 onChange={(e) => setDirectorySearch(e.target.value)}
                             />
                             {directorySearch && (
                                 <button
                                     onClick={() => setDirectorySearch('')}
-                                    className="p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl mr-2 transition-colors"
+                                    className="p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl mr-2 transition-colors shrink-0"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                             )}
                         </div>
@@ -258,10 +258,10 @@ export default function Explore() {
                                 <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
                                 Categorías Destacadas
                             </span>
-                            <span>{publicTenants.length} Negocios encontrados</span>
+                            <span>{publicTenants.length} Negocios</span>
                         </div>
 
-                        <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 flex-wrap">
                             {[
                                 { id: 'all', label: 'Ver Todos', icon: '✨' },
                                 { id: 'barbershop', label: 'Barberías', icon: '✂️' },
@@ -275,7 +275,7 @@ export default function Explore() {
                                     <button
                                         key={cat.id}
                                         onClick={() => setDirectoryCategory(cat.id)}
-                                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 ${
+                                        className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
                                             isActive
                                                 ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-black shadow-[0_0_25px_rgba(16,185,129,0.4)] scale-105'
                                                 : 'bg-[#0f172a]/80 border border-white/10 text-slate-300 hover:border-emerald-500/40 hover:text-white hover:bg-white/5'

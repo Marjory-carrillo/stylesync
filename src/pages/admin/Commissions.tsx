@@ -202,16 +202,24 @@ export default function Commissions() {
             return isWithinInterval(aptDate, { start: startDate, end: endDate });
         });
 
-        const totalsByStylist: Record<number, { revenue: number, count: number }> = {};
+        const mktRate = Number(businessConfig?.marketplaceCommissionRate ?? 15);
+        const totalsByStylist: Record<number, { revenue: number, netRevenue: number, mktDeduction: number, count: number }> = {};
         const apptsByStylist: Record<number, typeof appointments> = {};
         let grandTotalGen = 0;
 
         validAppointments.forEach(apt => {
             const price = getAppointmentPrice(apt);
+            const isMarketplace = apt.bookingSource === 'marketplace';
+            const mktDeduction = isMarketplace ? price * (mktRate / 100) : 0;
+            const netPrice = price - mktDeduction;
             const sId = apt.stylistId!;
 
-            if (!totalsByStylist[sId]) totalsByStylist[sId] = { revenue: 0, count: 0 };
+            if (!totalsByStylist[sId]) {
+                totalsByStylist[sId] = { revenue: 0, netRevenue: 0, mktDeduction: 0, count: 0 };
+            }
             totalsByStylist[sId].revenue += price;
+            totalsByStylist[sId].mktDeduction += mktDeduction;
+            totalsByStylist[sId].netRevenue += netPrice;
             totalsByStylist[sId].count += 1;
             grandTotalGen += price;
 
@@ -222,9 +230,9 @@ export default function Commissions() {
         let grandTotalCommissions = 0;
 
         const entries: CommissionEntry[] = stylists.map(stylist => {
-            const stat = totalsByStylist[stylist.id] || { revenue: 0, count: 0 };
+            const stat = totalsByStylist[stylist.id] || { revenue: 0, netRevenue: 0, mktDeduction: 0, count: 0 };
             const rate = stylist.commissionRate || 0;
-            const earned = stat.revenue * (rate / 100);
+            const earned = stat.netRevenue * (rate / 100);
 
             grandTotalCommissions += earned;
 
@@ -232,6 +240,8 @@ export default function Commissions() {
                 stylistId: stylist.id,
                 stylistName: stylist.name,
                 totalRevenue: stat.revenue,
+                marketplaceDeductionTotal: stat.mktDeduction,
+                netRevenueForCommission: stat.netRevenue,
                 appointmentsCount: stat.count,
                 commissionRate: rate,
                 commissionEarned: earned
@@ -244,7 +254,7 @@ export default function Commissions() {
             totalToPay: grandTotalCommissions,
             apptsByStylist
         };
-    }, [appointments, stylists, services, startDate, endDate]);
+    }, [appointments, stylists, services, startDate, endDate, businessConfig?.marketplaceCommissionRate]);
 
     const handleExportCSV = () => {
         const headers = ['Estilista', 'Citas Completadas', 'Total Generado', '% Comisión', 'Total a Pagar (Comisión)'];
@@ -611,7 +621,11 @@ export default function Commissions() {
                                                                             stylistAppts.map((apt) => {
                                                                                 const svc = services.find(s => s.id === apt.serviceId);
                                                                                 const price = getAppointmentPrice(apt);
-                                                                                const comm = price * (entry.commissionRate / 100);
+                                                                                const isMarketplace = apt.bookingSource === 'marketplace';
+                                                                                const mktRate = Number(businessConfig?.marketplaceCommissionRate ?? 15);
+                                                                                const mktDeduction = isMarketplace ? price * (mktRate / 100) : 0;
+                                                                                const netPrice = price - mktDeduction;
+                                                                                const comm = netPrice * (entry.commissionRate / 100);
                                                                                 const displayAddons = (apt.additionalServices || []).filter((s: string) => !s.startsWith('Referencia:'));
 
                                                                                 return (
@@ -633,6 +647,11 @@ export default function Commissions() {
                                                                                                 <span className="flex items-center gap-1.5 font-medium">
                                                                                                     <Scissors size={12} className="opacity-40" />
                                                                                                     {svc?.name || 'Servicio'}
+                                                                                                    {isMarketplace && (
+                                                                                                        <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase">
+                                                                                                            🛒 Marketplace (-{mktRate}%)
+                                                                                                        </span>
+                                                                                                    )}
                                                                                                 </span>
                                                                                                 {displayAddons.length > 0 && (
                                                                                                     <span className="text-[10px] text-slate-500 pl-5">
@@ -643,6 +662,11 @@ export default function Commissions() {
                                                                                         </td>
                                                                                         <td className="p-3 text-right text-emerald-400 font-bold">
                                                                                             ${price.toFixed(2)}
+                                                                                            {isMarketplace && (
+                                                                                                <div className="text-[10px] font-semibold text-amber-400/90">
+                                                                                                    -${mktDeduction.toFixed(2)} CitaLink
+                                                                                                </div>
+                                                                                            )}
                                                                                         </td>
                                                                                         <td className="p-3 text-right text-accent font-black">
                                                                                             ${comm.toFixed(2)}
@@ -654,6 +678,12 @@ export default function Commissions() {
                                                                     </tbody>
                                                                 </table>
                                                             </div>
+                                                            {entry.marketplaceDeductionTotal && entry.marketplaceDeductionTotal > 0 ? (
+                                                                <div className="p-3 bg-amber-500/10 border-t border-amber-500/20 text-amber-400 text-xs font-bold flex items-center justify-between">
+                                                                    <span>[-] Deducción Total por Comisión Marketplace CitaLink ({businessConfig?.marketplaceCommissionRate || 15}%):</span>
+                                                                    <span className="font-mono font-black text-sm">-${entry.marketplaceDeductionTotal.toFixed(2)} MXN</span>
+                                                                </div>
+                                                            ) : null}
                                                         </div>
                                                     </td>
                                                 </tr>

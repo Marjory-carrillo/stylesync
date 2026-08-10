@@ -333,6 +333,71 @@ export default function SuperAdminMarketplace() {
                     </div>
                 </div>
             </div>
+
+            {/* Dedicated Panel: Citas Canceladas o No Asistidas en Marketplace */}
+            <div className="bg-slate-900/60 border border-red-500/20 p-6 rounded-3xl flex flex-col space-y-4 shadow-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400">
+                            <Filter size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-white uppercase tracking-wider">
+                                🚫 Registro de Citas Canceladas / No Asistidas (Marketplace)
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Citas del Marketplace que fueron canceladas o marcadas como no asistidas (No generan comisión).
+                            </p>
+                        </div>
+                    </div>
+
+                    <span className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider self-start sm:self-auto">
+                        Total: {(mktData?.canceledMarketplaceAppointments || []).length} citas perdidas
+                    </span>
+                </div>
+
+                <div className="space-y-3 overflow-y-auto max-h-72 pr-1 custom-scrollbar">
+                    {(!mktData?.canceledMarketplaceAppointments || mktData.canceledMarketplaceAppointments.length === 0) ? (
+                        <div className="text-center py-10 text-slate-500 text-xs italic">
+                            ¡Excelente! No hay registros de citas canceladas o no asistidas en el Marketplace.
+                        </div>
+                    ) : (
+                        (selectedBusiness === 'all'
+                            ? mktData.canceledMarketplaceAppointments
+                            : mktData.canceledMarketplaceAppointments.filter(a => a.tenantName === selectedBusiness)
+                        ).map((cAppt) => (
+                            <div
+                                key={cAppt.id}
+                                className="bg-slate-950/80 border border-white/5 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                            >
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-red-400 uppercase tracking-tight">
+                                            {cAppt.tenantName}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                                            {cAppt.serviceName} (${cAppt.servicePrice.toFixed(2)})
+                                        </span>
+                                    </div>
+                                    <div className="text-xs text-slate-300 flex items-center gap-2">
+                                        <span className="font-semibold text-slate-200">{cAppt.clientName}</span>
+                                        <span className="text-slate-500">•</span>
+                                        <span className="font-mono text-slate-400">{cAppt.clientPhone || 'Sin tel.'}</span>
+                                        <span className="text-slate-500">•</span>
+                                        <span className="text-slate-400">{cAppt.date} ({cAppt.time})</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 self-start sm:self-auto">
+                                    <span className="text-xs font-black text-red-400 bg-red-500/10 border border-red-500/30 px-3 py-1 rounded-xl uppercase tracking-wider">
+                                        {cAppt.status === 'no_asistio' || cAppt.status === 'no-show' ? 'No Asistió' : 'Cancelada'}
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

@@ -212,6 +212,8 @@ export interface CommissionEntry {
     stylistId: number;
     stylistName: string;
     totalRevenue: number;
+    marketplaceDeductionTotal?: number;
+    netRevenueForCommission?: number;
     appointmentsCount: number;
     commissionRate: number;
     commissionEarned: number;

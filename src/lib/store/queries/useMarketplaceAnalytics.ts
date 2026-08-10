@@ -30,6 +30,7 @@ export interface MarketplaceAnalyticsSummary {
     totalAppointments: number;
     totalCommissions: number;
     marketplaceAppointments: MarketplaceAppointment[];
+    canceledMarketplaceAppointments: MarketplaceAppointment[];
 }
 
 export function downloadCommissionReportCSV(
@@ -106,6 +107,7 @@ export function useMarketplaceAnalytics() {
                     totalAppointments: 0,
                     totalCommissions: 0,
                     marketplaceAppointments: [],
+                    canceledMarketplaceAppointments: [],
                 };
             }
 
@@ -144,6 +146,7 @@ export function useMarketplaceAnalytics() {
 
             // 2. Fetch Marketplace Appointments
             let marketplaceAppointments: MarketplaceAppointment[] = [];
+            let canceledMarketplaceAppointments: MarketplaceAppointment[] = [];
             let totalCommissions = 0;
 
             try {
@@ -172,10 +175,23 @@ export function useMarketplaceAnalytics() {
                     .order('created_at', { ascending: false });
 
                 if (!apptError && apptData) {
-                    marketplaceAppointments = apptData.map((a: any) => {
+                    const now = new Date();
+
+                    apptData.forEach((a: any) => {
                         const comm = Number(a.marketplace_commission_amount || 0);
-                        totalCommissions += comm;
-                        return {
+                        const status = (a.status || 'confirmed').toLowerCase();
+
+                        // Verificar si está completada (o autocompletada por horario vencido)
+                        let isCompleted = status === 'completada';
+                        if (!isCompleted && status === 'confirmada') {
+                            const apptEnd = new Date(`${a.date}T${a.time}`);
+                            apptEnd.setMinutes(apptEnd.getMinutes() + 45); // Estimado 45m si no especificado
+                            if (now >= apptEnd) {
+                                isCompleted = true;
+                            }
+                        }
+
+                        const mappedObj: MarketplaceAppointment = {
                             id: String(a.id),
                             tenantId: a.tenant_id,
                             tenantName: tenantNameMap[a.tenant_id] || 'Negocio Desconocido',
@@ -190,6 +206,16 @@ export function useMarketplaceAnalytics() {
                             commissionBilled: a.commission_billed || false,
                             bookedAt: a.booked_at || a.created_at,
                         };
+
+                        if (status === 'cancelada' || status === 'no_asistio' || status === 'no-show') {
+                            canceledMarketplaceAppointments.push(mappedObj);
+                        } else if (isCompleted) {
+                            totalCommissions += comm;
+                            marketplaceAppointments.push(mappedObj);
+                        } else {
+                            // Citas agendadas aún no atendidas
+                            marketplaceAppointments.push(mappedObj);
+                        }
                     });
                 }
             } catch (err) {
@@ -202,6 +228,7 @@ export function useMarketplaceAnalytics() {
                 totalAppointments: marketplaceAppointments.length,
                 totalCommissions,
                 marketplaceAppointments,
+                canceledMarketplaceAppointments,
             };
         },
         enabled: !!isSuperAdmin,
