@@ -959,34 +959,13 @@ export default function Settings() {
 
                             {infoForm.marketplaceEnabled && (
                                 <div className="p-4 bg-emerald-950/40 rounded-xl border border-emerald-500/20 text-xs text-slate-300 space-y-3 animate-fade-in">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-bold text-emerald-400 text-sm">
+                                    <div className="flex items-center justify-between font-bold text-emerald-400 text-sm">
                                         <span className="flex items-center gap-2">
-                                            <DollarSign size={16} /> Tasa de Comisión de Marketplace:
+                                            <DollarSign size={16} /> Términos del Plan de Crecimiento:
                                         </span>
-                                        <div className="flex items-center gap-2">
-                                            {[10, 15].map((rate) => {
-                                                const currentRate = infoForm.marketplaceCommissionRate ?? 15;
-                                                const isSelected = currentRate === rate;
-                                                return (
-                                                    <button
-                                                        key={rate}
-                                                        type="button"
-                                                        onClick={async () => {
-                                                            setInfoForm({ ...infoForm, marketplaceCommissionRate: rate });
-                                                            await updateBusinessConfig({ marketplaceCommissionRate: rate });
-                                                            showToast(`Comisión del Marketplace configurada al ${rate}%`, 'success');
-                                                        }}
-                                                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border ${
-                                                            isSelected
-                                                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-black border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-105'
-                                                                : 'bg-slate-900/80 text-slate-400 border-white/10 hover:text-white hover:border-emerald-500/30'
-                                                        }`}
-                                                    >
-                                                        {rate}% Comisión
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                        <span className="px-3 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                            🛒 {infoForm.marketplaceCommissionRate ?? 15}% Comisión
+                                        </span>
                                     </div>
                                     <p className="leading-relaxed">
                                         • Las reservas hechas desde tu enlace directo (redes sociales / WhatsApp) siguen teniendo <strong>0% de comisión</strong>.
@@ -995,7 +974,7 @@ export default function Settings() {
                                         • Únicamente las citas registradas desde el <strong>Buscador Público de CitaLink</strong> generan una pequeña comisión del <strong>{infoForm.marketplaceCommissionRate ?? 15}%</strong> sobre el total del servicio.
                                     </p>
                                     <p className="leading-relaxed text-slate-400 italic">
-                                        Las comisiones acumuladas del mes se sumarán de manera clara en tu factura/corte mensual.
+                                        Las comisiones acumuladas del mes se sumarán de manera clara en tu factura/corte mensual. La tasa asignada es administrada de manera exclusiva por la plataforma.
                                     </p>
                                 </div>
                             )}
