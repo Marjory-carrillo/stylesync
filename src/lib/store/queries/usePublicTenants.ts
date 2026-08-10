@@ -18,6 +18,7 @@ export interface PublicTenant {
     tiktokUrl?: string;
     createdAt?: string;
     servicesNames?: string[];
+    schedule?: any;
 }
 
 // High quality fallback stock cover photos for categories
@@ -69,9 +70,10 @@ export function usePublicTenants(searchTerm: string = '', categoryFilter: string
 
             if (!data || data.length === 0) return [];
 
-            // Cargar los nombres de servicios de todos los tenants para la búsqueda inteligente por servicio
+            // Cargar los nombres de servicios y horarios de todos los tenants
             const tenantIds = data.map((t: any) => t.id);
             let servicesMap: Record<string, string[]> = {};
+            let scheduleMap: Record<string, any> = {};
 
             if (tenantIds.length > 0) {
                 try {
@@ -86,8 +88,19 @@ export function usePublicTenants(searchTerm: string = '', categoryFilter: string
                             if (s.name) servicesMap[s.tenant_id].push(s.name);
                         });
                     }
+
+                    const { data: scheduleData } = await supabase
+                        .from('schedule_config')
+                        .select('tenant_id, schedule')
+                        .in('tenant_id', tenantIds);
+
+                    if (scheduleData) {
+                        scheduleData.forEach((sc: any) => {
+                            scheduleMap[sc.tenant_id] = sc.schedule;
+                        });
+                    }
                 } catch (svcErr) {
-                    console.warn('[usePublicTenants] Warning fetching tenant services:', svcErr);
+                    console.warn('[usePublicTenants] Warning fetching tenant metadata:', svcErr);
                 }
             }
 
@@ -112,6 +125,7 @@ export function usePublicTenants(searchTerm: string = '', categoryFilter: string
                     tiktokUrl: t.tiktok_url || '',
                     createdAt: t.created_at,
                     servicesNames: servicesMap[t.id] || [],
+                    schedule: scheduleMap[t.id] || null,
                 };
             });
 

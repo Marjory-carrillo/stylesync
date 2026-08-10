@@ -4,9 +4,115 @@ import { usePublicTenants, type PublicTenant } from '../lib/store/queries/usePub
 import { supabase } from '../lib/supabaseClient';
 import {
     Search, Store, MapPin, ArrowRight, Instagram, Facebook,
-    X, ChevronLeft, Sparkles, Zap, ShieldCheck, Clock,
+    X, ChevronLeft, Sparkles, Zap, ShieldCheck, Clock, ChevronDown,
     Compass, CheckCircle2, SlidersHorizontal, Star
 } from 'lucide-react';
+
+function BusinessScheduleAccordion({ schedule }: { schedule?: any }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const daysOrder = [
+        { key: 'monday', label: 'lunes' },
+        { key: 'tuesday', label: 'martes' },
+        { key: 'wednesday', label: 'miércoles' },
+        { key: 'thursday', label: 'jueves' },
+        { key: 'friday', label: 'viernes' },
+        { key: 'saturday', label: 'sábado' },
+        { key: 'sunday', label: 'domingo' },
+    ];
+
+    const defaultSchedule = {
+        monday: { open: true, start: '10:00', end: '20:00' },
+        tuesday: { open: true, start: '10:00', end: '20:00' },
+        wednesday: { open: true, start: '10:00', end: '20:00' },
+        thursday: { open: true, start: '10:00', end: '20:00' },
+        friday: { open: true, start: '10:00', end: '20:00' },
+        saturday: { open: true, start: '10:00', end: '18:00' },
+        sunday: { open: false, start: '10:00', end: '18:00' },
+    };
+
+    const currentSchedule = schedule || defaultSchedule;
+
+    const now = new Date();
+    const jsDay = now.getDay();
+    const dayKeysMap: Record<number, string> = {
+        0: 'sunday',
+        1: 'monday',
+        2: 'tuesday',
+        3: 'wednesday',
+        4: 'thursday',
+        5: 'friday',
+        6: 'saturday',
+    };
+    const todayKey = dayKeysMap[jsDay] || 'monday';
+    const todayData = currentSchedule[todayKey] || { open: false, start: '10:00', end: '20:00' };
+
+    const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const isOpenNow = todayData.open && currentHHMM >= todayData.start && currentHHMM <= todayData.end;
+
+    return (
+        <div className="bg-slate-950/70 border border-white/10 rounded-xl p-3 space-y-2 transition-all my-1">
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsOpen(!isOpen);
+                }}
+                className="w-full flex items-center justify-between text-xs font-medium text-slate-200 hover:text-white transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    <Clock size={15} className={isOpenNow ? 'text-emerald-400' : 'text-amber-400'} />
+                    {isOpenNow ? (
+                        <span>
+                            <strong className="text-emerald-400 font-bold">Abierto</strong> hasta las {todayData.end}
+                        </span>
+                    ) : (
+                        <span>
+                            <strong className="text-slate-400 font-bold">Cerrado</strong>
+                            {todayData.open && currentHHMM < todayData.start
+                                ? ` · Abre a las ${todayData.start}`
+                                : ''}
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-1 text-slate-400 hover:text-white">
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                </div>
+            </button>
+
+            {isOpen && (
+                <div className="pt-2 border-t border-white/10 space-y-1.5 text-xs animate-fade-in">
+                    {daysOrder.map((dayItem) => {
+                        const dayData = currentSchedule[dayItem.key] || { open: false, start: '10:00', end: '20:00' };
+                        const isToday = dayItem.key === todayKey;
+
+                        return (
+                            <div
+                                key={dayItem.key}
+                                className={`flex items-center justify-between py-1 px-2 rounded-lg transition-colors ${
+                                    isToday ? 'bg-white/10 font-bold text-white' : 'text-slate-300'
+                                }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className={`w-2 h-2 rounded-full ${
+                                            dayData.open ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-slate-500'
+                                        }`}
+                                    />
+                                    <span className="capitalize">{dayItem.label}</span>
+                                </div>
+                                <span className={dayData.open ? 'font-mono text-slate-200 font-semibold' : 'text-slate-500 italic'}>
+                                    {dayData.open ? `${dayData.start} - ${dayData.end}` : 'Cerrado'}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function Explore() {
     const [directorySearch, setDirectorySearch] = useState('');
@@ -268,24 +374,7 @@ export default function Explore() {
                                         )}
                                     </div>
 
-                                    {/* Service Badges Preview */}
-                                    {t.servicesNames && t.servicesNames.length > 0 && (
-                                        <div className="flex flex-wrap gap-1.5 pt-1">
-                                            {t.servicesNames.slice(0, 3).map((sName, sIdx) => (
-                                                <span
-                                                    key={sIdx}
-                                                    className="text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/20 px-2.5 py-1 rounded-lg"
-                                                >
-                                                    ✨ {sName}
-                                                </span>
-                                            ))}
-                                            {t.servicesNames.length > 3 && (
-                                                <span className="text-[10px] font-bold text-slate-400 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
-                                                    +{t.servicesNames.length - 3} más
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
+
 
                                     {/* Description */}
                                     {t.description ? (
@@ -297,6 +386,9 @@ export default function Explore() {
                                             Servicios profesionales con agendamiento inmediato en línea.
                                         </p>
                                     )}
+
+                                    {/* Collapsible Business Hours Accordion (Contraído por defecto) */}
+                                    <BusinessScheduleAccordion schedule={t.schedule} />
                                 </div>
 
                                 {/* ── Footer Card: Social Links + Glowing Action Button ── */}

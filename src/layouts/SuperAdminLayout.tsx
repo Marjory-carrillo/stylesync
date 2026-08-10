@@ -1,4 +1,4 @@
-import { Building2, Paintbrush, Settings as SettingsIcon, LogOut, Inbox, Infinity as InfinityIcon, Menu, X, Target } from 'lucide-react';
+import { Building2, Paintbrush, Settings as SettingsIcon, LogOut, Inbox, Infinity as InfinityIcon, Menu, X, Target, ShoppingBag } from 'lucide-react';
 import { useAuthStore } from '../lib/store/authStore';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -46,6 +46,7 @@ export default function SuperAdminLayout() {
 
     const navItems = [
         { path: '/super-admin', icon: Building2, label: 'Negocios' },
+        { path: '/super-admin/marketplace', icon: ShoppingBag, label: '🛒 Marketplace & Comisiones' },
         { path: '/super-admin/cazador', icon: Target, label: '🎯 Cazador de Campo' },
         { path: '/super-admin/prospectos', icon: Inbox, label: 'Prospectos Web' },
         { path: '/super-admin/branding', icon: Paintbrush, label: 'Branding' },
