@@ -1378,14 +1378,14 @@ export default function Dashboard() {
                                              <div className="mt-2 text-[11px] text-amber-200/90 bg-amber-500/10 rounded-xl border border-amber-500/20 overflow-hidden">
                                                  <button
                                                      type="button"
-                                                     onClick={() => setExpandedServiceApptId(expandedServiceApptId === apt.id ? null : apt.id)}
+                                                     onClick={() => setExpandedServiceApptId(expandedServiceApptId === `top-quote-${apt.id}` ? null : `top-quote-${apt.id}`)}
                                                      className="w-full p-2.5 flex items-center justify-between gap-2 hover:bg-amber-500/10 transition-colors text-left"
                                                  >
                                                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-400">Detalles de cotización ({apt.additionalServices.length})</span>
-                                                     <ChevronDown size={14} className={`text-amber-400 transition-transform duration-300 ${expandedServiceApptId === apt.id ? 'rotate-180' : ''}`} />
+                                                     <ChevronDown size={14} className={`text-amber-400 transition-transform duration-300 ${expandedServiceApptId === `top-quote-${apt.id}` ? 'rotate-180' : ''}`} />
                                                  </button>
 
-                                                 {expandedServiceApptId === apt.id && (
+                                                 {expandedServiceApptId === `top-quote-${apt.id}` && (
                                                      <div className="px-2.5 pb-2.5 pt-1 border-t border-amber-500/20 space-y-1 animate-fade-in">
                                                          {apt.additionalServices.map((extra: string, idx: number) => {
                                                              if (extra.startsWith('Referencia:')) {
@@ -1797,9 +1797,9 @@ export default function Dashboard() {
                                                     </div>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
                                                         <button
-                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}
+                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === `quote-${appt.id}` ? null : `quote-${appt.id}`)}
                                                              className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
-                                                                 expandedServiceApptId === appt.id
+                                                                 expandedServiceApptId === `quote-${appt.id}`
                                                                      ? 'bg-accent/20 border-accent/40 text-accent'
                                                                      : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
                                                              }`}
@@ -1807,7 +1807,7 @@ export default function Dashboard() {
                                                          >
                                                              <Scissors size={12} className="text-accent shrink-0" />
                                                              <span>{svc?.name}</span>
-                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === appt.id ? 'rotate-180 text-accent' : ''}`} />
+                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `quote-${appt.id}` ? 'rotate-180 text-accent' : ''}`} />
                                                          </button>
                                                         {(() => {
                                                             const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
@@ -1828,7 +1828,7 @@ export default function Dashboard() {
                                                     </div>
 
                                                     {/* Desplegable de detalles de servicio */}
-                                                    {expandedServiceApptId === appt.id && (
+                                                    {expandedServiceApptId === `quote-${appt.id}` && (
                                                         <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-accent/30 text-xs space-y-1 animate-fade-in relative z-10">
                                                             <div className="text-[9px] font-black uppercase tracking-wider text-accent border-b border-white/10 pb-1 flex items-center justify-between">
                                                                 <span>Desglose Detallado</span>
@@ -2054,9 +2054,9 @@ export default function Dashboard() {
                                                     </div>
                                                     <div className="flex flex-wrap items-center gap-3">
                                                         <button
-                                                            onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}
+                                                            onClick={() => setExpandedServiceApptId(expandedServiceApptId === `today-${appt.id}` ? null : `today-${appt.id}`)}
                                                             className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
-                                                                expandedServiceApptId === appt.id
+                                                                expandedServiceApptId === `today-${appt.id}`
                                                                     ? 'bg-accent/20 border-accent/40 text-accent'
                                                                     : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
                                                             }`}
@@ -2064,7 +2064,7 @@ export default function Dashboard() {
                                                         >
                                                             <Scissors size={12} className="text-accent shrink-0" />
                                                             <span>{svc?.name}</span>
-                                                            <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === appt.id ? 'rotate-180 text-accent' : ''}`} />
+                                                            <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `today-${appt.id}` ? 'rotate-180 text-accent' : ''}`} />
                                                         </button>
                                                         {(() => {
                                                             const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
@@ -2125,7 +2125,7 @@ export default function Dashboard() {
                                                     </div>
                                                     
                                                      {/* Desplegable de detalles de servicio */}
-                                                     {expandedServiceApptId === appt.id && (
+                                                     {expandedServiceApptId === `today-${appt.id}` && (
                                                          <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-accent/30 text-xs space-y-1 animate-fade-in relative z-10 max-w-sm">
                                                              <div className="text-[9px] font-black uppercase tracking-wider text-accent border-b border-white/10 pb-1 flex items-center justify-between">
                                                                  <span>Desglose Detallado</span>
@@ -2322,9 +2322,9 @@ export default function Dashboard() {
                                                      </div>
                                                     <div className="text-[10px] font-bold text-slate-500 flex items-center flex-wrap gap-3 tracking-wide">
                                                         <button
-                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}
+                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === `tomorrow-${appt.id}` ? null : `tomorrow-${appt.id}`)}
                                                              className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
-                                                                 expandedServiceApptId === appt.id
+                                                                 expandedServiceApptId === `tomorrow-${appt.id}`
                                                                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
                                                                      : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
                                                              }`}
@@ -2332,7 +2332,7 @@ export default function Dashboard() {
                                                          >
                                                              <Scissors size={12} className="text-emerald-400 shrink-0" />
                                                              <span>{svc?.name}</span>
-                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === appt.id ? 'rotate-180 text-emerald-400' : ''}`} />
+                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `tomorrow-${appt.id}` ? 'rotate-180 text-emerald-400' : ''}`} />
                                                          </button>
                                                         {(() => {
                                                             const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
@@ -2369,7 +2369,7 @@ export default function Dashboard() {
                                                     </div>
 
                                                     {/* Desplegable de detalles de servicio */}
-                                                    {expandedServiceApptId === appt.id && (
+                                                    {expandedServiceApptId === `tomorrow-${appt.id}` && (
                                                          <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/30 text-xs space-y-1 animate-fade-in relative z-10 max-w-sm">
                                                              <div className="text-[9px] font-black uppercase tracking-wider text-emerald-400 border-b border-white/10 pb-1 flex items-center justify-between">
                                                                  <span>Desglose Detallado</span>
