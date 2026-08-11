@@ -79,6 +79,7 @@ export default function SuperAdminMarketplace() {
     const modalBizAppts = appointments.filter(a => a.tenantName === statementBusiness);
     const modalBizCanceledAppts = (mktData?.canceledMarketplaceAppointments || []).filter(a => a.tenantName === statementBusiness);
     
+    const modalBizCommRate = modalBizAppts[0]?.commissionRate || 15;
     const modalBizCompletedAppts = modalBizAppts.filter(a => a.isCompleted || !a.isFuture);
     const modalBizSales = modalBizCompletedAppts.reduce((acc, a) => acc + a.servicePrice, 0);
     const modalBizTotalComm = modalBizCompletedAppts.reduce((acc, a) => acc + a.commissionAmount, 0);
@@ -107,7 +108,7 @@ export default function SuperAdminMarketplace() {
                             </span>
                         </div>
                         <p className="text-slate-400 text-xs sm:text-sm font-medium tracking-wide mt-1">
-                            Gestión de Citas agendadas en el buscador público y Cobranza de Comisiones (10% / 15%)
+                            Gestión de Citas agendadas en el buscador público y Cobranza de Comisiones por Negocio (10% / 15%)
                         </p>
                     </div>
                 </div>
@@ -123,10 +124,10 @@ export default function SuperAdminMarketplace() {
                     <button
                         onClick={() => downloadCommissionReportCSV(appointments, selectedBusiness)}
                         className="px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2"
-                        title="Exportar archivo CSV filtrado"
+                        title="Exportar archivo Excel/CSV en tabla ordenada"
                     >
                         <Download size={16} className="text-emerald-400" />
-                        <span>CSV ({selectedBusiness === 'all' ? 'Todos' : selectedBusiness})</span>
+                        <span>Descargar Excel ({selectedBusiness === 'all' ? 'Todos' : selectedBusiness})</span>
                     </button>
                     <button
                         onClick={() => refetch && refetch()}
@@ -346,6 +347,9 @@ export default function SuperAdminMarketplace() {
                                             <span className="text-sm font-black text-white uppercase tracking-tight">
                                                 {appt.tenantName}
                                             </span>
+                                            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                                                Comisión {appt.commissionRate || 15}%
+                                            </span>
                                             <span className="text-[10px] font-extrabold text-slate-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
                                                 {appt.serviceName} (${appt.servicePrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })})
                                             </span>
@@ -367,7 +371,9 @@ export default function SuperAdminMarketplace() {
 
                                     <div className="flex items-center gap-4 border-t sm:border-t-0 pt-3 sm:pt-0 border-white/5 shrink-0">
                                         <div className="text-right">
-                                            <p className="text-[10px] uppercase font-bold text-slate-500">Comisión</p>
+                                            <p className="text-[10px] uppercase font-bold text-slate-500">
+                                                Comisión ({appt.commissionRate || 15}%)
+                                            </p>
                                             <p className="text-base font-black text-amber-400">
                                                 ${appt.commissionAmount.toFixed(2)} MXN
                                             </p>
@@ -496,9 +502,52 @@ export default function SuperAdminMarketplace() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
                     <style>{`
                         @media print {
-                            body * { visibility: hidden; }
-                            .printable-statement, .printable-statement * { visibility: visible; }
-                            .printable-statement { position: absolute; left: 0; top: 0; width: 100%; color: black !important; background: white !important; padding: 20px !important; }
+                            body * { visibility: hidden !important; }
+                            .printable-statement, .printable-statement * { visibility: visible !important; }
+                            .printable-statement {
+                                position: absolute !important;
+                                left: 0 !important;
+                                top: 0 !important;
+                                width: 100% !important;
+                                color: #0f172a !important;
+                                background: #ffffff !important;
+                                padding: 24px !important;
+                                box-shadow: none !important;
+                            }
+                            .printable-statement h2,
+                            .printable-statement h3,
+                            .printable-statement h4,
+                            .printable-statement th,
+                            .printable-statement td,
+                            .printable-statement span,
+                            .printable-statement p,
+                            .printable-statement div {
+                                color: #0f172a !important;
+                                text-shadow: none !important;
+                            }
+                            .printable-statement table {
+                                border-collapse: collapse !important;
+                                width: 100% !important;
+                                border: 1px solid #cbd5e1 !important;
+                            }
+                            .printable-statement th {
+                                background-color: #f1f5f9 !important;
+                                color: #0f172a !important;
+                                border: 1px solid #cbd5e1 !important;
+                                padding: 8px 12px !important;
+                                font-weight: 800 !important;
+                            }
+                            .printable-statement td {
+                                border: 1px solid #e2e8f0 !important;
+                                padding: 8px 12px !important;
+                                color: #0f172a !important;
+                            }
+                            .printable-statement .bg-white\/\\[0\.02\\],
+                            .printable-statement .bg-slate-950,
+                            .printable-statement .bg-slate-900 {
+                                background-color: #f8fafc !important;
+                                border-color: #cbd5e1 !important;
+                            }
                             .no-print { display: none !important; }
                         }
                     `}</style>
@@ -546,9 +595,12 @@ export default function SuperAdminMarketplace() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-2xl font-black text-emerald-400 tracking-tight uppercase">CitaLink</span>
                                         <span className="text-xs bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded uppercase">Estado de Cuenta</span>
+                                        <span className="text-xs bg-amber-500/20 text-amber-300 font-black px-2.5 py-0.5 rounded uppercase border border-amber-500/30">
+                                            Comisión Acordada: {modalBizCommRate}%
+                                        </span>
                                     </div>
                                     <h2 className="text-xl font-bold text-white mt-1 uppercase tracking-wider">{statementBusiness}</h2>
-                                    <p className="text-xs text-slate-400">Resumen de Comisiones por Citas agendadas vía Marketplace</p>
+                                    <p className="text-xs text-slate-400">Resumen de Comisiones ({modalBizCommRate}%) por Citas agendadas vía Marketplace</p>
                                 </div>
                                 <div className="text-left sm:text-right">
                                     <p className="text-xs text-slate-400 font-medium">Fecha de Emisión:</p>
@@ -584,7 +636,7 @@ export default function SuperAdminMarketplace() {
                                     <p className="text-xl font-black text-amber-400 mt-0.5">
                                         ${modalBizPendingComm.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                                     </p>
-                                    <p className="text-[10px] text-amber-300">A liquidar a CitaLink</p>
+                                    <p className="text-[10px] text-amber-300">A liquidar a CitaLink ({modalBizCommRate}%)</p>
                                 </div>
                             </div>
 
@@ -607,8 +659,8 @@ export default function SuperAdminMarketplace() {
                                                     <th className="p-3">Fecha & Hora</th>
                                                     <th className="p-3">Cliente</th>
                                                     <th className="p-3">Servicio</th>
-                                                    <th className="p-3 text-right">Monto</th>
-                                                    <th className="p-3 text-right">Comisión</th>
+                                                    <th className="p-3 text-right">Monto Servicio</th>
+                                                    <th className="p-3 text-right">Comisión ({modalBizCommRate}%)</th>
                                                     <th className="p-3 text-center">Estado Cobro</th>
                                                 </tr>
                                             </thead>
@@ -654,7 +706,7 @@ export default function SuperAdminMarketplace() {
 
                             {/* Pie de página oficial para el negocio */}
                             <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center text-[10px] text-slate-500 gap-2">
-                                <p>CitaLink SaaS HQ • Estado de Cuenta automatizado para {statementBusiness}</p>
+                                <p>CitaLink SaaS HQ • Estado de Cuenta automatizado para {statementBusiness} (Tasa: {modalBizCommRate}%)</p>
                                 <p>Soporte CitaLink: contacto@citalink.app</p>
                             </div>
                         </div>
@@ -666,7 +718,7 @@ export default function SuperAdminMarketplace() {
                                 className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2"
                             >
                                 <Download size={16} className="text-emerald-400" />
-                                <span>Descargar Excel (CSV)</span>
+                                <span>Descargar Excel (CSV Tabla)</span>
                             </button>
 
                             <div className="flex items-center gap-3">

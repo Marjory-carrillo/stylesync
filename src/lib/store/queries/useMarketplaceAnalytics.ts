@@ -19,6 +19,7 @@ export interface MarketplaceAppointment {
     date: string;
     time: string;
     status: string;
+    commissionRate: number;
     commissionAmount: number;
     commissionBilled: boolean;
     bookedAt: string;
@@ -53,9 +54,13 @@ export function downloadCommissionReportCSV(
         return;
     }
 
+    const isSingleBusiness = businessFilterName && businessFilterName !== 'all';
+    const bizCommRate = isSingleBusiness && filtered[0]?.commissionRate ? filtered[0].commissionRate : 15;
+
     const headers = [
         'ID Cita',
         'Negocio / Salón',
+        'Porcentaje Comisión (%)',
         'Cliente',
         'Teléfono Cliente',
         'Fecha Cita',
@@ -71,6 +76,7 @@ export function downloadCommissionReportCSV(
     const rows = filtered.map(a => [
         `"${a.id}"`,
         `"${a.tenantName.replace(/"/g, '""')}"`,
+        `"${a.commissionRate || 15}%"`,
         `"${a.clientName.replace(/"/g, '""')}"`,
         `"${a.clientPhone}"`,
         `"${a.date}"`,
@@ -83,12 +89,41 @@ export function downloadCommissionReportCSV(
         `"${a.bookedAt}"`
     ]);
 
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    // Instrucción sep=, para forzar a Excel a abrir en columnas ordenadas
+    const csvLines: string[] = ['sep=,'];
+
+    if (isSingleBusiness) {
+        const totalSales = filtered.reduce((acc, a) => acc + a.servicePrice, 0);
+        const totalComm = filtered.reduce((acc, a) => acc + a.commissionAmount, 0);
+        const billedComm = filtered.filter(a => a.commissionBilled).reduce((acc, a) => acc + a.commissionAmount, 0);
+        const pendingComm = totalComm - billedComm;
+
+        csvLines.push(`"REPORTE OFICIAL - ESTADO DE CUENTA DE COMISIONES CITALINK"`);
+        csvLines.push(`"Negocio: ${businessFilterName.replace(/"/g, '""')}"`);
+        csvLines.push(`"Tasa de Comisión Negocio: ${bizCommRate}%"`);
+        csvLines.push(`"Fecha de Emisión: ${new Date().toLocaleDateString('es-MX')}"`);
+        csvLines.push(`"Total Citas Registradas: ${filtered.length}"`);
+        csvLines.push(`"Ventas Totales Generadas: $${totalSales.toFixed(2)} MXN"`);
+        csvLines.push(`"Comisiones Totales: $${totalComm.toFixed(2)} MXN"`);
+        csvLines.push(`"Comisiones Liquidadas: $${billedComm.toFixed(2)} MXN"`);
+        csvLines.push(`"SALDO PENDIENTE A COBRAR: $${pendingComm.toFixed(2)} MXN"`);
+        csvLines.push(`""`);
+    } else {
+        csvLines.push(`"REPORTE GENERAL DE COMISIONES DE MARKETPLACE - CITALINK"`);
+        csvLines.push(`"Fecha de Emisión: ${new Date().toLocaleDateString('es-MX')}"`);
+        csvLines.push(`"Total Citas: ${filtered.length}"`);
+        csvLines.push(`""`);
+    }
+
+    csvLines.push(headers.join(','));
+    rows.forEach(r => csvLines.push(r.join(',')));
+
+    const csvContent = '\uFEFF' + csvLines.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    const filename = businessFilterName && businessFilterName !== 'all'
-        ? `Estado_de_Cuenta_CitaLink_${businessFilterName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`
+    const filename = isSingleBusiness
+        ? `Estado_de_Cuenta_${businessFilterName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`
         : `Estado_de_Cuenta_Marketplace_CitaLink_${new Date().toISOString().slice(0, 10)}.csv`;
 
     link.setAttribute('href', url);
@@ -288,6 +323,7 @@ export function useMarketplaceAnalytics() {
                             date: a.date,
                             time: a.time,
                             status: a.status || 'confirmada',
+                            commissionRate: commRate,
                             commissionAmount: comm,
                             commissionBilled: a.commission_billed || false,
                             bookedAt: a.booked_at || a.created_at,
