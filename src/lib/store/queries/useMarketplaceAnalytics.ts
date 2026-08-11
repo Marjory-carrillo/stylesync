@@ -22,6 +22,8 @@ export interface MarketplaceAppointment {
     commissionAmount: number;
     commissionBilled: boolean;
     bookedAt: string;
+    isCompleted: boolean;
+    isFuture: boolean;
 }
 
 export interface MarketplaceAnalyticsSummary {
@@ -61,7 +63,8 @@ export function downloadCommissionReportCSV(
         'Servicio Reservado',
         'Monto Servicio (MXN)',
         'Comisión CitaLink (MXN)',
-        'Estatus Cobro',
+        'Estado Cita',
+        'Estado Cobro Comisión',
         'Fecha de Reserva'
     ];
 
@@ -75,7 +78,8 @@ export function downloadCommissionReportCSV(
         `"${a.serviceName.replace(/"/g, '""')}"`,
         a.servicePrice.toFixed(2),
         a.commissionAmount.toFixed(2),
-        a.commissionBilled ? 'COBRADA' : 'PENDIENTE',
+        a.isFuture ? 'Cita Próxima (Por atender)' : (a.isCompleted ? 'Atendida / Completada' : a.status),
+        a.commissionBilled ? 'COBRADA' : (a.isFuture ? 'POR ATENDER (SIN COBRAR)' : 'PENDIENTE DE COBRO'),
         `"${a.bookedAt}"`
     ]);
 
@@ -176,20 +180,32 @@ export function useMarketplaceAnalytics() {
 
                 if (!apptError && apptData) {
                     const now = new Date();
+                    const yyyy = now.getFullYear();
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const dd = String(now.getDate()).padStart(2, '0');
+                    const todayStr = `${yyyy}-${mm}-${dd}`;
+                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
                     apptData.forEach((a: any) => {
                         const comm = Number(a.marketplace_commission_amount || 0);
-                        const status = (a.status || 'confirmed').toLowerCase();
+                        const status = (a.status || 'confirmada').toLowerCase();
 
-                        // Verificar si está completada (o autocompletada por horario vencido)
-                        let isCompleted = status === 'completada';
-                        if (!isCompleted && status === 'confirmada') {
-                            const apptEnd = new Date(`${a.date}T${a.time}`);
-                            apptEnd.setMinutes(apptEnd.getMinutes() + 45); // Estimado 45m si no especificado
-                            if (now >= apptEnd) {
-                                isCompleted = true;
+                        // Verificar si la fecha/hora de la cita ya transcurrió
+                        let isPast = false;
+                        if (a.date < todayStr) {
+                            isPast = true;
+                        } else if (a.date === todayStr) {
+                            if (a.time <= currentTimeStr) {
+                                isPast = true;
                             }
                         }
+
+                        let isCompleted = status === 'completada';
+                        if (!isCompleted && (status === 'confirmada' || status === 'confirmed') && isPast) {
+                            isCompleted = true; // Ya transcurrió la fecha/hora de la cita
+                        }
+
+                        const isFuture = !isPast && !isCompleted && (status === 'confirmada' || status === 'confirmed' || status === 'pendiente' || status === 'pending');
 
                         const mappedObj: MarketplaceAppointment = {
                             id: String(a.id),
@@ -201,19 +217,20 @@ export function useMarketplaceAnalytics() {
                             servicePrice: Number(a.price || 0),
                             date: a.date,
                             time: a.time,
-                            status: a.status || 'confirmed',
+                            status: a.status || 'confirmada',
                             commissionAmount: comm,
                             commissionBilled: a.commission_billed || false,
                             bookedAt: a.booked_at || a.created_at,
+                            isCompleted,
+                            isFuture,
                         };
 
                         if (status === 'cancelada' || status === 'no_asistio' || status === 'no-show') {
                             canceledMarketplaceAppointments.push(mappedObj);
-                        } else if (isCompleted) {
-                            totalCommissions += comm;
-                            marketplaceAppointments.push(mappedObj);
                         } else {
-                            // Citas agendadas aún no atendidas
+                            if (isCompleted || isPast) {
+                                totalCommissions += comm;
+                            }
                             marketplaceAppointments.push(mappedObj);
                         }
                     });
