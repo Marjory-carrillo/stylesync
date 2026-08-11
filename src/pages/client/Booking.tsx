@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { parse, format, addDays, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,6 +35,9 @@ import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 export default function Booking() {
     const { slug } = useParams();
+    const [searchParams] = useSearchParams();
+    const urlPhone = searchParams.get('phone');
+    const urlApptId = searchParams.get('appt');
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
     const { services } = useServices();
     const { stylists } = useStylists();
@@ -71,8 +74,12 @@ export default function Booking() {
         const maxAllowed = businessConfig?.allowTwoActiveAppointments ? 2 : 1;
         return activeCount >= maxAllowed;
     };
-    const getActiveAppointmentByPhone = (phone: string) => {
+    const getActiveAppointmentByPhone = (phone: string, targetApptId?: string | null) => {
         const target = cleanDigits(phone);
+        if (targetApptId) {
+            const found = appointments.find(a => a.id === targetApptId);
+            if (found) return found;
+        }
         if (!target) return undefined;
         return appointments.find(a => cleanDigits(a.clientPhone) === target && isAppointmentActive(a));
     };
@@ -235,6 +242,28 @@ export default function Booking() {
 
         return localProf || null;
     }, [clientPhone, savedProfiles, appointments, services, stylists]);
+
+    // Si la URL incluye teléfono o ID de cita (ej. desde recordatorios/WhatsApp), cargar la Cita Pendiente (Step 10)
+    useEffect(() => {
+        if (!urlPhone) return;
+        setClientPhone(urlPhone);
+    }, [urlPhone]);
+
+    useEffect(() => {
+        if (!urlPhone || appointments.length === 0) return;
+        const target = cleanDigits(urlPhone);
+
+        let targetAppt = urlApptId ? appointments.find(a => a.id === urlApptId) : null;
+        if (!targetAppt && target) {
+            targetAppt = appointments.find(a => cleanDigits(a.clientPhone) === target && isAppointmentActive(a));
+        }
+
+        if (targetAppt) {
+            setClientPhone(targetAppt.clientPhone || urlPhone);
+            if (targetAppt.clientName) setClientName(targetAppt.clientName);
+            setStep(10);
+        }
+    }, [urlPhone, urlApptId, appointments]);
     const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
     const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null>(null);
     const [selectedAddOns, setSelectedAddOns] = useState<number[]>([]); // additional service IDs
@@ -1169,7 +1198,7 @@ export default function Booking() {
     //     color: 'var(--color-text)', width: '100%', fontSize: '0.95rem',
     // };
 
-    const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
+    const activeAppt = getActiveAppointmentByPhone(clientPhone.trim(), urlApptId);
     const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
     // const weeklyCancels = clientPhone ? getWeeklyCancellations(clientPhone.trim()) : 0;
 

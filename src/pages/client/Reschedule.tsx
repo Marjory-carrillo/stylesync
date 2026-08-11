@@ -12,7 +12,7 @@ import { Loader2, Sparkles } from 'lucide-react';
 
 export default function RescheduleRedirect() {
     const { id: appointmentId } = useParams<{ id: string }>();
-    const [slug, setSlug] = useState<string | null>(null);
+    const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
     const [error, setError] = useState(false);
 
     useEffect(() => {
@@ -20,18 +20,24 @@ export default function RescheduleRedirect() {
 
         supabase
             .from('appointments')
-            .select('tenants(slug)')
+            .select('client_phone, tenants(slug)')
             .eq('id', appointmentId)
             .single()
             .then(({ data, error: err }) => {
                 const tenantSlug = (data as any)?.tenants?.slug;
+                const clientPhone = (data as any)?.client_phone;
                 if (err || !tenantSlug) { setError(true); return; }
-                setSlug(tenantSlug);
+
+                if (clientPhone) {
+                    setRedirectUrl(`/reserva/${tenantSlug}?phone=${encodeURIComponent(clientPhone)}&appt=${encodeURIComponent(appointmentId)}`);
+                } else {
+                    setRedirectUrl(`/reserva/${tenantSlug}`);
+                }
             });
     }, [appointmentId]);
 
-    // Redirect al Booking nativo — el cliente ingresa su teléfono y gestiona su cita
-    if (slug) return <Navigate to={`/reserva/${slug}`} replace />;
+    // Redirect al Booking nativo pasando teléfono e ID de cita para abrir "Cita Pendiente" directo
+    if (redirectUrl) return <Navigate to={redirectUrl} replace />;
 
     // Pantalla de carga
     return (

@@ -186,8 +186,8 @@ serve(async (req: Request) => {
                 if (hoursGapAtBooking < 6) {
                     // Cita muy cercana al booking (<6h) → NO enviar recordatorio
                     console.log(`[process-reminders] SKIP cita ${appt.id}: mismo día, gap=${hoursGapAtBooking.toFixed(1)}h (<6h)`);
-                    // Marcar reminder_sent como false para evitar falsos conteos de recordatorio enviado
-                    await supabase.from('appointments').update({ reminder_sent: false }).eq('id', appt.id);
+                    // Marcar reminder_sent como true para no seguir evaluándola en próximos crons
+                    await supabase.from('appointments').update({ reminder_sent: true }).eq('id', appt.id);
                     skipped++;
                     continue;
                 }
@@ -239,16 +239,19 @@ serve(async (req: Request) => {
                 ? `${svc?.name ?? 'Servicio'} (+ ${realAddOns.join(', ')})`
                 : (svc?.name ?? 'Servicio');
 
-            // ── BLOQUEO ANTI-DUPLICACIÓN (Atomic Lock) ──
-            // Marcamos reminder_sent = true en DB ANTES del envío a Twilio para que ningún cron simultáneo la vuelva a tomar
-            const { error: lockErr } = await supabase
+            // ── BLOQUEO ANTI-DUPLICACIÓN (Atomic Lock con .select('id')) ──
+            // Marcamos reminder_sent = true en DB ANTES del envío a Twilio.
+            // .select('id') es CRUCIAL: si otra ejecución ya cambió reminder_sent a true,
+            // Supabase devuelve 0 filas actualizadas. Sin .select('id'), Supabase devuelve error: null y la enviaba doble.
+            const { data: lockedRows, error: lockErr } = await supabase
                 .from('appointments')
                 .update({ reminder_sent: true })
                 .eq('id', appt.id)
-                .eq('reminder_sent', false);
+                .eq('reminder_sent', false)
+                .select('id');
 
-            if (lockErr) {
-                console.warn(`[process-reminders] Error de candado para cita ${appt.id}:`, lockErr.message);
+            if (lockErr || !lockedRows || lockedRows.length === 0) {
+                console.warn(`[process-reminders] Saltando cita ${appt.id}: candado falló o ya fue procesada.`);
                 continue;
             }
 
