@@ -153,7 +153,7 @@ export default function Appointments() {
             // Actualizar en base de datos
             const updatePayload: any = { additional_services: cleanAddServices };
             if (apt.bookingSource === 'marketplace' || apt.booking_source === 'marketplace') {
-                const commRate = (tenantData as any)?.marketplaceCommissionRate || 15.0;
+                const commRate = (tenantConfig as any)?.marketplaceCommissionRate || 15.0;
                 updatePayload.marketplace_commission_amount = Number(price) * (commRate / 100);
             }
 
