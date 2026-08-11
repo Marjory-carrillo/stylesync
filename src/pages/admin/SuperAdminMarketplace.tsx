@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import {
     ShoppingBag, Search, Calendar, DollarSign, Sparkles, Download,
-    CheckCircle2, Clock, Filter, Printer, X, FileText, Building2, AlertCircle
+    CheckCircle2, Clock, Filter, Printer, X, FileText, Building2
 } from 'lucide-react';
 import {
     useMarketplaceAnalytics,
     useToggleCommissionBilled,
-    downloadCommissionReportCSV,
-    type MarketplaceAppointment
+    downloadCommissionReportCSV
 } from '../../lib/store/queries/useMarketplaceAnalytics';
 import { useUIStore } from '../../lib/store/uiStore';
 
