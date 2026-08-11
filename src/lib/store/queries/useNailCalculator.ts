@@ -111,10 +111,25 @@ export const useNailCalculator = () => {
     const updateConfigMutation = useMutation({
         mutationFn: async (newConfig: QuotingCategory[]) => {
             if (!tenantId) throw new Error("No tenant info");
-            const { error } = await supabase
+
+            const { data: existing } = await supabase
                 .from('nail_calculator_config')
-                .upsert({ tenant_id: tenantId, config: newConfig }, { onConflict: 'tenant_id' });
-            if (error) throw error;
+                .select('id')
+                .eq('tenant_id', tenantId)
+                .maybeSingle();
+
+            if (existing) {
+                const { error } = await supabase
+                    .from('nail_calculator_config')
+                    .update({ config: newConfig })
+                    .eq('tenant_id', tenantId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('nail_calculator_config')
+                    .insert([{ tenant_id: tenantId, config: newConfig }]);
+                if (error) throw error;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });

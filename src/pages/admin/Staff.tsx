@@ -4,7 +4,7 @@ import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useServices } from '../../lib/store/queries/useServices';
-import { DEFAULT_NAIL_CONFIG } from '../../lib/store/queries/useNailCalculator';
+import { useNailCalculator, DEFAULT_NAIL_CONFIG } from '../../lib/store/queries/useNailCalculator';
 import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, isNailCalculatorEnabled } from '../../lib/planLimits';
 import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight, ExternalLink } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
@@ -36,6 +36,8 @@ export default function Staff() {
     const { uploadStylistPhoto } = useImageUpload();
     const { stylists, addStylist, removeStylist, updateStylist, isLoading } = useStylists();
     const { data: businessConfig } = useTenantData();
+    const { config: nailQuoterConfig } = useNailCalculator();
+    const activeNailConfig = (nailQuoterConfig && nailQuoterConfig.length > 0) ? nailQuoterConfig : DEFAULT_NAIL_CONFIG;
     const plan = businessConfig?.plan || 'free';
     const trialEndsAt = businessConfig?.trialEndsAt || null;
     const limits = getPlanLimits(plan);
@@ -729,7 +731,7 @@ export default function Staff() {
                                     <div className="space-y-2">
                                         <h4 className="text-xs uppercase font-bold tracking-wider text-cyan-400">💅 Servicios Base (Técnica)</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'base_services')?.items.map((item: QuotingItem) => {
+                                            {activeNailConfig.find((c: QuotingCategory) => c.id === 'base_services')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 return (
                                                     <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
@@ -767,7 +769,7 @@ export default function Staff() {
                                     <div className="space-y-2 pt-2 border-t border-white/5">
                                         <h4 className="text-xs uppercase font-bold tracking-wider text-amber-400">📏 Largo / Tamaños</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'sizes')?.items.map((item: QuotingItem) => {
+                                            {activeNailConfig.find((c: QuotingCategory) => c.id === 'sizes')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 return (
                                                     <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
@@ -805,7 +807,7 @@ export default function Staff() {
                                     <div className="space-y-2 pt-2 border-t border-white/5">
                                         <h4 className="text-xs uppercase font-bold tracking-wider text-pink-400">🎨 Estilos / Diseños</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'styles')?.items.map((item: QuotingItem) => {
+                                            {activeNailConfig.find((c: QuotingCategory) => c.id === 'styles')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 return (
                                                     <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
@@ -845,7 +847,7 @@ export default function Staff() {
                                     <div className="space-y-2 pt-2 border-t border-white/5">
                                         <h4 className="text-xs uppercase font-bold tracking-wider text-purple-400">✨ Extras & Retiros</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {DEFAULT_NAIL_CONFIG.find((c: QuotingCategory) => c.id === 'extras')?.items.map((item: QuotingItem) => {
+                                            {activeNailConfig.find((c: QuotingCategory) => c.id === 'extras')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 return (
                                                     <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">

@@ -1444,15 +1444,18 @@ export default function Settings() {
                                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-black">$</span>
                                                             <input
                                                                 type="number"
-                                                                value={item.price === 0 ? '' : item.price}
+                                                                min="0"
+                                                                step="any"
+                                                                value={item.price ?? 0}
                                                                 onFocus={e => e.target.select()}
                                                                 onChange={e => {
                                                                     const rawVal = e.target.value;
+                                                                    const parsedVal = rawVal === '' ? 0 : parseFloat(rawVal);
                                                                     const updatedConfig = [...localQuoterConfig];
                                                                     const updatedItems = [...category.items];
                                                                     updatedItems[itemIdx] = {
                                                                         ...item,
-                                                                        price: rawVal === '' ? 0 : Math.max(0, parseFloat(rawVal) || 0)
+                                                                        price: isNaN(parsedVal) ? 0 : Math.max(0, parsedVal)
                                                                     };
                                                                     updatedConfig[catIdx] = { ...category, items: updatedItems };
                                                                     setLocalQuoterConfig(updatedConfig);
