@@ -1787,7 +1787,14 @@ export default function Dashboard() {
                                         }`}>
                                             <div className="flex justify-between items-start mb-3">
                                                 <div>
-                                                    <div className="font-black text-white text-base tracking-tight mb-1">{appt.clientName.toUpperCase()}</div>
+                                                    <div className="font-black text-white text-base tracking-tight mb-1 flex items-center gap-2 flex-wrap">
+                                                        <span>{appt.clientName.toUpperCase()}</span>
+                                                        {appt.bookingSource === 'marketplace' && (
+                                                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                🛒 Buscador CitaLink
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="flex items-center gap-1.5 flex-wrap">
                                                         <button
                                                              onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}
@@ -2026,7 +2033,6 @@ export default function Dashboard() {
                                                 a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
                                             </span>
                                         </div>
-
                                         {/* Main Info */}
                                         <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
                                             <div className="flex items-center gap-5">
@@ -2035,8 +2041,13 @@ export default function Dashboard() {
                                                     <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
                                                 </div>
                                                 <div>
-                                                    <div className="flex items-center gap-3 mb-1.5">
+                                                    <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                                                         <span className="font-black text-white text-lg tracking-tighter uppercase">{appt.clientName}</span>
+                                                        {appt.bookingSource === 'marketplace' && (
+                                                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                🛒 Buscador CitaLink
+                                                            </span>
+                                                        )}
                                                         {isCurrentlyHappening && (
                                                             <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
                                                         )}
@@ -2294,16 +2305,21 @@ export default function Dashboard() {
                                             </span>
                                         </div>
 
-                                        {/* Main Info */}
+                                         {/* Main Info */}
                                         <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
                                             <div className="flex items-center gap-5">
                                                 <div className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden bg-slate-800 text-emerald-500/70">
                                                     <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
                                                 </div>
                                                 <div>
-                                                    <div className="flex items-center gap-3 mb-1">
-                                                        <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
-                                                    </div>
+                                                    <div className="flex items-center gap-3 mb-1 flex-wrap">
+                                                         <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
+                                                         {appt.bookingSource === 'marketplace' && (
+                                                             <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                 🛒 Buscador CitaLink
+                                                             </span>
+                                                         )}
+                                                     </div>
                                                     <div className="text-[10px] font-bold text-slate-500 flex items-center flex-wrap gap-3 tracking-wide">
                                                         <button
                                                              onClick={() => setExpandedServiceApptId(expandedServiceApptId === appt.id ? null : appt.id)}

@@ -2433,17 +2433,17 @@ export default function Booking() {
                                     return selectedStylist.serviceIds.includes(Number(s.id));
                                 })
                                 .map((s: Service) => {
-                                    const isSelected = selectedAddOns.includes(s.id);
+                                    const isSelected = selectedAddOns.some(id => Number(id) === Number(s.id));
                                     return (
                                         <button
                                             key={s.id}
                                             type="button"
                                             onClick={() => {
-                                                setSelectedAddOns(prev =>
-                                                    isSelected
-                                                        ? prev.filter(id => id !== s.id)
-                                                        : [...prev, s.id]
-                                                );
+                                                if (isSelected) {
+                                                    setSelectedAddOns(prev => prev.filter(id => Number(id) !== Number(s.id)));
+                                                } else {
+                                                    setSelectedAddOns(prev => [...prev, Number(s.id)]);
+                                                }
                                             }}
                                             className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl border transition-all duration-200 text-left ${
                                                 isSelected

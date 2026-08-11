@@ -73,7 +73,11 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
     const addMutation = useMutation({
         mutationFn: async (appt: Omit<Appointment, 'id' | 'status' | 'bookedAt'>) => {
             if (!tenantId) throw new Error('No tenant info');
-            const { data: rpcResult, error: rpcError } = await supabase.rpc('create_appointment_v3', {
+            // Intentar invocar RPC con la nueva firma de 10 parámetros
+            let rpcResult: any = null;
+            let rpcError: any = null;
+
+            const rpcParams = {
                 p_tenant_id: tenantId,
                 p_client_name: appt.clientName,
                 p_client_phone: appt.clientPhone,
@@ -81,11 +85,35 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 p_stylist_id: appt.stylistId,
                 p_date: appt.date,
                 p_time: appt.time,
-            });
+                p_additional_services: appt.additionalServices ?? null,
+                p_booking_source: appt.bookingSource ?? 'direct',
+                p_commission_amount: appt.marketplaceCommissionAmount ?? 0,
+            };
+
+            const res = await supabase.rpc('create_appointment_v3', rpcParams);
+            rpcResult = res.data;
+            rpcError = res.error;
+
+            // Si falla por descalce de firma (PGRST202 / 42883), hacer fallback a la firma clásica de 7 parámetros
+            if (rpcError && (rpcError.code === 'PGRST202' || rpcError.code === '42883' || rpcError.message?.includes('schema cache'))) {
+                const classicParams = {
+                    p_tenant_id: tenantId,
+                    p_client_name: appt.clientName,
+                    p_client_phone: appt.clientPhone,
+                    p_service_id: appt.serviceId,
+                    p_stylist_id: appt.stylistId,
+                    p_date: appt.date,
+                    p_time: appt.time,
+                };
+                const fallbackRes = await supabase.rpc('create_appointment_v3', classicParams);
+                rpcResult = fallbackRes.data;
+                rpcError = fallbackRes.error;
+            }
+
             if (rpcError) throw rpcError;
             if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Error desconocido al reservar');
 
-            // Save additional services and marketplace commission fields if provided
+            // Fallback: Si se usó la firma clásica, intentar actualizar adicionales
             if (rpcResult?.id) {
                 const updatePayload: any = {};
                 if (appt.additionalServices && appt.additionalServices.length > 0) {
@@ -104,9 +132,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                             .from('appointments')
                             .update(updatePayload)
                             .eq('id', rpcResult.id);
-                    } catch (updateErr) {
-                        console.error('Error updating appointment metadata:', updateErr);
-                    }
+                    } catch (_) { /* ignore fallback errors */ }
                 }
             }
 
@@ -114,7 +140,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: (data) => {
             if (data.id) setDeviceHasPending(data.id);
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Cita reservada con éxito', 'success');
         },
         onError: (err: any) => {
@@ -141,7 +167,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: ({ id, apt, serviceName }) => {
             if (getDevicePendingId() === id) clearDevicePending();
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Cita cancelada', 'success');
             if (tenantId && apt) {
                 notifyAdmin(tenantId, 'cancel', {
@@ -171,7 +197,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: (id) => {
             if (getDevicePendingId() === id) clearDevicePending();
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Cita completada', 'success');
         },
         onError: (err: any) => showToast(`Error al completar: ${err.message}`, 'error'),
@@ -193,7 +219,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             return { apt, newTime, newDate, serviceName };
         },
         onSuccess: ({ apt, newTime, newDate, serviceName }) => {
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Hora actualizada', 'success');
             if (tenantId && apt) {
                 notifyAdmin(tenantId, 'reschedule', {
@@ -224,7 +250,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: (id) => {
             if (getDevicePendingId() === id) clearDevicePending();
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             queryClient.invalidateQueries({ queryKey: ['clients', tenantId] });
             queryClient.invalidateQueries({ queryKey: ['blocked_phones', tenantId] });
             showToast('Cliente marcado como No Asistió y bloqueado 🚫', 'error');
@@ -245,7 +271,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             return id;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
         },
     });
 
