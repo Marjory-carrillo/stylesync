@@ -151,9 +151,15 @@ export default function Appointments() {
             cleanAddServices.push(`Cotización Confirmada: $${price} MXN`);
 
             // Actualizar en base de datos
+            const updatePayload: any = { additional_services: cleanAddServices };
+            if (apt.bookingSource === 'marketplace' || apt.booking_source === 'marketplace') {
+                const commRate = (tenantData as any)?.marketplaceCommissionRate || 15.0;
+                updatePayload.marketplace_commission_amount = Number(price) * (commRate / 100);
+            }
+
             const { error } = await supabase
                 .from('appointments')
-                .update({ additional_services: cleanAddServices })
+                .update(updatePayload)
                 .eq('id', apt.id)
                 .eq('tenant_id', tenantId);
 

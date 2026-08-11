@@ -98,6 +98,63 @@ export function downloadCommissionReportCSV(
     document.body.removeChild(link);
 }
 
+function calculateTotalConfirmedPrice(a: any, baseServicePrice: number, allServices: any[] = []): number {
+    const addOns: string[] = a.additional_services ?? a.additionalServices ?? [];
+
+    // 1. Verificar si hay Cotización Confirmada en additional_services
+    const confirmedItem = addOns.find((s: string) => s.startsWith('Cotización Confirmada:'));
+    if (confirmedItem) {
+        const match = confirmedItem.match(/\$(\d+(\.\d+)?)/);
+        if (match) return Number(match[1]);
+    }
+
+    // 2. Verificar si hay Cotización Estimada
+    const estimatedItem = addOns.find((s: string) => s.startsWith('Cotización Estimada:'));
+    if (estimatedItem) {
+        const match = estimatedItem.match(/\$(\d+(\.\d+)?)/);
+        if (match) return Number(match[1]);
+    }
+
+    // 3. Columna confirmed_price en la cita
+    if (a.confirmed_price && Number(a.confirmed_price) > 0) {
+        return Number(a.confirmed_price);
+    }
+
+    // 4. Base service price + Diseño Catálogo + Servicios adicionales
+    let total = baseServicePrice || Number(a.price || 0);
+
+    const catalogItem = addOns.find((s: string) => s.startsWith('Diseño Catálogo:'));
+    if (catalogItem) {
+        const match = catalogItem.match(/\$(\d+(\.\d+)?)/);
+        if (match) {
+            total += Number(match[1]);
+        }
+    }
+
+    // Sumar servicios adicionales normales
+    addOns.forEach((name: string) => {
+        if (
+            name.startsWith('Cotización Confirmada:') ||
+            name.startsWith('Cotización Estimada:') ||
+            name.startsWith('Diseño Catálogo:') ||
+            name.startsWith('Referencia:') ||
+            name.startsWith('Largo:') ||
+            name.startsWith('Diseño:') ||
+            name.startsWith('Extra:') ||
+            name.startsWith('Estilo:')
+        ) {
+            return;
+        }
+
+        const matchSvc = allServices.find(s => s.name === name);
+        if (matchSvc) {
+            total += Number(matchSvc.price || 0);
+        }
+    });
+
+    return total;
+}
+
 export function useMarketplaceAnalytics() {
     const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin);
 
@@ -154,21 +211,25 @@ export function useMarketplaceAnalytics() {
             let totalCommissions = 0;
 
             try {
-                // Fetch tenants to map names
-                const { data: tenantsData } = await supabase.from('tenants').select('id, name');
+                // Fetch tenants to map names and commission rates
+                const { data: tenantsData } = await supabase.from('tenants').select('id, name, marketplace_commission_rate');
                 const tenantNameMap: Record<string, string> = {};
+                const tenantCommRateMap: Record<string, number> = {};
                 if (tenantsData) {
                     tenantsData.forEach((t: any) => {
                         tenantNameMap[t.id] = t.name;
+                        tenantCommRateMap[t.id] = Number(t.marketplace_commission_rate ?? 15.0);
                     });
                 }
 
-                // Fetch services to map names
-                const { data: servicesData } = await supabase.from('services').select('id, name');
+                // Fetch services to map names and prices
+                const { data: servicesData } = await supabase.from('services').select('id, name, price');
                 const serviceNameMap: Record<number, string> = {};
+                const servicePriceMap: Record<number, number> = {};
                 if (servicesData) {
                     servicesData.forEach((s: any) => {
                         serviceNameMap[s.id] = s.name;
+                        servicePriceMap[s.id] = Number(s.price || 0);
                     });
                 }
 
@@ -187,8 +248,17 @@ export function useMarketplaceAnalytics() {
                     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
                     apptData.forEach((a: any) => {
-                        const comm = Number(a.marketplace_commission_amount || 0);
                         const status = (a.status || 'confirmada').toLowerCase();
+                        const commRate = tenantCommRateMap[a.tenant_id] ?? 15.0;
+                        const baseSvcPrice = servicePriceMap[a.service_id] ?? Number(a.price || 0);
+
+                        // Calcular el PRECIO TOTAL CONFIRMADO de la cita (incluye cotizaciones confirmadas, diseño catálogo y adicionales)
+                        const totalConfirmedPrice = calculateTotalConfirmedPrice(a, baseSvcPrice, servicesData || []);
+                        const finalServicePrice = totalConfirmedPrice > 0 ? totalConfirmedPrice : baseSvcPrice;
+
+                        // La comisión SIEMPRE se calcula sobre el PRECIO TOTAL CONFIRMADO
+                        const calculatedCommAmount = finalServicePrice * (commRate / 100);
+                        const comm = calculatedCommAmount > 0 ? calculatedCommAmount : Number(a.marketplace_commission_amount || 0);
 
                         // Verificar si la fecha/hora de la cita ya transcurrió
                         let isPast = false;
@@ -214,7 +284,7 @@ export function useMarketplaceAnalytics() {
                             clientName: a.client_name || 'Cliente sin nombre',
                             clientPhone: a.client_phone || '',
                             serviceName: serviceNameMap[a.service_id] || `Servicio #${a.service_id}`,
-                            servicePrice: Number(a.price || 0),
+                            servicePrice: finalServicePrice,
                             date: a.date,
                             time: a.time,
                             status: a.status || 'confirmada',
