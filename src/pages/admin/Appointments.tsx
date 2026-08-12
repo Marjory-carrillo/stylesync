@@ -236,6 +236,43 @@ export default function Appointments() {
     const [isZoomed, setIsZoomed] = useState(false);
     const [expandedServiceApptId, setExpandedServiceApptId] = useState<string | null>(null);
 
+    // ── Staff Notes ──
+    const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+    const [noteText, setNoteText] = useState('');
+    const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+
+    const saveNote = async (aptId: string) => {
+        if (!tenantId) return;
+        setSavingNoteId(aptId);
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .update({ staff_notes: noteText.trim() || null })
+                .eq('id', aptId)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
+            showToast('Nota guardada', 'success');
+            setEditingNoteId(null);
+        } catch (err: any) {
+            showToast(`Error al guardar nota: ${err.message}`, 'error');
+        } finally {
+            setSavingNoteId(null);
+        }
+    };
+
+    // Helper: get the last saved note for a client phone from past appointments
+    const getLastNoteForClient = useCallback((phone: string, currentAptId: string) => {
+        const past = allAppointments
+            .filter(a => a.clientPhone === phone && a.id !== currentAptId && (a as any).staff_notes)
+            .sort((a, b) => {
+                if (a.date !== b.date) return b.date.localeCompare(a.date);
+                return b.time.localeCompare(a.time);
+            });
+        if (past.length === 0) return null;
+        return { note: (past[0] as any).staff_notes as string, date: past[0].date };
+    }, [allAppointments]);
+
     const PAGE_SIZE = 20;
 
     // ── CSV Export ──
@@ -709,8 +746,23 @@ export default function Appointments() {
 
                                                         {/* Main Info */}
                                                         <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center p-3 gap-0 md:gap-4 overflow-hidden">
-                                                            {/* Client info */}
+                                                             {/* Client info */}
                                                             <div className="flex-1 min-w-0">
+                                                                {/* Previous visit note banner */}
+                                                                {(() => {
+                                                                    if (isCancelled || isCompleted) return null;
+                                                                    const prev = getLastNoteForClient(apt.clientPhone, apt.id);
+                                                                    if (!prev) return null;
+                                                                    return (
+                                                                        <div className="mb-2 flex items-start gap-2 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2">
+                                                                            <span className="text-amber-400 text-base mt-0.5 shrink-0">💡</span>
+                                                                            <div className="min-w-0">
+                                                                                <p className="text-[10px] font-black uppercase tracking-wider text-amber-400 mb-0.5">Nota de visita anterior · {new Date(prev.date + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                                                <p className="text-xs text-amber-200/90 font-medium leading-snug">{prev.note}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <button 
                                                                         onClick={() => setHistoryModal({ open: true, phone: apt.clientPhone })}
@@ -873,6 +925,55 @@ export default function Appointments() {
                                                                     </div>
                                                                 )}
                                                             </div>
+
+                                                            {/* Staff Note Editor — visible on all appointments */}
+                                                            {!isCancelled && (
+                                                                <div className="mt-3 pt-3 border-t border-white/5 border-dashed">
+                                                                    {editingNoteId === apt.id ? (
+                                                                        <div className="flex flex-col gap-2 animate-fade-in">
+                                                                            <textarea
+                                                                                autoFocus
+                                                                                rows={2}
+                                                                                value={noteText}
+                                                                                onChange={e => setNoteText(e.target.value)}
+                                                                                placeholder="Ej: Prefiere gel rubber, no quiere lima eléctrica..."
+                                                                                className="w-full bg-black/40 border border-amber-500/30 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none resize-none transition-colors"
+                                                                            />
+                                                                            <div className="flex items-center gap-2 justify-end">
+                                                                                <button
+                                                                                    onClick={() => setEditingNoteId(null)}
+                                                                                    className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+                                                                                >
+                                                                                    Cancelar
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => saveNote(apt.id)}
+                                                                                    disabled={savingNoteId === apt.id}
+                                                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all disabled:opacity-50"
+                                                                                >
+                                                                                    <Save size={12} />
+                                                                                    {savingNoteId === apt.id ? 'Guardando...' : 'Guardar Nota'}
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setEditingNoteId(apt.id);
+                                                                                setNoteText((apt as any).staff_notes || '');
+                                                                            }}
+                                                                            className="flex items-center gap-2 text-[10px] font-bold text-slate-500 hover:text-amber-400 transition-colors group/note"
+                                                                        >
+                                                                            <span className="text-sm group-hover/note:scale-110 transition-transform">🗒️</span>
+                                                                            <span className="group-hover/note:underline underline-offset-2">
+                                                                                {(apt as any).staff_notes
+                                                                                    ? <span className="text-amber-400/80 italic">"{(apt as any).staff_notes.slice(0, 50)}{(apt as any).staff_notes.length > 50 ? '...' : ''}"</span>
+                                                                                    : 'Agregar nota interna...'}
+                                                                            </span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
