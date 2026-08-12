@@ -1072,6 +1072,15 @@ export default function SuperAdminPanel() {
                         <Download size={18} className="text-pink-400" />
                         <span>📄 Guía de Configuración (PDF)</span>
                     </a>
+                    <a
+                        href="/Catalogo_CitaLink_Negocios.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold py-3 px-5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-sm"
+                    >
+                        <Download size={18} className="text-emerald-400" />
+                        <span>🚀 Catálogo CitaLink</span>
+                    </a>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="btn btn-primary font-bold py-3.5 px-6 rounded-2xl shadow-xl shadow-accent/20 flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-sm"

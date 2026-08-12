@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dossier Comercial y Catálogo Completo de Funciones - CitaLink</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --accent-pink: #ec4899;
+            --accent-cyan: #06b6d4;
+            --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090d16;
+            color: var(--text-light);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--bg-dark);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 28px;
+            padding: 48px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-b: 2px solid var(--border-color);
+            padding-bottom: 28px;
+            margin-bottom: 40px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-badge {
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            color: #000;
+            font-weight: 900;
+            font-size: 20px;
+            padding: 10px 18px;
+            border-radius: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title h1 {
+            font-size: 26px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .print-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #000;
+            border: none;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 12px 24px;
+            border-radius: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+        }
+
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Section Styling */
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-b: 1px solid var(--border-color);
+        }
+
+        .section-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.3px;
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: -16px;
+            margin-bottom: 24px;
+        }
+
+        /* WhatsApp Timeline Cards */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .timeline-step {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .step-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-badge {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-blue { background: rgba(6, 182, 212, 0.15); color: #38bdf8; border: 1px solid rgba(6, 182, 212, 0.3); }
+        .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-purple { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .template-box {
+            background: #075e54;
+            background: linear-gradient(145deg, #0b221d, #051b16);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 13.5px;
+            color: #e9edef;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .template-box::before {
+            content: "💬 WhatsApp Template (Meta Verified)";
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            color: #25d366;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            border-b: 1px solid rgba(37, 211, 102, 0.2);
+            padding-bottom: 4px;
+        }
+
+        /* Feature Grids */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .feature-card h4 {
+            font-size: 16px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 12px;
+        }
+
+        .feature-list li {
+            font-size: 12.5px;
+            color: #cbd5e1;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: var(--primary);
+            font-weight: 900;
+        }
+
+        /* Printable CSS */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                padding: 0 !important;
+            }
+            .container {
+                max-width: 100% !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+            }
+            .print-btn {
+                display: none !important;
+            }
+            .header-title h1 {
+                -webkit-text-fill-color: #0f172a !important;
+                color: #0f172a !important;
+            }
+            .timeline-step, .feature-card {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                color: #0f172a !important;
+                page-break-inside: avoid;
+            }
+            .step-title, .feature-card h4 {
+                color: #0f172a !important;
+            }
+            .template-box {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            .template-box::before {
+                color: #059669 !important;
+            }
+            .feature-card p, .section-desc, .feature-list li {
+                color: #334155 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header class="header">
+        <div class="logo-area">
+            <div class="logo-badge">CitaLink</div>
+            <div class="header-title">
+                <h1>Dossier de Funciones & Beneficios</h1>
+                <p>Plataforma SaaS de Reservas, Automatización & Nóminas</p>
+            </div>
+        </div>
+        <button class="print-btn" onclick="window.print()">🖨️ Imprimir / Descargar PDF</button>
+    </header>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 1: MENSAJERÍA AUTOMATIZADA WHATSAPP CON PLANTILLAS EXACTAS -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <section class="section">
+        <div class="section-header">
+            <div class="section-icon" style="background: rgba(37, 211, 102, 0.15); color: #25d366;">💬</div>
+            <h2 class="section-title">1. Flujo Completo de Mensajería WhatsApp Automatizada</h2>
+        </div>
+        <p class="section-desc">Integración oficial vía Meta Business API & Twilio. Plantillas pre-aprobadas sin riesgo de bloqueo.</p>
+
+        <div class="timeline">
+
+            <!-- Flujo A -->
+            <div class="timeline-step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <span>1️⃣ Cliente agenda cita en la Web / PWA</span>
+                        <span style="color: var(--text-muted); font-size: 13px;">➔</span>
+                        <span>Confirmación instantánea con PIN OTP</span>
+                    </div>
+                    <span class="step-badge badge-green">Para el Cliente</span>
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+                    Al elegir horario y presionar "Agendar", el sistema envía un mensaje instantáneo por WhatsApp con un código de 4 dígitos para validar que el teléfono existe y prevenir spam o citas falsas.
+                </p>
+                <div class="template-box">🔐 *Código CitaLink:* {{5}}
+
+Hola {{1}}, tu cita en *{{2}}* está casi lista.
+
+📅 *Fecha:* {{3}}
+✂️ *Servicio:* {{4}}
+
+Ingresa el código {{5}} en la pantalla de reserva para confirmar tu cita. ¡Es válido por 10 minutos!</div>
+            </div>
+
+            <!-- Flujo B -->
+            <div class="timeline-step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <span>2️⃣ Inmediatamente después del PIN</span>
+                        <span style="color: var(--text-muted); font-size: 13px;">➔</span>
+                        <span>Aviso automático al Profesional / Admin</span>
+                    </div>
+                    <span class="step-badge badge-blue">Para el Profesional / Admin</span>
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+                    Al validarse el código de 4 dígitos, la cita se registra en la agenda y se dispara un WhatsApp automático al teléfono del estilista/barbero asignado y/o al dueño del negocio.
+                </p>
+                <div class="template-box">🆕 *NUEVA CITA REGISTRADA* — {{1}}
+
+👤 *Cliente:* {{2}}
+✂️ *Servicio:* {{3}}
+📆 *Fecha y Hora:* {{4}}
+📱 *Teléfono Cliente:* {{5}}
+
+Revisa tu panel de administración en CitaLink para ver todos los detalles.</div>
+            </div>
+
+            <!-- Flujo C -->
+            <div class="timeline-step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <span>3️⃣ Cita Agendada Manualmente</span>
+                        <span style="color: var(--text-muted); font-size: 13px;">➔</span>
+                        <span>Aviso directo al cliente desde Recepción</span>
+                    </div>
+                    <span class="step-badge badge-purple">Para el Cliente</span>
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+                    Si el administrador o recepcionista agenda una cita directamente desde el panel interno, la clienta recibe una notificación limpia de bienvenida sin requerir PIN.
+                </p>
+                <div class="template-box">🗓️ *CITA CONFIRMADA* — {{2}}
+
+Hola {{1}}, tu cita ha sido agendada con éxito.
+
+📆 *Fecha y Hora:* {{3}}
+✂️ *Servicio:* {{4}}
+🌐 *Gestión de Cita:* {{5}}
+
+¡Te esperamos con gusto!</div>
+            </div>
+
+            <!-- Flujo D -->
+            <div class="timeline-step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <span>4️⃣ Recordatorio Prevencionista de Cita</span>
+                        <span style="color: var(--text-muted); font-size: 13px;">➔</span>
+                        <span>Envío Automático (24 hrs antes)</span>
+                    </div>
+                    <span class="step-badge badge-amber">Reducción de No-Shows</span>
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+                    El motor automatizado CitaLink analiza las citas del día siguiente y envía un recordatorio con link directo para reagendar o gestionar la cita si surge un imprevisto.
+                </p>
+                <div class="template-box">🔔 *RECORDATORIO DE CITA* — {{2}}
+
+Hola {{1}}, te recordamos tu próxima cita:
+
+📆 *Fecha y Hora:* {{3}}
+✂️ *Servicio:* {{4}}
+
+Si deseas reagendar o modificar tu cita, ingresa aquí:
+👉 {{5}}</div>
+            </div>
+
+            <!-- Flujo E -->
+            <div class="timeline-step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <span>5️⃣ Cotización Confirmada</span>
+                        <span style="color: var(--text-muted); font-size: 13px;">➔</span>
+                        <span>Confirmación de Precio Final</span>
+                    </div>
+                    <span class="step-badge badge-purple">Nails & Servicios Variables</span>
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+                    Cuando la clienta selecciona un diseño personalizado y la manicurista/estilista confirma el precio final en el panel, se notifica el monto exacto a pagar.
+                </p>
+                <div class="template-box">💎 *COTIZACIÓN CONFIRMADA* — {{2}}
+
+Hola {{1}}, tu profesional ha confirmado el precio total para tu cita:
+
+📆 *Fecha y Hora:* {{3}}
+✂️ *Servicio:* {{4}}
+💰 *Precio Total Confirmado:* {{5}}
+
+Puedes consultar los detalles de tu cita aquí:
+👉 {{6}}</div>
+            </div>
+
+            <!-- Flujo F -->
+            <div class="timeline-step">
+                <div class="step-header">
+                    <div class="step-title">
+                        <span>6️⃣ Notificación de Cancelación</span>
+                        <span style="color: var(--text-muted); font-size: 13px;">➔</span>
+                        <span>Aviso a Cliente y Liberación de Espacio</span>
+                    </div>
+                    <span class="step-badge badge-red">Sincronización Total</span>
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+                    Si se cancela una cita, la clienta recibe la confirmación con opción para reagendar, y el profesional recibe el aviso de liberación de su espacio de trabajo.
+                </p>
+                <div class="template-box">❌ *CITA CANCELADA* — {{2}}
+
+Hola {{1}}, tu cita programada para el {{3}} ha sido cancelada.
+
+Si deseas volver a agendar en otro horario disponible, haz clic aquí:
+👉 {{4}}</div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 2: MÓDULO EXCLUSIVO PARA SALONES DE UÑAS (NAIL STUDIOS)   -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <section class="section">
+        <div class="section-header">
+            <div class="section-icon" style="background: rgba(236, 72, 153, 0.15); color: #ec4899;">💅</div>
+            <h2 class="section-title">2. Módulo Especializado para Salones de Uñas (Nail Studios)</h2>
+        </div>
+        <p class="section-desc">Diseñado para resolver la alta complejidad de cotización en manicura, acrílicos, largos y decoraciones artísticas.</p>
+
+        <div class="grid-2">
+            <div class="feature-card">
+                <h4>🧮 Cotizador Interactivo de Uñas (Nail Calculator)</h4>
+                <p>Calculadora automática donde la clienta elige la combinación exacta de su set y el sistema calcula el precio en tiempo real:</p>
+                <ul class="feature-list">
+                    <li><strong>Técnicas Base:</strong> Semipermanente, Rubber, Softgel, Acrílico Set Nuevo, Baño de Acrílico, Acripie.</li>
+                    <li><strong>Largos / Tamaños:</strong> Corto/Natural ($0), Mediano (+$50), Largo (+$100), XL (+$150).</li>
+                    <li><strong>Estilos & Arte:</strong> Francés, Baby Boomer, Chrome, Aura, Ojo de Gato.</li>
+                    <li><strong>Cálculo por Unidad:</strong> Mano Alzada (por uña), Cristales/Pedrería (por pieza), Dijes 3D (por pieza), Encapsulados.</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>📸 Foto de Referencia de Instagram / Pinterest</h4>
+                <p>La clienta puede subir o pegar (Ctrl+V) la foto del diseño de uñas que desea desde su portapapeles:</p>
+                <ul class="feature-list">
+                    <li>Visualización instantánea de la foto en la cita para el equipo.</li>
+                    <li>Permite a la manicurista revisar el diseño previo a la llegada de la clienta.</li>
+                    <li>Opción de recotizar y confirmar el precio exacto por WhatsApp.</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>🧾 Ticket Digital de Cotización Compartible</h4>
+                <p>Genera un ticket formateado con el desglose transparente de cada elemento seleccionado:</p>
+                <ul class="feature-list">
+                    <li>Desglose detallado: Técnica + Largo + Número de piezas 3D/uñas con arte.</li>
+                    <li>Formato descargable en imagen o PDF.</li>
+                    <li>Envío directo por WhatsApp para cerrar ventas previa cita.</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>👩‍🎨 Tarifas Personalizadas por Manicurista</h4>
+                <p>Permite asignar precios diferenciados por nivel de experiencia del personal:</p>
+                <ul class="feature-list">
+                    <li>Manicurista Senior vs Junior con tarifas independientes en mano alzada o cristales.</li>
+                    <li>Sincronización automática con la calculadora al seleccionar a la profesional.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 3: MÓDULO EXCLUSIVO PARA BARBERÍAS Y SALONES DE CORTE      -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <section class="section">
+        <div class="section-header">
+            <div class="section-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">💈</div>
+            <h2 class="section-title">3. Módulo Especializado para Barberías y Peluquerías</h2>
+        </div>
+        <p class="section-desc">Optimizado para la alta rotación, asignación de barberos de confianza y combos de servicios masculinos/unisex.</p>
+
+        <div class="grid-2">
+            <div class="feature-card">
+                <h4>✂️ Elección de Barbero / Estilista Preferido</h4>
+                <p>La clientela puede elegir a su barbero habitual o seleccionar disponibilidad automática:</p>
+                <ul class="feature-list">
+                    <li>Perfil con foto y especialidades de cada barbero.</li>
+                    <li>Opción "Cualquier Barbero Disponible" para maximizar la ocupación de sillones.</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>🔥 Combos y Paquetes Frecuentes</h4>
+                <p>Configuración de paquetes populares con tarifas promocionales integradas:</p>
+                <ul class="feature-list">
+                    <li>Corte de Cabello + Perfilado de Barba + Mascarilla.</li>
+                    <li>Asignación de tiempos combinados para no encimar clientes en la misma silla.</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>⏱️ Tiempos de Atención y Tolerancia por Servicio</h4>
+                <p>Control estricto de duración para evitar retrasos en la barbería:</p>
+                <ul class="feature-list">
+                    <li>Configuración de duración exacta (ej. 30 min corte, 20 min barba).</li>
+                    <li>Sincronización en tiempo real con la agenda del barbero.</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>➕ Complementos Rápidos (Add-ons)</h4>
+                <p>Venta cruzada de servicios adicionales durante el proceso de reserva:</p>
+                <ul class="feature-list">
+                    <li>Lavado capilar, perfilado de ceja, pigmentación de barba o tratamiento capilar.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 4: MÓDULO GENERAL Y TRANSVERSAL PARA TODOS LOS NEGOCIOS    -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <section class="section">
+        <div class="section-header">
+            <div class="section-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⚡</div>
+            <h2 class="section-title">4. Módulos Generales y Transversales de CitaLink HQ</h2>
+        </div>
+        <p class="section-desc">Herramientas globales de administración, nómina, analítica y fidelización de clientes.</p>
+
+        <div class="grid-2">
+            <div class="feature-card">
+                <h4>📲 App Web Instalable (PWA)</h4>
+                <p>Experiencia de aplicación nativa para iPhone y Android sin necesidad de descargas en App Store o Play Store. Instalación en 1 clic directamente desde la página de reserva.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>🧠 Historial e Inteligencia de Clientes</h4>
+                <p>Autocompletado automático por número telefónico. El sistema recuerda los servicios habituales del cliente y sugiere sus preferencias pasadas para agilizar la reserva.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>📊 Nóminas y Comisiones Automáticas</h4>
+                <p>Cálculo automático de comisiones variables por empleado sobre servicios efectivamente completados. Exportación instantánea de <strong>Reporte de Nómina en PDF</strong> para pago de sueldos.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>⏳ Lista de Espera Activa</h4>
+                <p>Sistema inteligente para anotar clientes cuando un horario está lleno. Si se libera una cita por cancelación, el negocio notifica de inmediato para ocupar la vacante.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>🏢 Panel Multi-Sucursal (CitaLink HQ)</h4>
+                <p>Control centralizado para dueños con 2 o más sucursales. Alterna entre sucursales con un clic, consolida ingresos y gestiona personal globalmente.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>🌐 Marketplace CitaLink</h4>
+                <p>Directorio y buscador público donde miles de usuarios buscan servicios de belleza y agendan directamente en tu negocio, atrayendo nuevos clientes de forma orgánica.</p>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+</body>
+</html>

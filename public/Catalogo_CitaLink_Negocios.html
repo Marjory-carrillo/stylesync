@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CitaLink — Catálogo de Funciones y Automatización</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #10b981;
+            --cyan: #06b6d4;
+            --pink: #ec4899;
+            --amber: #f59e0b;
+            --purple: #8b5cf6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0a0f1e;
+            color: #f1f5f9;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ───────────────────────── PAGE COVER ───────────────────────── */
+        .cover {
+            background: linear-gradient(135deg, #061a0f 0%, #0a0f1e 40%, #0d0a1f 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px 40px;
+            border-bottom: 1px solid rgba(16,185,129,0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        .cover::before {
+            content: '';
+            position: absolute;
+            width: 600px; height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%);
+            top: -100px; left: -100px;
+        }
+        .cover::after {
+            content: '';
+            position: absolute;
+            width: 500px; height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%);
+            bottom: -80px; right: -80px;
+        }
+        .cover-logo {
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            color: #000;
+            font-weight: 900;
+            font-size: 22px;
+            padding: 12px 24px;
+            border-radius: 18px;
+            letter-spacing: -0.5px;
+            margin-bottom: 32px;
+            position: relative; z-index: 1;
+        }
+        .cover h1 {
+            font-size: 52px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            background: linear-gradient(90deg, #ffffff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            position: relative; z-index: 1;
+        }
+        .cover h1 em {
+            font-style: italic;
+            background: linear-gradient(90deg, #10b981, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cover p {
+            font-size: 18px;
+            color: #94a3b8;
+            max-width: 560px;
+            margin-bottom: 40px;
+            position: relative; z-index: 1;
+        }
+        .cover-pills {
+            display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+            position: relative; z-index: 1;
+        }
+        .pill {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #cbd5e1;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .pill.green { border-color: rgba(16,185,129,0.35); color: #34d399; background: rgba(16,185,129,0.08); }
+        .pill.cyan  { border-color: rgba(6,182,212,0.35); color: #38bdf8; background: rgba(6,182,212,0.08); }
+        .pill.pink  { border-color: rgba(236,72,153,0.35); color: #f472b6; background: rgba(236,72,153,0.08); }
+
+        /* ───────────────────────── LAYOUT ───────────────────────── */
+        .page {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 56px 40px;
+        }
+        .print-btn {
+            position: fixed; bottom: 28px; right: 28px; z-index: 100;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #000; border: none; font-weight: 800; font-size: 13px;
+            padding: 14px 26px; border-radius: 16px; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(16,185,129,0.35);
+            display: flex; align-items: center; gap: 8px;
+            transition: transform 0.2s;
+        }
+        .print-btn:hover { transform: translateY(-2px); }
+
+        /* ───────────────────────── SECTION HEADS ───────────────────────── */
+        .sec-head {
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .sec-icon {
+            width: 48px; height: 48px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0;
+        }
+        .sec-head h2 { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.3px; }
+        .sec-desc { color: #94a3b8; font-size: 13px; margin-bottom: 32px; }
+
+        /* ───────────────────────── WHATSAPP FLOW ───────────────────────── */
+        .flow-step {
+            background: #111827;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 0;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .flow-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 24px;
+            background: rgba(255,255,255,0.025);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .flow-title {
+            font-size: 15px; font-weight: 800; color: #fff;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .flow-tag {
+            font-size: 10px; font-weight: 800; padding: 4px 10px;
+            border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .tag-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .tag-blue  { background: rgba(6,182,212,0.15);  color: #38bdf8; border: 1px solid rgba(6,182,212,0.3); }
+        .tag-amber { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .tag-purple{ background: rgba(139,92,246,0.15); color: #c084fc; border: 1px solid rgba(139,92,246,0.3); }
+        .tag-red   { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+        .flow-body { padding: 20px 24px; }
+        .flow-desc { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+
+        .wa-bubble {
+            background: linear-gradient(145deg, #0b1f19, #071510);
+            border: 1px solid rgba(37,211,102,0.25);
+            border-radius: 16px;
+            padding: 20px 22px;
+            font-family: system-ui, sans-serif;
+            font-size: 13.5px;
+            color: #e9edef;
+            white-space: pre-wrap;
+            line-height: 1.55;
+            position: relative;
+        }
+        .wa-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 10px; font-weight: 800; color: #25d366;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 10px; padding-bottom: 8px;
+            border-bottom: 1px solid rgba(37,211,102,0.15);
+        }
+        .wa-label::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #25d366; }
+        .wa-vars { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+        .wa-var-row { font-size: 11px; color: #64748b; display: flex; gap: 6px; padding: 2px 0; }
+        .wa-var-key { color: #fbbf24; font-weight: 700; min-width: 30px; }
+
+        /* ───────────────────────── GRID CARDS ───────────────────────── */
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .card {
+            background: #111827;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 24px;
+        }
+        .card h4 { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 10px; }
+        .card p  { font-size: 13px; color: #94a3b8; margin-bottom: 12px; }
+        .card ul { list-style: none; }
+        .card ul li {
+            font-size: 12.5px; color: #cbd5e1;
+            padding: 4px 0; display: flex; gap: 8px; align-items: flex-start;
+        }
+        .card ul li::before { content: '✓'; color: var(--green); font-weight: 900; flex-shrink: 0; margin-top: 2px; }
+
+        /* ───────────────────────── HIGHLIGHTS ROW ───────────────────────── */
+        .highlights {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+            margin-bottom: 40px;
+        }
+        .hl-card {
+            background: #111827;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+        .hl-card .hl-num { font-size: 36px; font-weight: 900; line-height: 1; }
+        .hl-card .hl-label { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+
+        /* ───────────────────────── PRICING ───────────────────────── */
+        .pricing { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .plan-card {
+            background: #111827; border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px; padding: 24px;
+        }
+        .plan-card.featured {
+            background: linear-gradient(145deg, #061a12, #0a1a10);
+            border-color: rgba(16,185,129,0.35);
+            box-shadow: 0 0 40px rgba(16,185,129,0.08);
+        }
+        .plan-name { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+        .plan-price { font-size: 36px; font-weight: 900; color: #fff; line-height: 1.1; margin: 8px 0 4px; }
+        .plan-price span { font-size: 14px; font-weight: 600; color: #64748b; }
+        .plan-old { font-size: 12px; color: #64748b; text-decoration: line-through; }
+        .plan-feats { list-style: none; margin-top: 14px; }
+        .plan-feats li { font-size: 12px; color: #94a3b8; padding: 3px 0; display: flex; gap: 6px; }
+        .plan-feats li::before { content: '•'; color: var(--green); }
+
+        /* ───────────────────────── CTA ───────────────────────── */
+        .cta-block {
+            background: linear-gradient(135deg, #061a12, #0d1a2e);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
+            margin-top: 48px;
+        }
+        .cta-block h3 { font-size: 28px; font-weight: 900; margin-bottom: 12px; }
+        .cta-block p  { color: #94a3b8; margin-bottom: 24px; }
+        .cta-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            color: #000; font-weight: 900; font-size: 15px;
+            padding: 14px 36px; border-radius: 16px;
+            text-decoration: none;
+        }
+
+        /* ───────────────────────── PRINT ───────────────────────── */
+        @media print {
+            body { background: #fff !important; color: #0f172a !important; }
+            .cover { background: #0f172a !important; min-height: auto; padding: 40px; }
+            .cover h1 { -webkit-text-fill-color: #fff !important; }
+            .cover p { color: #94a3b8 !important; }
+            .print-btn { display: none !important; }
+            .flow-step, .card, .hl-card, .plan-card {
+                background: #f8fafc !important;
+                border-color: #cbd5e1 !important;
+                page-break-inside: avoid;
+            }
+            .wa-bubble { background: #f1f5f9 !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+            .wa-label { color: #059669 !important; }
+            .flow-header { background: #f1f5f9 !important; border-color: #e2e8f0 !important; }
+            .sec-head { border-color: #e2e8f0 !important; }
+            h2, h4, .flow-title, .plan-price, .hl-num { color: #0f172a !important; }
+            .sec-desc, .card p, .flow-desc, .wa-var-row, .plan-feats li { color: #334155 !important; }
+            .card ul li { color: #0f172a !important; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Guardar como PDF</button>
+
+<!-- PORTADA -->
+<section class="cover">
+    <div class="cover-logo">CitaLink</div>
+    <h1>Agenda, Automatiza<br>y <em>Escala</em> tu Negocio</h1>
+    <p>La plataforma SaaS premium para salones de belleza, barberías, nail studios y spas — toda la operación en un solo lugar.</p>
+    <div class="cover-pills">
+        <span class="pill green">✅ Agenda Online 24/7</span>
+        <span class="pill cyan">💬 WhatsApp Automático</span>
+        <span class="pill pink">💰 Nóminas en 1 clic</span>
+        <span class="pill">📊 Reportes en Tiempo Real</span>
+        <span class="pill">💅 Cotizador de Uñas</span>
+        <span class="pill">🌐 Marketplace Público</span>
+    </div>
+</section>
+
+<!-- MÉTRICAS IMPACTO -->
+<section class="page">
+    <div class="highlights">
+        <div class="hl-card">
+            <div class="hl-num" style="color:#10b981">60%</div>
+            <div class="hl-label">Reducción de inasistencias con recordatorios automáticos</div>
+        </div>
+        <div class="hl-card">
+            <div class="hl-num" style="color:#06b6d4">40%</div>
+            <div class="hl-label">Citas agendadas fuera del horario comercial (noche y fines de semana)</div>
+        </div>
+        <div class="hl-card">
+            <div class="hl-num" style="color:#f59e0b">10 hrs</div>
+            <div class="hl-label">Ahorro semanal en gestión de WhatsApp manual y cálculo de nóminas</div>
+        </div>
+        <div class="hl-card">
+            <div class="hl-num" style="color:#ec4899">30s</div>
+            <div class="hl-label">Tiempo promedio de reserva para tu clienta — sin cuentas ni contraseñas</div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════ WHATSAPP FLOW ════════════════════════════ -->
+    <div class="sec-head">
+        <div class="sec-icon" style="background:rgba(37,211,102,0.12);color:#25d366">💬</div>
+        <div>
+            <h2>Mensajería Automática Vía WhatsApp</h2>
+        </div>
+    </div>
+    <p class="sec-desc">Integración oficial con la API de Meta Business. Sin riesgo de bloqueos. Las plantillas están pre-aprobadas por WhatsApp.</p>
+
+    <!-- Paso 1 -->
+    <div class="flow-step">
+        <div class="flow-header">
+            <div class="flow-title">
+                <span>1️⃣</span>
+                <span>Cliente agenda su cita en la web o app</span>
+                <span style="color:#475569; font-size:12px">→ confirma su número con PIN de 4 dígitos</span>
+            </div>
+            <span class="flow-tag tag-green">Para la Clienta</span>
+        </div>
+        <div class="flow-body">
+            <p class="flow-desc">En cuanto la clienta elige su horario, CitaLink le envía al instante este WhatsApp con su PIN de verificación. Esto evita citas falsas y confirma que el teléfono es real.</p>
+            <div class="wa-bubble">
+                <div class="wa-label">WhatsApp Template Oficial (Meta Approved · citalink_cliente_confirmacion_v3)</div>🔐 *Código CitaLink:* *4872*
+
+Hola *Valeria*, tu cita en *Nova Nails Studio* está casi lista.
+
+📅 *Fecha:* viernes 15 de agosto a las 16:00
+✂️ *Servicio:* Gel Semipermanente Manos
+
+Ingresa el código *4872* en la pantalla de reserva para confirmar tu cita.
+⏱️ Válido por 10 minutos.
+                <div class="wa-vars">
+                    <div class="wa-var-row"><span class="wa-var-key">{{1}}</span><span>Nombre de la clienta (ej. Valeria)</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{2}}</span><span>Nombre del negocio (ej. Nova Nails Studio)</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{3}}</span><span>Fecha y hora de la cita</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{4}}</span><span>Nombre del servicio</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{5}}</span><span>Código PIN de 4 dígitos generado automáticamente</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paso 2 -->
+    <div class="flow-step">
+        <div class="flow-header">
+            <div class="flow-title">
+                <span>2️⃣</span>
+                <span>PIN confirmado</span>
+                <span style="color:#475569; font-size:12px">→ Notificación automática al profesional y/o dueño</span>
+            </div>
+            <span class="flow-tag tag-blue">Para el Profesional / Admin</span>
+        </div>
+        <div class="flow-body">
+            <p class="flow-desc">Al instante en que la clienta valida su PIN, la cita queda registrada y el estilista/barbero asignado y el dueño del negocio reciben este aviso por WhatsApp, sin que tengan que revisar el panel manualmente.</p>
+            <div class="wa-bubble">
+                <div class="wa-label">WhatsApp Template Oficial (Meta Approved · citalink_admin_nueva_cita_v1)</div>🆕 *NUEVA CITA REGISTRADA* — *Nova Nails Studio*
+
+👤 *Cliente:* Valeria Hernández
+✂️ *Servicio:* Gel Semipermanente Manos + Largo Mediano
+📆 *Fecha y Hora:* viernes 15 de agosto a las 16:00
+📱 *Teléfono:* 55 1234 5678
+
+Entra a tu panel CitaLink para ver todos los detalles.
+                <div class="wa-vars">
+                    <div class="wa-var-row"><span class="wa-var-key">{{1}}</span><span>Nombre del negocio</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{2}}</span><span>Nombre completo de la clienta</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{3}}</span><span>Servicio(s) seleccionado(s)</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{4}}</span><span>Fecha y hora de la cita</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{5}}</span><span>Número de teléfono de la clienta</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paso 3 -->
+    <div class="flow-step">
+        <div class="flow-header">
+            <div class="flow-title">
+                <span>3️⃣</span>
+                <span>Recordatorio automático 24 hrs antes</span>
+                <span style="color:#475569; font-size:12px">→ Reduce hasta un 60% las inasistencias</span>
+            </div>
+            <span class="flow-tag tag-amber">Prevención de No-Shows</span>
+        </div>
+        <div class="flow-body">
+            <p class="flow-desc">El sistema de CitaLink revisa automáticamente las citas del día siguiente y les envía este recordatorio a todas las clientas con un link directo para gestionar su cita si les surgió algo.</p>
+            <div class="wa-bubble">
+                <div class="wa-label">WhatsApp Template Oficial (Meta Approved · citalink_cliente_recordatorio_v4)</div>🔔 *RECORDATORIO DE CITA* — *Nova Nails Studio*
+
+Hola *Valeria*, te recordamos tu próxima cita:
+
+📆 *Fecha y Hora:* mañana viernes 15 de agosto a las 16:00
+✂️ *Servicio:* Gel Semipermanente Manos
+
+¿Ya no puedes asistir? Gestiona tu cita aquí:
+👉 https://www.citalink.app/reserva/nova-nails-studio
+                <div class="wa-vars">
+                    <div class="wa-var-row"><span class="wa-var-key">{{1}}</span><span>Nombre de la clienta</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{2}}</span><span>Nombre del negocio</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{3}}</span><span>Fecha y hora de la cita</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{4}}</span><span>Servicio</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{5}}</span><span>Link de gestión de la cita</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paso 4 -->
+    <div class="flow-step">
+        <div class="flow-header">
+            <div class="flow-title">
+                <span>4️⃣</span>
+                <span>Admin agenda manualmente (recepción o llamada)</span>
+                <span style="color:#475569; font-size:12px">→ La clienta recibe confirmación limpia sin PIN</span>
+            </div>
+            <span class="flow-tag tag-purple">Admin → Clienta</span>
+        </div>
+        <div class="flow-body">
+            <p class="flow-desc">Cuando el negocio agenda una cita desde su panel interno (para una clienta que llamó o llegó en persona), el sistema avisa automáticamente a la clienta con un mensaje de confirmación sin molestarla con pasos de verificación.</p>
+            <div class="wa-bubble">
+                <div class="wa-label">WhatsApp Template Oficial (Meta Approved · citalink_cliente_cita_manual)</div>🗓️ *CITA CONFIRMADA* — *Nova Nails Studio*
+
+Hola *Valeria*, tu cita ha sido agendada con éxito.
+
+📆 *Fecha y Hora:* sábado 16 de agosto a las 11:00
+✂️ *Servicio:* Acrílico Set Nuevo + Largo XL
+🌐 *Gestiona tu cita:* https://www.citalink.app/reserva/nova-nails-studio
+
+¡Te esperamos con gusto! 💅
+            </div>
+        </div>
+    </div>
+
+    <!-- Paso 5 -->
+    <div class="flow-step">
+        <div class="flow-header">
+            <div class="flow-title">
+                <span>5️⃣</span>
+                <span>Cotización con precio variable confirmado por el profesional</span>
+                <span style="color:#475569; font-size:12px">→ Notificación del monto exacto a pagar</span>
+            </div>
+            <span class="flow-tag tag-purple">Nail Art & Servicios Especiales</span>
+        </div>
+        <div class="flow-body">
+            <p class="flow-desc">Cuando la clienta agenda un set con diseños personalizados y la manicurista confirma el precio final en su panel, CitaLink le avisa automáticamente el total exacto a pagar. Cero sorpresas el día de la cita.</p>
+            <div class="wa-bubble">
+                <div class="wa-label">WhatsApp Template Oficial (Meta Approved · citalink_cliente_actualizacion_precio)</div>💎 *COTIZACIÓN CONFIRMADA* — *Nova Nails Studio*
+
+Hola *Valeria*, tu profesional ha confirmado el precio total de tu cita:
+
+📆 *Fecha y Hora:* sábado 16 de agosto a las 11:00
+✂️ *Servicio:* Acrílico Set Nuevo + Largo XL
+💰 *Precio Total Confirmado:* *$520 MXN*
+
+Consulta los detalles de tu cita aquí:
+👉 https://www.citalink.app/reserva/nova-nails-studio
+                <div class="wa-vars">
+                    <div class="wa-var-row"><span class="wa-var-key">{{5}}</span><span>Precio total confirmado por el profesional (ej. $520 MXN)</span></div>
+                    <div class="wa-var-row"><span class="wa-var-key">{{6}}</span><span>Link de la cita</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paso 6 -->
+    <div class="flow-step">
+        <div class="flow-header">
+            <div class="flow-title">
+                <span>6️⃣</span>
+                <span>Cancelación de cita</span>
+                <span style="color:#475569; font-size:12px">→ Aviso a la clienta + liberación automática del espacio</span>
+            </div>
+            <span class="flow-tag tag-red">Sincronización Total</span>
+        </div>
+        <div class="flow-body">
+            <p class="flow-desc">Si se cancela una cita (por el negocio o por la clienta), ambas partes reciben aviso inmediato. El espacio queda libre en la agenda al instante y la clienta puede reagendar con un solo clic.</p>
+            <div class="wa-bubble">
+                <div class="wa-label">WhatsApp Template Oficial (Meta Approved · citalink_cliente_cancelacion)</div>❌ *CITA CANCELADA* — *Nova Nails Studio*
+
+Hola *Valeria*, tu cita programada para el viernes 15 de agosto a las 16:00 ha sido cancelada.
+
+Si deseas agendar en otro horario disponible, entra aquí:
+👉 https://www.citalink.app/reserva/nova-nails-studio
+
+¡Esperamos verte pronto! 💅
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════ MÓDULO UÑAS ════════════════════════════ -->
+    <div style="margin-top:56px">
+        <div class="sec-head">
+            <div class="sec-icon" style="background:rgba(236,72,153,0.12);color:#ec4899">💅</div>
+            <div>
+                <h2 style="color:#f472b6">Cotizador Interactivo de Uñas (Nail Studios)</h2>
+            </div>
+        </div>
+        <p class="sec-desc">Módulo único en el mercado. Diseñado exclusivamente para la complejidad del Nail Art: técnicas, largos, estilos y decoraciones con precio por unidad.</p>
+
+        <div class="cards">
+            <div class="card">
+                <h4>🧮 Calculadora Automática en Tiempo Real</h4>
+                <p>La clienta arma su set completo y ve el precio actualizado conforme selecciona:</p>
+                <ul>
+                    <li><strong>Técnica Base:</strong> Semipermanente, Rubber, Softgel, Acrílico Nuevo, Baño de Acrílico, Acripie.</li>
+                    <li><strong>Largo:</strong> Corto ($0) · Mediano (+$50) · Largo (+$100) · XL (+$150)</li>
+                    <li><strong>Estilos:</strong> Francés, Baby Boomer, Chrome, Aura, Cat Eye</li>
+                    <li><strong>Arte por uña:</strong> Mano Alzada ($x por uña)</li>
+                    <li><strong>Decoración por pieza:</strong> Cristales ($x/pza), Dijes 3D ($x/pza), Encapsulados</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>📸 Foto de Referencia desde Instagram / Pinterest</h4>
+                <p>La clienta puede pegar o subir la foto del diseño que quiere directamente desde su celular (Ctrl+V):</p>
+                <ul>
+                    <li>Imagen adjunta en la cita visible para la manicurista antes de que llegue la clienta.</li>
+                    <li>Permite cotizar con precisión el arte antes de iniciar el servicio.</li>
+                    <li>Evita malentendidos y genera experiencias premium.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>🧾 Ticket Digital Compartible por WhatsApp</h4>
+                <p>Desglose transparente de la cotización en formato ticket profesional:</p>
+                <ul>
+                    <li>Detalle de cada técnica, largo y pieza de decoración seleccionada.</li>
+                    <li>Descargable como imagen o PDF para enviar a la clienta antes de la cita.</li>
+                    <li>Cierra ventas anticipadas con cotizaciones claras.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>👩‍🎨 Tarifas Individuales por Manicurista</h4>
+                <p>Define precios diferenciados por profesional según su nivel de experiencia:</p>
+                <ul>
+                    <li>Manicurista Senior con tarifa premium en mano alzada y 3D.</li>
+                    <li>Junior con tarifa estándar en técnicas base.</li>
+                    <li>El cotizador aplica automáticamente la tarifa correcta al seleccionar la profesional.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════ MÓDULO BARBERÍAS ════════════════════════════ -->
+    <div style="margin-top:56px">
+        <div class="sec-head">
+            <div class="sec-icon" style="background:rgba(6,182,212,0.12);color:#06b6d4">💈</div>
+            <div>
+                <h2 style="color:#38bdf8">Módulo para Barberías y Peluquerías</h2>
+            </div>
+        </div>
+        <p class="sec-desc">Optimizado para la alta rotación de sillones, combos de servicios masculinos y asignación de barbero de confianza.</p>
+
+        <div class="cards">
+            <div class="card">
+                <h4>✂️ Elección de Barbero Preferido</h4>
+                <p>Cada cliente elige a su barbero de confianza o activa "Cualquier Barbero Disponible" para no perder horario:</p>
+                <ul>
+                    <li>Perfil con foto, nombre y especialidades de cada barbero.</li>
+                    <li>Balance automático de cargas entre el equipo.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>⚡ Combos y Paquetes</h4>
+                <p>Configura combos de servicios frecuentes (Corte + Barba + Mascarilla) con precio y duración exacta. El sistema bloquea el tiempo combinado para no encimar clientes.</p>
+            </div>
+            <div class="card">
+                <h4>➕ Adicionales Rápidos (Add-ons)</h4>
+                <p>Sugiere extras durante la reserva que aumentan el ticket promedio: perfilado de ceja, pigmentación de barba, lavado capilar o tratamiento keratina.</p>
+            </div>
+            <div class="card">
+                <h4>⏱️ Control de Duración por Servicio</h4>
+                <p>Define el tiempo exacto que toma cada servicio para maximizar citas por día y evitar retrasos acumulados durante el turno.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════ MÓDULOS GENERALES ════════════════════════════ -->
+    <div style="margin-top:56px">
+        <div class="sec-head">
+            <div class="sec-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b">⚡</div>
+            <div>
+                <h2>Funciones para Todos los Negocios</h2>
+            </div>
+        </div>
+        <p class="sec-desc">Herramientas transversales disponibles en todos los planes de CitaLink.</p>
+
+        <div class="cards">
+            <div class="card">
+                <h4>📊 Nóminas y Comisiones Automáticas</h4>
+                <p>Calcula las comisiones de cada estilista automáticamente sobre los servicios completados y genera el Reporte de Nómina en PDF con un solo clic.</p>
+            </div>
+            <div class="card">
+                <h4>📲 App Instalable sin descargas (PWA)</h4>
+                <p>Los clientes añaden la página de reservas a su pantalla de inicio como app nativa desde iPhone o Android sin consumir almacenamiento.</p>
+            </div>
+            <div class="card">
+                <h4>🧠 Historial e Inteligencia de Clientes</h4>
+                <p>Al ingresar su teléfono, el sistema recuerda sus servicios favoritos y los sugiere automáticamente para acelerar la reserva.</p>
+            </div>
+            <div class="card">
+                <h4>⏳ Lista de Espera Activa</h4>
+                <p>Cuando un horario está lleno, los clientes se anotan en lista de espera. Si alguien cancela, el negocio lo llena de inmediato.</p>
+            </div>
+            <div class="card">
+                <h4>🏢 Multi-Sucursal (CitaLink HQ)</h4>
+                <p>Panel unificado para dueños con 2+ sucursales. Consolida ingresos, reportes y configuración de marca de manera centralizada.</p>
+            </div>
+            <div class="card">
+                <h4>🌐 Marketplace Público de CitaLink</h4>
+                <p>Aparece en el buscador público donde miles de usuarios buscan servicios de belleza cercanos y agendan directamente en tu negocio.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════ PRECIOS ════════════════════════════ -->
+    <div style="margin-top:56px">
+        <div class="sec-head">
+            <div class="sec-icon" style="background:rgba(139,92,246,0.12);color:#8b5cf6">💎</div>
+            <div><h2>Planes y Precios</h2></div>
+        </div>
+        <p class="sec-desc">Recupera el costo de la suscripción con tan solo 1 o 2 citas que sin CitaLink habrías perdido.</p>
+        <div class="pricing">
+            <div class="plan-card">
+                <div class="plan-name">Free</div>
+                <div class="plan-price">$0 <span>/ mes</span></div>
+                <ul class="plan-feats">
+                    <li>1 sucursal · 2 profesionales</li>
+                    <li>30 citas/mes</li>
+                    <li>Agenda Online 24/7</li>
+                    <li>App PWA instalable</li>
+                </ul>
+            </div>
+            <div class="plan-card">
+                <div class="plan-name">Esencial</div>
+                <div class="plan-price">$349 <span>/ mes</span></div>
+                <div class="plan-old">Antes $499</div>
+                <ul class="plan-feats">
+                    <li>1 sucursal · 1 profesional</li>
+                    <li>Citas ilimitadas</li>
+                    <li>WhatsApp Automático ✅</li>
+                    <li>Branding personalizado</li>
+                </ul>
+            </div>
+            <div class="plan-card featured">
+                <div class="plan-name" style="color:#34d399">Pro ⭐</div>
+                <div class="plan-price">$649 <span>/ mes</span></div>
+                <div class="plan-old">Antes $899</div>
+                <ul class="plan-feats">
+                    <li>1 sucursal · 2 profesionales</li>
+                    <li>Citas ilimitadas</li>
+                    <li>Cotizador de Uñas ✅</li>
+                    <li>Reportes avanzados</li>
+                    <li>Exportación de nóminas PDF</li>
+                </ul>
+            </div>
+            <div class="plan-card">
+                <div class="plan-name">Business</div>
+                <div class="plan-price">$1,249 <span>/ mes</span></div>
+                <div class="plan-old">Antes $1,649</div>
+                <ul class="plan-feats">
+                    <li>2+ sucursales</li>
+                    <li>Panel multi-sucursal HQ</li>
+                    <li>Reportes consolidados</li>
+                    <li>Soporte prioritario</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-block">
+        <h3>¿Listo para automatizar tu negocio?</h3>
+        <p>Comienza gratis hoy. Sin tarjeta de crédito. Sin contratos de permanencia.</p>
+        <a class="cta-btn" href="https://www.citalink.app" target="_blank">🚀 Empezar Ahora en citalink.app</a>
+    </div>
+
+</section>
+
+</body>
+</html>
