@@ -14,7 +14,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 import { getPlanBadgeStyles } from '../../lib/planLimits';
 import type { PlanType } from '../../lib/planLimits';
-import { getCountryPreset } from '../../lib/pricingConfig';
+import { COUNTRY_PRESETS, getCountryPreset } from '../../lib/pricingConfig';
 
 // Modal de confirmación premium para borrado
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
@@ -383,7 +383,7 @@ export default function SuperAdminPanel() {
     const [pendingPlanChange, setPendingPlanChange] = useState<{ tenantId: string; tenantName: string; from: PlanType; to: PlanType } | null>(null);
     const [pendingSmsChange, setPendingSmsChange] = useState<{ tenantId: string; tenantName: string; from: 'demo' | 'whatsapp'; to: 'demo' | 'whatsapp' } | null>(null);
     const [tenantToEdit, setTenantToEdit] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free' as PlanType, noTrial: false });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'free' as PlanType, noTrial: false });
     const [isCreating, setIsCreating] = useState(false);
     const [isExistingOwner, setIsExistingOwner] = useState(false);
     const [selectedOwnerId, setSelectedOwnerId] = useState('');
@@ -795,6 +795,7 @@ export default function SuperAdminPanel() {
     const handleCreateBusiness = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsCreating(true);
+        const preset = getCountryPreset(newBusiness.countryCode || 'MX');
         const res = await createTenant(
             newBusiness.name,
             newBusiness.slug,
@@ -802,10 +803,14 @@ export default function SuperAdminPanel() {
             newBusiness.category,
             newBusiness.ownerEmail.trim().toLowerCase(),
             newBusiness.ownerPassword,
-            newBusiness.timezone,
+            newBusiness.timezone || preset.timezone,
             isExistingOwner && selectedOwnerId ? selectedOwnerId : undefined,
             isExistingOwner && newBusiness.brandSlug ? newBusiness.brandSlug : undefined,
-            newBusiness.noTrial
+            newBusiness.noTrial,
+            preset.code,
+            preset.currency,
+            preset.currencySymbol,
+            preset.phonePrefix
         );
         setIsCreating(false);
         if (res.success) {
@@ -815,7 +820,7 @@ export default function SuperAdminPanel() {
             }
             setIsCreateModalOpen(false);
             setIsSlugManual(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', brandSlug: '', plan: 'free', noTrial: false });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'free', noTrial: false });
             setIsExistingOwner(false);
             setSelectedOwnerId('');
             showToast(
@@ -1934,6 +1939,26 @@ export default function SuperAdminPanel() {
                                         <p className="text-[10px] text-violet-400/60 ml-1">Los clientes verán todas las sucursales en un solo link.</p>
                                     </div>
                                 )}
+
+                                {/* País del Negocio */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">País del Negocio y Divisa</label>
+                                    <select
+                                        value={newBusiness.countryCode}
+                                        onChange={e => {
+                                            const code = e.target.value;
+                                            const preset = getCountryPreset(code);
+                                            setNewBusiness({ ...newBusiness, countryCode: code, timezone: preset.timezone });
+                                        }}
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none cursor-pointer"
+                                    >
+                                        {Object.values(COUNTRY_PRESETS).map(country => (
+                                            <option key={country.code} value={country.code} className="bg-slate-900 text-white">
+                                                {country.flag} {country.name} ({country.currencySymbol} · {country.phonePrefix})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
                                 {/* Zona Horaria */}
                                 <div className="space-y-1.5">
