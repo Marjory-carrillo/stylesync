@@ -66,21 +66,34 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
         try {
             setDownloading(true);
             const canvas = await html2canvas(ref.current, {
-                scale: 2, // 2x resolution for clean 1224x1584 rendering
+                scale: 3, // 3x ultra-HD resolution for crisp print quality
                 useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
-                width: 612,
-                height: 792,
                 onclone: (clonedDoc) => {
-                    // Fix html2canvas kerning bug by enforcing normal letter-spacing on all text nodes
                     const el = clonedDoc.querySelector(`[data-card-id="${cardId}"]`);
                     if (el) {
                         const nodes = el.querySelectorAll('*');
                         nodes.forEach((n: any) => {
-                            n.style.letterSpacing = 'normal';
+                            n.style.letterSpacing = '0.02em';
                             n.style.wordSpacing = 'normal';
-                            n.style.fontVariantCaps = 'normal';
+                        });
+
+                        // Target general header & headline texts to shift them up visually by 16px
+                        const generalTexts = el.querySelectorAll('h3, p, .qr-citalink-text span');
+                        generalTexts.forEach((t: any) => {
+                            t.style.transform = 'translateY(-16px)';
+                        });
+
+                        // Target footer business name specifically: remove overflow clipping, expand line height, shift up +1
+                        const businessNameTexts = el.querySelectorAll('.qr-business-name');
+                        businessNameTexts.forEach((t: any) => {
+                            t.style.transform = 'translateY(-3px)';
+                            t.style.overflow = 'visible';
+                            t.style.lineHeight = '1.6';
+                            t.style.display = 'inline-block';
+                            t.style.position = 'relative';
+                            t.style.zIndex = '10';
                         });
                     }
                 }
@@ -113,7 +126,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                         </div>
                         <div>
                             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Hojas QR Tamaño Carta (8.5" x 11")</h2>
-                            <p className="text-xs text-slate-400">Descarga e imprime estas hojas limpias en alta calidad para colocar en tu mostrador.</p>
+                            <p className="text-xs text-slate-400">Descarga e imprime estas hojas limpias centradas en alta calidad para colocar en tu mostrador.</p>
                         </div>
                     </div>
                     <button
@@ -168,7 +181,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                 {/* Printable Cards Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                    {/* ── HOJA 1: QR DE RESERVAS (TAMAÑO CARTA FIJO) ── */}
+                    {/* ── HOJA 1: QR DE RESERVAS (TAMAÑO CARTA CENTRADO Perfect) ── */}
                     <div className="flex flex-col gap-3 items-center">
                         <div className="w-full flex items-center justify-between px-1">
                             <span className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
@@ -194,60 +207,69 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                     height: '792px',
                                     minWidth: '612px',
                                     minHeight: '792px',
-                                    letterSpacing: 'normal',
+                                    letterSpacing: '0.02em',
                                     wordSpacing: 'normal',
-                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                                    fontFamily: 'Arial, Helvetica, sans-serif'
                                 }}
-                                className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-10 flex flex-col items-center justify-between text-center shadow-2xl relative shrink-0 box-border"
+                                className="bg-white text-slate-900 border border-slate-300 rounded-3xl shadow-2xl flex flex-col shrink-0 box-border overflow-hidden"
                             >
-                                {/* Official CitaLink Header Logo */}
-                                <div className="flex items-center justify-center gap-3 pt-2">
-                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
-                                        <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
+                                {/* Header - Fixed Height */}
+                                <div className="h-[140px] flex-none flex items-end justify-center pb-6">
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
+                                            <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
+                                        </div>
+                                        <div className="text-4xl font-bold flex items-center pt-1 qr-citalink-text" style={{ letterSpacing: '0.02em' }}>
+                                            <span className="text-slate-900">Cita</span>
+                                            <span className="text-violet-600">Link</span>
+                                        </div>
                                     </div>
-                                    <div className="text-3xl font-black leading-none" style={{ letterSpacing: 'normal' }}>
-                                        <span className="text-slate-900">Cita</span>
-                                        <span className="text-violet-600">Link</span>
+                                </div>
+
+                                {/* Body - Fills remaining space */}
+                                <div className="flex-1 flex flex-col items-center justify-center space-y-8 px-12">
+                                    {/* Headline Message */}
+                                    <div className="space-y-3 max-w-[500px] text-center qr-headline-text">
+                                        <h3
+                                            className="text-3xl font-bold text-slate-900 px-2"
+                                            style={{ letterSpacing: '0.02em', lineHeight: '1.35', wordBreak: 'break-word' }}
+                                        >
+                                            {bookingMsg}
+                                        </h3>
+                                        <p
+                                            className="text-sm font-bold text-slate-500 uppercase"
+                                            style={{ letterSpacing: '0.05em', lineHeight: '1.4' }}
+                                        >
+                                            Escanea con la cámara de tu celular para agendar al instante
+                                        </p>
+                                    </div>
+
+                                    {/* Large Clean QR Code */}
+                                    <div className="p-4 bg-white rounded-3xl border-4 border-slate-100 shadow-xl">
+                                        <img
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(bookingUrl)}`}
+                                            alt={`QR Reservas ${businessName}`}
+                                            className="w-56 h-56 object-contain"
+                                            crossOrigin="anonymous"
+                                        />
                                     </div>
                                 </div>
 
-                                {/* Headline Message */}
-                                <div className="my-auto py-4 space-y-3 max-w-[500px]">
-                                    <h3
-                                        className="text-2xl font-black text-slate-900 px-4"
-                                        style={{ letterSpacing: 'normal', lineHeight: '1.35', wordBreak: 'break-word' }}
-                                    >
-                                        {bookingMsg}
-                                    </h3>
-                                    <p
-                                        className="text-xs font-bold text-slate-500 uppercase"
-                                        style={{ letterSpacing: '0.05em', lineHeight: '1.4' }}
-                                    >
-                                        Escanea con la cámara de tu celular para agendar al instante
-                                    </p>
-                                </div>
-
-                                {/* Large Clean QR Code */}
-                                <div className="p-5 bg-white rounded-3xl border-4 border-slate-100 shadow-xl my-auto">
-                                    <img
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(bookingUrl)}`}
-                                        alt={`QR Reservas ${businessName}`}
-                                        className="w-56 h-56 object-contain"
-                                        crossOrigin="anonymous"
-                                    />
-                                </div>
-
-                                {/* Business Footer */}
-                                <div className="mt-auto pt-6 flex items-center justify-center gap-3 border-t border-slate-100 w-full">
-                                    {logoUrl ? (
-                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0" />
-                                    ) : null}
-                                    <span
-                                        className="font-black text-base text-slate-800 truncate max-w-[340px]"
-                                        style={{ letterSpacing: 'normal' }}
-                                    >
-                                        {businessName}
-                                    </span>
+                                {/* Footer - Fixed Height */}
+                                <div className="h-[140px] flex-none flex items-start justify-center pt-6">
+                                    <div className="flex items-center justify-center gap-3 pt-4 border-t border-slate-200 w-3/4 relative z-10">
+                                        {logoUrl ? (
+                                            <img src={logoUrl} alt={businessName} className="w-12 h-12 mt-1 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0 relative z-10" />
+                                        ) : null}
+                                        <div className="flex flex-col justify-center max-w-[340px] py-1 relative z-10 overflow-visible">
+                                            <span
+                                                className="font-bold text-xl text-slate-800 whitespace-nowrap qr-business-name relative z-10 inline-block"
+                                                style={{ letterSpacing: '0.02em', lineHeight: '1.6', overflow: 'visible' }}
+                                            >
+                                                {businessName}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -263,7 +285,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                         </button>
                     </div>
 
-                    {/* ── HOJA 2: QR DE RESEÑAS (TAMAÑO CARTA FIJO) ── */}
+                    {/* ── HOJA 2: QR DE RESEÑAS (TAMAÑO CARTA CENTRADO Perfect) ── */}
                     <div className="flex flex-col gap-3 items-center">
                         <div className="w-full flex items-center justify-between px-1">
                             <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
@@ -289,60 +311,69 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                     height: '792px',
                                     minWidth: '612px',
                                     minHeight: '792px',
-                                    letterSpacing: 'normal',
+                                    letterSpacing: '0.02em',
                                     wordSpacing: 'normal',
-                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                                    fontFamily: 'Arial, Helvetica, sans-serif'
                                 }}
-                                className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-10 flex flex-col items-center justify-between text-center shadow-2xl relative shrink-0 box-border"
+                                className="bg-white text-slate-900 border border-slate-300 rounded-3xl shadow-2xl flex flex-col shrink-0 box-border overflow-hidden"
                             >
-                                {/* Official CitaLink Header Logo */}
-                                <div className="flex items-center justify-center gap-3 pt-2">
-                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
-                                        <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
+                                {/* Header - Fixed Height */}
+                                <div className="h-[140px] flex-none flex items-end justify-center pb-6">
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
+                                            <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
+                                        </div>
+                                        <div className="text-4xl font-bold flex items-center pt-1 qr-citalink-text" style={{ letterSpacing: '0.02em' }}>
+                                            <span className="text-slate-900">Cita</span>
+                                            <span className="text-violet-600">Link</span>
+                                        </div>
                                     </div>
-                                    <div className="text-3xl font-black leading-none" style={{ letterSpacing: 'normal' }}>
-                                        <span className="text-slate-900">Cita</span>
-                                        <span className="text-violet-600">Link</span>
+                                </div>
+
+                                {/* Body - Fills remaining space */}
+                                <div className="flex-1 flex flex-col items-center justify-center space-y-8 px-12">
+                                    {/* Headline Message */}
+                                    <div className="space-y-3 max-w-[500px] text-center qr-headline-text">
+                                        <h3
+                                            className="text-3xl font-bold text-slate-900 px-2"
+                                            style={{ letterSpacing: '0.02em', lineHeight: '1.35', wordBreak: 'break-word' }}
+                                        >
+                                            {reviewMsg}
+                                        </h3>
+                                        <p
+                                            className="text-sm font-bold text-slate-500 uppercase"
+                                            style={{ letterSpacing: '0.05em', lineHeight: '1.4' }}
+                                        >
+                                            Escanea con la cámara de tu celular y déjanos tu opinión
+                                        </p>
+                                    </div>
+
+                                    {/* Large Clean QR Code */}
+                                    <div className="p-4 bg-white rounded-3xl border-4 border-slate-100 shadow-xl">
+                                        <img
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(reviewUrl)}`}
+                                            alt={`QR Reseñas ${businessName}`}
+                                            className="w-56 h-56 object-contain"
+                                            crossOrigin="anonymous"
+                                        />
                                     </div>
                                 </div>
 
-                                {/* Headline Message */}
-                                <div className="my-auto py-4 space-y-3 max-w-[500px]">
-                                    <h3
-                                        className="text-2xl font-black text-slate-900 px-4"
-                                        style={{ letterSpacing: 'normal', lineHeight: '1.35', wordBreak: 'break-word' }}
-                                    >
-                                        {reviewMsg}
-                                    </h3>
-                                    <p
-                                        className="text-xs font-bold text-slate-500 uppercase"
-                                        style={{ letterSpacing: '0.05em', lineHeight: '1.4' }}
-                                    >
-                                        Escanea con la cámara de tu celular y déjanos tu opinión
-                                    </p>
-                                </div>
-
-                                {/* Large Clean QR Code */}
-                                <div className="p-5 bg-white rounded-3xl border-4 border-slate-100 shadow-xl my-auto">
-                                    <img
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(reviewUrl)}`}
-                                        alt={`QR Reseñas ${businessName}`}
-                                        className="w-56 h-56 object-contain"
-                                        crossOrigin="anonymous"
-                                    />
-                                </div>
-
-                                {/* Business Footer */}
-                                <div className="mt-auto pt-6 flex items-center justify-center gap-3 border-t border-slate-100 w-full">
-                                    {logoUrl ? (
-                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0" />
-                                    ) : null}
-                                    <span
-                                        className="font-black text-base text-slate-800 truncate max-w-[340px]"
-                                        style={{ letterSpacing: 'normal' }}
-                                    >
-                                        {businessName}
-                                    </span>
+                                {/* Footer - Fixed Height */}
+                                <div className="h-[140px] flex-none flex items-start justify-center pt-6">
+                                    <div className="flex items-center justify-center gap-3 pt-4 border-t border-slate-200 w-3/4 relative z-10">
+                                        {logoUrl ? (
+                                            <img src={logoUrl} alt={businessName} className="w-12 h-12 mt-1 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0 relative z-10" />
+                                        ) : null}
+                                        <div className="flex flex-col justify-center max-w-[340px] py-1 relative z-10 overflow-visible">
+                                            <span
+                                                className="font-bold text-xl text-slate-800 whitespace-nowrap qr-business-name relative z-10 inline-block"
+                                                style={{ letterSpacing: '0.02em', lineHeight: '1.6', overflow: 'visible' }}
+                                            >
+                                                {businessName}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
