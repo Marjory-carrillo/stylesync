@@ -1968,14 +1968,20 @@ export default function SuperAdminPanel() {
                                         onChange={e => setNewBusiness({ ...newBusiness, timezone: e.target.value })}
                                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
                                     >
-                                        <option value="America/Mexico_City" className="bg-slate-900">Hora Central (CDMX, Monterrey)</option>
-                                        <option value="America/Tijuana" className="bg-slate-900">Hora del Pacífico (Tijuana, Mexicali)</option>
-                                        <option value="America/Mazatlan" className="bg-slate-900">Hora de la Montaña (Mazatlán, Culiacán)</option>
-                                        <option value="America/Cancun" className="bg-slate-900">Hora del Este (Cancún)</option>
-                                        <option value="America/Bogota" className="bg-slate-900">Colombia / Perú / Ecuador</option>
-                                        <option value="America/Santiago" className="bg-slate-900">Chile</option>
-                                        <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">Argentina</option>
-                                        <option value="Europe/Madrid" className="bg-slate-900">España (Península)</option>
+                                        <option value="America/Mexico_City" className="bg-slate-900">🇲🇽 México Central (CDMX, Monterrey, Guadalajara)</option>
+                                        <option value="America/Tijuana" className="bg-slate-900">🇲🇽 México Pacífico (Tijuana, Mexicali)</option>
+                                        <option value="America/Mazatlan" className="bg-slate-900">🇲🇽 México Montaña (Mazatlán, Culiacán)</option>
+                                        <option value="America/Cancun" className="bg-slate-900">🇲🇽 México Este (Cancún)</option>
+                                        <option value="America/New_York" className="bg-slate-900">🇺🇸/🇨🇦 EE.UU. & Canadá Este (New York, Miami, Toronto)</option>
+                                        <option value="America/Chicago" className="bg-slate-900">🇺🇸/🇨🇦 EE.UU. & Canadá Central (Chicago, Houston, Dallas)</option>
+                                        <option value="America/Denver" className="bg-slate-900">🇺🇸 EE.UU. Montaña (Denver, Phoenix)</option>
+                                        <option value="America/Los_Angeles" className="bg-slate-900">🇺🇸/🇨🇦 EE.UU. & Canadá Pacífico (Los Angeles, Seattle, Vancouver)</option>
+                                        <option value="Europe/Madrid" className="bg-slate-900">🇪🇸 España Península (Madrid, Barcelona)</option>
+                                        <option value="Europe/Canary" className="bg-slate-900">🇪🇸 España Canarias (Tenerife, Las Palmas)</option>
+                                        <option value="America/Caracas" className="bg-slate-900">🇻🇪 Venezuela (Caracas)</option>
+                                        <option value="America/Bogota" className="bg-slate-900">🇨🇴/🇪🇨 Colombia / Perú / Ecuador</option>
+                                        <option value="America/Santiago" className="bg-slate-900">🇨🇱 Chile</option>
+                                        <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">🇦🇷 Argentina</option>
                                     </select>
                                 </div>
 
