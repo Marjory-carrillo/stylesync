@@ -1429,7 +1429,7 @@ export default function Booking() {
                                     type="tel"
                                     value={clientPhone}
                                     onChange={e => { setClientPhone(e.target.value); setClientError(null); }}
-                                    placeholder="Teléfono"
+                                    placeholder="Número de teléfono"
                                     className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
                                     onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
