@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 import { getPlanBadgeStyles } from '../../lib/planLimits';
 import type { PlanType } from '../../lib/planLimits';
+import { getCountryPreset } from '../../lib/pricingConfig';
 
 // Modal de confirmación premium para borrado
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
@@ -1521,7 +1522,9 @@ export default function SuperAdminPanel() {
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                                            <h3 className="text-base sm:text-lg font-black text-white truncate uppercase tracking-tight max-w-[140px] sm:max-w-[200px]">{tenant.name}</h3>
+                                            <span className="px-2 py-0.5 rounded bg-blue-500/10 text-[8px] sm:text-[9px] font-black tracking-widest uppercase text-blue-400 border border-blue-500/20 shadow-inner shrink-0">
+                                                {getCountryPreset(tenant.countryCode || tenant.country_code).flag} {getCountryPreset(tenant.countryCode || tenant.country_code).currency}
+                                            </span>
                                             <span className="px-2 py-0.5 rounded bg-white/5 text-[8px] sm:text-[9px] font-black tracking-widest uppercase text-slate-400 border border-white/5 shadow-inner shrink-0">
                                                 {(() => {
                                                     const cat = tenant.category?.toLowerCase() || '';

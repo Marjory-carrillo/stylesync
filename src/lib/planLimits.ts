@@ -61,9 +61,24 @@ const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
     },
 };
 
-/** Get plan configuration */
-export function getPlanLimits(plan: PlanType): PlanLimits {
-    return PLAN_CONFIG[plan] || PLAN_CONFIG.free;
+import { getCountryPreset } from './pricingConfig';
+
+/** Get plan configuration based on plan type and country code */
+export function getPlanLimits(plan: PlanType, countryCode?: string): PlanLimits {
+    const base = PLAN_CONFIG[plan] || PLAN_CONFIG.free;
+    if (!countryCode) return base;
+
+    const preset = getCountryPreset(countryCode);
+    if (plan === 'lite') {
+        return { ...base, price: preset.plans.lite.monthly };
+    }
+    if (plan === 'pro') {
+        return { ...base, price: preset.plans.pro.monthly };
+    }
+    if (plan === 'business') {
+        return { ...base, price: preset.plans.business.monthly };
+    }
+    return base;
 }
 
 /** Returns true if the tenant is currently in a trial period */

@@ -167,6 +167,11 @@ export interface BusinessConfig {
     coverUrl?: string;
     marketplaceEnabled?: boolean;
     marketplaceCommissionRate?: number;
+    countryCode?: string; // 'MX', 'US', 'VE', 'ES', 'CO', 'EC'
+    currency?: string; // 'MXN', 'USD', 'VES', 'EUR', 'COP'
+    currencySymbol?: string; // '$', '$ USD', 'Bs.', '€'
+    defaultPhonePrefix?: string; // '+52', '+1', '+58', '+34', '+593'
+    primaryLanguage?: 'es' | 'en';
 }
 
 export interface Tenant extends BusinessConfig {

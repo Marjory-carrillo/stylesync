@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabaseClient';
 import SplashScreen from '../../components/SplashScreen';
 import { createTenantSchema } from '../../lib/schemas';
 
+import { COUNTRY_PRESETS, getCountryPreset } from '../../lib/pricingConfig';
+
 export default function CreateBusiness() {
     const { createTenant } = useSuperAdmin();
     const { user } = useAuthStore();
@@ -17,6 +19,7 @@ export default function CreateBusiness() {
     const [slug, setSlug] = useState('');
     const [address, setAddress] = useState('');
     const [category, setCategory] = useState('');
+    const [countryCode, setCountryCode] = useState('MX');
     const [ownerEmail, setOwnerEmail] = useState('');
     const [ownerPassword, setOwnerPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +57,12 @@ export default function CreateBusiness() {
             return;
         }
 
-        const res = await createTenant(name, slug, address, category, ownerEmail, ownerPassword);
+        const preset = getCountryPreset(countryCode);
+        const res = await createTenant(
+            name, slug, address, category, ownerEmail, ownerPassword,
+            preset.timezone, undefined, undefined, false,
+            preset.code, preset.currency, preset.currencySymbol, preset.phonePrefix
+        );
 
         if (res.success) {
             // Optional: Add a small delay for "success" animation
@@ -213,6 +221,30 @@ export default function CreateBusiness() {
                                 </div>
                             </div>
                             <p className="text-xs text-slate-500 ml-1">Así te encontrarán tus clientes en internet.</p>
+                        </div>
+
+                        {/* Country Selector */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300 ml-1">País del Negocio</label>
+                            <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <Globe size={18} />
+                                </div>
+                                <select
+                                    value={countryCode}
+                                    onChange={(e) => setCountryCode(e.target.value)}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                                >
+                                    {Object.values(COUNTRY_PRESETS).map((country) => (
+                                        <option key={country.code} value={country.code} className="bg-slate-900 text-white">
+                                            {country.flag} {country.name} ({country.currencySymbol} · {country.phonePrefix})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <p className="text-xs text-slate-500 ml-1">
+                                Moneda: <strong className="text-blue-400">{getCountryPreset(countryCode).currencySymbol} {getCountryPreset(countryCode).currency}</strong> · Lada: <strong className="text-blue-400">{getCountryPreset(countryCode).phonePrefix}</strong>
+                            </p>
                         </div>
 
                         {/* Category Grid */}

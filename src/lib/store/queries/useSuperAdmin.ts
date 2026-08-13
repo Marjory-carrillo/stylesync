@@ -26,7 +26,7 @@ export function useSuperAdmin() {
     });
 
     const createTenantMutation = useMutation({
-        mutationFn: async ({ name, slug, address, category, ownerEmail, ownerPassword, timezone, existingOwnerId, brandSlug, noTrial }: { name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone?: string, existingOwnerId?: string, brandSlug?: string, noTrial?: boolean }) => {
+        mutationFn: async ({ name, slug, address, category, ownerEmail, ownerPassword, timezone, existingOwnerId, brandSlug, noTrial, countryCode, currency, currencySymbol, defaultPhonePrefix }: { name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone?: string, existingOwnerId?: string, brandSlug?: string, noTrial?: boolean, countryCode?: string, currency?: string, currencySymbol?: string, defaultPhonePrefix?: string }) => {
             if (!user) throw new Error('No user logged in');
 
             // 1. Check if slug exists
@@ -47,6 +47,10 @@ export function useSuperAdmin() {
                 timezone: timezone || 'America/Mexico_City',
                 sms_provider: 'whatsapp',
                 trial_ends_at: noTrial ? null : trialEnd.toISOString(),
+                country_code: countryCode || 'MX',
+                currency: currency || 'MXN',
+                currency_symbol: currencySymbol || '$',
+                default_phone_prefix: defaultPhonePrefix || '+52',
             };
             if (brandSlug) insertPayload.brand_slug = brandSlug;
 
@@ -192,9 +196,9 @@ export function useSuperAdmin() {
         allTenants: query.data || [],
         isLoading: query.isLoading,
         fetchAllTenants,
-        createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone: string = 'America/Mexico_City', existingOwnerId?: string, brandSlug?: string, noTrial?: boolean): Promise<{ success: boolean; data?: any; error?: string; accountCreated?: boolean }> => {
+        createTenant: async (name: string, slug: string, address: string, category: string, ownerEmail: string, ownerPassword: string, timezone: string = 'America/Mexico_City', existingOwnerId?: string, brandSlug?: string, noTrial?: boolean, countryCode?: string, currency?: string, currencySymbol?: string, defaultPhonePrefix?: string): Promise<{ success: boolean; data?: any; error?: string; accountCreated?: boolean }> => {
             try {
-                const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail, ownerPassword, timezone, existingOwnerId, brandSlug, noTrial });
+                const res = await createTenantMutation.mutateAsync({ name, slug, address, category, ownerEmail, ownerPassword, timezone, existingOwnerId, brandSlug, noTrial, countryCode, currency, currencySymbol, defaultPhonePrefix });
                 return { success: true, data: res.data, accountCreated: res.accountCreated };
             } catch (err: any) {
                 return { success: false, error: err.message };

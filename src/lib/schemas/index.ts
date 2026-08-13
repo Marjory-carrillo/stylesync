@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify';
 const sanitize = (val: string) => DOMPurify.sanitize(val);
 
 // Utilidad para normalizar teléfonos a formato E.164 internacional (+[código_país][número])
-export const normalizePhone = (val: any) => {
+export const normalizePhone = (val: any, defaultPrefix = '+52') => {
     if (typeof val !== 'string') return val;
     const str = val.trim();
     if (!str) return val;
@@ -28,8 +28,8 @@ export const normalizePhone = (val: any) => {
         return `+${digits}`;
     }
 
-    // Por defecto para números locales de 10 dígitos (estándar México)
-    return `+52${digits}`;
+    const cleanPrefix = defaultPrefix.startsWith('+') ? defaultPrefix : `+${defaultPrefix}`;
+    return `${cleanPrefix}${digits}`;
 };
 
 // Utilidad para mostrar teléfonos de manera limpia y uniforme en la interfaz
