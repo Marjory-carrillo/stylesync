@@ -10,7 +10,7 @@ export const normalizePhone = (val: any) => {
     const str = val.trim();
     if (!str) return val;
 
-    // Si ya trae el signo +, extraemos dígitos manteniendo el + inicial
+    // Si el usuario ingresó con el signo +, conservamos íntegro su código internacional (+1305..., +34..., +58..., +593...)
     if (str.startsWith('+')) {
         const digits = str.slice(1).replace(/\D/g, '');
         return digits ? `+${digits}` : val;
@@ -19,13 +19,36 @@ export const normalizePhone = (val: any) => {
     const digits = str.replace(/\D/g, '');
     if (digits.length === 0) return val;
 
-    // Si el usuario escribió un código de país conocido (ej. 52 para México, 1 para EE.UU., 57 para Colombia, 34 para España) con su número completo
-    if (digits.length >= 11 && (digits.startsWith('52') || digits.startsWith('57') || digits.startsWith('34'))) {
+    // Si es un número internacional sin el signo + (ej. 1 para EE.UU./Canadá, 52 MX, 58 Vzla, 593 Ecuador, 34 España, 57 Colombia, 54 Argentina, 56 Chile, 51 Perú)
+    if (digits.length >= 11 && (
+        digits.startsWith('1') || digits.startsWith('52') || digits.startsWith('58') || 
+        digits.startsWith('593') || digits.startsWith('34') || digits.startsWith('57') || 
+        digits.startsWith('54') || digits.startsWith('56') || digits.startsWith('51')
+    )) {
         return `+${digits}`;
     }
 
-    // Por defecto para México / 10 dígitos locales sin código
+    // Por defecto para números locales de 10 dígitos (estándar México)
     return `+52${digits}`;
+};
+
+// Utilidad para mostrar teléfonos de manera limpia y uniforme en la interfaz
+export const formatPhoneDisplay = (val: any): string => {
+    if (!val || typeof val !== 'string') return '';
+    const str = val.trim();
+    if (!str) return '';
+
+    // Para números locales de México (+52) de 10 dígitos, se remueve el +52 para mostrar los 10 dígitos limpios
+    if (str.startsWith('+52') && str.length === 13) {
+        return str.slice(3);
+    }
+    if (str.startsWith('52') && str.length === 12 && !str.startsWith('+')) {
+        return str.slice(2);
+    }
+
+    // Para cualquier otro país (EE.UU. +1, España +34, Venezuela +58, Ecuador +593, etc.),
+    // se mantiene completo con su código internacional intacto
+    return str;
 };
 
 // Esquema para validar una nueva Cita (Appointment)

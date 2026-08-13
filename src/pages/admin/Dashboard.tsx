@@ -23,6 +23,7 @@ import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import { formatPhoneDisplay } from '../../lib/schemas';
 
 type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 
@@ -40,6 +41,31 @@ export default function Dashboard() {
     );
     const { showToast } = useUIStore();
     const { redirectToCheckout, isCheckoutLoading } = useStripeCheckout();
+
+    // Note editing state for completed & active appointments
+    const [editingNoteApptId, setEditingNoteApptId] = useState<string | null>(null);
+    const [noteText, setNoteText] = useState('');
+    const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+
+    const saveNote = async (aptId: string) => {
+        if (!tenantId) return;
+        setSavingNoteId(aptId);
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .update({ staff_notes: noteText.trim() || null })
+                .eq('id', aptId)
+                .eq('tenant_id', tenantId);
+            if (error) throw error;
+            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
+            showToast('Nota guardada', 'success');
+            setEditingNoteApptId(null);
+        } catch (err: any) {
+            showToast(`Error al guardar nota: ${err.message}`, 'error');
+        } finally {
+            setSavingNoteId(null);
+        }
+    };
 
     // Custom confirm dialog state
     const [customConfirm, setCustomConfirm] = useState<{
@@ -1871,7 +1897,16 @@ export default function Dashboard() {
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium flex-wrap">
                                                 <Phone size={12} className="opacity-50" />
-                                                <span>{appt.clientPhone}</span>
+                                                <span>{formatPhoneDisplay(appt.clientPhone)}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingNoteApptId(appt.id);
+                                                        setNoteText((appt as any).staff_notes || '');
+                                                    }}
+                                                    className={`px-2 py-0.5 rounded-md text-[9px] font-bold cursor-pointer transition-colors ${ (appt as any).staff_notes ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-500 hover:text-white'}`}
+                                                >
+                                                    {(appt as any).staff_notes ? '🗒️ Nota' : '+ Nota'}
+                                                </button>
                                                 {!businessConfig?.hideServicePrices && (
                                                     <button
                                                         onClick={() => {
@@ -2094,16 +2129,67 @@ export default function Dashboard() {
                                                                 <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-accent/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
                                                             </>
                                                         )}
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                        <a
-                                                            href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-1.5 text-accent hover:text-white transition-colors"
-                                                        >
-                                                            <Phone size={12} className="opacity-70" />
-                                                            <span className="underline underline-offset-2 decoration-accent/30">{appt.clientPhone}</span>
-                                                        </a>
+                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                         <a
+                                                             href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
+                                                             target="_blank"
+                                                             rel="noopener noreferrer"
+                                                             className="flex items-center gap-1.5 text-accent hover:text-white transition-colors"
+                                                         >
+                                                             <Phone size={12} className="opacity-70" />
+                                                             <span className="underline underline-offset-2 decoration-accent/30">{formatPhoneDisplay(appt.clientPhone)}</span>
+                                                         </a>
+                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                         {editingNoteApptId === appt.id ? (
+                                                             <div className="w-full mt-2.5 p-3 rounded-2xl bg-slate-950/90 border border-amber-500/30 space-y-2 animate-fade-in relative z-10 max-w-sm">
+                                                                 <div className="flex items-center justify-between text-[10px] font-black uppercase text-amber-400">
+                                                                     <span>Nota interna de la cita</span>
+                                                                 </div>
+                                                                 <textarea
+                                                                     value={noteText}
+                                                                     onChange={(e) => setNoteText(e.target.value)}
+                                                                     placeholder="Escribe una nota interna para esta cita..."
+                                                                     rows={2}
+                                                                     className="w-full bg-black/40 border border-amber-500/30 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none resize-none transition-colors"
+                                                                 />
+                                                                 <div className="flex items-center gap-2 justify-end">
+                                                                     <button
+                                                                         onClick={() => setEditingNoteApptId(null)}
+                                                                         className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                                                                     >
+                                                                         Cancelar
+                                                                     </button>
+                                                                     <button
+                                                                         onClick={() => saveNote(appt.id)}
+                                                                         disabled={savingNoteId === appt.id}
+                                                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all disabled:opacity-50 cursor-pointer"
+                                                                     >
+                                                                         <Save size={12} />
+                                                                         {savingNoteId === appt.id ? 'Guardando...' : 'Guardar Nota'}
+                                                                     </button>
+                                                                 </div>
+                                                             </div>
+                                                         ) : (
+                                                             <button
+                                                                 onClick={() => {
+                                                                     setEditingNoteApptId(appt.id);
+                                                                     setNoteText((appt as any).staff_notes || '');
+                                                                 }}
+                                                                 className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-amber-400 transition-colors group/note cursor-pointer"
+                                                                 title="Agregar o editar nota interna de la cita"
+                                                             >
+                                                                 <span className="text-xs group-hover/note:scale-110 transition-transform">🗒️</span>
+                                                                 <span className="group-hover/note:underline underline-offset-2">
+                                                                     {(appt as any).staff_notes ? (
+                                                                         <span className="text-amber-400/90 font-bold italic">
+                                                                             "{(appt as any).staff_notes.slice(0, 35)}{(appt as any).staff_notes.length > 35 ? '...' : ''}"
+                                                                         </span>
+                                                                     ) : (
+                                                                         <span className="text-slate-500 hover:text-amber-400">+ Nota</span>
+                                                                     )}
+                                                                 </span>
+                                                             </button>
+                                                         )}
                                                         {!businessConfig?.hideServicePrices && (
                                                             <>
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
@@ -2370,8 +2456,59 @@ export default function Dashboard() {
                                                             className="flex items-center gap-1.5 text-emerald-500/70 hover:text-emerald-400 transition-colors"
                                                         >
                                                             <Phone size={12} className="opacity-70" />
-                                                            <span className="underline underline-offset-2 decoration-emerald-500/30">{appt.clientPhone}</span>
+                                                            <span className="underline underline-offset-2 decoration-emerald-500/30">{formatPhoneDisplay(appt.clientPhone)}</span>
                                                         </a>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                                                        {editingNoteApptId === appt.id ? (
+                                                            <div className="w-full mt-2.5 p-3 rounded-2xl bg-slate-950/90 border border-amber-500/30 space-y-2 animate-fade-in relative z-10 max-w-sm">
+                                                                <div className="flex items-center justify-between text-[10px] font-black uppercase text-amber-400">
+                                                                    <span>Nota interna de la cita</span>
+                                                                </div>
+                                                                <textarea
+                                                                    value={noteText}
+                                                                    onChange={(e) => setNoteText(e.target.value)}
+                                                                    placeholder="Escribe una nota interna para esta cita..."
+                                                                    rows={2}
+                                                                    className="w-full bg-black/40 border border-amber-500/30 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none resize-none transition-colors"
+                                                                />
+                                                                <div className="flex items-center gap-2 justify-end">
+                                                                    <button
+                                                                        onClick={() => setEditingNoteApptId(null)}
+                                                                        className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+                                                                    >
+                                                                        Cancelar
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => saveNote(appt.id)}
+                                                                        disabled={savingNoteId === appt.id}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all disabled:opacity-50 cursor-pointer"
+                                                                    >
+                                                                        <Save size={12} />
+                                                                        {savingNoteId === appt.id ? 'Guardando...' : 'Guardar Nota'}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingNoteApptId(appt.id);
+                                                                    setNoteText((appt as any).staff_notes || '');
+                                                                }}
+                                                                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-amber-400 transition-colors group/note cursor-pointer"
+                                                                title="Agregar o editar nota interna de la cita"
+                                                            >
+                                                                <span className="text-xs group-hover/note:scale-110 transition-transform">🗒️</span>
+                                                                <span className="group-hover/note:underline underline-offset-2">
+                                                                    {(appt as any).staff_notes ? (
+                                                                        <span className="text-amber-400/90 font-bold italic">
+                                                                            "{(appt as any).staff_notes.slice(0, 35)}{(appt as any).staff_notes.length > 35 ? '...' : ''}"
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-slate-500 hover:text-amber-400">+ Nota</span>
+                                                                    )}
+                                                                </span>
+                                                            </button>
+                                                        )}
                                                     </div>
 
                                                     {/* Desplegable de detalles de servicio */}

@@ -18,6 +18,7 @@ import WeekCalendar from '../../components/WeekCalendar';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import DatePickerInput from '../../components/DatePickerInput';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
+import { formatPhoneDisplay } from '../../lib/schemas';
 import { supabase } from '../../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -778,7 +779,7 @@ export default function Appointments() {
                                                                     )}
                                                                 </div>
                                                                 <a href={`tel:${apt.clientPhone}`} className="text-xs font-medium text-muted hover:text-accent transition-colors flex items-center gap-2 w-fit">
-                                                                    <div className="p-1 rounded-md bg-white/5"><Phone size={10} /></div> {apt.clientPhone}
+                                                                    <div className="p-1 rounded-md bg-white/5"><Phone size={10} /></div> {formatPhoneDisplay(apt.clientPhone)}
                                                                 </a>
                                                             </div>
 
@@ -1155,7 +1156,7 @@ export default function Appointments() {
                                                                     )}
                                                                 </div>
                                                                 <a href={`tel:${log.clientPhone}`} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-accent transition-colors w-fit">
-                                                                    <Phone size={9} /> {log.clientPhone}
+                                                                    <Phone size={9} /> {formatPhoneDisplay(log.clientPhone)}
                                                                 </a>
                                                                 <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
                                                                     <span className="capitalize">{log.serviceName}</span>

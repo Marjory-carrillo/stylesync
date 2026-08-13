@@ -28,7 +28,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, Scissors } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, Scissors, UserCheck, Smartphone } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -1362,8 +1362,8 @@ export default function Booking() {
 
                         <div className="space-y-4">
                             <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
-                                    <User size={18} />
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-accent">
+                                    <UserCheck size={18} className="stroke-[2.2]" />
                                 </div>
                                 <input
                                     type="text"
@@ -1375,7 +1375,7 @@ export default function Booking() {
                                     }}
                                     onFocus={() => setShowSuggestions(true)}
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
-                                    placeholder="Tu nombre completo"
+                                    placeholder="Tu Nombre"
                                     className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
                                     onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />
@@ -1422,14 +1422,14 @@ export default function Booking() {
                                 )}
                             </div>
                             <div className="relative">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
-                                    <Phone size={18} />
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-accent">
+                                    <Smartphone size={18} className="stroke-[2.2]" />
                                 </div>
                                 <input
                                     type="tel"
                                     value={clientPhone}
                                     onChange={e => { setClientPhone(e.target.value); setClientError(null); }}
-                                    placeholder="Número de teléfono (10 dígitos)"
+                                    placeholder="Teléfono"
                                     className="w-full glass-card bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all outline-none"
                                     onKeyDown={e => e.key === 'Enter' && handleClientSubmit()}
                                 />

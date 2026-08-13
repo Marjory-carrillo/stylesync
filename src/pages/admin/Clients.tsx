@@ -10,6 +10,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import Pagination from '../../components/Pagination';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
 import ConfirmModal from '../../components/ConfirmModal';
+import { formatPhoneDisplay } from '../../lib/schemas';
 
 export default function Clients() {
     const { clients: dbClients, isPending: clientsPending, deleteClient, isDeleting, createClient, isCreating } = useClients();
@@ -204,7 +205,7 @@ export default function Clients() {
                                 <h3 className="font-black text-white text-sm tracking-tighter uppercase leading-tight">{client.name}</h3>
                                 <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 tracking-wider mt-0.5">
                                     <Phone size={9} className="opacity-50" />
-                                    <span>{client.phone}</span>
+                                    <span>{formatPhoneDisplay(client.phone)}</span>
                                 </div>
                             </div>
                         </div>

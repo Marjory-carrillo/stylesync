@@ -13,6 +13,7 @@ import { useNailCalculator } from '../lib/store/queries/useNailCalculator';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 import { isNailCalculatorEnabled, isAppointmentActive } from '../lib/planLimits';
 import { useAuthStore } from '../lib/store/authStore';
+import { normalizePhone, formatPhoneDisplay } from '../lib/schemas';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -332,7 +333,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
 
         try {
-            const cleanPhone = clientPhone.replace(/\D/g, '').slice(-10);
+            const cleanPhone = normalizePhone(clientPhone);
             const wasBlocked = isPhoneBlocked(cleanPhone);
 
             await addAppointment({
@@ -981,7 +982,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         <div className="flex items-center gap-2 text-sm text-white">
                                             <User size={14} className="text-accent shrink-0" />
                                             <span className="font-bold">{clientName}</span>
-                                            <span className="text-slate-500 text-xs ml-auto">{clientPhone}</span>
+                                            <span className="text-slate-500 text-xs ml-auto">{formatPhoneDisplay(clientPhone)}</span>
                                         </div>
                                         <div className="flex items-center gap-2 text-sm text-white">
                                             <Scissors size={14} className="text-accent shrink-0" />
