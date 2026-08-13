@@ -65,11 +65,14 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
         if (!ref.current) return;
         try {
             setDownloading(true);
+            // html2canvas options for exact fixed Letter paper (8.5x11 inches)
             const canvas = await html2canvas(ref.current, {
-                scale: 3, // Ultra crisp resolution for printing
+                scale: 3, // Ultra HD DPI for print quality
                 useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
+                width: 612,
+                height: 792
             });
             const image = canvas.toDataURL('image/png', 1.0);
             const link = document.createElement('a');
@@ -78,7 +81,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast('Tarjeta QR lista para imprimir descargada', 'success');
+            showToast('Hoja QR Tamaño Carta (PNG) descargada', 'success');
         } catch (err: any) {
             console.error('Error rendering QR card PNG:', err);
             showToast('Error al generar la imagen: ' + err.message, 'error');
@@ -89,7 +92,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto custom-scrollbar">
-            <div className="bg-[#0b1329] border border-white/10 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-auto relative">
+            <div className="bg-[#0b1329] border border-white/10 rounded-3xl max-w-5xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-auto relative">
                 
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -98,8 +101,8 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                             <QrCode size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Tarjetas QR Imprimibles (Fondo Blanco)</h2>
-                            <p className="text-xs text-slate-400">Descarga e imprime estas hojas limpias en alta calidad para colocar en tu mostrador.</p>
+                            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Hojas QR Tamaño Carta (8.5" x 11")</h2>
+                            <p className="text-xs text-slate-400">Diseño fijo en tamaño carta estándar. No cambia de tamaño ni distorsiona en ningún dispositivo.</p>
                         </div>
                     </div>
                     <button
@@ -114,7 +117,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                 <div className="bg-slate-950/70 p-4 rounded-2xl border border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                            <Edit2 size={13} className="text-amber-400" /> Personalizar Texto en las Hojas
+                            <Edit2 size={13} className="text-amber-400" /> Personalizar Textos de las Hojas
                         </span>
                         <button
                             onClick={handleSaveMessages}
@@ -151,14 +154,14 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                     </div>
                 </div>
 
-                {/* Cards Preview Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Printable Cards Grid (Scrollable Container with Fixed Letter Pixel Dimension Elements) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                    {/* ── HOJA 1: QR DE RESERVAS (FONDO BLANCO) ── */}
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between px-1">
+                    {/* ── HOJA 1: QR DE RESERVAS (TAMAÑO CARTA FIJO) ── */}
+                    <div className="flex flex-col gap-3 items-center">
+                        <div className="w-full flex items-center justify-between px-1">
                             <span className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                                <Calendar size={14} /> Hoja Imprimible — Reservas
+                                <Calendar size={14} /> Hoja Tamaño Carta — Reservas
                             </span>
                             <button
                                 onClick={() => handleCopy(bookingUrl, 'booking')}
@@ -169,67 +172,71 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                             </button>
                         </div>
 
-                        {/* Printable Target (Pure White Card) */}
-                        <div
-                            ref={bookingCardRef}
-                            className="bg-white text-slate-900 border-2 border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-between text-center shadow-xl relative overflow-hidden aspect-[4/5] min-h-[400px]"
-                        >
-                            {/* Official CitaLink Header Logo */}
-                            <div className="flex items-center gap-2.5 py-1">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-md shadow-violet-500/30">
-                                    <Infinity className="w-5 h-5 text-white stroke-[2.5]" />
+                        {/* Scrollable preview wrapper for mobile viewports */}
+                        <div className="w-full overflow-x-auto custom-scrollbar flex justify-center bg-black/40 p-3 rounded-2xl border border-white/5">
+                            {/* FIXED 612px x 792px LETTER SIZE SHEET */}
+                            <div
+                                ref={bookingCardRef}
+                                style={{ width: '612px', height: '792px', minWidth: '612px', minHeight: '792px' }}
+                                className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-10 flex flex-col items-center justify-between text-center shadow-2xl relative shrink-0 box-border"
+                            >
+                                {/* Official CitaLink Header Logo */}
+                                <div className="flex items-center gap-3 pt-2">
+                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                                        <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
+                                    </div>
+                                    <div className="text-3xl font-black tracking-tight leading-none">
+                                        <span className="text-slate-900">Cita</span>
+                                        <span className="text-violet-600">Link</span>
+                                    </div>
                                 </div>
-                                <div className="text-xl font-black tracking-tight leading-none">
-                                    <span className="text-slate-900">Cita</span>
-                                    <span className="text-violet-600">Link</span>
+
+                                {/* Headline Message */}
+                                <div className="my-auto py-4 space-y-2 max-w-[500px]">
+                                    <h3 className="text-2xl font-black text-slate-900 leading-tight px-4">
+                                        {bookingMsg}
+                                    </h3>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        Escanea con la cámara de tu celular para agendar al instante
+                                    </p>
                                 </div>
-                            </div>
 
-                            {/* Headline Message */}
-                            <div className="my-auto py-3 space-y-1">
-                                <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-snug px-2">
-                                    {bookingMsg}
-                                </h3>
-                                <p className="text-[11px] font-semibold text-slate-500">
-                                    Escanea con la cámara de tu celular para agendar al instante
-                                </p>
-                            </div>
+                                {/* Large Clean QR Code */}
+                                <div className="p-5 bg-white rounded-3xl border-4 border-slate-100 shadow-xl my-auto">
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(bookingUrl)}`}
+                                        alt={`QR Reservas ${businessName}`}
+                                        className="w-56 h-56 object-contain"
+                                        crossOrigin="anonymous"
+                                    />
+                                </div>
 
-                            {/* QR Code */}
-                            <div className="p-3 bg-white rounded-2xl border-4 border-slate-100 shadow-md my-auto">
-                                <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(bookingUrl)}`}
-                                    alt={`QR Reservas ${businessName}`}
-                                    className="w-44 h-44 object-contain"
-                                    crossOrigin="anonymous"
-                                />
-                            </div>
-
-                            {/* Business Footer */}
-                            <div className="mt-auto pt-4 flex items-center justify-center gap-2.5 border-t border-slate-100 w-full">
-                                {logoUrl ? (
-                                    <img src={logoUrl} alt={businessName} className="w-7 h-7 rounded-lg object-cover border border-slate-200 shadow-sm" />
-                                ) : null}
-                                <span className="font-black text-xs text-slate-800 tracking-tight truncate max-w-[220px]">{businessName}</span>
+                                {/* Business Footer */}
+                                <div className="mt-auto pt-6 flex items-center justify-center gap-3 border-t border-slate-100 w-full">
+                                    {logoUrl ? (
+                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm" />
+                                    ) : null}
+                                    <span className="font-black text-base text-slate-800 tracking-tight truncate max-w-[340px]">{businessName}</span>
+                                </div>
                             </div>
                         </div>
 
                         {/* Download Button */}
                         <button
-                            onClick={() => downloadCardPNG(bookingCardRef, `Hoja_QR_Reservas_${businessSlug}`, setIsDownloadingBooking)}
+                            onClick={() => downloadCardPNG(bookingCardRef, `Hoja_Carta_QR_Reservas_${businessSlug}`, setIsDownloadingBooking)}
                             disabled={isDownloadingBooking}
                             className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
                             <Download size={15} />
-                            <span>{isDownloadingBooking ? 'Generando PNG...' : 'Descargar Hoja Reservas (PNG Fondo Blanco)'}</span>
+                            <span>{isDownloadingBooking ? 'Generando PNG Carta...' : 'Descargar Hoja Reservas (Tamaño Carta PNG)'}</span>
                         </button>
                     </div>
 
-                    {/* ── HOJA 2: QR DE RESEÑAS (FONDO BLANCO) ── */}
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between px-1">
+                    {/* ── HOJA 2: QR DE RESEÑAS (TAMAÑO CARTA FIJO) ── */}
+                    <div className="flex flex-col gap-3 items-center">
+                        <div className="w-full flex items-center justify-between px-1">
                             <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                                <Star size={14} /> Hoja Imprimible — Reseñas
+                                <Star size={14} /> Hoja Tamaño Carta — Reseñas
                             </span>
                             <button
                                 onClick={() => handleCopy(reviewUrl, 'review')}
@@ -240,59 +247,63 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                             </button>
                         </div>
 
-                        {/* Printable Target (Pure White Card) */}
-                        <div
-                            ref={reviewCardRef}
-                            className="bg-white text-slate-900 border-2 border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-between text-center shadow-xl relative overflow-hidden aspect-[4/5] min-h-[400px]"
-                        >
-                            {/* Official CitaLink Header Logo */}
-                            <div className="flex items-center gap-2.5 py-1">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-md shadow-violet-500/30">
-                                    <Infinity className="w-5 h-5 text-white stroke-[2.5]" />
+                        {/* Scrollable preview wrapper for mobile viewports */}
+                        <div className="w-full overflow-x-auto custom-scrollbar flex justify-center bg-black/40 p-3 rounded-2xl border border-white/5">
+                            {/* FIXED 612px x 792px LETTER SIZE SHEET */}
+                            <div
+                                ref={reviewCardRef}
+                                style={{ width: '612px', height: '792px', minWidth: '612px', minHeight: '792px' }}
+                                className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-10 flex flex-col items-center justify-between text-center shadow-2xl relative shrink-0 box-border"
+                            >
+                                {/* Official CitaLink Header Logo */}
+                                <div className="flex items-center gap-3 pt-2">
+                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                                        <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
+                                    </div>
+                                    <div className="text-3xl font-black tracking-tight leading-none">
+                                        <span className="text-slate-900">Cita</span>
+                                        <span className="text-violet-600">Link</span>
+                                    </div>
                                 </div>
-                                <div className="text-xl font-black tracking-tight leading-none">
-                                    <span className="text-slate-900">Cita</span>
-                                    <span className="text-violet-600">Link</span>
+
+                                {/* Headline Message */}
+                                <div className="my-auto py-4 space-y-2 max-w-[500px]">
+                                    <h3 className="text-2xl font-black text-slate-900 leading-tight px-4">
+                                        {reviewMsg}
+                                    </h3>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        Escanea con la cámara de tu celular y déjanos tu opinión
+                                    </p>
                                 </div>
-                            </div>
 
-                            {/* Headline Message */}
-                            <div className="my-auto py-3 space-y-1">
-                                <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-snug px-2">
-                                    {reviewMsg}
-                                </h3>
-                                <p className="text-[11px] font-semibold text-slate-500">
-                                    Escanea con la cámara de tu celular y déjanos tu opinión
-                                </p>
-                            </div>
+                                {/* Large Clean QR Code */}
+                                <div className="p-5 bg-white rounded-3xl border-4 border-slate-100 shadow-xl my-auto">
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(reviewUrl)}`}
+                                        alt={`QR Reseñas ${businessName}`}
+                                        className="w-56 h-56 object-contain"
+                                        crossOrigin="anonymous"
+                                    />
+                                </div>
 
-                            {/* QR Code */}
-                            <div className="p-3 bg-white rounded-2xl border-4 border-slate-100 shadow-md my-auto">
-                                <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(reviewUrl)}`}
-                                    alt={`QR Reseñas ${businessName}`}
-                                    className="w-44 h-44 object-contain"
-                                    crossOrigin="anonymous"
-                                />
-                            </div>
-
-                            {/* Business Footer */}
-                            <div className="mt-auto pt-4 flex items-center justify-center gap-2.5 border-t border-slate-100 w-full">
-                                {logoUrl ? (
-                                    <img src={logoUrl} alt={businessName} className="w-7 h-7 rounded-lg object-cover border border-slate-200 shadow-sm" />
-                                ) : null}
-                                <span className="font-black text-xs text-slate-800 tracking-tight truncate max-w-[220px]">{businessName}</span>
+                                {/* Business Footer */}
+                                <div className="mt-auto pt-6 flex items-center justify-center gap-3 border-t border-slate-100 w-full">
+                                    {logoUrl ? (
+                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm" />
+                                    ) : null}
+                                    <span className="font-black text-base text-slate-800 tracking-tight truncate max-w-[340px]">{businessName}</span>
+                                </div>
                             </div>
                         </div>
 
                         {/* Download Button */}
                         <button
-                            onClick={() => downloadCardPNG(reviewCardRef, `Hoja_QR_Resenas_${businessSlug}`, setIsDownloadingReview)}
+                            onClick={() => downloadCardPNG(reviewCardRef, `Hoja_Carta_QR_Resenas_${businessSlug}`, setIsDownloadingReview)}
                             disabled={isDownloadingReview}
                             className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
                             <Download size={15} />
-                            <span>{isDownloadingReview ? 'Generando PNG...' : 'Descargar Hoja Reseñas (PNG Fondo Blanco)'}</span>
+                            <span>{isDownloadingReview ? 'Generando PNG Carta...' : 'Descargar Hoja Reseñas (Tamaño Carta PNG)'}</span>
                         </button>
                     </div>
 
