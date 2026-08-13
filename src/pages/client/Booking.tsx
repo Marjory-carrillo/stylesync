@@ -359,15 +359,22 @@ export default function Booking() {
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
     // const [cancelError, setCancelError] = useState<string | null>(null);
 
+    // Capture if booking originates from Marketplace on initial component mount & clean browser address bar immediately
+    const [isMarketplaceSession] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return false;
+        const isFromMarketplace = window.location.search.includes('source=marketplace');
+        if (isFromMarketplace) {
+            try {
+                const cleanPath = window.location.pathname;
+                window.history.replaceState(null, '', cleanPath);
+            } catch (_) {}
+        }
+        return isFromMarketplace;
+    });
+
     // Scroll to top when step changes so the layout header is fully visible
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        if (step === 5) {
-            if (window.location.search.includes('source=')) {
-                const cleanPath = window.location.pathname;
-                window.history.replaceState(null, '', cleanPath);
-            }
-        }
     }, [step]);
 
     // Dynamically update document head (title, apple title) and manifest for this tenant
@@ -858,9 +865,8 @@ export default function Booking() {
         }
 
         const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.filter(n => !n.startsWith('Cotización') && !n.startsWith('Referencia:')).join(' + ') : '');
-        const isMarketplace = (typeof window !== 'undefined' && window.location.search.includes('source=marketplace'));
         const commRate = (businessConfig as any)?.marketplaceCommissionRate ?? 15.0;
-        const commAmount = isMarketplace ? (selectedService.price * (commRate / 100)) : 0;
+        const commAmount = isMarketplaceSession ? (selectedService.price * (commRate / 100)) : 0;
 
         const result = await addAppointment({
             clientName: clientName.trim(),
@@ -870,7 +876,7 @@ export default function Booking() {
             date: selectedDate,
             time: selectedTime,
             additionalServices: addOnNames.length > 0 ? addOnNames as string[] : undefined,
-            bookingSource: isMarketplace ? 'marketplace' : 'direct',
+            bookingSource: isMarketplaceSession ? 'marketplace' : 'direct',
             marketplaceCommissionAmount: commAmount,
         });
 
