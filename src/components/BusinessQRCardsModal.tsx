@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { Download, Copy, Check, QrCode, Calendar, Star, X, Edit2 } from 'lucide-react';
+import { Download, Copy, Check, QrCode, Calendar, Star, X, Edit2, Infinity } from 'lucide-react';
 import { useUIStore } from '../lib/store/uiStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 
@@ -46,7 +46,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                 qr_booking_message: bookingMsg,
                 qr_review_message: reviewMsg
             } as any);
-            showToast('Mensajes de tarjetas QR guardados', 'success');
+            showToast('Mensajes guardados con éxito', 'success');
         } catch (err: any) {
             showToast('Error al guardar mensajes: ' + err.message, 'error');
         } finally {
@@ -65,11 +65,10 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
         if (!ref.current) return;
         try {
             setDownloading(true);
-            // Ensure images inside the card are loaded
             const canvas = await html2canvas(ref.current, {
-                scale: 3, // High DPI rendering for crisp print quality
+                scale: 3, // Ultra crisp resolution for printing
                 useCORS: true,
-                backgroundColor: '#070b16',
+                backgroundColor: '#ffffff',
                 logging: false,
             });
             const image = canvas.toDataURL('image/png', 1.0);
@@ -79,67 +78,68 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast('Tarjeta QR descargada con éxito', 'success');
+            showToast('Tarjeta QR lista para imprimir descargada', 'success');
         } catch (err: any) {
             console.error('Error rendering QR card PNG:', err);
-            showToast('Error al generar la imagen QR: ' + err.message, 'error');
+            showToast('Error al generar la imagen: ' + err.message, 'error');
         } finally {
             setDownloading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto custom-scrollbar">
-            <div className="bg-[#0b1329] border border-white/10 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 relative">
-                {/* Header */}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto custom-scrollbar">
+            <div className="bg-[#0b1329] border border-white/10 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-auto relative">
+                
+                {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
                     <div className="flex items-center gap-3">
-                        <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400 rounded-2xl">
+                        <div className="p-3 bg-gradient-to-br from-violet-500/20 to-indigo-500/20 border border-violet-500/30 text-violet-400 rounded-2xl">
                             <QrCode size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Tarjetas QR Imprimibles</h2>
-                            <p className="text-xs text-slate-400">Imprime y coloca estas tarjetas en tu mostrador o espejos para tus clientes.</p>
+                            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Tarjetas QR Imprimibles (Fondo Blanco)</h2>
+                            <p className="text-xs text-slate-400">Descarga e imprime estas hojas limpias en alta calidad para colocar en tu mostrador.</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all cursor-pointer"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Editable Messages Bar */}
-                <div className="bg-slate-950/60 p-4 rounded-2xl border border-white/5 space-y-3">
+                {/* Editable Messages Settings */}
+                <div className="bg-slate-950/70 p-4 rounded-2xl border border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <Edit2 size={13} className="text-amber-400" /> Personalizar Mensajes en Tarjetas
+                        <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <Edit2 size={13} className="text-amber-400" /> Personalizar Texto en las Hojas
                         </span>
                         <button
                             onClick={handleSaveMessages}
                             disabled={isSavingMsgs}
-                            className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all text-xs font-bold disabled:opacity-50"
+                            className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all disabled:opacity-50 cursor-pointer shadow-md"
                         >
-                            {isSavingMsgs ? 'Guardando...' : 'Guardar Mensajes'}
+                            {isSavingMsgs ? 'Guardando...' : 'Guardar Textos'}
                         </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                                Mensaje en Tarjeta de Reservas
+                                Texto Hoja de Reservas
                             </label>
                             <input
                                 type="text"
                                 value={bookingMsg}
                                 onChange={(e) => setBookingMsg(e.target.value)}
-                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500"
                             />
                         </div>
                         <div>
                             <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                                Mensaje en Tarjeta de Reseñas
+                                Texto Hoja de Reseñas
                             </label>
                             <input
                                 type="text"
@@ -151,14 +151,14 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                     </div>
                 </div>
 
-                {/* Printable Cards Grid (Preview & Render Targets) */}
+                {/* Cards Preview Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                    {/* ── CARD 1: QR DE RESERVAS ── */}
+                    {/* ── HOJA 1: QR DE RESERVAS (FONDO BLANCO) ── */}
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between px-1">
                             <span className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                                <Calendar size={14} /> Tarjeta QR — Reservas
+                                <Calendar size={14} /> Hoja Imprimible — Reservas
                             </span>
                             <button
                                 onClick={() => handleCopy(bookingUrl, 'booking')}
@@ -169,65 +169,67 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                             </button>
                         </div>
 
-                        {/* Card Target for html2canvas */}
+                        {/* Printable Target (Pure White Card) */}
                         <div
                             ref={bookingCardRef}
-                            className="bg-gradient-to-b from-[#0a1128] via-[#070b16] to-[#04070e] border-2 border-cyan-500/30 rounded-3xl p-6 flex flex-col items-center justify-between text-center shadow-2xl relative overflow-hidden aspect-[4/5] min-h-[380px]"
+                            className="bg-white text-slate-900 border-2 border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-between text-center shadow-xl relative overflow-hidden aspect-[4/5] min-h-[400px]"
                         >
-                            {/* Decorative Background Accents */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                            {/* CitaLink Top Header Badge */}
-                            <div className="flex items-center gap-2 bg-slate-900/90 border border-cyan-500/30 px-3.5 py-1.5 rounded-full shadow-lg">
-                                <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center font-black text-slate-950 text-[9px]">
-                                    CL
+                            {/* Official CitaLink Header Logo */}
+                            <div className="flex items-center gap-2.5 py-1">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-md shadow-violet-500/30">
+                                    <Infinity className="w-5 h-5 text-white stroke-[2.5]" />
                                 </div>
-                                <span className="font-black tracking-tight text-xs text-white">CitaLink</span>
+                                <div className="text-xl font-black tracking-tight leading-none">
+                                    <span className="text-slate-900">Cita</span>
+                                    <span className="text-violet-600">Link</span>
+                                </div>
                             </div>
 
-                            {/* Message Header */}
-                            <div className="my-auto py-2 space-y-1">
-                                <p className="text-base sm:text-lg font-black text-white leading-tight px-2">
+                            {/* Headline Message */}
+                            <div className="my-auto py-3 space-y-1">
+                                <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-snug px-2">
                                     {bookingMsg}
+                                </h3>
+                                <p className="text-[11px] font-semibold text-slate-500">
+                                    Escanea con la cámara de tu celular para agendar al instante
                                 </p>
                             </div>
 
-                            {/* QR Code Container */}
-                            <div className="p-3 bg-white rounded-2xl shadow-2xl border-4 border-slate-900 my-auto">
+                            {/* QR Code */}
+                            <div className="p-3 bg-white rounded-2xl border-4 border-slate-100 shadow-md my-auto">
                                 <img
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(bookingUrl)}`}
                                     alt={`QR Reservas ${businessName}`}
-                                    className="w-40 h-40 object-contain"
+                                    className="w-44 h-44 object-contain"
                                     crossOrigin="anonymous"
                                 />
                             </div>
 
                             {/* Business Footer */}
-                            <div className="mt-auto pt-3 flex items-center gap-2 border-t border-white/10 w-full justify-center">
+                            <div className="mt-auto pt-4 flex items-center justify-center gap-2.5 border-t border-slate-100 w-full">
                                 {logoUrl ? (
-                                    <img src={logoUrl} alt={businessName} className="w-6 h-6 rounded-lg object-cover border border-white/20" />
+                                    <img src={logoUrl} alt={businessName} className="w-7 h-7 rounded-lg object-cover border border-slate-200 shadow-sm" />
                                 ) : null}
-                                <span className="font-black text-xs text-slate-200 truncate max-w-[200px]">{businessName}</span>
+                                <span className="font-black text-xs text-slate-800 tracking-tight truncate max-w-[220px]">{businessName}</span>
                             </div>
                         </div>
 
-                        {/* Download PNG Button */}
+                        {/* Download Button */}
                         <button
-                            onClick={() => downloadCardPNG(bookingCardRef, `Tarjeta_QR_Reservas_${businessSlug}`, setIsDownloadingBooking)}
+                            onClick={() => downloadCardPNG(bookingCardRef, `Hoja_QR_Reservas_${businessSlug}`, setIsDownloadingBooking)}
                             disabled={isDownloadingBooking}
-                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
                             <Download size={15} />
-                            <span>{isDownloadingBooking ? 'Generando PNG...' : 'Descargar Tarjeta QR Reservas (PNG)'}</span>
+                            <span>{isDownloadingBooking ? 'Generando PNG...' : 'Descargar Hoja Reservas (PNG Fondo Blanco)'}</span>
                         </button>
                     </div>
 
-                    {/* ── CARD 2: QR DE RESEÑAS ── */}
+                    {/* ── HOJA 2: QR DE RESEÑAS (FONDO BLANCO) ── */}
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between px-1">
                             <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                                <Star size={14} /> Tarjeta QR — Reseñas
+                                <Star size={14} /> Hoja Imprimible — Reseñas
                             </span>
                             <button
                                 onClick={() => handleCopy(reviewUrl, 'review')}
@@ -238,57 +240,59 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                             </button>
                         </div>
 
-                        {/* Card Target for html2canvas */}
+                        {/* Printable Target (Pure White Card) */}
                         <div
                             ref={reviewCardRef}
-                            className="bg-gradient-to-b from-[#181106] via-[#070b16] to-[#04070e] border-2 border-amber-500/30 rounded-3xl p-6 flex flex-col items-center justify-between text-center shadow-2xl relative overflow-hidden aspect-[4/5] min-h-[380px]"
+                            className="bg-white text-slate-900 border-2 border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-between text-center shadow-xl relative overflow-hidden aspect-[4/5] min-h-[400px]"
                         >
-                            {/* Decorative Background Accents */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                            {/* CitaLink Top Header Badge */}
-                            <div className="flex items-center gap-2 bg-slate-900/90 border border-amber-500/30 px-3.5 py-1.5 rounded-full shadow-lg">
-                                <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center font-black text-slate-950 text-[9px]">
-                                    CL
+                            {/* Official CitaLink Header Logo */}
+                            <div className="flex items-center gap-2.5 py-1">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-md shadow-violet-500/30">
+                                    <Infinity className="w-5 h-5 text-white stroke-[2.5]" />
                                 </div>
-                                <span className="font-black tracking-tight text-xs text-white">CitaLink</span>
+                                <div className="text-xl font-black tracking-tight leading-none">
+                                    <span className="text-slate-900">Cita</span>
+                                    <span className="text-violet-600">Link</span>
+                                </div>
                             </div>
 
-                            {/* Message Header */}
-                            <div className="my-auto py-2 space-y-1">
-                                <p className="text-base sm:text-lg font-black text-white leading-tight px-2">
+                            {/* Headline Message */}
+                            <div className="my-auto py-3 space-y-1">
+                                <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-snug px-2">
                                     {reviewMsg}
+                                </h3>
+                                <p className="text-[11px] font-semibold text-slate-500">
+                                    Escanea con la cámara de tu celular y déjanos tu opinión
                                 </p>
                             </div>
 
-                            {/* QR Code Container */}
-                            <div className="p-3 bg-white rounded-2xl shadow-2xl border-4 border-slate-900 my-auto">
+                            {/* QR Code */}
+                            <div className="p-3 bg-white rounded-2xl border-4 border-slate-100 shadow-md my-auto">
                                 <img
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(reviewUrl)}`}
                                     alt={`QR Reseñas ${businessName}`}
-                                    className="w-40 h-40 object-contain"
+                                    className="w-44 h-44 object-contain"
                                     crossOrigin="anonymous"
                                 />
                             </div>
 
                             {/* Business Footer */}
-                            <div className="mt-auto pt-3 flex items-center gap-2 border-t border-white/10 w-full justify-center">
+                            <div className="mt-auto pt-4 flex items-center justify-center gap-2.5 border-t border-slate-100 w-full">
                                 {logoUrl ? (
-                                    <img src={logoUrl} alt={businessName} className="w-6 h-6 rounded-lg object-cover border border-white/20" />
+                                    <img src={logoUrl} alt={businessName} className="w-7 h-7 rounded-lg object-cover border border-slate-200 shadow-sm" />
                                 ) : null}
-                                <span className="font-black text-xs text-slate-200 truncate max-w-[200px]">{businessName}</span>
+                                <span className="font-black text-xs text-slate-800 tracking-tight truncate max-w-[220px]">{businessName}</span>
                             </div>
                         </div>
 
-                        {/* Download PNG Button */}
+                        {/* Download Button */}
                         <button
-                            onClick={() => downloadCardPNG(reviewCardRef, `Tarjeta_QR_Resenas_${businessSlug}`, setIsDownloadingReview)}
+                            onClick={() => downloadCardPNG(reviewCardRef, `Hoja_QR_Resenas_${businessSlug}`, setIsDownloadingReview)}
                             disabled={isDownloadingReview}
-                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
                             <Download size={15} />
-                            <span>{isDownloadingReview ? 'Generando PNG...' : 'Descargar Tarjeta QR Reseñas (PNG)'}</span>
+                            <span>{isDownloadingReview ? 'Generando PNG...' : 'Descargar Hoja Reseñas (PNG Fondo Blanco)'}</span>
                         </button>
                     </div>
 
