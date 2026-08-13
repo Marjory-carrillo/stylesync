@@ -11,6 +11,8 @@ export interface CountryPreset {
         pro: { monthly: number; annualMonthly: number };
         business: { monthly: number; annualMonthly: number };
     };
+    extraEmployeePrice: number;
+    extraBranchPrice: number;
 }
 
 export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
@@ -23,10 +25,12 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
         phonePrefix: '+52',
         timezone: 'America/Mexico_City',
         plans: {
-            lite: { monthly: 399, annualMonthly: 339 },
-            pro: { monthly: 799, annualMonthly: 679 },
-            business: { monthly: 1299, annualMonthly: 1099 },
+            lite: { monthly: 349, annualMonthly: 299 },
+            pro: { monthly: 649, annualMonthly: 549 },
+            business: { monthly: 1249, annualMonthly: 1049 },
         },
+        extraEmployeePrice: 249,
+        extraBranchPrice: 599,
     },
     US: {
         code: 'US',
@@ -41,6 +45,8 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
             pro: { monthly: 59, annualMonthly: 49 },
             business: { monthly: 99, annualMonthly: 84 },
         },
+        extraEmployeePrice: 19,
+        extraBranchPrice: 49,
     },
     CA: {
         code: 'CA',
@@ -55,6 +61,8 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
             pro: { monthly: 59, annualMonthly: 49 },
             business: { monthly: 99, annualMonthly: 84 },
         },
+        extraEmployeePrice: 19,
+        extraBranchPrice: 49,
     },
     ES: {
         code: 'ES',
@@ -69,6 +77,8 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
             pro: { monthly: 49, annualMonthly: 40 },
             business: { monthly: 89, annualMonthly: 75 },
         },
+        extraEmployeePrice: 15,
+        extraBranchPrice: 39,
     },
     VE: {
         code: 'VE',
@@ -83,6 +93,8 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
             pro: { monthly: 39, annualMonthly: 32 },
             business: { monthly: 69, annualMonthly: 58 },
         },
+        extraEmployeePrice: 15,
+        extraBranchPrice: 35,
     },
     CO: {
         code: 'CO',
@@ -97,6 +109,8 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
             pro: { monthly: 159000, annualMonthly: 135000 },
             business: { monthly: 279000, annualMonthly: 235000 },
         },
+        extraEmployeePrice: 59000,
+        extraBranchPrice: 139000,
     },
     EC: {
         code: 'EC',
@@ -111,6 +125,8 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
             pro: { monthly: 39, annualMonthly: 32 },
             business: { monthly: 69, annualMonthly: 58 },
         },
+        extraEmployeePrice: 15,
+        extraBranchPrice: 35,
     },
 };
 

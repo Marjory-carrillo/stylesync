@@ -69,16 +69,17 @@ export function getPlanLimits(plan: PlanType, countryCode?: string): PlanLimits 
     if (!countryCode) return base;
 
     const preset = getCountryPreset(countryCode);
-    if (plan === 'lite') {
-        return { ...base, price: preset.plans.lite.monthly };
-    }
-    if (plan === 'pro') {
-        return { ...base, price: preset.plans.pro.monthly };
-    }
-    if (plan === 'business') {
-        return { ...base, price: preset.plans.business.monthly };
-    }
-    return base;
+    let price = base.price;
+    if (plan === 'lite') price = preset.plans.lite.monthly;
+    if (plan === 'pro') price = preset.plans.pro.monthly;
+    if (plan === 'business') price = preset.plans.business.monthly;
+
+    return {
+        ...base,
+        price,
+        extraEmployeePrice: preset.extraEmployeePrice,
+        extraBranchPrice: preset.extraBranchPrice,
+    };
 }
 
 /** Returns true if the tenant is currently in a trial period */
