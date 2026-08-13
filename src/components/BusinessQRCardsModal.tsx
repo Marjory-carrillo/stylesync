@@ -61,18 +61,29 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
         setTimeout(() => setCopiedLink(null), 2000);
     };
 
-    const downloadCardPNG = async (ref: React.RefObject<HTMLDivElement | null>, filename: string, setDownloading: (val: boolean) => void) => {
+    const downloadCardPNG = async (ref: React.RefObject<HTMLDivElement | null>, filename: string, cardId: string, setDownloading: (val: boolean) => void) => {
         if (!ref.current) return;
         try {
             setDownloading(true);
-            // html2canvas options for exact fixed Letter paper (8.5x11 inches)
             const canvas = await html2canvas(ref.current, {
-                scale: 3, // Ultra HD DPI for print quality
+                scale: 2, // 2x resolution for clean 1224x1584 rendering
                 useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
                 width: 612,
-                height: 792
+                height: 792,
+                onclone: (clonedDoc) => {
+                    // Fix html2canvas kerning bug by enforcing normal letter-spacing on all text nodes
+                    const el = clonedDoc.querySelector(`[data-card-id="${cardId}"]`);
+                    if (el) {
+                        const nodes = el.querySelectorAll('*');
+                        nodes.forEach((n: any) => {
+                            n.style.letterSpacing = 'normal';
+                            n.style.wordSpacing = 'normal';
+                            n.style.fontVariantCaps = 'normal';
+                        });
+                    }
+                }
             });
             const image = canvas.toDataURL('image/png', 1.0);
             const link = document.createElement('a');
@@ -102,7 +113,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                         </div>
                         <div>
                             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Hojas QR Tamaño Carta (8.5" x 11")</h2>
-                            <p className="text-xs text-slate-400">Diseño fijo en tamaño carta estándar. No cambia de tamaño ni distorsiona en ningún dispositivo.</p>
+                            <p className="text-xs text-slate-400">Descarga e imprime estas hojas limpias en alta calidad para colocar en tu mostrador.</p>
                         </div>
                     </div>
                     <button
@@ -154,7 +165,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                     </div>
                 </div>
 
-                {/* Printable Cards Grid (Scrollable Container with Fixed Letter Pixel Dimension Elements) */}
+                {/* Printable Cards Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                     {/* ── HOJA 1: QR DE RESERVAS (TAMAÑO CARTA FIJO) ── */}
@@ -177,26 +188,41 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                             {/* FIXED 612px x 792px LETTER SIZE SHEET */}
                             <div
                                 ref={bookingCardRef}
-                                style={{ width: '612px', height: '792px', minWidth: '612px', minHeight: '792px' }}
+                                data-card-id="booking"
+                                style={{
+                                    width: '612px',
+                                    height: '792px',
+                                    minWidth: '612px',
+                                    minHeight: '792px',
+                                    letterSpacing: 'normal',
+                                    wordSpacing: 'normal',
+                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                                }}
                                 className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-10 flex flex-col items-center justify-between text-center shadow-2xl relative shrink-0 box-border"
                             >
                                 {/* Official CitaLink Header Logo */}
-                                <div className="flex items-center gap-3 pt-2">
-                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                                <div className="flex items-center justify-center gap-3 pt-2">
+                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
                                         <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
                                     </div>
-                                    <div className="text-3xl font-black tracking-tight leading-none">
+                                    <div className="text-3xl font-black leading-none" style={{ letterSpacing: 'normal' }}>
                                         <span className="text-slate-900">Cita</span>
                                         <span className="text-violet-600">Link</span>
                                     </div>
                                 </div>
 
                                 {/* Headline Message */}
-                                <div className="my-auto py-4 space-y-2 max-w-[500px]">
-                                    <h3 className="text-2xl font-black text-slate-900 leading-tight px-4">
+                                <div className="my-auto py-4 space-y-3 max-w-[500px]">
+                                    <h3
+                                        className="text-2xl font-black text-slate-900 px-4"
+                                        style={{ letterSpacing: 'normal', lineHeight: '1.35', wordBreak: 'break-word' }}
+                                    >
                                         {bookingMsg}
                                     </h3>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    <p
+                                        className="text-xs font-bold text-slate-500 uppercase"
+                                        style={{ letterSpacing: '0.05em', lineHeight: '1.4' }}
+                                    >
                                         Escanea con la cámara de tu celular para agendar al instante
                                     </p>
                                 </div>
@@ -214,16 +240,21 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                 {/* Business Footer */}
                                 <div className="mt-auto pt-6 flex items-center justify-center gap-3 border-t border-slate-100 w-full">
                                     {logoUrl ? (
-                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm" />
+                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0" />
                                     ) : null}
-                                    <span className="font-black text-base text-slate-800 tracking-tight truncate max-w-[340px]">{businessName}</span>
+                                    <span
+                                        className="font-black text-base text-slate-800 truncate max-w-[340px]"
+                                        style={{ letterSpacing: 'normal' }}
+                                    >
+                                        {businessName}
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Download Button */}
                         <button
-                            onClick={() => downloadCardPNG(bookingCardRef, `Hoja_Carta_QR_Reservas_${businessSlug}`, setIsDownloadingBooking)}
+                            onClick={() => downloadCardPNG(bookingCardRef, `Hoja_Carta_QR_Reservas_${businessSlug}`, 'booking', setIsDownloadingBooking)}
                             disabled={isDownloadingBooking}
                             className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
@@ -252,26 +283,41 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                             {/* FIXED 612px x 792px LETTER SIZE SHEET */}
                             <div
                                 ref={reviewCardRef}
-                                style={{ width: '612px', height: '792px', minWidth: '612px', minHeight: '792px' }}
+                                data-card-id="review"
+                                style={{
+                                    width: '612px',
+                                    height: '792px',
+                                    minWidth: '612px',
+                                    minHeight: '792px',
+                                    letterSpacing: 'normal',
+                                    wordSpacing: 'normal',
+                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                                }}
                                 className="bg-white text-slate-900 border border-slate-300 rounded-3xl p-10 flex flex-col items-center justify-between text-center shadow-2xl relative shrink-0 box-border"
                             >
                                 {/* Official CitaLink Header Logo */}
-                                <div className="flex items-center gap-3 pt-2">
-                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                                <div className="flex items-center justify-center gap-3 pt-2">
+                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0">
                                         <Infinity className="w-7 h-7 text-white stroke-[2.5]" />
                                     </div>
-                                    <div className="text-3xl font-black tracking-tight leading-none">
+                                    <div className="text-3xl font-black leading-none" style={{ letterSpacing: 'normal' }}>
                                         <span className="text-slate-900">Cita</span>
                                         <span className="text-violet-600">Link</span>
                                     </div>
                                 </div>
 
                                 {/* Headline Message */}
-                                <div className="my-auto py-4 space-y-2 max-w-[500px]">
-                                    <h3 className="text-2xl font-black text-slate-900 leading-tight px-4">
+                                <div className="my-auto py-4 space-y-3 max-w-[500px]">
+                                    <h3
+                                        className="text-2xl font-black text-slate-900 px-4"
+                                        style={{ letterSpacing: 'normal', lineHeight: '1.35', wordBreak: 'break-word' }}
+                                    >
                                         {reviewMsg}
                                     </h3>
-                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    <p
+                                        className="text-xs font-bold text-slate-500 uppercase"
+                                        style={{ letterSpacing: '0.05em', lineHeight: '1.4' }}
+                                    >
                                         Escanea con la cámara de tu celular y déjanos tu opinión
                                     </p>
                                 </div>
@@ -289,16 +335,21 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                 {/* Business Footer */}
                                 <div className="mt-auto pt-6 flex items-center justify-center gap-3 border-t border-slate-100 w-full">
                                     {logoUrl ? (
-                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm" />
+                                        <img src={logoUrl} alt={businessName} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0" />
                                     ) : null}
-                                    <span className="font-black text-base text-slate-800 tracking-tight truncate max-w-[340px]">{businessName}</span>
+                                    <span
+                                        className="font-black text-base text-slate-800 truncate max-w-[340px]"
+                                        style={{ letterSpacing: 'normal' }}
+                                    >
+                                        {businessName}
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Download Button */}
                         <button
-                            onClick={() => downloadCardPNG(reviewCardRef, `Hoja_Carta_QR_Resenas_${businessSlug}`, setIsDownloadingReview)}
+                            onClick={() => downloadCardPNG(reviewCardRef, `Hoja_Carta_QR_Resenas_${businessSlug}`, 'review', setIsDownloadingReview)}
                             disabled={isDownloadingReview}
                             className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                         >

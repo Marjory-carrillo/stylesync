@@ -10,6 +10,8 @@ export interface Review {
     comment?: string;
     reply?: string;
     repliedAt?: string;
+    verifiedClient?: boolean;
+    appointmentId?: string;
     createdAt: string;
 }
 
@@ -40,6 +42,8 @@ export function useReviews(tenantId?: string | null) {
                 comment: r.comment || undefined,
                 reply: r.reply || undefined,
                 repliedAt: r.replied_at || undefined,
+                verifiedClient: r.verified_client ?? true,
+                appointmentId: r.appointment_id || undefined,
                 createdAt: r.created_at
             }));
         },
@@ -60,16 +64,22 @@ export function useReviews(tenantId?: string | null) {
             clientPhone?: string;
             rating: number;
             comment?: string;
+            verifiedClient?: boolean;
+            appointmentId?: string;
         }) => {
+            const insertPayload: any = {
+                tenant_id: newReview.tenantId,
+                client_name: newReview.clientName?.trim() || 'Cliente Anónimo',
+                client_phone: newReview.clientPhone?.trim() || null,
+                rating: newReview.rating,
+                comment: newReview.comment?.trim() || null,
+                verified_client: newReview.verifiedClient ?? true,
+                appointment_id: newReview.appointmentId || null
+            };
+
             const { data, error } = await supabase
                 .from('reviews')
-                .insert({
-                    tenant_id: newReview.tenantId,
-                    client_name: newReview.clientName?.trim() || 'Cliente Anónimo',
-                    client_phone: newReview.clientPhone?.trim() || null,
-                    rating: newReview.rating,
-                    comment: newReview.comment?.trim() || null
-                })
+                .insert(insertPayload)
                 .select()
                 .single();
 
