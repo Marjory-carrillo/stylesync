@@ -32,6 +32,7 @@ const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Reschedule = lazy(() => import('./pages/client/Reschedule'));
+const PublicReview = lazy(() => import('./pages/PublicReview'));
 
 import { useGlobalStore } from './lib/store/useGlobalStore';
 import { Settings as SettingsIcon } from 'lucide-react';
@@ -336,6 +337,10 @@ function App() {
 
               {/* Self-Reschedule (fully public, no auth) */}
               <Route path="/reagendar/:id" element={<Reschedule />} />
+
+              {/* Public Review Routes */}
+              <Route path="/review/:slug" element={<PublicReview />} />
+              <Route path="/evaluar/:slug" element={<PublicReview />} />
 
               {/* Client Routes */}
               <Route path="/reserva/:slug" element={<ClientRoute />}>

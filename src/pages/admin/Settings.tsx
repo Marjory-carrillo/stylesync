@@ -11,7 +11,9 @@ import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign } from 'lucide-react';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply } from 'lucide-react';
+import { useReviews } from '../../lib/store/queries/useReviews';
+import BusinessQRCardsModal from '../../components/BusinessQRCardsModal';
 import { businessConfigSchema } from '../../lib/schemas';
 import { CustomSelect } from '../../components/CustomSelect';
 import TimePickerInput from '../../components/TimePickerInput';
@@ -185,6 +187,33 @@ export default function Settings() {
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [newAnnouncementType, setNewAnnouncementType] = useState<'info' | 'warning' | 'closed'>('info');
     const [uploadingLogo, setUploadingLogo] = useState(false);
+
+    // Reviews & QR Cards State
+    const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+    const { reviews, totalReviews, averageRating, replyReview, isReplying } = useReviews(businessConfig?.id);
+    const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+    const [activeReplyReviewId, setActiveReplyReviewId] = useState<string | null>(null);
+    const [copiedSettingsLink, setCopiedSettingsLink] = useState(false);
+
+    const handleCopySettingsLink = () => {
+        const url = `${window.location.origin}/reserva/${businessConfig?.slug || ''}`;
+        navigator.clipboard.writeText(url);
+        setCopiedSettingsLink(true);
+        showToast('Enlace de reserva copiado', 'success');
+        setTimeout(() => setCopiedSettingsLink(false), 2000);
+    };
+
+    const handleSaveReply = async (reviewId: string) => {
+        const text = replyTextMap[reviewId]?.trim();
+        if (!text) return;
+        try {
+            await replyReview({ reviewId, reply: text });
+            showToast('Respuesta publicada', 'success');
+            setActiveReplyReviewId(null);
+        } catch (err: any) {
+            showToast('Error al responder: ' + err.message, 'error');
+        }
+    };
 
 
     // Blocked slots form
@@ -488,6 +517,57 @@ export default function Settings() {
                     </div>
                 </section>
             )}
+
+            {/* ── Tarjeta de Enlace del Negocio & Tarjetas QR ── */}
+            <section className="glass-panel p-6 rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/90 via-slate-950/80 to-[#0a1128] space-y-4 relative overflow-hidden shadow-2xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400 rounded-2xl">
+                            <QrCode size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-white">Enlace de Reservas y Tarjetas QR</h3>
+                            <p className="text-xs text-slate-400">Comparte tu enlace oficial o descarga las tarjetas QR imprimibles para tu local.</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsQRModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer shrink-0"
+                    >
+                        <QrCode size={16} />
+                        <span>🖨️ Ver y Descargar Tarjetas QR</span>
+                    </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-black/40 p-3.5 rounded-xl border border-white/10">
+                    <div className="flex-1 min-w-0 flex items-center gap-2 font-mono text-xs text-slate-300 truncate">
+                        <span className="text-slate-500 font-sans font-bold uppercase text-[10px]">Tu Link:</span>
+                        <span className="text-cyan-400 font-bold truncate">
+                            {typeof window !== 'undefined' ? `${window.location.origin}/reserva/${businessConfig?.slug || ''}` : ''}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button
+                            type="button"
+                            onClick={handleCopySettingsLink}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs transition-all border border-white/10"
+                        >
+                            {copiedSettingsLink ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                            <span>{copiedSettingsLink ? '¡Copiado!' : 'Copiar Link'}</span>
+                        </button>
+                        <a
+                            href={`/reserva/${businessConfig?.slug || ''}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs transition-all border border-emerald-500/20"
+                        >
+                            <ExternalLink size={14} />
+                            <span>Abrir</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -1628,6 +1708,121 @@ export default function Settings() {
                     </section>
                 )}
             </div>
+
+            {/* ── Sección de Reseñas de Clientes ── */}
+            <section className="glass-panel p-6 rounded-2xl border border-white/5 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                            <Star size={24} className="fill-amber-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-white">Reseñas de Clientes</h3>
+                            <p className="text-xs text-slate-400">Opiniones y calificaciones recibidas por tus clientes.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-2xl">
+                        <div className="flex items-center gap-1 text-amber-400 font-black text-xl">
+                            <span>{averageRating.toFixed(1)}</span>
+                            <Star size={18} className="fill-amber-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-400">({totalReviews} reseña{totalReviews !== 1 ? 's' : ''})</span>
+                    </div>
+                </div>
+
+                {reviews.length === 0 ? (
+                    <div className="text-center py-12 bg-black/20 rounded-2xl border border-dashed border-white/10 space-y-2">
+                        <Star size={36} className="text-slate-600 mx-auto" />
+                        <h4 className="text-sm font-bold text-white">Aún no tienes reseñas</h4>
+                        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                            Descarga tu Tarjeta QR de Reseñas para que tus clientes escaneen y dejen su opinión al terminar su cita.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {reviews.map((rev) => (
+                            <div key={rev.id} className="bg-black/30 border border-white/5 rounded-2xl p-4 space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-white text-sm">{rev.clientName}</span>
+                                            <span className="text-[10px] text-slate-500 font-medium">
+                                                {new Date(rev.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            {[1, 2, 3, 4, 5].map((s) => (
+                                                <Star
+                                                    key={s}
+                                                    size={13}
+                                                    className={s <= rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {rev.comment && (
+                                    <p className="text-xs text-slate-300 font-normal leading-relaxed bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                                        "{rev.comment}"
+                                    </p>
+                                )}
+
+                                {/* Owner Reply Section */}
+                                {rev.reply ? (
+                                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs space-y-1">
+                                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Respuesta del negocio:</span>
+                                        <p className="text-amber-200/90 font-medium">{rev.reply}</p>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        {activeReplyReviewId === rev.id ? (
+                                            <div className="space-y-2 pt-2 border-t border-white/5">
+                                                <textarea
+                                                    rows={2}
+                                                    placeholder="Escribe tu respuesta a esta reseña..."
+                                                    value={replyTextMap[rev.id] || ''}
+                                                    onChange={(e) => setReplyTextMap({ ...replyTextMap, [rev.id]: e.target.value })}
+                                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500 outline-none"
+                                                />
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setActiveReplyReviewId(null)}
+                                                        className="px-3 py-1 text-xs text-slate-400 hover:text-white"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSaveReply(rev.id)}
+                                                        disabled={isReplying}
+                                                        className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold hover:bg-amber-500/30"
+                                                    >
+                                                        {isReplying ? 'Guardando...' : 'Publicar Respuesta'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveReplyReviewId(rev.id)}
+                                                className="text-[11px] font-bold text-amber-400/80 hover:text-amber-400 flex items-center gap-1 pt-1 cursor-pointer"
+                                            >
+                                                <Reply size={12} /> Responder a esta reseña
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            {/* Modal de Tarjetas QR Imprimibles */}
+            <BusinessQRCardsModal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} />
         </div>
     );
 }

@@ -347,10 +347,16 @@ export default function Explore() {
                                             </div>
                                         </div>
 
-                                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-500/30 backdrop-blur-md shadow-md mb-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                            Citas Disponibles
-                                        </span>
+                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-500/30 backdrop-blur-md shadow-md">
+                                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                                <span>5.0</span>
+                                            </span>
+                                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-500/30 backdrop-blur-md shadow-md">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                                Citas Disponibles
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* Name & Address */}
