@@ -205,7 +205,11 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         if (!dateSchedule.open) return [];
 
         const blocked: BlockedInterval[] = blockedSlots
-            .filter(b => b.date === selectedDate)
+            .filter(b => {
+                if (b.date !== selectedDate) return false;
+                if (b.staffId && selectedStylist && typeof selectedStylist === 'object' && String(b.staffId) !== String(selectedStylist.id)) return false;
+                return true;
+            })
             .map(b => ({
                 start: parse(b.startTime.slice(0, 5), 'HH:mm', baseDate),
                 end: parse(b.endTime.slice(0, 5), 'HH:mm', baseDate),

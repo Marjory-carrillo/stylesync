@@ -577,14 +577,14 @@ export default function Booking() {
     // Appointments for selected date
     const dateAppointments: SlotAppointment[] = useMemo(() => {
         return appointments
-            .filter(a => a.date === selectedDate && a.status !== 'cancelada' && (!selectedStylist || a.stylistId === selectedStylist.id))
+            .filter(a => (!updatingAppointmentId || a.id !== updatingAppointmentId) && a.date === selectedDate && a.status !== 'cancelada' && (!selectedStylist || a.stylistId === selectedStylist.id))
             .map(a => {
                 const svc = services.find(s => s.id === a.serviceId);
                 const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
                 const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
                 return { id: a.id, stylistId: String(a.stylistId ?? '0'), start, end };
             });
-    }, [appointments, selectedDate, selectedStylist, services, baseDate]);
+    }, [appointments, selectedDate, selectedStylist, services, baseDate, updatingAppointmentId]);
 
     const filteredServices = useMemo(() => {
         let base = services.filter(s => !s.isAddon);
@@ -610,7 +610,11 @@ export default function Booking() {
         const dayKey = DAY_KEYS[dayIdx];
 
         const relevantBlockedSlots: BlockedInterval[] = blockedSlots
-            .filter(b => b.date === selectedDate)
+            .filter(b => {
+                if (b.date !== selectedDate) return false;
+                if (b.staffId && selectedStylist && String(b.staffId) !== String(selectedStylist.id)) return false;
+                return true;
+            })
             .map(b => ({
                 // Robust parsing: slice(0,5) in case DB returns HH:mm:ss
                 start: parse(b.startTime.slice(0, 5), 'HH:mm', baseDate),
@@ -659,7 +663,7 @@ export default function Booking() {
             }
 
             const stylistApps = appointments
-                .filter(a => a.date === selectedDate && a.status !== 'cancelada' && String(a.stylistId) === String(stylist.id))
+                .filter(a => (!updatingAppointmentId || a.id !== updatingAppointmentId) && a.date === selectedDate && a.status !== 'cancelada' && String(a.stylistId) === String(stylist.id))
                 .map(a => {
                     const svc = services.find(s => s.id === a.serviceId);
                     const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
@@ -676,15 +680,16 @@ export default function Booking() {
         });
 
         return metadata;
-    }, [selectedService, totalDuration, selectedDate, selectedDateSchedule, blockedSlots, selectedStylist, stylists, appointments, services, dateAppointments]);
+    }, [selectedService, totalDuration, selectedDate, selectedDateSchedule, blockedSlots, selectedStylist, stylists, appointments, services, dateAppointments, updatingAppointmentId]);
 
     // Detect if the day is manually blocked (e.g., "All Day" block such as 00:00 - 23:59)
     const isDayBlockedManually = useMemo(() => {
-        return blockedSlots.some(b =>
-            b.date === selectedDate &&
-            (b.startTime.slice(0, 5) === '00:00' && b.endTime.slice(0, 5) === '23:59')
-        );
-    }, [blockedSlots, selectedDate]);
+        return blockedSlots.some(b => {
+            if (b.date !== selectedDate) return false;
+            if (b.staffId && selectedStylist && String(b.staffId) !== String(selectedStylist.id)) return false;
+            return (b.startTime.slice(0, 5) === '00:00' && b.endTime.slice(0, 5) === '23:59');
+        });
+    }, [blockedSlots, selectedDate, selectedStylist]);
 
     // Detect if the selected stylist is closed on this day
     const isSelectedStylistClosed = useMemo(() => {

@@ -104,6 +104,7 @@ export interface BlockedSlot {
     startTime: string; // HH:mm
     endTime: string; // HH:mm
     reason?: string;
+    staffId?: string; // Optional: ID of staff member, or undefined/null for all staff
 }
 
 export interface Lead {

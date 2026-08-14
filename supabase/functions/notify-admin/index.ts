@@ -378,7 +378,7 @@ serve(async (req: Request) => {
                         '1': appointment.client_name, 
                         '2': businessName, 
                         '3': fechaFormateada, 
-                        '4': mainServiceOnly, 
+                        '4': formattedService, 
                         '5': confirmedPriceStr,
                         '6': bookingLink
                     }
@@ -386,7 +386,7 @@ serve(async (req: Request) => {
                 if (!clientSent) {
                     clientSent = await sendTemplate(
                         appointment.client_phone, TEMPLATE_FALLBACK,
-                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': mainServiceOnly, '5': `Precio confirmado: $${confirmedPriceStr}` }
+                        { '1': appointment.client_name, '2': businessName, '3': fechaFormateada, '4': formattedService, '5': `Precio confirmado: $${confirmedPriceStr}` }
                     );
                 }
             }

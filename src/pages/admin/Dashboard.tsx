@@ -15,7 +15,8 @@ import { CustomSelect } from '../../components/CustomSelect';
 import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import ConfirmModal from '../../components/ConfirmModal';
 import AdminBookingModal from '../../components/AdminBookingModal';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save, CheckCircle2 } from 'lucide-react';
+import AdminRescheduleModal from '../../components/AdminRescheduleModal';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save, CheckCircle2, RefreshCw } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -100,6 +101,7 @@ export default function Dashboard() {
     // Optimize: only load last 12 months for dashboard metrics
     const startDate = useMemo(() => format(subMonths(new Date(), 12), 'yyyy-MM-01'), []);
     const { appointments: allAppointments, isPending: apptsPending, markNoShow } = useAppointments({ startDate });
+    const [rescheduleModal, setRescheduleModal] = useState<{ open: boolean; appt: any }>({ open: false, appt: null });
     const { services, isPending: svcsLoading } = useServices();
     const { waitingList, addToWaitingList, removeFromWaitingList } = useWaitingList();
     const { stylists } = useStylists();
@@ -288,6 +290,7 @@ export default function Dashboard() {
                             date: apt.date,
                             time: apt.time,
                             confirmed_price: price,
+                            additional_services: apt.additionalServices || [],
                         },
                         business_name: businessConfig?.name || 'CitaLink',
                     }),
@@ -1932,12 +1935,21 @@ export default function Dashboard() {
                                                     <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
                                                 )}
                                             </div>
-                                            <button
-                                                onClick={() => navigate('/admin/appointments')}
-                                                className="w-full py-2.5 text-xs gap-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 hover:text-white border border-white/5 hover:border-white/10 transition-all flex items-center justify-center font-bold"
-                                            >
-                                                <Calendar size={14} className="opacity-70" /> Gestionar Cita
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setRescheduleModal({ open: true, appt })}
+                                                    className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 transition-all flex items-center justify-center font-bold cursor-pointer"
+                                                    title="Reagendar Cita"
+                                                >
+                                                    <RefreshCw size={13} /> Reagendar
+                                                </button>
+                                                <button
+                                                    onClick={() => navigate('/admin/appointments')}
+                                                    className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 hover:text-white border border-white/5 hover:border-white/10 transition-all flex items-center justify-center font-bold cursor-pointer"
+                                                >
+                                                    <Calendar size={13} className="opacity-70" /> Gestionar
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -2679,6 +2691,12 @@ export default function Dashboard() {
             {isNewApptModalOpen && (
                 <AdminBookingModal isOpen={true} onClose={() => setIsNewApptModalOpen(false)} />
             )}
+
+            <AdminRescheduleModal
+                isOpen={rescheduleModal.open}
+                onClose={() => setRescheduleModal({ open: false, appt: null })}
+                appointment={rescheduleModal.appt}
+            />
         </div >
     );
 }

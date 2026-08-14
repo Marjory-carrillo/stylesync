@@ -24,6 +24,7 @@ export const useBlockedSlots = () => {
                 ...b,
                 startTime: b.start_time,
                 endTime: b.end_time,
+                staffId: b.staff_id || undefined,
             })) as BlockedSlot[];
         },
         enabled: !!tenantId,
@@ -33,20 +34,31 @@ export const useBlockedSlots = () => {
     const addMutation = useMutation({
         mutationFn: async (slot: Omit<BlockedSlot, 'id'>) => {
             if (!tenantId) throw new Error('Sin tenant');
-            const { error } = await supabase.from('blocked_slots').insert([{
+            const row: any = {
                 tenant_id: tenantId,
                 date: slot.date,
                 start_time: slot.startTime,
                 end_time: slot.endTime,
-                reason: slot.reason,
-            }]);
+                reason: slot.reason?.trim() || 'Horario Bloqueado',
+            };
+            if (slot.staffId) {
+                row.staff_id = slot.staffId;
+            }
+            const { error } = await supabase.from('blocked_slots').insert([row]);
             if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
             showToast('Bloque de horario agregado', 'success');
         },
-        onError: (err: any) => showToast(`Error: ${err.message}`, 'error'),
+        onError: (err: any) => {
+            const msg = err?.message || '';
+            if (msg.includes('aborted') || err?.name === 'AbortError') {
+                showToast('Error de conexión al guardar. Reintentando...', 'error');
+            } else {
+                showToast(`Error: ${msg}`, 'error');
+            }
+        },
     });
 
     // ── Batch insert for recurring blocks ─────────────────────────────────────
@@ -54,13 +66,19 @@ export const useBlockedSlots = () => {
         mutationFn: async (slots: Omit<BlockedSlot, 'id'>[]) => {
             if (!tenantId) throw new Error('Sin tenant');
             if (slots.length === 0) return 0;
-            const rows = slots.map(slot => ({
-                tenant_id: tenantId,
-                date: slot.date,
-                start_time: slot.startTime,
-                end_time: slot.endTime,
-                reason: slot.reason,
-            }));
+            const rows = slots.map(slot => {
+                const row: any = {
+                    tenant_id: tenantId,
+                    date: slot.date,
+                    start_time: slot.startTime,
+                    end_time: slot.endTime,
+                    reason: slot.reason?.trim() || 'Horario Bloqueado',
+                };
+                if (slot.staffId) {
+                    row.staff_id = slot.staffId;
+                }
+                return row;
+            });
             const { error } = await supabase.from('blocked_slots').insert(rows);
             if (error) throw error;
             return slots.length;
@@ -72,7 +90,14 @@ export const useBlockedSlots = () => {
                 'success'
             );
         },
-        onError: (err: any) => showToast(`Error: ${err.message}`, 'error'),
+        onError: (err: any) => {
+            const msg = err?.message || '';
+            if (msg.includes('aborted') || err?.name === 'AbortError') {
+                showToast('Error de conexión al guardar. Reintentando...', 'error');
+            } else {
+                showToast(`Error: ${msg}`, 'error');
+            }
+        },
     });
 
     // ── Delete ────────────────────────────────────────────────────────────────

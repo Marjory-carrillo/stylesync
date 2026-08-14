@@ -11,11 +11,12 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, UserX, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck, Eye, DollarSign, Save } from 'lucide-react';
+import { Trash2, User, UserX, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck, Eye, DollarSign, Save, RefreshCw } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import WeekCalendar from '../../components/WeekCalendar';
 import AdminBookingModal from '../../components/AdminBookingModal';
+import AdminRescheduleModal from '../../components/AdminRescheduleModal';
 import DatePickerInput from '../../components/DatePickerInput';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
 import { formatPhoneDisplay } from '../../lib/schemas';
@@ -50,6 +51,8 @@ export default function Appointments() {
         onConfirm: () => {},
         danger: false
     });
+
+    const [rescheduleModal, setRescheduleModal] = useState<{ open: boolean; appt: any }>({ open: false, appt: null });
 
     // Cargar historial de hasta 3 años atras (36 meses) para abarcar marzo y fechas anteriores
     const startDate = useMemo(() => {
@@ -920,7 +923,10 @@ export default function Appointments() {
                                                                             return null;
                                                                         })()}
 
-                                                                        <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20" title="Cancelar">
+                                                                        <button onClick={() => setRescheduleModal({ open: true, appt: apt })} className="p-2.5 rounded-xl text-slate-400 hover:bg-accent/10 hover:text-accent transition-all border border-transparent hover:border-accent/20 cursor-pointer" title="Reagendar Cita">
+                                                                            <RefreshCw size={20} />
+                                                                        </button>
+                                                                        <button onClick={() => handleAdminCancel(apt)} className="p-2.5 rounded-xl text-muted hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20 cursor-pointer" title="Cancelar">
                                                                             <Trash2 size={20} />
                                                                         </button>
                                                                     </div>
@@ -1349,6 +1355,12 @@ export default function Appointments() {
                     </div>
                 </div>
             )}
+
+            <AdminRescheduleModal
+                isOpen={rescheduleModal.open}
+                onClose={() => setRescheduleModal({ open: false, appt: null })}
+                appointment={rescheduleModal.appt}
+            />
         </div>
     );
 }

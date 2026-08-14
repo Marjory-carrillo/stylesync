@@ -8,10 +8,13 @@ import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useSchedule } from '../../lib/store/queries/useSchedule';
 import { useAnnouncements } from '../../lib/store/queries/useAnnouncements';
 import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
+import { useAppointments } from '../../lib/store/queries/useAppointments';
+import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle } from 'lucide-react';
 import { useReviews } from '../../lib/store/queries/useReviews';
 import BusinessQRCardsModal from '../../components/BusinessQRCardsModal';
 import { businessConfigSchema } from '../../lib/schemas';
@@ -175,6 +178,8 @@ export default function Settings() {
 
     const { announcements, addAnnouncement, removeAnnouncement } = useAnnouncements();
     const { blockedSlots, addBlockedSlot, addBlockedSlots, isAddingBatch, removeBlockedSlot } = useBlockedSlots();
+    const { appointments } = useAppointments();
+    const { services } = useServices();
     const { stylists, updateStylist } = useStylists();
     const { config: quoterConfig, saveConfig: saveQuoterConfig, isSaving: isSavingQuoter } = useNailCalculator();
     const [localQuoterConfig, setLocalQuoterConfig] = useState(quoterConfig);
@@ -226,11 +231,27 @@ export default function Settings() {
     const [blockStart, setBlockStart] = useState('');
     const [blockEnd, setBlockEnd] = useState('');
     const [blockReason, setBlockReason] = useState('');
+    const [blockStaffId, setBlockStaffId] = useState<string>('all');
     const [isAllDay, setIsAllDay] = useState(false);
     const [infoError, setInfoError] = useState('');
-    // Recurrence
+    const navigate = useNavigate();
+    // Recurrence & Filter State
     const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'monthly'>('none');
     const [repeatCount, setRepeatCount] = useState(4);
+    const [blockedListFilter, setBlockedListFilter] = useState<'upcoming' | 'past'>('upcoming');
+    const [conflictModal, setConflictModal] = useState<{
+        open: boolean;
+        date: string;
+        count: number;
+        firstClient: string;
+        firstTime: string;
+    }>({
+        open: false,
+        date: '',
+        count: 0,
+        firstClient: '',
+        firstTime: '',
+    });
 
     // Formatter for 12h time
     const format12h = (timeStr: string) => {
@@ -297,12 +318,81 @@ export default function Settings() {
 
     const handleAddBlockedSlot = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!blockDate) {
+            showToast('Por favor selecciona la fecha del bloqueo', 'error');
+            return;
+        }
+
         const start = isAllDay ? '00:00' : blockStart;
         const end = isAllDay ? '23:59' : blockEnd;
-        if (!blockDate || !start || !end) return;
+
+        if (!isAllDay) {
+            if (!blockStart) {
+                showToast('Por favor indica la hora de inicio ("Desde")', 'error');
+                return;
+            }
+            if (!blockEnd) {
+                showToast('Por favor indica la hora de fin ("Hasta")', 'error');
+                return;
+            }
+            if (blockStart >= blockEnd) {
+                showToast('La hora de inicio debe ser anterior a la hora de fin', 'error');
+                return;
+            }
+        }
 
         const dates = generateRecurringDates(blockDate, recurrence, repeatCount);
-        const slots = dates.map(date => ({ date, startTime: start, endTime: end, reason: blockReason }));
+        const selectedStaffId = blockStaffId === 'all' ? undefined : blockStaffId;
+
+        // ── Strict Conflict Check against existing appointments ────────────
+        const startMins = parseInt(start.split(':')[0], 10) * 60 + parseInt(start.split(':')[1], 10);
+        const endMins = parseInt(end.split(':')[0], 10) * 60 + parseInt(end.split(':')[1], 10);
+
+        for (const date of dates) {
+            const conflictingAppts = (appointments || []).filter(a => {
+                if (a.status === 'cancelada') return false;
+                if (a.date !== date) return false;
+
+                // Staff filter: if blocking specific staff, only check that staff
+                if (selectedStaffId) {
+                    const apptStaffId = String(a.stylistId || (a as any).stylist_id || '');
+                    if (apptStaffId && apptStaffId !== String(selectedStaffId)) return false;
+                }
+
+                // Time overlap check
+                const apptTimeStr = (a.time || '').slice(0, 5);
+                if (!apptTimeStr.includes(':')) return false;
+                const [ah, am] = apptTimeStr.split(':').map(Number);
+                const apptStartMins = ah * 60 + am;
+
+                const svc = (services || []).find((s: any) => String(s.id) === String(a.serviceId));
+                const duration = svc?.duration || 30;
+                const apptEndMins = apptStartMins + duration;
+
+                return startMins < apptEndMins && endMins > apptStartMins;
+            });
+
+            if (conflictingAppts.length > 0) {
+                const firstConflict = conflictingAppts[0];
+                setConflictModal({
+                    open: true,
+                    date,
+                    count: conflictingAppts.length,
+                    firstClient: firstConflict.clientName,
+                    firstTime: firstConflict.time.slice(0, 5),
+                });
+                return;
+            }
+        }
+
+        const slots = dates.map(date => ({
+            date,
+            startTime: start,
+            endTime: end,
+            reason: blockReason,
+            staffId: selectedStaffId,
+        }));
 
         if (slots.length === 1) {
             await addBlockedSlot(slots[0]);
@@ -317,6 +407,7 @@ export default function Settings() {
         setIsAllDay(false);
         setRecurrence('none');
         setRepeatCount(4);
+        setBlockStaffId('all');
     };
 
     const onLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1295,152 +1386,284 @@ export default function Settings() {
                         <h3 className="text-lg font-bold text-white">Bloquear Horarios</h3>
                     </div>
 
-                    <form onSubmit={handleAddBlockedSlot} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-3">
-                                <div>
-                                    <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Fecha</label>
-                                    <DatePickerInput
-                                        value={blockDate}
-                                        onChange={val => setBlockDate(val)}
-                                    />
-                                </div>
-                                {/* Todo el día — pill toggle */}
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAllDay(v => !v)}
-                                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all w-fit ${
-                                        isAllDay
-                                            ? 'bg-accent/15 border-accent/40 text-white'
-                                            : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                                    }`}
-                                >
-                                    {/* mini toggle pill */}
-                                    <div className={`w-8 h-4 rounded-full transition-all relative ${
-                                        isAllDay ? 'bg-accent' : 'bg-slate-700'
-                                    }`}>
-                                        <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${
-                                            isAllDay ? 'left-4.5' : 'left-0.5'
-                                        }`} />
-                                    </div>
-                                    <span className="text-sm font-bold">Todo el día</span>
-                                </button>
+                    {/* Presets & Staff Selector Bar */}
+                    <div className="space-y-4">
+                        <div className="p-4 bg-slate-900/60 rounded-2xl border border-white/10 space-y-3">
+                            <div>
+                                <label className="block text-[10px] uppercase font-black text-slate-400 mb-1.5 tracking-widest flex items-center gap-1">
+                                    <User size={12} className="text-cyan-400" /> ¿A quién aplica este bloqueo?
+                                </label>
+                                <CustomSelect
+                                    value={blockStaffId}
+                                    onChange={(val) => setBlockStaffId(val)}
+                                    options={[
+                                        { value: 'all', label: '🏢 Todo el Local (Afecta a todo el equipo)' },
+                                        ...(stylists || []).map(s => ({
+                                            value: String(s.id),
+                                            label: `👤 ${s.name} (${s.role || 'Profesional'})`
+                                        }))
+                                    ]}
+                                    buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-semibold text-left flex justify-between items-center"
+                                    dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-2xl py-1 z-[100]"
+                                />
                             </div>
 
-                            <div className={`flex flex-wrap items-center gap-4 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-                                <div className="flex-1 min-w-[130px]">
-                                    <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Desde</label>
-                                    <TimePickerInput
-                                        value={isAllDay ? '00:00' : blockStart}
-                                        onChange={val => setBlockStart(val)}
-                                        disabled={isAllDay}
-                                    />
-                                </div>
-                                <div className="pt-6 hidden sm:block">
-                                    <span className="text-slate-600">—</span>
-                                </div>
-                                <div className="flex-1 min-w-[130px]">
-                                    <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Hasta</label>
-                                    <TimePickerInput
-                                        value={isAllDay ? '23:59' : blockEnd}
-                                        onChange={val => setBlockEnd(val)}
-                                        disabled={isAllDay}
-                                    />
+                            {/* Quick Presets */}
+                            <div className="pt-2 border-t border-white/5 space-y-1.5">
+                                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Atajos Rápidos:</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setBlockStart('14:00');
+                                            setBlockEnd('15:00');
+                                            setIsAllDay(false);
+                                            setBlockReason('Hora de Almuerzo/Comida');
+                                        }}
+                                        className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[11px] font-bold transition-all text-center truncate cursor-pointer"
+                                        title="Comida (14:00 - 15:00)"
+                                    >
+                                        ☕ Comida (14-15h)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsAllDay(true);
+                                            setBlockReason('Día de Vacaciones / Ausencia');
+                                        }}
+                                        className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-[11px] font-bold transition-all text-center truncate cursor-pointer"
+                                        title="Vacaciones (Todo el día)"
+                                    >
+                                        🌴 Vacaciones
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setBlockStart('17:00');
+                                            setBlockEnd('20:00');
+                                            setIsAllDay(false);
+                                            setBlockReason('Cierre Temprano / Capacitación');
+                                        }}
+                                        className="p-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 text-[11px] font-bold transition-all text-center truncate cursor-pointer"
+                                        title="Cierre Temprano (17:00 - 20:00)"
+                                    >
+                                        🧹 Cierre Temprano
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Recurrence UI */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                            <div>
-                                <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">Recurrencia</label>
-                                <div className="relative z-[15]">
-                                    <CustomSelect
-                                        value={recurrence}
-                                        onChange={(val) => setRecurrence(val as 'none' | 'weekly' | 'monthly')}
-                                        options={[
-                                            { value: 'none', label: 'Una sola vez' },
-                                            { value: 'weekly', label: 'Cada semana' },
-                                            { value: 'monthly', label: 'Cada mes' }
-                                        ]}
-                                        buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
-                                        dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] py-1 z-[100]"
-                                    />
+                        <form onSubmit={handleAddBlockedSlot} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-3">
+                                    <div>
+                                        <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Fecha Inicial</label>
+                                        <DatePickerInput
+                                            value={blockDate}
+                                            onChange={val => setBlockDate(val)}
+                                        />
+                                    </div>
+                                    {/* Todo el día — pill toggle */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAllDay(v => !v)}
+                                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all w-fit ${
+                                            isAllDay
+                                                ? 'bg-accent/15 border-accent/40 text-white'
+                                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                                        }`}
+                                    >
+                                        <div className={`w-8 h-4 rounded-full transition-colors relative ${
+                                            isAllDay ? 'bg-accent' : 'bg-slate-700'
+                                        }`}>
+                                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${
+                                                isAllDay ? 'translate-x-4' : 'translate-x-0'
+                                            }`} />
+                                        </div>
+                                        <span className="text-sm font-bold">Todo el día</span>
+                                    </button>
                                 </div>
-                            </div>
-                            {recurrence !== 'none' && (
-                                <div>
-                                    <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">
-                                        Repetir por
-                                    </label>
-                                    <div className="relative z-[15]">
-                                        <CustomSelect
-                                            value={String(repeatCount)}
-                                            onChange={(val) => setRepeatCount(Number(val))}
-                                            options={
-                                                recurrence === 'weekly' 
-                                                ? [
-                                                    { value: '2', label: '2 semanas' },
-                                                    { value: '3', label: '3 semanas' },
-                                                    { value: '4', label: '4 semanas (1 mes)' },
-                                                    { value: '8', label: '8 semanas (2 meses)' },
-                                                    { value: '12', label: '12 semanas (3 meses)' },
-                                                    { value: '24', label: '24 semanas (6 meses)' }
-                                                  ]
-                                                : [
-                                                    { value: '2', label: '2 meses' },
-                                                    { value: '3', label: '3 meses' },
-                                                    { value: '4', label: '4 meses' },
-                                                    { value: '6', label: '6 meses' },
-                                                    { value: '12', label: '12 meses' }
-                                                  ]
-                                            }
-                                            buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
-                                            dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] py-1 z-[100]"
+
+                                <div className={`flex flex-wrap items-center gap-4 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                                    <div className="flex-1 min-w-[130px]">
+                                        <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Desde</label>
+                                        <TimePickerInput
+                                            value={isAllDay ? '00:00' : blockStart}
+                                            onChange={val => setBlockStart(val)}
+                                            disabled={isAllDay}
+                                        />
+                                    </div>
+                                    <div className="pt-6 hidden sm:block">
+                                        <span className="text-slate-600">—</span>
+                                    </div>
+                                    <div className="flex-1 min-w-[130px]">
+                                        <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Hasta</label>
+                                        <TimePickerInput
+                                            value={isAllDay ? '23:59' : blockEnd}
+                                            onChange={val => setBlockEnd(val)}
+                                            disabled={isAllDay}
                                         />
                                     </div>
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Recurrence UI */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl border border-white/5">
+                                <div className="relative z-[30]">
+                                    <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">Recurrencia</label>
+                                    <div>
+                                        <CustomSelect
+                                            value={recurrence}
+                                            onChange={(val) => setRecurrence(val as 'none' | 'weekly' | 'monthly')}
+                                            options={[
+                                                { value: 'none', label: 'Una sola vez' },
+                                                { value: 'weekly', label: 'Cada semana' },
+                                                { value: 'monthly', label: 'Cada mes' }
+                                            ]}
+                                            buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
+                                            dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl py-1 z-[100]"
+                                        />
+                                    </div>
+                                </div>
+                                {recurrence !== 'none' && (
+                                    <div className="relative z-[20]">
+                                        <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">
+                                            Repetir por
+                                        </label>
+                                        <div>
+                                            <CustomSelect
+                                                value={String(repeatCount)}
+                                                onChange={(val) => setRepeatCount(Number(val))}
+                                                options={
+                                                    recurrence === 'weekly' 
+                                                    ? [
+                                                        { value: '2', label: '2 semanas' },
+                                                        { value: '3', label: '3 semanas' },
+                                                        { value: '4', label: '4 semanas (1 mes)' },
+                                                        { value: '8', label: '8 semanas (2 meses)' },
+                                                        { value: '12', label: '12 semanas (3 meses)' },
+                                                        { value: '24', label: '24 semanas (6 meses)' }
+                                                      ]
+                                                    : [
+                                                        { value: '2', label: '2 meses' },
+                                                        { value: '3', label: '3 meses' },
+                                                        { value: '4', label: '4 meses' },
+                                                        { value: '6', label: '6 meses' },
+                                                        { value: '12', label: '12 meses' }
+                                                      ]
+                                                }
+                                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
+                                                dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl py-1 z-[100]"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <input
+                                type="text"
+                                placeholder="Motivo o razón del bloqueo (ej: Cita médica, Almuerzo, Vacaciones...)"
+                                className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all placeholder:text-slate-600 text-sm"
+                                value={blockReason}
+                                onChange={e => setBlockReason(e.target.value)}
+                            />
+                            <button 
+                                type="submit" 
+                                disabled={isAddingBatch}
+                                className="w-full btn bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 border border-red-500/20 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                <Lock size={18} /> {isAddingBatch ? 'Guardando bloqueos...' : 'Bloquear Horario'}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Filter Tabs for List */}
+                    <div className="border-t border-white/10 pt-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bloqueos Registrados ({blockedSlots.length})</h4>
+                            <div className="flex items-center bg-slate-900/80 p-1 rounded-xl border border-white/10">
+                                <button
+                                    type="button"
+                                    onClick={() => setBlockedListFilter('upcoming')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                                        blockedListFilter === 'upcoming'
+                                            ? 'bg-accent text-white shadow-md'
+                                            : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    Próximos
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setBlockedListFilter('past')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                                        blockedListFilter === 'past'
+                                            ? 'bg-accent text-white shadow-md'
+                                            : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    Pasados
+                                </button>
+                            </div>
                         </div>
 
-                        <input
-                            type="text"
-                            placeholder="Razón (Opcional)"
-                            className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all"
-                            value={blockReason}
-                            onChange={e => setBlockReason(e.target.value)}
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={isAddingBatch}
-                            className="w-full btn bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 border border-red-500/20 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Lock size={18} /> {isAddingBatch ? 'Bloqueando...' : 'Bloquear Horario'}
-                        </button>
-                    </form>
+                        <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                            {(() => {
+                                const todayStr = new Date().toISOString().slice(0, 10);
+                                const filtered = blockedSlots.filter(s =>
+                                    blockedListFilter === 'upcoming' ? s.date >= todayStr : s.date < todayStr
+                                );
 
-                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                        {blockedSlots.length === 0 ? (
-                            <p className="text-muted text-center py-4">No hay horarios bloqueados.</p>
-                        ) : (
-                            blockedSlots.map(slot => (
-                                <div key={slot.id} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5">
-                                    <div>
-                                        <div className="flex items-center gap-2 text-white font-medium">
-                                            <Calendar size={14} className="text-accent" /> {slot.date}
-                                            <Clock size={14} className="text-accent ml-2" /> {format12h(slot.startTime)} - {format12h(slot.endTime)}
+                                if (filtered.length === 0) {
+                                    return (
+                                        <p className="text-muted text-center py-6 text-xs italic">
+                                            No hay bloqueos {blockedListFilter === 'upcoming' ? 'próximos' : 'pasados'}.
+                                        </p>
+                                    );
+                                }
+
+                                return filtered.map(slot => {
+                                    const staffObj = slot.staffId ? stylists?.find(s => String(s.id) === String(slot.staffId)) : null;
+                                    return (
+                                        <div key={slot.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 text-white font-bold text-xs sm:text-sm flex-wrap">
+                                                    <span className="flex items-center gap-1 text-cyan-300">
+                                                        <Calendar size={13} /> {slot.date}
+                                                    </span>
+                                                    <span className="text-slate-600">•</span>
+                                                    <span className="flex items-center gap-1 text-amber-300">
+                                                        <Clock size={13} /> {format12h(slot.startTime)} - {format12h(slot.endTime)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                                        staffObj
+                                                            ? 'bg-purple-500/10 text-purple-300 border-purple-500/20'
+                                                            : 'bg-red-500/10 text-red-300 border-red-500/20'
+                                                    }`}>
+                                                        {staffObj ? `👤 ${staffObj.name}` : '🏢 Todo el Local'}
+                                                    </span>
+                                                    {slot.reason && (
+                                                        <span className="text-xs text-slate-400 italic font-normal">
+                                                            "{slot.reason}"
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeBlockedSlot(slot.id)}
+                                                className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-xl border border-transparent hover:border-red-500/20 transition-all self-end sm:self-center"
+                                                title="Eliminar bloqueo"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
-                                        {slot.reason && <p className="text-sm text-muted mt-1">{slot.reason}</p>}
-                                    </div>
-                                    <button
-                                        onClick={() => removeBlockedSlot(slot.id)}
-                                        className="text-muted hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-500/10"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            ))
-                        )}
+                                    );
+                                });
+                            })()}
+                        </div>
                     </div>
                 </section>
 
@@ -1833,6 +2056,63 @@ export default function Settings() {
 
             {/* Modal de Tarjetas QR Imprimibles */}
             <BusinessQRCardsModal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} />
+
+            {/* Modal Centrado de Conflicto de Citas */}
+            {conflictModal.open && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+                    <div className="relative w-full max-w-md bg-[#0f172a] border border-red-500/30 rounded-3xl shadow-[0_0_50px_rgba(239,68,68,0.2)] p-6 text-center space-y-5">
+                        <div className="flex justify-center">
+                            <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center shadow-lg shadow-red-950/40">
+                                <AlertTriangle size={32} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h3 className="text-lg font-bold text-white tracking-tight">
+                                No se puede bloquear este horario
+                            </h3>
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                                Existe<strong className="text-red-400">{conflictModal.count > 1 ? `n ${conflictModal.count} citas` : ' 1 cita'}</strong> agendada el día <strong className="text-cyan-300">{conflictModal.date}</strong>.
+                            </p>
+                        </div>
+
+                        {/* Conflict Detail Box */}
+                        <div className="p-3.5 bg-slate-900/90 rounded-2xl border border-white/10 text-left space-y-1.5 text-xs">
+                            <div className="flex items-center justify-between text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                                <span>Cita Detectada</span>
+                                <span className="text-amber-400 font-mono">{format12h(conflictModal.firstTime)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-white font-bold text-sm">
+                                <User size={15} className="text-cyan-400" />
+                                <span>{conflictModal.firstClient}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 pt-1 leading-normal">
+                                Debes reagendar o cancelar esta cita antes de poder aplicar este bloqueo.
+                            </p>
+                        </div>
+
+                        <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setConflictModal(prev => ({ ...prev, open: false }))}
+                                className="w-full sm:flex-1 py-3 px-4 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:bg-white/5 text-xs font-bold transition-all cursor-pointer"
+                            >
+                                Entendido
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setConflictModal(prev => ({ ...prev, open: false }));
+                                    navigate('/admin/appointments');
+                                }}
+                                className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:brightness-110 text-white text-xs font-bold shadow-lg shadow-red-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                                <Calendar size={14} /> Ir a Gestionar Citas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
