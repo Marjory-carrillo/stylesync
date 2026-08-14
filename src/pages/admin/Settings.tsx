@@ -20,6 +20,7 @@ import TimePickerInput from '../../components/TimePickerInput';
 import DatePickerInput from '../../components/DatePickerInput';
 import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import { getPlanLimits, isInTrial, isNailCalculatorEnabled } from '../../lib/planLimits';
+import { formatPrice } from '../../lib/formatters';
 
 // Helper: RGB to HSL extraction. Returns [hue, saturation, lightness]
 function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
@@ -162,7 +163,11 @@ export default function Settings() {
     const tenantPlan = (tenantConfig as any)?.plan || 'free';
     const trialEndsAt = (tenantConfig as any)?.trialEndsAt || null;
     const inTrial = isInTrial(trialEndsAt);
-    const planLimits = getPlanLimits(tenantPlan);
+    const countryCode = (tenantConfig as any)?.countryCode || 'MX';
+    const planLimits = getPlanLimits(tenantPlan, countryCode);
+    const liteLimits = getPlanLimits('lite', countryCode);
+    const proLimits = getPlanLimits('pro', countryCode);
+    const businessLimits = getPlanLimits('business', countryCode);
     const hasStripeCustomer = !!(tenantConfig as any)?.stripeCustomerId;
     const isEmployee = userRole === 'employee';
 
@@ -472,7 +477,7 @@ export default function Settings() {
                                         className="group flex flex-col items-center gap-1 px-5 py-3 rounded-2xl font-black text-sm bg-gradient-to-br from-teal-500 to-emerald-600 text-white border border-teal-400/30 hover:from-teal-400 hover:to-emerald-500 transition-all duration-200 active:scale-95 disabled:opacity-50"
                                     >
                                         <span className="flex items-center gap-2 text-[14px]">💼 Actualizar a Esencial</span>
-                                        <span className="text-[10px] font-semibold text-white/80">$349/mes — 1 profesional, citas ilimitadas</span>
+                                        <span className="text-[10px] font-semibold text-white/80">{formatPrice(liteLimits.price, businessConfig)}/mes — 1 profesional, citas ilimitadas</span>
                                     </button>
                                 )}
 
@@ -483,7 +488,7 @@ export default function Settings() {
                                         className="group flex flex-col items-center gap-1 px-5 py-3 rounded-2xl font-black text-sm bg-gradient-to-br from-amber-500 to-orange-600 text-white border border-amber-400/30 hover:from-amber-400 hover:to-orange-500 transition-all duration-200 active:scale-95 disabled:opacity-50"
                                     >
                                         <span className="flex items-center gap-2 text-[14px]">⭐ Actualizar a Pro</span>
-                                        <span className="text-[10px] font-semibold text-white/80">$649/mes — 2 profesionales, citas ilimitadas</span>
+                                        <span className="text-[10px] font-semibold text-white/80">{formatPrice(proLimits.price, businessConfig)}/mes — 2 profesionales, citas ilimitadas</span>
                                     </button>
                                 )}
 
@@ -494,7 +499,7 @@ export default function Settings() {
                                         className="group flex flex-col items-center gap-1 px-5 py-3 rounded-2xl font-black text-sm bg-gradient-to-br from-violet-600 to-purple-700 text-white border border-violet-400/30 hover:from-violet-500 hover:to-purple-600 transition-all duration-200 active:scale-95 disabled:opacity-50"
                                     >
                                         <span className="flex items-center gap-2 text-[14px]">🚀 Escalar a Business</span>
-                                        <span className="text-[10px] font-semibold text-white/80">$1,249/mes — 2 sucursales, citas ilimitadas</span>
+                                        <span className="text-[10px] font-semibold text-white/80">{formatPrice(businessLimits.price, businessConfig)}/mes — 2 sucursales, citas ilimitadas</span>
                                     </button>
                                 )}
 

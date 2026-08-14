@@ -61,6 +61,10 @@ export const useTenantData = (overrideTenantId?: string) => {
                 coverUrl: data.cover_url || '',
                 marketplaceEnabled: data.marketplace_enabled ?? false,
                 marketplaceCommissionRate: data.marketplace_commission_rate ?? 15.0,
+                countryCode: data.country_code || 'MX',
+                currency: data.currency || 'MXN',
+                currencySymbol: data.currency_symbol || '$',
+                defaultPhonePrefix: data.default_phone_prefix || '+52',
             };
         },
         enabled: !!tenantId,

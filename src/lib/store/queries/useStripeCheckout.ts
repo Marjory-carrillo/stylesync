@@ -69,6 +69,13 @@ export function useStripeCheckout() {
             const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
             const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
+            // Fetch tenant info for country & currency
+            const { data: tenant } = await supabase
+                .from('tenants')
+                .select('country_code, currency')
+                .eq('id', tenantId)
+                .single();
+
             const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
                 method: 'POST',
                 headers: {
@@ -80,8 +87,10 @@ export function useStripeCheckout() {
                     plan,
                     tenant_id: tenantId,
                     user_email: user?.email || undefined,
-                    success_url: `https://www.citalink.app/?checkout=success&plan=${plan}`,
-                    cancel_url: `https://www.citalink.app/?checkout=cancel`,
+                    country_code: tenant?.country_code || 'MX',
+                    currency: tenant?.currency || 'MXN',
+                    success_url: `${window.location.origin}/admin/settings?checkout=success&plan=${plan}`,
+                    cancel_url: `${window.location.origin}/admin/settings?checkout=cancel`,
                 }),
             });
 
