@@ -17,13 +17,15 @@ export const applyZoom = (zoomLevel: number = FIXED_ZOOM) => {
             document.body.style.minHeight = '100vh';
         }
 
-        // iOS Safari: aplicar CSS zoom 0.85 directamente en documentElement
-        // esto escala el layout completo al 85% sin franjas vacias ni lentitud
+        // iOS Safari: NUNCA aplicar CSS zoom no-estándar en iOS para evitar congelamiento de 15 segundos en WebKit
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-            (document.documentElement.style as any).zoom = '0.85';
-            (document.body.style as any).zoom = '0.85';
+            (document.documentElement.style as any).zoom = '1';
+            (document.body.style as any).zoom = '1';
+            document.documentElement.style.minHeight = '100vh';
+            document.body.style.minHeight = '100vh';
+            return;
         }
     }
 };
