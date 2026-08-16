@@ -1,12 +1,9 @@
-const CACHE_NAME = 'citalink-v2';
+const CACHE_NAME = 'citalink-v3';
 
-// Recursos esenciales a cachear en la instalación
-// NOTE: manifest.json NOT cached here — generated dynamically per-business in Booking.tsx
+// Recursos esenciales a cachear en la instalación (ligero para primera carga instantánea en Safari)
 const PRECACHE_URLS = [
     '/',
-    '/index.html',
-    '/assets/icon-192.png',
-    '/assets/icon-512.png'
+    '/index.html'
 ];
 
 // Instalar: precachear recursos estáticos
