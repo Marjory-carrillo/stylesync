@@ -15,14 +15,20 @@ interface GlobalState {
     fetchGlobalConfig: () => Promise<void>;
 }
 
+const DEFAULT_CONFIG: GlobalConfig = {
+    basic_plan_price: 349.00,
+    premium_plan_price: 649.00,
+    trial_days: 30,
+    maintenance_mode: false,
+    system_email: 'soporte@citalink.app'
+};
+
 export const useGlobalStore = create<GlobalState>((set) => ({
-    config: null,
-    loadingConfig: true,
+    config: DEFAULT_CONFIG,
+    loadingConfig: false,
 
     fetchGlobalConfig: async () => {
         try {
-            set({ loadingConfig: true });
-
             const fetchPromise = supabase
                 .from('global_configs')
                 .select('*')
@@ -36,19 +42,10 @@ export const useGlobalStore = create<GlobalState>((set) => ({
             if (res && !res.timeout && res.data) {
                 set({ config: res.data, loadingConfig: false });
             } else {
-                set({
-                    config: {
-                        basic_plan_price: 499.00,
-                        premium_plan_price: 999.00,
-                        trial_days: 21,
-                        maintenance_mode: false,
-                        system_email: 'soporte@citalink.app'
-                    },
-                    loadingConfig: false
-                });
+                set({ config: DEFAULT_CONFIG, loadingConfig: false });
             }
 
-            // 2. Suscripción Realtime para cambios inmediatos (Solo si no existe)
+            // Suscripción Realtime para cambios inmediatos
             if (!(supabase as any)._globalConfigChannel) {
                 (supabase as any)._globalConfigChannel = supabase
                     .channel('global-config-changes')
@@ -56,7 +53,6 @@ export const useGlobalStore = create<GlobalState>((set) => ({
                         'postgres_changes',
                         { event: 'UPDATE', schema: 'public', table: 'global_configs', filter: 'id=eq.main' },
                         (payload) => {
-                            console.log('Global Config Updated:', payload.new);
                             set({ config: payload.new as GlobalConfig });
                         }
                     )
@@ -64,7 +60,7 @@ export const useGlobalStore = create<GlobalState>((set) => ({
             }
 
         } catch (err) {
-            console.error('Unexpected error fetching global config:', err);
+            set({ config: DEFAULT_CONFIG, loadingConfig: false });
         } finally {
             set({ loadingConfig: false });
         }

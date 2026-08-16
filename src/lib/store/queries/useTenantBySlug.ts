@@ -10,20 +10,25 @@ export const useTenantBySlug = (slug?: string) => {
         queryKey: ['tenantIdBySlug', slug],
         queryFn: async () => {
             if (!slug) return null;
-            const { data, error } = await supabase
-                .from('tenants')
-                .select('id')
-                .eq('slug', slug)
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from('tenants')
+                    .select('id')
+                    .eq('slug', slug)
+                    .single();
 
-            if (error) {
-                console.error("Error loading tenant by slug:", error);
+                if (error) {
+                    console.error("Error loading tenant by slug:", error);
+                    return null;
+                }
+                return data?.id || null;
+            } catch (err) {
+                console.error("Catch loading tenant by slug:", err);
                 return null;
             }
-            return data?.id || null;
         },
         enabled: !!slug,
-        retry: 2,
+        retry: 1,
         staleTime: 1000 * 60 * 60, // Cache for 1 hour to avoid redundant checks
     });
 
