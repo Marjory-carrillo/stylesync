@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
-import { parse, format, addDays, differenceInMinutes } from 'date-fns';
+import { parse, format, addDays, differenceInMinutes, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { type Announcement, type Service, type Stylist, type CatalogItem } from '../../lib/types/store.types';
 import { appointmentSchema, normalizePhone } from '../../lib/schemas';
@@ -1558,32 +1558,63 @@ export default function Booking() {
                 {/* ══ STEP 10: Manage Existing ══ */}
                 {step === 10 && activeAppt && activeService && (
                     <div className="animate-fade-in">
-                        {/* Big warning header */}
-                        <div className="glass-panel p-6 rounded-2xl mb-6 border-l-4 border-l-yellow-500">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-yellow-500/20 rounded-full text-yellow-500 animate-pulse-soft">
-                                    <AlertOctagon size={32} />
+                        {/* Big warning / status header */}
+                        {(() => {
+                            const isCompleted = activeAppt.status === 'completada';
+                            let isPast = false;
+                            try {
+                                const apptDateTime = parse(`${activeAppt.date} ${activeAppt.time}`, 'yyyy-MM-dd HH:mm', new Date());
+                                isPast = isAfter(new Date(), apptDateTime);
+                            } catch (e) {
+                                isPast = false;
+                            }
+                            const isFinished = isCompleted || isPast;
+
+                            if (isFinished) {
+                                return (
+                                    <div className="glass-panel p-6 rounded-2xl mb-6 border-l-4 border-l-emerald-500 bg-emerald-500/5">
+                                        <div className="flex items-center gap-4 mb-3">
+                                            <div className="p-3 bg-emerald-500/20 rounded-full text-emerald-400">
+                                                <CheckCircle size={32} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white">Cita Concluida</h3>
+                                                <p className="text-sm text-emerald-400 font-medium">Esta cita ya fue finalizada con éxito</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-slate-300">
+                                            Hola <strong>{clientName}</strong>, tu cita ya terminó. ¡Muchas gracias por tu visita!
+                                        </p>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div className="glass-panel p-6 rounded-2xl mb-6 border-l-4 border-l-yellow-500">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-3 bg-yellow-500/20 rounded-full text-yellow-500 animate-pulse-soft">
+                                            <AlertOctagon size={32} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white">Cita Pendiente</h3>
+                                            <p className="text-sm text-yellow-500 font-medium">Tienes una reserva activa</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-muted">
+                                        Hola <strong>{clientName}</strong>, detectamos que ya tienes una cita programada con este número.
+                                    </p>
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white">Cita Pendiente</h3>
-                                    <p className="text-sm text-yellow-500 font-medium">Tienes una reserva activa</p>
-                                </div>
-                            </div>
-                            <p className="text-sm text-muted">
-                                Hola <strong>{clientName}</strong>, detectamos que ya tienes una cita programada con este número.
-                            </p>
-                        </div>
+                            );
+                        })()}
 
                         {/* Appointment card */}
                         {(() => {
                             const rawAddOns = (activeAppt.additionalServices || []) as string[];
-                            // Buscar cuáles de estos nombres corresponden a servicios adicionales reales del módulo de servicios
                             const realServiceAddons = rawAddOns.filter(name => {
                                 const svc = services.find(s => s.name === name);
                                 return svc ? (svc.isAddon ?? true) : false;
                             });
 
-                            // Si no matchean exactamente por id/nombre en services list, filtrar entradas que no sean de calculadora
                             const addOnsToShow = realServiceAddons.length > 0 
                                 ? realServiceAddons 
                                 : rawAddOns.filter(s => 
@@ -1646,83 +1677,117 @@ export default function Booking() {
                         })()}
 
                         {/* Action prompt */}
-                        <div className="space-y-3">
-                            {/* Confirm Assistance Button */}
-                            {activeAppt.confirmedByClient ? (
-                                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-center shadow-lg shadow-emerald-500/10 animate-fade-in">
-                                    <div className="flex items-center justify-center gap-2 font-bold text-base mb-1">
-                                        <CheckCircle size={20} className="text-emerald-400" />
-                                        <span>¡Asistencia Confirmada por Ti!</span>
-                                    </div>
-                                    <p className="text-xs text-emerald-300/80">
-                                        Tu negocio ya tiene notificada tu asistencia para esta cita. ¡Te esperamos!
-                                    </p>
-                                </div>
-                            ) : (
-                                <button
-                                    disabled={isConfirmingByClient}
-                                    onClick={() => confirmByClient(activeAppt.id)}
-                                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-extrabold text-lg shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:shadow-[0_0_35px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
-                                >
-                                    <CheckCircle size={24} className="animate-bounce" />
-                                    <span>{isConfirmingByClient ? 'Confirmando...' : 'Confirmar Mi Asistencia'}</span>
-                                </button>
-                            )}
-
-                            <button className="btn btn-primary w-full py-4 text-lg" onClick={() => handleStartUpdate(activeAppt.id, activeAppt.serviceId)}>
-                                <RefreshCw size={20} /> Reprogramar Cita
-                            </button>
-
-                            {(() => {
+                        {(() => {
+                            const isCompleted = activeAppt.status === 'completada';
+                            let isPast = false;
+                            try {
                                 const apptDateTime = parse(`${activeAppt.date} ${activeAppt.time}`, 'yyyy-MM-dd HH:mm', new Date());
-                                const now = new Date();
-                                const diffMins = differenceInMinutes(apptDateTime, now);
-                                const diffHours = diffMins / 60;
+                                isPast = isAfter(new Date(), apptDateTime);
+                            } catch (e) {
+                                isPast = false;
+                            }
+                            const isFinished = isCompleted || isPast;
 
-                                if (diffMins < 0) return null; // Already passed
-
-                                if (diffHours < 1) {
-                                    return (
-                                        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
-                                            <p className="font-bold mb-1">Cita muy próxima</p>
-                                            <p>Falta menos de 1 hora. Debes llamar directamente para cancelar.</p>
-                                            <a
-                                                href={`tel:${businessConfig?.phone?.replace(/\D/g, '') || ''}`}
-                                                className="btn btn-primary w-full mt-3 flex items-center justify-center gap-2"
-                                            >
-                                                <Phone size={18} /> Llamar ahora
-                                            </a>
-                                        </div>
-                                    );
-                                }
-
-                                if (diffHours <= 5) {
-                                    const message = encodeURIComponent(`Hola, me gustaría cancelar mi cita de las ${activeAppt.time} (${activeService.name}). Mi nombre es ${clientName}.`);
-                                    return (
-                                        <div className="flex flex-col gap-3">
-                                            <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-500 text-sm text-center">
-                                                <p className="font-bold mb-1">Política de Cancelación</p>
-                                                <p>Faltan menos de 5 horas. Por favor, avísale al dueño por WhatsApp.</p>
-                                            </div>
-                                            <a
-                                                href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '')}?text=${message}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="btn btn-secondary w-full py-4 text-accent border-accent/20 flex items-center justify-center gap-2"
-                                            >
-                                                <XCircle size={20} /> Hablar por WhatsApp
-                                            </a>
-                                        </div>
-                                    );
-                                }
-
+                            if (isFinished) {
                                 return (
-                                    <button className="btn btn-ghost w-full py-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20" onClick={() => setIsCancelConfirmOpen(true)}>
-                                        <XCircle size={20} /> Cancelar Cita
-                                    </button>
+                                    <div className="space-y-3">
+                                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-center shadow-lg shadow-emerald-500/10">
+                                            <div className="flex items-center justify-center gap-2 font-bold text-base mb-1">
+                                                <CheckCircle size={20} className="text-emerald-400" />
+                                                <span>¡Servicio Finalizado con Éxito!</span>
+                                            </div>
+                                            <p className="text-xs text-emerald-300/80">
+                                                Agradecemos tu preferencia. ¿Te gustaría agendar una nueva cita?
+                                            </p>
+                                        </div>
+
+                                        <button className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-accent to-pink-600 hover:from-accent-hover hover:to-pink-700 text-white font-extrabold text-lg shadow-lg shadow-accent/25 transition-all flex items-center justify-center gap-3 active:scale-[0.98]" onClick={resetBooking}>
+                                            <CalendarPlus size={22} /> Agendar Nueva Cita
+                                        </button>
+                                    </div>
                                 );
-                            })()}
-                        </div>
+                            }
+
+                            return (
+                                <div className="space-y-3">
+                                    {/* Confirm Assistance Button */}
+                                    {activeAppt.confirmedByClient ? (
+                                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-center shadow-lg shadow-emerald-500/10 animate-fade-in">
+                                            <div className="flex items-center justify-center gap-2 font-bold text-base mb-1">
+                                                <CheckCircle size={20} className="text-emerald-400" />
+                                                <span>¡Asistencia Confirmada por Ti!</span>
+                                            </div>
+                                            <p className="text-xs text-emerald-300/80">
+                                                Tu negocio ya tiene notificada tu asistencia para esta cita. ¡Te esperamos!
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            disabled={isConfirmingByClient}
+                                            onClick={() => confirmByClient(activeAppt.id)}
+                                            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-extrabold text-lg shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:shadow-[0_0_35px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                                        >
+                                            <CheckCircle size={24} className="animate-bounce" />
+                                            <span>{isConfirmingByClient ? 'Confirmando...' : 'Confirmar Mi Asistencia'}</span>
+                                        </button>
+                                    )}
+
+                                    <button className="btn btn-primary w-full py-4 text-lg" onClick={() => handleStartUpdate(activeAppt.id, activeAppt.serviceId)}>
+                                        <RefreshCw size={20} /> Reprogramar Cita
+                                    </button>
+
+                                    {(() => {
+                                        const apptDateTime = parse(`${activeAppt.date} ${activeAppt.time}`, 'yyyy-MM-dd HH:mm', new Date());
+                                        const now = new Date();
+                                        const diffMins = differenceInMinutes(apptDateTime, now);
+                                        const diffHours = diffMins / 60;
+
+                                        if (diffMins < 0) return null; // Already passed
+
+                                        if (diffHours < 1) {
+                                            return (
+                                                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
+                                                    <p className="font-bold mb-1">Cita muy próxima</p>
+                                                    <p>Falta menos de 1 hora. Debes llamar directamente para cancelar.</p>
+                                                    <a
+                                                        href={`tel:${businessConfig?.phone?.replace(/\D/g, '') || ''}`}
+                                                        className="btn btn-primary w-full mt-3 flex items-center justify-center gap-2"
+                                                    >
+                                                        <Phone size={18} /> Llamar ahora
+                                                    </a>
+                                                </div>
+                                            );
+                                        }
+
+                                        if (diffHours <= 5) {
+                                            const message = encodeURIComponent(`Hola, me gustaría cancelar mi cita de las ${activeAppt.time} (${activeService.name}). Mi nombre es ${clientName}.`);
+                                            return (
+                                                <div className="flex flex-col gap-3">
+                                                    <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-500 text-sm text-center">
+                                                        <p className="font-bold mb-1">Política de Cancelación</p>
+                                                        <p>Faltan menos de 5 horas. Por favor, avísale al dueño por WhatsApp.</p>
+                                                    </div>
+                                                    <a
+                                                        href={`https://wa.me/${businessConfig?.phone?.replace(/\D/g, '')}?text=${message}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="btn btn-secondary w-full py-4 text-accent border-accent/20 flex items-center justify-center gap-2"
+                                                    >
+                                                        <XCircle size={20} /> Hablar por WhatsApp
+                                                    </a>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <button className="btn btn-ghost w-full py-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20" onClick={() => setIsCancelConfirmOpen(true)}>
+                                                <XCircle size={20} /> Cancelar Cita
+                                            </button>
+                                        );
+                                    })()}
+                                </div>
+                            );
+                        })()}
                         <button className="btn btn-ghost w-full mt-4 text-sm" onClick={resetBooking}>← Volver al inicio</button>
                     </div>
                 )}
