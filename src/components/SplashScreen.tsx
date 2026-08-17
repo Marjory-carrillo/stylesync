@@ -1,6 +1,26 @@
-import { Infinity } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Infinity, RefreshCw } from 'lucide-react';
 
 const SplashScreen: React.FC = () => {
+    const [statusMessage, setStatusMessage] = useState<string>('Iniciando CitaLink...');
+    const [showSlowNotice, setShowSlowNotice] = useState<boolean>(false);
+
+    useEffect(() => {
+        const t1 = setTimeout(() => {
+            setStatusMessage('Cargando servicios y configuración...');
+        }, 1500);
+
+        const t2 = setTimeout(() => {
+            setStatusMessage('Estableciendo conexión con el negocio...');
+            setShowSlowNotice(true);
+        }, 4000);
+
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, []);
+
     return (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#020817]">
             {/* Futuristic Background Glows */}
@@ -28,6 +48,21 @@ const SplashScreen: React.FC = () => {
                         <div className="h-1.5 w-1.5 rounded-full bg-indigo-700 animate-bounce" style={{ animationDelay: '0.4s' }} />
                     </div>
                 </div>
+
+                {/* Diagnostic Loading Status Text */}
+                <p className="text-xs font-semibold text-slate-400 tracking-wide transition-all mt-2">
+                    {statusMessage}
+                </p>
+
+                {showSlowNotice && (
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-2 border border-white/10 transition-all animate-fade-in"
+                    >
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Recargar página</span>
+                    </button>
+                )}
             </div>
 
             {/* Tagline */}
