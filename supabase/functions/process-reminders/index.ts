@@ -186,22 +186,20 @@ serve(async (req: Request) => {
                 if (hoursGapAtBooking < 6) {
                     // Cita muy cercana al booking (<6h) → NO enviar recordatorio
                     console.log(`[process-reminders] SKIP cita ${appt.id}: mismo día, gap=${hoursGapAtBooking.toFixed(1)}h (<6h)`);
-                    // Marcar reminder_sent como true para no seguir evaluándola en próximos crons
                     await supabase.from('appointments').update({ reminder_sent: true }).eq('id', appt.id);
                     skipped++;
                     continue;
                 }
-                // Mismo día pero con ≥6h de gap → recordatorio 1h antes
                 reminderHoursBefore = 1;
                 ruleApplied = `mismo-día (gap=${hoursGapAtBooking.toFixed(1)}h) → 1h antes`;
-            } else if (daysAhead === 1) {
-                // ═══ MAÑANA ═══ (mismo comportamiento que 2+ días)
+            } else if (daysAhead <= 2) {
+                // ═══ 1 A 2 DÍAS DE ANTICIPACIÓN (ej. reserva lunes para martes o miércoles) ═══
                 reminderHoursBefore = 5;
-                ruleApplied = 'mañana → 5h antes';
+                ruleApplied = `${daysAhead} día(s) adelante → 5h antes`;
             } else {
-                // ═══ 2+ DÍAS (pasado mañana en adelante) ═══
-                reminderHoursBefore = 5;
-                ruleApplied = `${daysAhead} días adelante → 5h antes`;
+                // ═══ 3+ DÍAS DE ANTICIPACIÓN (ej. reserva lunes para jueves en adelante) ═══
+                reminderHoursBefore = 24;
+                ruleApplied = `${daysAhead} días adelante → 24h antes (1 día antes)`;
             }
 
             // ── ¿Es momento de enviar? ──
