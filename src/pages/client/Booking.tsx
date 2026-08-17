@@ -1241,7 +1241,7 @@ export default function Booking() {
                             {/* Glow ring */}
                             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-accent/40 to-orange-500/40 blur-xl scale-110 opacity-0 group-hover:opacity-100 transition-all duration-700" />
                             <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl bg-slate-950">
-                                <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                <img src={businessConfig.logoUrl} alt="Logo" decoding="async" className="w-full h-full object-cover" />
                             </div>
                         </div>
                     )}
