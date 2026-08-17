@@ -30,7 +30,6 @@ import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, Scissors, UserCheck, Smartphone } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
-import ConfirmModal from '../../components/ConfirmModal';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 export default function Booking() {
@@ -357,7 +356,8 @@ export default function Booking() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
-    // const [cancelError, setCancelError] = useState<string | null>(null);
+    const [selectedCancelReason, setSelectedCancelReason] = useState<string>('');
+    const [customCancelReasonText, setCustomCancelReasonText] = useState<string>('');
 
     // Capture if booking originates from Marketplace on initial component mount & clean browser address bar immediately
     const [isMarketplaceSession] = useState<boolean>(() => {
@@ -1011,7 +1011,7 @@ export default function Booking() {
     };
 
     // ── Manage existing ───
-    const handleClientCancel = async (appointmentId: string) => {
+    const handleClientCancel = async (appointmentId: string, reason?: string) => {
         try {
             const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
             const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
@@ -1020,7 +1020,7 @@ export default function Booking() {
                 ? activeService.name + (activeAddOnNames.length > 0 ? ' + ' + activeAddOnNames.join(' + ') : '')
                 : 'Servicio';
 
-            await cancelAppointment({ id: appointmentId, serviceName: activeCombinedServiceName });
+            await cancelAppointment({ id: appointmentId, serviceName: activeCombinedServiceName, reason });
             setStep(11);
         } catch (error) {
             console.error('Error al cancelar:', error);
@@ -3207,18 +3207,124 @@ export default function Booking() {
                 }
             </div >
 
-            <ConfirmModal
-                isOpen={isCancelConfirmOpen}
-                title="Cancelar Cita"
-                message="¿Estás seguro de que deseas cancelar tu cita? Esta acción liberará el espacio para otro cliente."
-                confirmLabel="Sí, Cancelar"
-                onConfirm={() => {
-                    setIsCancelConfirmOpen(false);
-                    if (activeAppt) handleClientCancel(activeAppt.id);
-                }}
-                onCancel={() => setIsCancelConfirmOpen(false)}
-                danger
-            />
+            {/* ══ MODAL INTELIGENTE DE CANCELACIÓN CON MOTIVO ══ */}
+            {isCancelConfirmOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setIsCancelConfirmOpen(false)} />
+                    <div className="relative bg-[#0f172a] border border-red-500/30 rounded-3xl w-full max-w-md p-6 shadow-2xl animate-fade-in flex flex-col text-left">
+                        
+                        <div className="flex items-start gap-3 mb-4">
+                            <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-400 shrink-0 border border-red-500/20">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white">¿Deseas cancelar tu cita?</h3>
+                                <p className="text-xs text-slate-400 mt-0.5">Selecciona el motivo por el cual cancelas para completar el proceso.</p>
+                            </div>
+                        </div>
+
+                        {/* Banner Disuasorio de Reagendamiento */}
+                        {activeAppt && (
+                            <div className="mb-4 p-3.5 rounded-2xl bg-accent/10 border border-accent/25 flex items-center justify-between gap-3 shadow-inner">
+                                <div className="text-xs text-slate-300">
+                                    <span className="font-bold text-white block mb-0.5">¿Prefieres cambiar de día u hora?</span>
+                                    Reagenda fácilmente sin perder tu lugar.
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setIsCancelConfirmOpen(false);
+                                        handleStartUpdate(activeAppt.id, activeAppt.serviceId);
+                                    }}
+                                    className="px-3.5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-black shrink-0 transition-all shadow-md shadow-accent/20 flex items-center gap-1.5"
+                                >
+                                    <RefreshCw size={13} /> Reagendar
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Selección de Motivos (Chips) */}
+                        <label className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span>Motivo de cancelación <span className="text-red-400">*</span></span>
+                        </label>
+                        
+                        <div className="grid grid-cols-1 gap-2 mb-4">
+                            {[
+                                { id: 'Emergencia personal / trabajo', label: '🚨 Emergencia personal / trabajo' },
+                                { id: 'Imprevisto de salud', label: '🤒 Imprevisto de salud' },
+                                { id: 'Contratiempo de traslado', label: '🚗 Contratiempo de traslado' },
+                                { id: 'Otro', label: '✏️ Otro motivo...' },
+                            ].map((item) => {
+                                const isSelected = selectedCancelReason === item.id;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => setSelectedCancelReason(item.id)}
+                                        className={`w-full p-3.5 rounded-2xl border text-sm font-semibold text-left transition-all flex items-center justify-between ${
+                                            isSelected 
+                                                ? 'bg-red-500/20 border-red-500 text-white shadow-lg shadow-red-500/10' 
+                                                : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/60'
+                                        }`}
+                                    >
+                                        <span>{item.label}</span>
+                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${isSelected ? 'border-red-500 bg-red-500 text-white' : 'border-slate-700'}`}>
+                                            {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Campo de texto libre cuando selecciona "Otro" */}
+                        {selectedCancelReason === 'Otro' && (
+                            <div className="mb-4 animate-fade-in">
+                                <label className="text-xs text-slate-400 mb-1 block font-medium">Escribe la razón (mínimo 4 caracteres):</label>
+                                <textarea
+                                    value={customCancelReasonText}
+                                    onChange={(e) => setCustomCancelReasonText(e.target.value)}
+                                    placeholder="Explica brevemente el motivo..."
+                                    rows={2}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-red-500 resize-none placeholder:text-slate-600"
+                                />
+                                {customCancelReasonText.trim().length > 0 && customCancelReasonText.trim().length < 4 && (
+                                    <p className="text-[11px] text-red-400 mt-1 font-medium">Faltan {4 - customCancelReasonText.trim().length} caracteres.</p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Botones de Acción */}
+                        {(() => {
+                            const isValid = Boolean(selectedCancelReason) && (selectedCancelReason !== 'Otro' || customCancelReasonText.trim().length >= 4);
+                            return (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <button
+                                        onClick={() => setIsCancelConfirmOpen(false)}
+                                        className="flex-1 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-all"
+                                    >
+                                        Conservar Cita
+                                    </button>
+                                    <button
+                                        disabled={!isValid}
+                                        onClick={() => {
+                                            if (!isValid || !activeAppt) return;
+                                            const finalReason = selectedCancelReason === 'Otro' ? `Otro: ${customCancelReasonText.trim()}` : selectedCancelReason;
+                                            setIsCancelConfirmOpen(false);
+                                            handleClientCancel(activeAppt.id, finalReason);
+                                        }}
+                                        className={`flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all ${
+                                            isValid
+                                                ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30'
+                                                : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                                        }`}
+                                    >
+                                        Sí, Cancelar
+                                    </button>
+                                </div>
+                            );
+                        })()}
+                    </div>
+                </div>
+            )}
 
             {/* ══ URGENT SLOT MODAL ══ */}
             {urgentSlotTime && (

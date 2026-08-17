@@ -62,6 +62,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 confirmationSent: a.confirmation_sent,
                 confirmedByClient: a.confirmed_by_client || false,
                 confirmedByClientAt: a.confirmed_by_client_at,
+                cancellationReason: a.cancellation_reason,
                 additionalServices: a.additional_services,
                 bookingSource: a.booking_source || 'direct',
                 marketplaceCommissionAmount: a.marketplace_commission_amount || 0,
@@ -156,7 +157,11 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
 
     // CANCEL Appointment
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, serviceName }: { id: string; serviceName: string }) => {
+        mutationFn: async (payload: { id: string; serviceName?: string; reason?: string } | string) => {
+            const id = typeof payload === 'string' ? payload : payload.id;
+            const serviceName = typeof payload === 'string' ? '' : (payload.serviceName || '');
+            const reason = typeof payload === 'string' ? undefined : payload.reason;
+
             if (!tenantId) throw new Error('No tenant info');
             const apt = query.data?.find(a => a.id === id);
             const { data, error } = await supabase.rpc('cancel_appointment_by_client', {
@@ -165,15 +170,23 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             });
             if (error) throw error;
             if (!data?.success) throw new Error(data?.error || 'Error al cancelar');
-            return { id, apt, serviceName };
+
+            if (reason) {
+                await supabase
+                    .from('appointments')
+                    .update({ cancellation_reason: reason })
+                    .eq('id', id);
+            }
+
+            return { id, apt, serviceName, reason };
         },
-        onSuccess: ({ id, apt, serviceName }) => {
+        onSuccess: ({ id, apt, serviceName, reason }) => {
             if (getDevicePendingId() === id) clearDevicePending();
             queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Cita cancelada', 'success');
             if (tenantId && apt) {
                 notifyAdmin(tenantId, 'cancel', {
-                    client_name: apt.clientName,
+                    client_name: `${apt.clientName}${reason ? ` (Motivo: ${reason})` : ''}`,
                     client_phone: apt.clientPhone,
                     service_name: serviceName,
                     date: apt.date,

@@ -56,6 +56,7 @@ export interface Appointment {
     confirmationSent?: boolean;
     confirmedByClient?: boolean;
     confirmedByClientAt?: string;
+    cancellationReason?: string;
     additionalServices?: string[]; // names of add-on services
     finalPriceCharged?: number; // actual price charged upon completion
     addonPricesCharged?: Record<string, number>;

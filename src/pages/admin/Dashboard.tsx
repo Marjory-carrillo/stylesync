@@ -2105,6 +2105,11 @@ export default function Dashboard() {
                                                                 ⌛ Pendiente de Confirmar
                                                             </span>
                                                         )}
+                                                        {appt.status === 'cancelada' && appt.cancellationReason && (
+                                                            <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-[10px] font-bold text-red-400 border border-red-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                Motivo: {appt.cancellationReason}
+                                                            </span>
+                                                        )}
                                                         {appt.bookingSource === 'marketplace' && (
                                                             <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
                                                                 🛒 Buscador CitaLink
