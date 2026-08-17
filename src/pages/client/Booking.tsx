@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
-import { parse, format, addDays, differenceInMinutes, isAfter } from 'date-fns';
+import { parse, format, addDays, addMinutes, differenceInMinutes, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { type Announcement, type Service, type Stylist, type CatalogItem } from '../../lib/types/store.types';
 import { appointmentSchema, normalizePhone } from '../../lib/schemas';
@@ -1563,8 +1563,11 @@ export default function Booking() {
                             const isCompleted = activeAppt.status === 'completada';
                             let isPast = false;
                             try {
-                                const apptDateTime = parse(`${activeAppt.date} ${activeAppt.time}`, 'yyyy-MM-dd HH:mm', new Date());
-                                isPast = isAfter(new Date(), apptDateTime);
+                                const cleanTime = (activeAppt.time || '').slice(0, 5);
+                                const apptDateTime = parse(`${activeAppt.date} ${cleanTime}`, 'yyyy-MM-dd HH:mm', new Date());
+                                const durationMins = activeService?.duration || 30;
+                                const endDateTime = addMinutes(apptDateTime, durationMins);
+                                isPast = isAfter(new Date(), endDateTime);
                             } catch (e) {
                                 isPast = false;
                             }
@@ -1681,8 +1684,11 @@ export default function Booking() {
                             const isCompleted = activeAppt.status === 'completada';
                             let isPast = false;
                             try {
-                                const apptDateTime = parse(`${activeAppt.date} ${activeAppt.time}`, 'yyyy-MM-dd HH:mm', new Date());
-                                isPast = isAfter(new Date(), apptDateTime);
+                                const cleanTime = (activeAppt.time || '').slice(0, 5);
+                                const apptDateTime = parse(`${activeAppt.date} ${cleanTime}`, 'yyyy-MM-dd HH:mm', new Date());
+                                const durationMins = activeService?.duration || 30;
+                                const endDateTime = addMinutes(apptDateTime, durationMins);
+                                isPast = isAfter(new Date(), endDateTime);
                             } catch (e) {
                                 isPast = false;
                             }
