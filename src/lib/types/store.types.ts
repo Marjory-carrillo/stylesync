@@ -54,6 +54,8 @@ export interface Appointment {
     bookedAt: string; // ISO timestamp of when this was booked
     reminderSent?: boolean;
     confirmationSent?: boolean;
+    confirmedByClient?: boolean;
+    confirmedByClientAt?: string;
     additionalServices?: string[]; // names of add-on services
     finalPriceCharged?: number; // actual price charged upon completion
     addonPricesCharged?: Record<string, number>;

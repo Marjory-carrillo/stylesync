@@ -42,7 +42,7 @@ export default function Booking() {
     const { services } = useServices();
     const { stylists } = useStylists();
     const { data: businessConfig, isLoading: configLoading } = useTenantData(tenantId);
-    const { appointments, addAppointment, cancelAppointment, updateAppointmentTime } = useAppointments({
+    const { appointments, addAppointment, cancelAppointment, updateAppointmentTime, confirmByClient, isConfirmingByClient } = useAppointments({
         tenantId: tenantId ?? undefined,
         adminPhone:   businessConfig?.phone ?? undefined,
         businessName: businessConfig?.name  ?? undefined,
@@ -1647,6 +1647,28 @@ export default function Booking() {
 
                         {/* Action prompt */}
                         <div className="space-y-3">
+                            {/* Confirm Assistance Button */}
+                            {activeAppt.confirmedByClient ? (
+                                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-center shadow-lg shadow-emerald-500/10 animate-fade-in">
+                                    <div className="flex items-center justify-center gap-2 font-bold text-base mb-1">
+                                        <CheckCircle size={20} className="text-emerald-400" />
+                                        <span>¡Asistencia Confirmada por Ti!</span>
+                                    </div>
+                                    <p className="text-xs text-emerald-300/80">
+                                        Tu negocio ya tiene notificada tu asistencia para esta cita. ¡Te esperamos!
+                                    </p>
+                                </div>
+                            ) : (
+                                <button
+                                    disabled={isConfirmingByClient}
+                                    onClick={() => confirmByClient(activeAppt.id)}
+                                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-extrabold text-lg shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:shadow-[0_0_35px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                                >
+                                    <CheckCircle size={24} className="animate-bounce" />
+                                    <span>{isConfirmingByClient ? 'Confirmando...' : 'Confirmar Mi Asistencia'}</span>
+                                </button>
+                            )}
+
                             <button className="btn btn-primary w-full py-4 text-lg" onClick={() => handleStartUpdate(activeAppt.id, activeAppt.serviceId)}>
                                 <RefreshCw size={20} /> Reprogramar Cita
                             </button>

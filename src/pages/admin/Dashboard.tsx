@@ -2096,6 +2096,15 @@ export default function Dashboard() {
                                                 <div>
                                                     <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                                                         <span className="font-black text-white text-lg tracking-tighter uppercase">{appt.clientName}</span>
+                                                        {appt.confirmedByClient ? (
+                                                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-[10px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                ✓ Confirmada
+                                                            </span>
+                                                        ) : appt.status !== 'cancelada' && appt.status !== 'completada' && (
+                                                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] font-black text-amber-400 border border-amber-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                ⌛ Pendiente de Confirmar
+                                                            </span>
+                                                        )}
                                                         {appt.bookingSource === 'marketplace' && (
                                                             <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
                                                                 🛒 Buscador CitaLink

@@ -213,7 +213,7 @@ export default function Appointments() {
     const generateWhatsAppUrl = useCallback((apt: any) => {
         const svc = services.find(s => s.id === apt.serviceId);
         const biz = tenantConfig as any;
-        const msg = `Hola *${apt.clientName}*, tu cita en *${biz?.name ?? 'el negocio'}* ha sido confirmada para el ${apt.date} a las ${apt.time}. Servicio: ${svc?.name ?? 'N/A'}. Direccion: ${biz?.address ?? ''}. ${biz?.googleMapsUrl ?? ''}`;
+        const msg = `✨ ¡Hola, ${apt.clientName}! 👋\n${biz?.name ?? 'Nuestro negocio'} te recuerda que tienes una cita con nosotros.\n📅 Fecha: ${apt.date} a las ${apt.time}\n📋 Servicio: ${svc?.name ?? 'Servicio'}\n📲 Por favor confirma tu asistencia o gestiona tu cita aquí:\n🔗 https://www.citalink.app/reagendar/${apt.id}\n📌 Recuerda llegar 5 minutos antes de tu cita. ¡Nos vemos pronto! ✨`;
         return `https://wa.me/${(apt.clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
     }, [services, tenantConfig]);
 
@@ -767,13 +767,22 @@ export default function Appointments() {
                                                                         </div>
                                                                     );
                                                                 })()}
-                                                                <div className="flex items-center gap-2 mb-1">
+                                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                                     <button 
                                                                         onClick={() => setHistoryModal({ open: true, phone: apt.clientPhone })}
                                                                         className={`text-lg font-bold text-left hover:underline decoration-white/30 underline-offset-4 ${isCancelled ? 'text-muted line-through' : 'text-white'}`}
                                                                     >
                                                                         {apt.clientName}
                                                                     </button>
+                                                                    {apt.confirmedByClient ? (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-[10px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                            ✓ Confirmada
+                                                                        </span>
+                                                                    ) : !isCancelled && !isCompleted && (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] font-black text-amber-400 border border-amber-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                            ⌛ Pendiente de Confirmar
+                                                                        </span>
+                                                                    )}
                                                                     {blocked && <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[10px] font-bold text-red-500 border border-red-500/20">BLOQUEADO</span>}
                                                                     {apt.bookingSource === 'marketplace' && (
                                                                         <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">

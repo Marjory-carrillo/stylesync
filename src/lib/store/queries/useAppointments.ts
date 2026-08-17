@@ -60,6 +60,8 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 bookedAt: a.booked_at,
                 reminderSent: a.reminder_sent,
                 confirmationSent: a.confirmation_sent,
+                confirmedByClient: a.confirmed_by_client || false,
+                confirmedByClientAt: a.confirmed_by_client_at,
                 additionalServices: a.additional_services,
                 bookingSource: a.booking_source || 'direct',
                 marketplaceCommissionAmount: a.marketplace_commission_amount || 0,
@@ -275,6 +277,38 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
     });
 
+    // CONFIRM BY CLIENT
+    const confirmByClientMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase
+                .from('appointments')
+                .update({
+                    confirmed_by_client: true,
+                    confirmed_by_client_at: new Date().toISOString()
+                })
+                .eq('id', id);
+            if (error) throw error;
+            return id;
+        },
+        onSuccess: (id) => {
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            showToast('¡Asistencia confirmada con éxito! 🎉', 'success');
+            if (tenantId) {
+                const apt = query.data?.find(a => a.id === id);
+                if (apt) {
+                    notifyAdmin(tenantId, 'new', {
+                        client_name: `${apt.clientName} (CONFIRMÓ ASISTENCIA ✅)`,
+                        client_phone: apt.clientPhone,
+                        date: apt.date,
+                        time: apt.time,
+                        stylist_id: apt.stylistId,
+                    }, adminPhone, businessName);
+                }
+            }
+        },
+        onError: (err: any) => showToast(`Error al confirmar asistencia: ${err.message}`, 'error'),
+    });
+
     return {
         ...query,
         appointments: query.data || [],
@@ -284,9 +318,11 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         updateAppointmentTime: updateTimeMutation.mutateAsync,
         markNoShow: markNoShowMutation.mutateAsync,
         markReminderSent: markReminderSentMutation.mutateAsync,
+        confirmByClient: confirmByClientMutation.mutateAsync,
         isAdding: addMutation.isPending,
         isCancelling: cancelMutation.isPending,
         isCompleting: completeMutation.isPending,
         isMarkingNoShow: markNoShowMutation.isPending,
+        isConfirmingByClient: confirmByClientMutation.isPending,
     };
 };
