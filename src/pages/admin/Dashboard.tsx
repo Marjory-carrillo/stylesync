@@ -2096,21 +2096,7 @@ export default function Dashboard() {
                                                 <div>
                                                     <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                                                         <span className="font-black text-white text-lg tracking-tighter uppercase">{appt.clientName}</span>
-                                                        {appt.confirmedByClient ? (
-                                                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-[10px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                ✓ Confirmada
-                                                            </span>
-                                                        ) : appt.status !== 'cancelada' && appt.status !== 'completada' && (
-                                                            appt.reminderSent ? (
-                                                                <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] font-black text-amber-400 border border-amber-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                    ⌛ Pendiente de Confirmar
-                                                                </span>
-                                                            ) : (
-                                                                <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-[10px] font-black text-indigo-400 border border-indigo-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                    📅 Agendada
-                                                                </span>
-                                                            )
-                                                        )}
+
                                                         {appt.status === 'cancelada' && appt.cancellationReason && (
                                                             <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-[10px] font-bold text-red-400 border border-red-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
                                                                 Motivo: {appt.cancellationReason}
@@ -2297,13 +2283,21 @@ export default function Dashboard() {
                                                         <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
                                                         </span>
+                                                        <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-accent text-white border-white/10">
+                                                            Atendiendo
+                                                        </div>
                                                     </>
+                                                ) : appt.confirmedByClient ? (
+                                                    <div className="px-4 py-2 rounded-xl text-[10px] font-black border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 uppercase tracking-widest shadow-sm flex items-center gap-1.5">
+                                                        ✓ Confirmada
+                                                    </div>
+                                                ) : appt.reminderSent ? (
+                                                    <div className="px-4 py-2 rounded-xl text-[10px] font-black border border-amber-500/30 bg-amber-500/20 text-amber-400 uppercase tracking-widest shadow-sm flex items-center gap-1.5">
+                                                        ⌛ Pendiente
+                                                    </div>
                                                 ) : (
-                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 py-1.5">Agenda</span>
-                                                )}
-                                                {isCurrentlyHappening && (
-                                                    <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-accent text-white border-white/10">
-                                                        Atendiendo
+                                                    <div className="px-4 py-2 rounded-xl text-[10px] font-black border border-indigo-500/30 bg-indigo-500/20 text-indigo-400 uppercase tracking-widest shadow-sm flex items-center gap-1.5">
+                                                        📅 Agendada
                                                     </div>
                                                 )}
                                             </div>
