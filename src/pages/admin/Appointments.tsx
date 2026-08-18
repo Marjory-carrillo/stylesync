@@ -779,9 +779,15 @@ export default function Appointments() {
                                                                             ✓ Confirmada
                                                                         </span>
                                                                     ) : !isCancelled && !isCompleted && (
-                                                                        <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] font-black text-amber-400 border border-amber-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                            ⌛ Pendiente de Confirmar
-                                                                        </span>
+                                                                        apt.reminderSent ? (
+                                                                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] font-black text-amber-400 border border-amber-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                                ⌛ Pendiente de Confirmar
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-[10px] font-black text-indigo-400 border border-indigo-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                                📅 Agendada
+                                                                            </span>
+                                                                        )
                                                                     )}
                                                                     {isCancelled && apt.cancellationReason && (
                                                                         <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-[10px] font-bold text-red-400 border border-red-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
