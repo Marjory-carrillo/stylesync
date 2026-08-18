@@ -7,8 +7,8 @@ const TWILIO_AUTH_TOKEN  = Deno.env.get('TWILIO_AUTH_TOKEN')!;
 const TWILIO_WA_FROM     = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708';
 
 // Plantilla aprobada por Meta (Content SID de Twilio)
-// citalink_cliente_recordatorio_v4: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=link
-const TEMPLATE_RECORDATORIO = 'HX26bdd0b62c7fd74121dd641f3d121a62';
+// citalink_cliente_recordatorio_v5: {{1}}=cliente {{2}}=negocio {{3}}=fecha/hora {{4}}=servicio {{5}}=link
+const TEMPLATE_RECORDATORIO = 'HX35ed4a23580c8a4b1050a95802a335c0';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
