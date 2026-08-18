@@ -34,7 +34,7 @@ import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 export default function Booking() {
     const { slug } = useParams();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const urlPhone = searchParams.get('phone');
     const urlApptId = searchParams.get('appt');
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
@@ -298,7 +298,7 @@ export default function Booking() {
         }
     }, [nailQuoterConfig, nailSize]);
 
-    // Add-ons computed values: duration adds up, price adds up (taking into account selectedStylist custom prices)
+    // Add-ons & Nail Extras computed values: duration adds up, price adds up
     const totalDuration = useMemo(() => {
         if (!selectedService) return 0;
         const customServicePrices = selectedStylist?.customServicePrices;
@@ -309,8 +309,31 @@ export default function Booking() {
             const customAddonDuration = customServicePrices?.[id]?.duration ?? (svc?.duration ?? 0);
             return sum + customAddonDuration;
         }, 0);
-        return baseDuration + extras;
-    }, [selectedService, selectedStylist, selectedAddOns, services]);
+
+        let nailExtrasDuration = 0;
+        const customQuoterConfig = selectedStylist?.customQuoterConfig;
+
+        // 1. Extras Category (Retiros / Adicionales)
+        if (extrasCategory && extrasCategory.items && nailExtras) {
+            Object.entries(nailExtras).forEach(([extraId, isSelected]) => {
+                if (isSelected) {
+                    const item = extrasCategory.items.find(i => i.id === extraId);
+                    const itemDur = customQuoterConfig?.[`${extraId}_dur`] ?? item?.duration ?? 0;
+                    nailExtrasDuration += itemDur;
+                }
+            });
+        }
+        // 2. Niveles de Diseño
+        if (simplifiedDesignsCategory && simplifiedDesignsCategory.items && designLevel) {
+            const selectedDesignItem = simplifiedDesignsCategory.items.find(i => i.id === designLevel);
+            if (selectedDesignItem) {
+                const designDur = customQuoterConfig?.[`${selectedDesignItem.id}_dur`] ?? selectedDesignItem.duration ?? 0;
+                nailExtrasDuration += designDur;
+            }
+        }
+
+        return baseDuration + extras + nailExtrasDuration;
+    }, [selectedService, selectedStylist, selectedAddOns, services, extrasCategory, nailExtras]);
 
     const nailTotalPrice = useMemo(() => {
         if (!selectedService) return 0;
@@ -666,8 +689,17 @@ export default function Booking() {
                 .filter(a => (!updatingAppointmentId || a.id !== updatingAppointmentId) && a.date === selectedDate && a.status !== 'cancelada' && String(a.stylistId) === String(stylist.id))
                 .map(a => {
                     const svc = services.find(s => s.id === a.serviceId);
+                    let apptDuration = svc?.duration ?? 30;
+                    if (a.additionalServices && Array.isArray(a.additionalServices)) {
+                        a.additionalServices.forEach(name => {
+                            const addSvc = services.find(s => s.name === name);
+                            if (addSvc && addSvc.duration) {
+                                apptDuration += addSvc.duration;
+                            }
+                        });
+                    }
                     const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
-                    const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
+                    const end = new Date(start.getTime() + apptDuration * 60000);
                     return { id: a.id, stylistId: String(a.stylistId), start, end };
                 });
 
@@ -1197,6 +1229,14 @@ export default function Booking() {
 
 
     const resetBooking = () => {
+        try {
+            setSearchParams({}, { replace: true });
+            if (typeof window !== 'undefined' && window.history) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        } catch (e) {
+            console.warn('[resetBooking] Error clearing URL params:', e);
+        }
         setStep(1);
         setClientName(''); setClientPhone(''); setClientError(null);
         setSelectedService(null); setSelectedStylist(null); setSelectedDate(new Date().toISOString().split('T')[0]);

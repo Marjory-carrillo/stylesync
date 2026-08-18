@@ -197,6 +197,7 @@ export interface QuotingItem {
     id: string;
     name: string;
     price: number;
+    duration?: number; // optional extra duration in minutes (e.g. 30 min)
     unit?: string;
     pricingType?: 'set' | 'per_nail';
     desc?: string;

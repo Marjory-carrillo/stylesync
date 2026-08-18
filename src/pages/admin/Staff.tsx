@@ -849,30 +849,57 @@ export default function Staff() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {activeNailConfig.find((c: QuotingCategory) => c.id === 'extras')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
+                                                const customDur = formCustomQuoterConfig[`${item.id}_dur`];
                                                 return (
-                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
-                                                        <div className="text-left min-w-0 flex-1">
-                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
-                                                            <p className="text-[10px] text-slate-400 font-medium">Base: ${item.price} MXN</p>
+                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2.5">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <p className="text-xs font-bold text-white leading-snug truncate" title={item.name}>{item.name}</p>
+                                                            <span className="text-[10px] text-slate-400 font-medium shrink-0 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                                                Base: ${item.price} • {item.duration || 0} min
+                                                            </span>
                                                         </div>
-                                                        <div className="w-24 shrink-0">
-                                                            <div className="relative">
-                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
-                                                                <input
-                                                                    type="number"
-                                                                    placeholder={`${item.price}`}
-                                                                    value={customVal !== undefined ? customVal : ''}
-                                                                    onChange={e => {
-                                                                        const val = e.target.value === '' ? undefined : Number(e.target.value);
-                                                                        setFormCustomQuoterConfig(prev => {
-                                                                            const copy = { ...prev };
-                                                                            if (val === undefined) delete copy[item.id];
-                                                                            else copy[item.id] = val;
-                                                                            return copy;
-                                                                        });
-                                                                    }}
-                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
-                                                                />
+                                                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
+                                                            <div>
+                                                                <label className="block text-[9px] uppercase font-bold text-purple-300/70 mb-1">Precio ($)</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder={`${item.price}`}
+                                                                        value={customVal !== undefined ? customVal : ''}
+                                                                        onChange={e => {
+                                                                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                            setFormCustomQuoterConfig(prev => {
+                                                                                const copy = { ...prev };
+                                                                                if (val === undefined) delete copy[item.id];
+                                                                                else copy[item.id] = val;
+                                                                                return copy;
+                                                                            });
+                                                                        }}
+                                                                        className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] uppercase font-bold text-purple-300/70 mb-1">Tiempo (min)</label>
+                                                                <div className="relative">
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder={`${item.duration || 0}`}
+                                                                        value={customDur !== undefined ? customDur : ''}
+                                                                        onChange={e => {
+                                                                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                                            setFormCustomQuoterConfig(prev => {
+                                                                                const copy = { ...prev };
+                                                                                if (val === undefined) delete copy[`${item.id}_dur`];
+                                                                                else copy[`${item.id}_dur`] = val;
+                                                                                return copy;
+                                                                            });
+                                                                        }}
+                                                                        className="w-full bg-slate-900 border border-white/10 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 text-right"
+                                                                    />
+                                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">min</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>

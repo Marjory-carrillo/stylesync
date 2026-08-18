@@ -49,9 +49,9 @@ export const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
       name: "Adicionales / Extras",
       type: "checkbox",
       items: [
-        { id: "e1", name: "Retiro de sistema anterior", price: 50 },
-        { id: "e2", name: "Reparación de uña", price: 40 },
-        { id: "e3", name: "Retiro de otro salón", price: 100 }
+        { id: "e1", name: "Retiro de sistema anterior", price: 50, duration: 30 },
+        { id: "e2", name: "Reparación de uña", price: 40, duration: 15 },
+        { id: "e3", name: "Retiro de otro salón", price: 100, duration: 30 }
       ]
     },
     {

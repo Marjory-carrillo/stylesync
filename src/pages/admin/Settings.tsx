@@ -1748,8 +1748,8 @@ export default function Settings() {
                                                     {/* Controls row - Right side or bottom row */}
                                                     <div className="flex items-center gap-2.5 shrink-0 justify-between sm:justify-start w-full sm:w-auto">
                                                         {/* Price Input */}
-                                                        <div className="relative w-28 flex-1 sm:flex-initial">
-                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-black">$</span>
+                                                        <div className="relative w-24 flex-1 sm:flex-initial">
+                                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-black">$</span>
                                                             <input
                                                                 type="number"
                                                                 min="0"
@@ -1769,9 +1769,37 @@ export default function Settings() {
                                                                     setLocalQuoterConfig(updatedConfig);
                                                                 }}
                                                                 placeholder="0"
-                                                                className="w-full text-right bg-slate-900/60 border border-white/10 rounded-xl pl-6 pr-3.5 py-2 text-xs text-white focus:border-accent transition-colors font-bold"
+                                                                className="w-full text-right bg-slate-900/60 border border-white/10 rounded-xl pl-5 pr-2.5 py-2 text-xs text-white focus:border-accent transition-colors font-bold"
                                                             />
                                                         </div>
+
+                                                        {/* Duration Input (Solo para Extras / Retiros y Niveles de Diseño) */}
+                                                        {(category.id === 'extras' || category.id === 'simplified_designs' || category.id === 'styles') && (
+                                                            <div className="relative w-24 flex-1 sm:flex-initial">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="5"
+                                                                    value={item.duration ?? 0}
+                                                                    onFocus={e => e.target.select()}
+                                                                    onChange={e => {
+                                                                        const rawVal = e.target.value;
+                                                                        const parsedVal = rawVal === '' ? 0 : parseInt(rawVal, 10);
+                                                                        const updatedConfig = [...localQuoterConfig];
+                                                                        const updatedItems = [...category.items];
+                                                                        updatedItems[itemIdx] = {
+                                                                            ...item,
+                                                                            duration: isNaN(parsedVal) ? 0 : Math.max(0, parsedVal)
+                                                                        };
+                                                                        updatedConfig[catIdx] = { ...category, items: updatedItems };
+                                                                        setLocalQuoterConfig(updatedConfig);
+                                                                    }}
+                                                                    placeholder="0"
+                                                                    className="w-full text-right bg-slate-900/60 border border-white/10 rounded-xl pl-2.5 pr-7 py-2 text-xs text-white focus:border-accent transition-colors font-bold"
+                                                                />
+                                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-bold">min</span>
+                                                            </div>
+                                                        )}
                                                         
                                                         {/* Select Unit (only for styles) */}
                                                         {category.id === 'styles' && (
