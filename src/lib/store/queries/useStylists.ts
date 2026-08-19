@@ -34,7 +34,10 @@ export const useStylists = () => {
                     commissionRate: st.commission_rate,
                     serviceIds: st.service_ids,
                     customServicePrices: cleanedCsp,
-                    customQuoterConfig
+                    customQuoterConfig,
+                    depositBankName: st.deposit_bank_name || '',
+                    depositClabe: st.deposit_clabe || '',
+                    depositHolderName: st.deposit_holder_name || '',
                 };
             }) as Stylist[];
         },
@@ -55,12 +58,18 @@ export const useStylists = () => {
                 tenant_id: tenantId,
                 commission_rate: stylist.commissionRate,
                 service_ids: stylist.serviceIds,
-                custom_service_prices: combinedCustomPrices
+                custom_service_prices: combinedCustomPrices,
+                deposit_bank_name: stylist.depositBankName || null,
+                deposit_clabe: stylist.depositClabe || null,
+                deposit_holder_name: stylist.depositHolderName || null,
             };
             delete (payload as any).commissionRate;
             delete (payload as any).serviceIds;
             delete (payload as any).customServicePrices;
             delete (payload as any).customQuoterConfig;
+            delete (payload as any).depositBankName;
+            delete (payload as any).depositClabe;
+            delete (payload as any).depositHolderName;
 
             const { data, error } = await supabase
                 .from('stylists')
@@ -90,6 +99,18 @@ export const useStylists = () => {
             if (payload.serviceIds !== undefined) {
                 (payload as any).service_ids = payload.serviceIds;
                 delete payload.serviceIds;
+            }
+            if (payload.depositBankName !== undefined) {
+                (payload as any).deposit_bank_name = payload.depositBankName;
+                delete payload.depositBankName;
+            }
+            if (payload.depositClabe !== undefined) {
+                (payload as any).deposit_clabe = payload.depositClabe;
+                delete payload.depositClabe;
+            }
+            if (payload.depositHolderName !== undefined) {
+                (payload as any).deposit_holder_name = payload.depositHolderName;
+                delete payload.depositHolderName;
             }
             if (payload.customServicePrices !== undefined || payload.customQuoterConfig !== undefined) {
                 const combinedCustomPrices = {

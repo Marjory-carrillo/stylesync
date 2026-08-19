@@ -237,6 +237,7 @@ export default function Appointments() {
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; appt: any | null }>({ open: false, appt: null });
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
+    const [receiptModalUrl, setReceiptModalUrl] = useState<string | null>(null);
     const [isZoomed, setIsZoomed] = useState(false);
     const [expandedServiceApptId, setExpandedServiceApptId] = useState<string | null>(null);
 
@@ -800,6 +801,33 @@ export default function Appointments() {
                                                                             🛒 Buscador CitaLink
                                                                         </span>
                                                                     )}
+                                                                    {/* Deposit / Financial Status Badges */}
+                                                                    {(() => {
+                                                                        if (!apt.depositAmount || apt.depositAmount <= 0) return null;
+                                                                        const isFullPayment = service && apt.depositAmount >= service.price;
+                                                                        return (
+                                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                {isFullPayment ? (
+                                                                                    <span className="px-2 py-0.5 rounded-md bg-emerald-500/25 text-[10px] font-black text-emerald-300 border border-emerald-500/40 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                                        💚 100% Pagado (${apt.depositAmount} MXN)
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="px-2 py-0.5 rounded-md bg-teal-500/25 text-[10px] font-black text-teal-300 border border-teal-500/40 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                                        💳 Anticipo: ${apt.depositAmount} MXN
+                                                                                    </span>
+                                                                                )}
+                                                                                {apt.depositReceiptUrl && (
+                                                                                    <button
+                                                                                        onClick={() => setReceiptModalUrl(apt.depositReceiptUrl)}
+                                                                                        className="px-2 py-0.5 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 text-[10px] font-bold text-cyan-300 border border-cyan-500/30 flex items-center gap-1 transition-all cursor-pointer"
+                                                                                        title="Ver captura de transferencia"
+                                                                                    >
+                                                                                        📷 Comprobante
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                                 <a href={`tel:${apt.clientPhone}`} className="text-xs font-medium text-muted hover:text-accent transition-colors flex items-center gap-2 w-fit">
                                                                     <div className="p-1 rounded-md bg-white/5"><Phone size={10} /></div> {formatPhoneDisplay(apt.clientPhone)}
@@ -1381,6 +1409,40 @@ export default function Appointments() {
                 onClose={() => setRescheduleModal({ open: false, appt: null })}
                 appointment={rescheduleModal.appt}
             />
+
+            {/* Receipt Modal */}
+            {receiptModalUrl && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-slate-900 border border-white/15 rounded-3xl p-5 max-w-lg w-full space-y-4 shadow-2xl relative">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                📷 Comprobante de Pago Adjuntado
+                            </h3>
+                            <button
+                                onClick={() => setReceiptModalUrl(null)}
+                                className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition-colors cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-black/50 p-2 flex items-center justify-center">
+                            <img
+                                src={receiptModalUrl}
+                                alt="Comprobante de Pago"
+                                className="max-w-full max-h-[60vh] object-contain rounded-xl"
+                            />
+                        </div>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => setReceiptModalUrl(null)}
+                                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

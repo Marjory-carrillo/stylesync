@@ -67,6 +67,10 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 bookingSource: a.booking_source || 'direct',
                 marketplaceCommissionAmount: a.marketplace_commission_amount || 0,
                 commissionBilled: a.commission_billed || false,
+                depositRequired: a.deposit_required || false,
+                depositAmount: a.deposit_amount || 0,
+                depositStatus: a.deposit_status || 'none',
+                depositReceiptUrl: a.deposit_receipt_url || null,
             })) as Appointment[];
         },
         enabled: !!tenantId,
@@ -116,7 +120,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             if (rpcError) throw rpcError;
             if (!rpcResult?.success) throw new Error(rpcResult?.error || 'Error desconocido al reservar');
 
-            // Fallback: Si se usó la firma clásica, intentar actualizar adicionales
+            // Actualizar campos de adicionales y anticipos
             if (rpcResult?.id) {
                 const updatePayload: any = {};
                 if (appt.additionalServices && appt.additionalServices.length > 0) {
@@ -127,6 +131,18 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 }
                 if (appt.marketplaceCommissionAmount !== undefined && appt.marketplaceCommissionAmount > 0) {
                     updatePayload.marketplace_commission_amount = appt.marketplaceCommissionAmount;
+                }
+                if (appt.depositRequired !== undefined) {
+                    updatePayload.deposit_required = appt.depositRequired;
+                }
+                if (appt.depositAmount !== undefined) {
+                    updatePayload.deposit_amount = appt.depositAmount;
+                }
+                if (appt.depositStatus) {
+                    updatePayload.deposit_status = appt.depositStatus;
+                }
+                if (appt.depositReceiptUrl) {
+                    updatePayload.deposit_receipt_url = appt.depositReceiptUrl;
                 }
 
                 if (Object.keys(updatePayload).length > 0) {
@@ -290,12 +306,13 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
     });
 
-    // CONFIRM BY CLIENT
+    // CONFIRM BY CLIENT / APPROVE DEPOSIT
     const confirmByClientMutation = useMutation({
         mutationFn: async (id: string) => {
             const { error } = await supabase
                 .from('appointments')
                 .update({
+                    deposit_status: 'approved',
                     confirmed_by_client: true,
                     confirmed_by_client_at: new Date().toISOString()
                 })
@@ -305,12 +322,12 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: (id) => {
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            showToast('¡Asistencia confirmada con éxito! 🎉', 'success');
+            showToast('¡Anticipo verificado y cita aprobada con éxito! 🎉', 'success');
             if (tenantId) {
                 const apt = query.data?.find(a => a.id === id);
                 if (apt) {
                     notifyAdmin(tenantId, 'new', {
-                        client_name: `${apt.clientName} (CONFIRMÓ ASISTENCIA ✅)`,
+                        client_name: `${apt.clientName} (ANTICIPO APROBADO ✅)`,
                         client_phone: apt.clientPhone,
                         date: apt.date,
                         time: apt.time,
@@ -319,7 +336,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 }
             }
         },
-        onError: (err: any) => showToast(`Error al confirmar asistencia: ${err.message}`, 'error'),
+        onError: (err: any) => showToast(`Error al confirmar anticipo: ${err.message}`, 'error'),
     });
 
     return {

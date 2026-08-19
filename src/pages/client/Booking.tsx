@@ -28,7 +28,8 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, Scissors, UserCheck, Smartphone } from 'lucide-react';
+import { verifyBankReceipt } from '../../lib/verifyReceipt';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, Scissors, UserCheck, Smartphone } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
@@ -375,6 +376,37 @@ export default function Booking() {
         const base = (selectedService ? (customServicePrices?.[selectedService.id]?.price ?? selectedService.price) : 0);
         return base + addOnsPrice;
     }, [businessConfig, nailTotalPrice, selectedService, selectedStylist, selectedAddOns, services]);
+
+    const calculatedDeposit = useMemo(() => {
+        if (!businessConfig?.depositEnabled || !businessConfig?.depositAmount) return 0;
+        if (businessConfig.depositType === 'percentage') {
+            return Math.round((totalPrice * businessConfig.depositAmount) / 100);
+        }
+        return businessConfig.depositAmount;
+    }, [businessConfig, totalPrice]);
+
+    const [payFullService, setPayFullService] = useState(false);
+
+    const isPriceEstimated = useMemo(() => {
+        if (!selectedService) return false;
+        if (selectedService.priceType === 'range' || selectedService.priceType === 'no_price') return true;
+        return false;
+    }, [selectedService]);
+
+    const requiredPaymentAmount = useMemo(() => {
+        if (payFullService && !isPriceEstimated) {
+            return totalPrice;
+        }
+        return calculatedDeposit;
+    }, [payFullService, isPriceEstimated, totalPrice, calculatedDeposit]);
+
+    const [depositReceiptUrl, setDepositReceiptUrl] = useState<string | null>(null);
+    const [detectedReceiptAmount, setDetectedReceiptAmount] = useState<number | null>(null);
+    const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+    const [copiedClabe, setCopiedClabe] = useState(false);
+    const [showPolicyModal, setShowPolicyModal] = useState(false);
+    const [depositError, setDepositError] = useState<string | null>(null);
+
     const [bookingResult, setBookingResult] = useState<{ success: boolean; error?: string } | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
@@ -915,6 +947,10 @@ export default function Booking() {
             additionalServices: addOnNames.length > 0 ? addOnNames as string[] : undefined,
             bookingSource: isMarketplaceSession ? 'marketplace' : 'direct',
             marketplaceCommissionAmount: commAmount,
+            depositRequired: businessConfig?.depositEnabled ?? false,
+            depositAmount: detectedReceiptAmount ?? requiredPaymentAmount,
+            depositStatus: businessConfig?.depositEnabled ? (payFullService ? 'approved' : 'pending') : 'none',
+            depositReceiptUrl: depositReceiptUrl ?? null,
         });
 
         setBookingResult(result);
@@ -1222,10 +1258,7 @@ export default function Booking() {
         }
     };
 
-    // handleConfirm ahora solo se usa como fallback desde Step 4 si aún existe
-    const handleConfirm = async () => {
-        await handleContinueToOtp();
-    };
+
 
 
     const resetBooking = () => {
@@ -2841,7 +2874,7 @@ export default function Booking() {
                         )}
 
                         {availableSlots.length > 0 && selectedTime && (
-                            <div id="continuar-action" className="mt-6 space-y-3 animate-slide-up">
+                            <div id="continuar-action" className="mt-6 space-y-3 animate-slide-up text-left">
                                 {clientError && (
                                     <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm font-medium animate-pulse text-center mb-2">
                                         {clientError}
@@ -2855,9 +2888,17 @@ export default function Booking() {
                                         <RefreshCw size={20} />
                                         <span>Confirmar Cambio de Hora ({format12h(selectedTime)})</span>
                                     </button>
+                                ) : businessConfig?.depositEnabled && calculatedDeposit > 0 ? (
+                                    <button
+                                        className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                                        onClick={() => setStep(4)}
+                                    >
+                                        <span>Ver Datos de Anticipo y Continuar</span>
+                                        <ChevronRight size={20} />
+                                    </button>
                                 ) : (
                                     <button
-                                        className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 to-orange-400 hover:from-fuchsia-600 hover:to-orange-500 shadow-lg shadow-fuchsia-500/20 transition-all duration-300 flex items-center justify-center gap-2"
+                                        className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 to-orange-400 hover:from-fuchsia-600 hover:to-orange-500 shadow-lg shadow-fuchsia-500/20 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
                                         onClick={handleContinueToOtp}
                                         disabled={isSendingSms}
                                     >
@@ -3015,6 +3056,226 @@ export default function Booking() {
                             </div>
                         </div>
 
+                        {/* Deposit & Bank Details Card */}
+                        {businessConfig?.depositEnabled && calculatedDeposit > 0 && (
+                            <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mb-6 space-y-4 text-left">
+                                <div className="flex items-center justify-between pb-3 border-b border-emerald-500/20">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck size={22} className="text-emerald-400" />
+                                        <span className="text-sm font-bold text-emerald-300 uppercase tracking-wider">
+                                            {payFullService ? 'Pago Completo Seleccionado' : 'Anticipo Requerido'}
+                                        </span>
+                                    </div>
+                                    <span className="text-lg font-black text-emerald-400">${requiredPaymentAmount} MXN</span>
+                                </div>
+
+                                {/* Opciones de Pago: Solo Anticipo vs Cita Completa */}
+                                <div className="space-y-2 pt-1">
+                                    <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">¿Cuánto deseas transferir hoy?</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setPayFullService(false); setDepositReceiptUrl(null); setDepositError(null); }}
+                                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                                !payFullService
+                                                    ? 'bg-emerald-500/20 border-emerald-500 text-white shadow-md'
+                                                    : 'bg-black/30 border-white/10 text-slate-400 hover:text-slate-200'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold">Solo Anticipo</span>
+                                                <input type="radio" checked={!payFullService} readOnly className="accent-emerald-400" />
+                                            </div>
+                                            <p className="text-sm font-black text-emerald-400 mt-1">${calculatedDeposit} MXN</p>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            disabled={isPriceEstimated}
+                                            onClick={() => { if (!isPriceEstimated) { setPayFullService(true); setDepositReceiptUrl(null); setDepositError(null); } }}
+                                            className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                                                isPriceEstimated
+                                                    ? 'bg-black/20 border-white/5 opacity-50 cursor-not-allowed text-slate-500'
+                                                    : payFullService
+                                                        ? 'bg-emerald-500/20 border-emerald-500 text-white shadow-md cursor-pointer'
+                                                        : 'bg-black/30 border-white/10 text-slate-400 hover:text-slate-200 cursor-pointer'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold">Pagar Cita Completa</span>
+                                                <input type="radio" checked={payFullService} disabled={isPriceEstimated} readOnly className="accent-emerald-400" />
+                                            </div>
+                                            <p className="text-sm font-black text-emerald-400 mt-1">${totalPrice} MXN</p>
+                                        </button>
+                                    </div>
+                                    {isPriceEstimated && (
+                                        <p className="text-[10px] font-bold text-amber-400 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                                            ⚠️ Este servicio tiene un precio estimado / a cotizar en salón. Solo se puede transferir el anticipo fijo.
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2 text-xs text-slate-300 pt-2 border-t border-emerald-500/20">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Total del Servicio:</span>
+                                        <span className="font-bold text-white">${totalPrice} MXN</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Transferencia a Realizar Hoy:</span>
+                                        <span className="font-bold text-emerald-400">-${requiredPaymentAmount} MXN</span>
+                                    </div>
+                                    <div className="flex justify-between pt-2 border-t border-emerald-500/20 font-bold">
+                                        <span className="text-slate-300">Restante a Pagar en Salón:</span>
+                                        <span className="text-white">${Math.max(0, totalPrice - requiredPaymentAmount)} MXN</span>
+                                    </div>
+                                </div>
+
+                                {/* Bank Transfer Details */}
+                                {(() => {
+                                    const activeBankName = selectedStylist?.depositBankName || businessConfig?.depositBankName;
+                                    const activeClabe = selectedStylist?.depositClabe || businessConfig?.depositClabe;
+                                    const activeHolderName = selectedStylist?.depositHolderName || businessConfig?.depositHolderName;
+
+                                    if (!activeClabe) return null;
+
+                                    return (
+                                        <div className="p-3.5 rounded-xl bg-black/40 border border-emerald-500/20 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">Datos para Transferencia</p>
+                                                {selectedStylist?.depositClabe ? (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                        Cuenta de {selectedStylist.name.split(' ')[0]}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">
+                                                        Cuenta del Salón
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs space-y-1">
+                                                {activeBankName && (
+                                                    <p className="text-slate-300">Banco: <strong className="text-white font-bold">{activeBankName}</strong></p>
+                                                )}
+                                                {activeHolderName && (
+                                                    <p className="text-slate-300">Titular: <strong className="text-white font-bold">{activeHolderName}</strong></p>
+                                                )}
+                                                <div className="flex items-center justify-between pt-1">
+                                                    <span className="text-slate-300 font-mono text-[11px]">CLABE: <strong className="text-emerald-300">{activeClabe}</strong></span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(activeClabe);
+                                                            setCopiedClabe(true);
+                                                            setTimeout(() => setCopiedClabe(false), 2000);
+                                                        }}
+                                                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-bold border border-emerald-500/30 transition-all flex items-center gap-1 cursor-pointer"
+                                                    >
+                                                        {copiedClabe ? '✓ Copiado' : '📋 Copiar'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Receipt Upload Option */}
+                                <div className="pt-2 border-t border-emerald-500/20 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="block text-xs font-bold text-slate-300">
+                                            Comprobante de Pago <span className="text-emerald-400 font-extrabold">(Obligatorio *)</span>
+                                        </label>
+                                        {depositReceiptUrl && (
+                                            <span className="text-[10px] text-emerald-400 font-bold">✓ Listo</span>
+                                        )}
+                                    </div>
+                                    {depositReceiptUrl ? (
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30">
+                                            <span className="text-xs text-emerald-300 font-bold flex items-center gap-1.5">
+                                                <CheckCircle size={16} /> Captura de Transferencia Adjuntada
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDepositReceiptUrl(null)}
+                                                className="text-xs text-red-400 hover:underline font-bold"
+                                            >
+                                                Cambiar
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className={`w-full py-3 px-3 rounded-xl border border-dashed text-xs font-bold cursor-pointer flex items-center justify-center gap-2 transition-all ${
+                                            depositError
+                                                ? 'bg-red-500/10 border-red-500/50 text-red-300 animate-pulse'
+                                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                        }`}>
+                                            <Upload size={18} className="text-emerald-400" />
+                                            <span>{isUploadingReceipt ? 'Subiendo comprobante...' : '📷 Adjuntar Captura de Transferencia'}</span>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                disabled={isUploadingReceipt}
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    setIsUploadingReceipt(true);
+                                                    setDepositError(null);
+                                                    try {
+                                                        const activeBankClabe = selectedStylist?.depositClabe || businessConfig?.depositClabe || '';
+                                                        const activeBankHolder = selectedStylist?.depositHolderName || businessConfig?.depositHolderName || '';
+
+                                                        // 🤖 Smart AI OCR Verification (Date + CLABE + Holder + Amount)
+                                                        const verification = await verifyBankReceipt({
+                                                            imageFile: file,
+                                                            expectedClabe: activeBankClabe,
+                                                            expectedHolder: activeBankHolder,
+                                                            expectedAmount: requiredPaymentAmount,
+                                                        });
+
+                                                        if (!verification.isValid && verification.errorMessage) {
+                                                            setDepositError(verification.errorMessage);
+                                                            setIsUploadingReceipt(false);
+                                                            return;
+                                                        }
+
+                                                        if (verification.detectedAmount && verification.detectedAmount > 0) {
+                                                            setDetectedReceiptAmount(verification.detectedAmount);
+                                                        }
+
+                                                        const url = await uploadNailDesign(file);
+                                                        setDepositReceiptUrl(url);
+                                                        setDepositError(null);
+                                                    } catch (err: any) {
+                                                        console.error(err);
+                                                    } finally {
+                                                        setIsUploadingReceipt(false);
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                    )}
+                                    {depositError && (
+                                        <p className="text-xs font-bold text-red-400 animate-fade-in text-center pt-1">
+                                            {depositError}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Cancellation Policy Modal Link */}
+                                {businessConfig?.depositCancellationPolicy && (
+                                    <div className="pt-2 border-t border-emerald-500/20 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPolicyModal(true)}
+                                            className="text-[11px] text-emerald-400/90 hover:text-emerald-300 underline font-medium flex items-center justify-center gap-1 mx-auto"
+                                        >
+                                            <ShieldCheck size={14} />
+                                            Ver Política de Cancelación y Reembolsos
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {bookingResult && !bookingResult.success && (
                             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 mb-6 flex items-center gap-3">
                                 <AlertTriangle size={20} />
@@ -3026,9 +3287,28 @@ export default function Booking() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <button className="btn btn-secondary py-3" onClick={() => setStep(3)}>Atrás</button>
-                            <button className="btn btn-primary py-3 shadow-glow" onClick={handleConfirm}>Confirmar</button>
+                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                            <button className="w-full sm:w-1/3 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition-all" onClick={() => setStep(3)}>
+                                ← Atrás
+                            </button>
+                            <button
+                                className="w-full sm:w-2/3 py-4 rounded-2xl font-extrabold text-sm text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                                onClick={() => {
+                                    if (businessConfig?.depositEnabled && calculatedDeposit > 0 && !depositReceiptUrl) {
+                                        setDepositError('⚠️ Por favor adjunta la captura de tu comprobante de transferencia para continuar.');
+                                        return;
+                                    }
+                                    setDepositError(null);
+                                    handleContinueToOtp();
+                                }}
+                                disabled={isSendingSms || isUploadingReceipt}
+                            >
+                                {isSendingSms ? (
+                                    <><span className="animate-spin">⏳</span> Enviando código...</>
+                                ) : (
+                                    <>Continuar a Verificación <ChevronRight size={18} /></>
+                                )}
+                            </button>
                         </div>
                     </div>
                 )}
@@ -3197,6 +3477,7 @@ export default function Booking() {
                                     </div>
                                 );
                             })()}
+
                             <button
                                 onClick={resetBooking}
                                 className="w-full py-5 rounded-[2.5rem] bg-gradient-to-r from-accent to-blue-600 hover:scale-[1.02] active:scale-95 transition-all duration-300 text-slate-900 font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3"
@@ -3481,6 +3762,38 @@ export default function Booking() {
                     </div>
                 </div>
             )}
+            {/* ══ MODAL DE POLÍTICA DE CANCELACIÓN Y REEMBOLSOS ══ */}
+            {showPolicyModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setShowPolicyModal(false)} />
+                    <div className="relative bg-[#0f172a] border border-emerald-500/30 rounded-3xl w-full max-w-md p-6 shadow-2xl animate-fade-in flex flex-col text-left space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <ShieldCheck size={20} className="text-emerald-400" />
+                                Política de Cancelación & Reembolsos
+                            </h3>
+                            <button
+                                onClick={() => setShowPolicyModal(false)}
+                                className="w-8 h-8 rounded-full bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-300 space-y-2 whitespace-pre-wrap leading-relaxed">
+                            {businessConfig?.depositCancellationPolicy || 'Para cancelaciones o reprogramaciones con derecho a reembolso de tu anticipo, debes notificar al salón con al menos 24 horas de anticipación.'}
+                        </div>
+
+                        <button
+                            onClick={() => setShowPolicyModal(false)}
+                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/20"
+                        >
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ══ PWA INSTALL BANNER ══ */}
             <PWAInstallBanner businessName={businessConfig?.name || undefined} />
         </div >

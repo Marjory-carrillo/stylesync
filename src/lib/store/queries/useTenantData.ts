@@ -65,6 +65,13 @@ export const useTenantData = (overrideTenantId?: string) => {
                 currency: data.currency || 'MXN',
                 currencySymbol: data.currency_symbol || '$',
                 defaultPhonePrefix: data.default_phone_prefix || '+52',
+                depositEnabled: data.deposit_enabled ?? false,
+                depositType: data.deposit_type || 'fixed',
+                depositAmount: data.deposit_amount || 0,
+                depositBankName: data.deposit_bank_name || '',
+                depositClabe: data.deposit_clabe || '',
+                depositHolderName: data.deposit_holder_name || '',
+                depositCancellationPolicy: data.deposit_cancellation_policy || '',
             };
         },
         enabled: !!tenantId,
@@ -100,6 +107,14 @@ export const useTenantData = (overrideTenantId?: string) => {
             if (newData.coverUrl !== undefined) payload.cover_url = newData.coverUrl || null;
             if (newData.marketplaceEnabled !== undefined) payload.marketplace_enabled = newData.marketplaceEnabled;
             if (newData.marketplaceCommissionRate !== undefined) payload.marketplace_commission_rate = newData.marketplaceCommissionRate;
+
+            if (newData.depositEnabled !== undefined) payload.deposit_enabled = newData.depositEnabled;
+            if (newData.depositType !== undefined) payload.deposit_type = newData.depositType;
+            if (newData.depositAmount !== undefined) payload.deposit_amount = newData.depositAmount;
+            if (newData.depositBankName !== undefined) payload.deposit_bank_name = newData.depositBankName;
+            if (newData.depositClabe !== undefined) payload.deposit_clabe = newData.depositClabe;
+            if (newData.depositHolderName !== undefined) payload.deposit_holder_name = newData.depositHolderName;
+            if (newData.depositCancellationPolicy !== undefined) payload.deposit_cancellation_policy = newData.depositCancellationPolicy;
 
             const { error } = await supabase
                 .from('tenants')

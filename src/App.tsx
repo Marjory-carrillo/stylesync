@@ -12,6 +12,7 @@ const Clients = lazy(() => import('./pages/admin/Clients'));
 const Services = lazy(() => import('./pages/admin/Services'));
 const Staff = lazy(() => import('./pages/admin/Staff'));
 const Settings = lazy(() => import('./pages/admin/Settings'));
+const Deposits = lazy(() => import('./pages/admin/Deposits'));
 const Quoter = lazy(() => import('./pages/admin/Quoter'));
 const Team = lazy(() => import('./pages/admin/Team'));
 const Commissions = lazy(() => import('./pages/admin/Commissions'));
@@ -364,6 +365,7 @@ function App() {
                 <Route element={<AdminLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="appointments" element={<Appointments />} />
+                  <Route path="deposits" element={<Deposits />} />
                   <Route path="quoter" element={<Quoter />} />
 
                   {/* Rutas protegidas para empleados */}

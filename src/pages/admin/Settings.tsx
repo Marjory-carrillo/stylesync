@@ -1040,6 +1040,172 @@ export default function Settings() {
                             </div>
                         )}
 
+                        {/* Anticipos y Política de Cancelación */}
+                        <div className="p-5 bg-slate-900/60 rounded-2xl border border-white/10 space-y-4">
+                            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                                <div>
+                                    <h4 className="text-white font-bold text-base flex items-center gap-2">
+                                        <CreditCard size={18} className="text-emerald-400" />
+                                        Anticipos y Política de Cancelación
+                                    </h4>
+                                    <p className="text-xs text-muted mt-0.5">Solicita anticipos por transferencia directa para confirmar citas y define tus reglas de reembolso.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.depositEnabled ?? false}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, depositEnabled: val });
+                                            await updateBusinessConfig({ depositEnabled: val });
+                                            showToast(val ? 'Módulo de anticipos activado' : 'Módulo de anticipos desactivado', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                </label>
+                            </div>
+
+                            {infoForm.depositEnabled && (
+                                <div className="space-y-4 pt-2 animate-fade-in">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1">Tipo de Anticipo</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInfoForm({ ...infoForm, depositType: 'fixed' })}
+                                                    className={`p-2 rounded-xl border text-xs font-bold transition-all ${
+                                                        (infoForm.depositType ?? 'fixed') === 'fixed'
+                                                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                                            : 'bg-white/5 text-slate-400 border-white/10'
+                                                    }`}
+                                                >
+                                                    💵 Monto Fijo ($)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInfoForm({ ...infoForm, depositType: 'percentage' })}
+                                                    className={`p-2 rounded-xl border text-xs font-bold transition-all ${
+                                                        infoForm.depositType === 'percentage'
+                                                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                                            : 'bg-white/5 text-slate-400 border-white/10'
+                                                    }`}
+                                                >
+                                                    % Porcentaje (%)
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1">
+                                                {infoForm.depositType === 'percentage' ? 'Porcentaje Requerido (%)' : 'Monto Fijo Requerido ($)'}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                placeholder={infoForm.depositType === 'percentage' ? '20' : '150'}
+                                                value={infoForm.depositAmount ?? ''}
+                                                onChange={e => setInfoForm({ ...infoForm, depositAmount: Number(e.target.value) })}
+                                                className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-bold focus:border-emerald-500"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Bank Accounts Details */}
+                                    <div className="pt-2 border-t border-white/5 space-y-3">
+                                        <p className="text-xs font-bold text-slate-300">Datos Bancarios para Transferencia</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Banco</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="ej. BBVA / Banamex / Nu"
+                                                    value={infoForm.depositBankName ?? ''}
+                                                    onChange={e => setInfoForm({ ...infoForm, depositBankName: e.target.value })}
+                                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">CLABE Interbancaria o Tarjeta</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="18 dígitos o N° Tarjeta"
+                                                    value={infoForm.depositClabe ?? ''}
+                                                    onChange={e => setInfoForm({ ...infoForm, depositClabe: e.target.value })}
+                                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500 font-mono"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Titular de la Cuenta</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Nombre del Titular"
+                                                    value={infoForm.depositHolderName ?? ''}
+                                                    onChange={e => setInfoForm({ ...infoForm, depositHolderName: e.target.value })}
+                                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-emerald-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Cancellation Policy */}
+                                    <div className="pt-2 border-t border-white/5 space-y-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1">Política de Cancelación & Reembolsos</label>
+                                            <p className="text-[11px] font-semibold text-slate-400 mb-2">Selecciona una plantilla prediseñada o redacta tus propias reglas:</p>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInfoForm({
+                                                        ...infoForm,
+                                                        depositCancellationPolicy: "Para cancelaciones o reprogramaciones con derecho a reembolso total de tu anticipo, debes avisar al menos con 24 horas de anticipación. Cancelaciones con menos de 24 horas o inasistencias perderán el anticipo."
+                                                    })}
+                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all text-[11px] cursor-pointer"
+                                                >
+                                                    <span className="font-bold text-emerald-400 block mb-0.5">🛡️ Estándar (24 hrs)</span>
+                                                    <span className="text-slate-400 text-[10px] leading-tight block">Reembolso 100% si avisas al menos 24 hrs antes.</span>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInfoForm({
+                                                        ...infoForm,
+                                                        depositCancellationPolicy: "Entendemos que surgen imprevistos. Puedes cancelar o mover tu cita hasta 12 horas antes sin penalización para recibir tu reembolso. De lo contrario, el anticipo no será reembolsable."
+                                                    })}
+                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all text-[11px] cursor-pointer"
+                                                >
+                                                    <span className="font-bold text-teal-400 block mb-0.5">⚡ Flexible (12 hrs)</span>
+                                                    <span className="text-slate-400 text-[10px] leading-tight block">Reembolso 100% hasta 12 hrs antes de la cita.</span>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInfoForm({
+                                                        ...infoForm,
+                                                        depositCancellationPolicy: "El anticipo asegura tu lugar en nuestra agenda. No se realizan reembolsos en efectivo; sin embargo, si cancelas al menos 48 horas antes, tu anticipo se abonará como crédito para tu próxima cita."
+                                                    })}
+                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all text-[11px] cursor-pointer"
+                                                >
+                                                    <span className="font-bold text-cyan-400 block mb-0.5">🔒 Crédito a Favor</span>
+                                                    <span className="text-slate-400 text-[10px] leading-tight block">Sin reembolso en dinero; crédito para tu próxima cita.</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <textarea
+                                            rows={3}
+                                            placeholder="Escribe los términos de reembolso (ej. Para cancelaciones sin penalización, debes avisar al menos 24 hrs antes de tu cita...)"
+                                            value={infoForm.depositCancellationPolicy ?? ''}
+                                            onChange={e => setInfoForm({ ...infoForm, depositCancellationPolicy: e.target.value })}
+                                            className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:border-emerald-500"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Hide Prices Toggle */}
                         <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
                             <div className="flex items-center justify-between">

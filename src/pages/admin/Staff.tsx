@@ -73,6 +73,9 @@ export default function Staff() {
     const [formPhone, setFormPhone] = useState('');
     const [formImage, setFormImage] = useState('');
     const [formCommission, setFormCommission] = useState<number>(0);
+    const [formDepositBankName, setFormDepositBankName] = useState('');
+    const [formDepositClabe, setFormDepositClabe] = useState('');
+    const [formDepositHolderName, setFormDepositHolderName] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'profile' | 'schedule' | 'services' | 'quoter'>('profile');
@@ -102,6 +105,9 @@ export default function Staff() {
         setFormPhone('');
         setFormImage('');
         setFormCommission(0);
+        setFormDepositBankName('');
+        setFormDepositClabe('');
+        setFormDepositHolderName('');
         setActiveTab('profile');
         setFormUseCustomSchedule(false);
         setFormSchedule(DEFAULT_STAFF_SCHEDULE);
@@ -120,6 +126,9 @@ export default function Staff() {
         setFormPhone('');
         setFormImage('');
         setFormCommission(0);
+        setFormDepositBankName('');
+        setFormDepositClabe('');
+        setFormDepositHolderName('');
         setActiveTab('profile');
         setFormUseCustomSchedule(false);
         setFormSchedule(DEFAULT_STAFF_SCHEDULE);
@@ -139,6 +148,9 @@ export default function Staff() {
         setFormPhone(stylist.phone);
         setFormImage(stylist.image || '');
         setFormCommission(stylist.commissionRate || 0);
+        setFormDepositBankName(stylist.depositBankName || '');
+        setFormDepositClabe(stylist.depositClabe || '');
+        setFormDepositHolderName(stylist.depositHolderName || '');
         setActiveTab('profile');
         if (stylist.schedule && typeof stylist.schedule === 'object' && Object.keys(stylist.schedule).length > 0) {
             setFormUseCustomSchedule(true);
@@ -161,7 +173,10 @@ export default function Staff() {
             image: formImage || '',
             commissionRate: formCommission,
             schedule: formUseCustomSchedule ? formSchedule : null,
-            serviceIds: formServiceIds
+            serviceIds: formServiceIds,
+            depositBankName: formDepositBankName || '',
+            depositClabe: formDepositClabe || '',
+            depositHolderName: formDepositHolderName || '',
         });
 
         if (!result.success) {
@@ -190,7 +205,10 @@ export default function Staff() {
             schedule: formUseCustomSchedule ? formSchedule : null,
             serviceIds: formServiceIds,
             customServicePrices: cleanedCustomPrices,
-            customQuoterConfig: formCustomQuoterConfig
+            customQuoterConfig: formCustomQuoterConfig,
+            depositBankName: formDepositBankName || null,
+            depositClabe: formDepositClabe || null,
+            depositHolderName: formDepositHolderName || null,
         };
 
         if (editingId !== null) {
@@ -425,6 +443,47 @@ export default function Staff() {
                                                 }}
                                             />
                                         </label>
+                                    </div>
+                                </div>
+
+                                {/* Personal Deposit Account Section */}
+                                <div className="pt-4 border-t border-white/10 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Zap size={16} className="text-emerald-400" />
+                                        <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Cuenta Propia para Anticipos (Opcional)</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400">Si este profesional cobra sus anticipos en su cuenta personal, ingresa sus datos aquí. Si se deja en blanco, usará la cuenta del salón.</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Banco</label>
+                                            <input
+                                                type="text"
+                                                placeholder="ej. BBVA / Nu"
+                                                value={formDepositBankName}
+                                                onChange={e => setFormDepositBankName(e.target.value)}
+                                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">CLABE / Tarjeta</label>
+                                            <input
+                                                type="text"
+                                                placeholder="18 dígitos"
+                                                value={formDepositClabe}
+                                                onChange={e => setFormDepositClabe(e.target.value)}
+                                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Titular</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Nombre del Titular"
+                                                value={formDepositHolderName}
+                                                onChange={e => setFormDepositHolderName(e.target.value)}
+                                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

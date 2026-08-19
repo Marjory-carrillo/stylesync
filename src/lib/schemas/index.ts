@@ -97,6 +97,9 @@ export const stylistSchema = z.object({
     commissionRate: z.number().min(0).max(100).optional(),
     schedule: z.any().optional().nullable(),
     serviceIds: z.array(z.number()).optional().nullable(),
+    depositBankName: z.string().optional().or(z.literal('')),
+    depositClabe: z.string().optional().or(z.literal('')),
+    depositHolderName: z.string().optional().or(z.literal('')),
 });
 
 export type StylistInput = z.infer<typeof stylistSchema>;
@@ -131,4 +134,11 @@ export const businessConfigSchema = z.object({
     tiktokUrl: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
     marketplaceEnabled: z.boolean().optional(),
     marketplaceCommissionRate: z.number().min(0).max(100).optional(),
+    depositEnabled: z.boolean().optional(),
+    depositType: z.enum(['fixed', 'percentage']).optional(),
+    depositAmount: z.number().min(0).optional().or(z.literal(0)),
+    depositBankName: z.string().optional().or(z.literal('')),
+    depositClabe: z.string().optional().or(z.literal('')),
+    depositHolderName: z.string().optional().or(z.literal('')),
+    depositCancellationPolicy: z.string().optional().or(z.literal('')),
 });

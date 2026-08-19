@@ -40,6 +40,9 @@ export interface Stylist {
     serviceIds?: number[] | null; // IDs of services assigned to this stylist
     customServicePrices?: Record<number, { price?: number; duration?: number }> | null;
     customQuoterConfig?: Record<string, number> | null; // custom pricing for nail art/decor per stylist (e.g. d1: 80, d4: 20)
+    depositBankName?: string | null;
+    depositClabe?: string | null;
+    depositHolderName?: string | null;
 }
 
 export interface Appointment {
@@ -63,6 +66,10 @@ export interface Appointment {
     bookingSource?: 'direct' | 'marketplace';
     marketplaceCommissionAmount?: number;
     commissionBilled?: boolean;
+    depositRequired?: boolean;
+    depositAmount?: number;
+    depositStatus?: 'pending' | 'approved' | 'rejected' | 'none';
+    depositReceiptUrl?: string | null;
 }
 
 export interface Client {
@@ -176,6 +183,13 @@ export interface BusinessConfig {
     currencySymbol?: string; // '$', '$ USD', 'Bs.', '€'
     defaultPhonePrefix?: string; // '+52', '+1', '+58', '+34', '+593'
     primaryLanguage?: 'es' | 'en';
+    depositEnabled?: boolean;
+    depositType?: 'fixed' | 'percentage';
+    depositAmount?: number;
+    depositBankName?: string;
+    depositClabe?: string;
+    depositHolderName?: string;
+    depositCancellationPolicy?: string;
 }
 
 export interface Tenant extends BusinessConfig {
