@@ -145,6 +145,27 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                     updatePayload.deposit_receipt_url = appt.depositReceiptUrl;
                 }
 
+                // 🎯 Regla de 6 Horas:
+                // Si agendó con 6 horas o menos de anticipación antes de la cita, se AUTOCONFIRMA directamente (confirmed_by_client = true).
+                // Si agendó con más de 6 horas de anticipación, NO se autoconfirma todavía para que reciba su recordatorio por WhatsApp y confirme desde el link.
+                const isBookedWithin6Hours = (() => {
+                    try {
+                        const apptDt = new Date(`${appt.date}T${appt.time.slice(0, 5)}`);
+                        const now = new Date();
+                        const diffHours = (apptDt.getTime() - now.getTime()) / (1000 * 60 * 60);
+                        return diffHours <= 6;
+                    } catch {
+                        return false;
+                    }
+                })();
+
+                if (isBookedWithin6Hours) {
+                    updatePayload.confirmed_by_client = true;
+                    updatePayload.confirmed_by_client_at = new Date().toISOString();
+                } else {
+                    updatePayload.confirmed_by_client = false;
+                }
+
                 if (Object.keys(updatePayload).length > 0) {
                     try {
                         await supabase
