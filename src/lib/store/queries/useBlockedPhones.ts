@@ -63,9 +63,25 @@ export const useBlockedPhones = () => {
     const blockedData = query.data || [];
     const blockedPhones = blockedData.map(d => d.phone);
 
+    const uniqueBlockedList = Array.from(
+        (blockedData || []).reduce((map, item) => {
+            const clean = item.phone.replace(/\D/g, '').slice(-10);
+            if (clean && !map.has(clean)) {
+                map.set(clean, {
+                    phone: item.phone,
+                    cleanPhone: clean,
+                    reason: item.reason || 'Bloqueo manual por administrador'
+                });
+            }
+            return map;
+        }, new Map<string, { phone: string; cleanPhone: string; reason: string }>()).values()
+    );
+
     return {
         ...query,
+        blockedData,
         blockedPhones,
+        uniqueBlockedList,
         isPhoneBlocked: (phone: string) => {
             if (!phone) return false;
             const clean = phone.replace(/\D/g, '').slice(-10);

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     CheckCircle2,
-    Scissors,
+    Users,
     Camera,
     Clock,
     Sparkles,
@@ -85,7 +85,7 @@ export function OnboardingChecklist({
         const list: Task[] = [
             {
                 id: 'stylist',
-                icon: Scissors,
+                icon: Users,
                 label: 'Agrega tu primer profesional',
                 description: 'Crea al menos un miembro del equipo.',
                 route: '/admin/staff',

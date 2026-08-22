@@ -89,3 +89,5 @@ interface CustomSelectProps {
         </div>
     );
 }
+
+export default CustomSelect;

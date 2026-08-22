@@ -6,7 +6,7 @@ import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useRealtimeNotifications } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Scissors, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, Sparkles, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard } from 'lucide-react';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
@@ -220,10 +220,12 @@ export default function AdminLayout() {
                         <span>{t('nav.appointments')}</span>
                     </Link>
 
-                    <Link to="/admin/deposits" onClick={closeMobileMenu} className={navLinkClass('/admin/deposits')}>
-                        <CreditCard size={18} />
-                        <span>Anticipos</span>
-                    </Link>
+                    {businessConfig?.depositEnabled && (
+                        <Link to="/admin/deposits" onClick={closeMobileMenu} className={navLinkClass('/admin/deposits')}>
+                            <CreditCard size={18} />
+                            <span>Anticipos</span>
+                        </Link>
+                    )}
 
                     {isNailCalculatorEnabled(businessConfig) && (
                         <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
@@ -242,7 +244,7 @@ export default function AdminLayout() {
                     {!isEmployee && (
                         <>
                             <Link to="/admin/services" onClick={closeMobileMenu} className={navLinkClass('/admin/services')}>
-                                <Scissors size={18} />
+                                <Sparkles size={18} />
                                 <span>{t('nav.services')}</span>
                             </Link>
                             <Link to="/admin/staff" onClick={closeMobileMenu} className={navLinkClass('/admin/staff')}>

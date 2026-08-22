@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, Clock, RefreshCw, User, Scissors, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, Clock, RefreshCw, User, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAppointments } from '../lib/store/queries/useAppointments';
 import { useServices } from '../lib/store/queries/useServices';
 import { useStylists } from '../lib/store/queries/useStylists';
@@ -202,7 +202,7 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
                     </div>
                     <div className="flex items-center justify-between text-slate-300">
                         <span className="flex items-center gap-1.5">
-                            <Scissors size={13} className="text-purple-400" /> {service?.name || 'Servicio'} ({service?.duration || 30} min)
+                            <Sparkles size={13} className="text-purple-400" /> {service?.name || 'Servicio'} ({service?.duration || 30} min)
                         </span>
                         {stylist && <span className="text-slate-400">Atiende: <strong className="text-slate-200">{stylist.name}</strong></span>}
                     </div>

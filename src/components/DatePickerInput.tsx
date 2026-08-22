@@ -9,11 +9,13 @@ interface Props {
     placeholder?: string;
     className?: string;
     align?: 'left' | 'right'; // which side the dropdown opens toward
+    appointmentCounts?: Record<string, number>;
+    waitingListCounts?: Record<string, number>;
 }
 
 const DAY_NAMES = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
 
-export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/aaaa', className = '', align = 'left' }: Props) {
+export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/aaaa', className = '', align = 'left', appointmentCounts, waitingListCounts }: Props) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -48,6 +50,9 @@ export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/
     };
 
     const displayValue = hasValue ? format(parsedDate!, "dd 'de' MMMM, yyyy", { locale: es }) : '';
+
+    const todayZero = new Date();
+    todayZero.setHours(0, 0, 0, 0);
 
     return (
         <div ref={ref} className={`relative ${className}`}>
@@ -103,25 +108,59 @@ export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/
                     </div>
 
                     {/* Day grid */}
-                    <div className="grid grid-cols-7 px-3 pb-3 gap-y-1">
+                    <div className="grid grid-cols-7 px-3 pb-3 gap-y-1.5 gap-x-1">
                         {paddedDays.map((day, i) => {
                             if (!day) return <div key={`pad-${i}`} />;
                             const selected = hasValue && parsedDate && isSameDay(day, parsedDate);
                             const today = isToday(day);
+
+                            const dayStr = format(day, 'yyyy-MM-dd');
+                            const count = appointmentCounts?.[dayStr] || 0;
+                            const waitCount = waitingListCounts?.[dayStr] || 0;
+
+                            const dayZero = new Date(day);
+                            dayZero.setHours(0, 0, 0, 0);
+
+                            const isPast = dayZero < todayZero;
+
                             return (
                                 <button
                                     key={day.toString()}
                                     type="button"
                                     onClick={() => selectDay(day)}
-                                    className={`w-full aspect-square rounded-xl text-xs font-bold transition-all ${
+                                    className={`w-full aspect-square rounded-xl text-xs font-bold transition-all relative flex items-center justify-center ${
                                         selected
-                                            ? 'bg-accent text-white shadow-lg shadow-accent/30'
+                                            ? 'bg-accent text-white shadow-lg shadow-accent/30 font-black'
                                             : today
                                                 ? 'text-accent border border-accent/40 hover:bg-accent/20'
                                                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
                                     }`}
                                 >
-                                    {day.getDate()}
+                                    <span>{day.getDate()}</span>
+
+                                    {/* Appointment Count Badge */}
+                                    {!isPast && count > 0 && (
+                                        <span 
+                                            title={`${count} ${count === 1 ? 'cita programada' : 'citas programadas'}`}
+                                            className={`absolute -top-1.5 -right-1.5 text-[10px] font-black px-1 rounded-full leading-none flex items-center justify-center min-w-[18px] h-[18px] border shadow-lg z-10 ${
+                                                selected
+                                                    ? 'bg-slate-950 text-purple-300 border-purple-400/60'
+                                                    : 'bg-purple-600 text-white border-purple-400/60 shadow-purple-500/30'
+                                            }`}
+                                        >
+                                            {count}
+                                        </span>
+                                    )}
+
+                                    {/* Waiting List Count Badge */}
+                                    {!isPast && waitCount > 0 && (
+                                        <span 
+                                            title={`${waitCount} ${waitCount === 1 ? 'cliente en lista de espera' : 'clientes en lista de espera'}`}
+                                            className={`absolute ${count > 0 ? '-bottom-1.5 -right-1.5' : '-top-1.5 -right-1.5'} text-[9px] font-black px-1 rounded-full leading-none flex items-center justify-center min-w-[17px] h-[17px] border shadow-lg z-10 bg-amber-500 text-slate-950 border-amber-300 shadow-amber-500/30`}
+                                        >
+                                            {waitCount}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}

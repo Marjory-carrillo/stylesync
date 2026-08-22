@@ -29,7 +29,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { verifyBankReceipt } from '../../lib/verifyReceipt';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, Scissors, UserCheck, Smartphone } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
@@ -888,11 +888,17 @@ export default function Booking() {
 
         // 2. Incluir detalles de diseño de la calculadora si el servicio la tiene activa
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
-            if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
+            if (nailSize) {
+                const sizeDur = selectedStylist?.customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
+                const durText = sizeDur > 0 ? ` (+${sizeDur} min)` : '';
+                addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)${durText}`);
+            }
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
             if (designItem) {
+                const designDur = selectedStylist?.customQuoterConfig?.[`${designItem.id}_dur`] ?? (designItem as any).duration ?? 0;
+                const durText = designDur > 0 ? ` (+${designDur} min)` : '';
                 const priceText = designItem.price > 0 ? ` (+$${designItem.price} MXN)` : ' (Sin costo)';
-                addOnNames.push(`Diseño: ${designItem.name}${priceText}`);
+                addOnNames.push(`Diseño: ${designItem.name}${priceText}${durText}`);
             } else {
                 if (designLevel === 'basic') {
                     addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
@@ -906,7 +912,9 @@ export default function Booking() {
             if (extrasCat) {
                 extrasCat.items.forEach(item => {
                     if (nailExtras[item.id]) {
-                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN)`);
+                        const itemDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`] ?? (item as any).duration ?? 0;
+                        const durText = itemDur > 0 ? ` (+${itemDur} min)` : '';
+                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN)${durText}`);
                     }
                 });
             }
@@ -1712,7 +1720,7 @@ export default function Booking() {
                                     <div className="flex items-start justify-between gap-4 mb-5 relative z-10">
                                         <div className="flex items-start gap-3">
                                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-pink-600 flex items-center justify-center text-white shadow-lg shadow-accent/20 shrink-0 mt-0.5">
-                                                <Scissors size={22} />
+                                                <Sparkles size={22} />
                                             </div>
                                             <div>
                                                 <h2 className="text-lg font-bold text-white leading-snug">

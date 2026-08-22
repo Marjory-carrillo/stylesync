@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { format, parse, addMinutes, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, User, Scissors, Phone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Sparkles, Phone } from 'lucide-react';
 
 interface ResourceCalendarProps {
     appointments: any[];
@@ -226,7 +226,7 @@ export default function ResourceCalendar({
                                                                     <span className="text-[8px] font-black uppercase opacity-70 shrink-0">{format12h(appt.time)}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-1 mt-0.5 opacity-80 truncate">
-                                                                    <Scissors size={10} className="shrink-0" />
+                                                                    <Sparkles size={10} className="shrink-0" />
                                                                     <span className="truncate">{service?.name || 'Servicio'}</span>
                                                                 </div>
                                                                 {width > 40 && (

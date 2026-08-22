@@ -1,5 +1,4 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useCancellationLog } from '../../lib/store/queries/useCancellationLog';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
@@ -16,7 +15,7 @@ import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import ConfirmModal from '../../components/ConfirmModal';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Scissors, CreditCard, Activity, ArrowUpRight, ArrowDownRight, ChevronDown, Trash2, Building2, X, Eye, Save, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, CheckCircle2, RefreshCw } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -25,15 +24,17 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatPhoneDisplay } from '../../lib/schemas';
+import StylistColumnCalendar from '../../components/StylistColumnCalendar';
+import WaitingListModal from '../../components/WaitingListModal';
 
 type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 
 export default function Dashboard() {
     const navigate = useNavigate();
-    const { t } = useTranslation();
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
+    const [chartViewType, setChartViewType] = useState<'revenue' | 'volume'>('revenue');
     const [tomorrowOpen, setTomorrowOpen] = useState(false);
-    const [waitingListOpen, setWaitingListOpen] = useState(false);
+    const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
     const { userRole, userStylistId, userTenants, tenantId } = useAuthStore();
     const isEmployee = userRole === 'employee';
@@ -100,8 +101,9 @@ export default function Dashboard() {
 
     // Optimize: only load last 12 months for dashboard metrics
     const startDate = useMemo(() => format(subMonths(new Date(), 12), 'yyyy-MM-01'), []);
-    const { appointments: allAppointments, isPending: apptsPending, markNoShow } = useAppointments({ startDate });
+    const { appointments: allAppointments, isPending: apptsPending, markNoShow, cancelAppointment } = useAppointments({ startDate });
     const [rescheduleModal, setRescheduleModal] = useState<{ open: boolean; appt: any }>({ open: false, appt: null });
+    const [receiptModalUrl, setReceiptModalUrl] = useState<string | null>(null);
     const { services, isPending: svcsLoading } = useServices();
     const { waitingList, addToWaitingList, removeFromWaitingList } = useWaitingList();
     const { stylists } = useStylists();
@@ -158,36 +160,142 @@ export default function Dashboard() {
     const { cancellationLog } = useCancellationLog();
     const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
 
+    const getAppointmentTotalDuration = useCallback((apt: any) => {
+        const baseSvc = getServiceById(apt.serviceId);
+        let total = baseSvc?.duration || 60;
+        const addServices = apt.additionalServices || [];
+
+        addServices.forEach((name: string) => {
+            if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) {
+                return;
+            }
+
+            // Check if string contains explicit duration tag e.g. "(+15 min)" or "15min"
+            const durMatch = name.match(/\(\+(\d+)\s*min\)/i) || name.match(/(\d+)\s*min/i);
+            if (durMatch) {
+                total += Number(durMatch[1]);
+                return;
+            }
+
+            const cleanName = name
+                .split('(+')[0]
+                .replace(/^Extra:\s*/i, '')
+                .replace(/^Diseño:\s*/i, '')
+                .replace(/^Largo:\s*/i, '')
+                .replace(/^Diseño Catálogo:\s*/i, '')
+                .trim();
+
+            const matchingService = services.find((s: any) =>
+                s.name.toLowerCase() === cleanName.toLowerCase() ||
+                s.name.toLowerCase() === name.toLowerCase()
+            );
+            if (matchingService && matchingService.duration) {
+                total += matchingService.duration;
+            }
+        });
+
+        return total;
+    }, [services, getServiceById]);
+
+    const getAppointmentFullServiceDisplay = useCallback((apt: any, baseServiceName?: string) => {
+        const base = baseServiceName || 'Servicio';
+        const catalogAddons = (apt.additionalServices || [])
+            .filter((s: string) =>
+                !s.startsWith('Referencia:') &&
+                !s.startsWith('Cotización Confirmada:') &&
+                !s.startsWith('Cotización Estimada:') &&
+                !s.startsWith('Largo:') &&
+                !s.startsWith('Diseño:') &&
+                !s.startsWith('Extra:') &&
+                !s.startsWith('Diseño Catálogo:')
+            )
+            .map((s: string) => {
+                const cleanName = s.split('(+')[0].replace(/^Adicional:\s*/i, '').trim();
+                const matchingSvc = services.find((serv: any) =>
+                    serv.name.toLowerCase() === cleanName.toLowerCase() ||
+                    serv.name.toLowerCase() === s.toLowerCase()
+                );
+                return matchingSvc ? matchingSvc.name : null;
+            })
+            .filter(Boolean) as string[];
+
+        if (catalogAddons.length > 0) {
+            return `${base} + ${catalogAddons.join(', ')}`;
+        }
+        return base;
+    }, [services]);
+
+    const parseApptDateTime = useCallback((dateStr?: string, timeStr?: string) => {
+        if (!dateStr || !timeStr) return new Date();
+        try {
+            const cleanDate = dateStr.split('T')[0].replace(/\//g, '-');
+            const [year, month, day] = cleanDate.split('-').map(Number);
+
+            let [hStr, mStr] = timeStr.trim().split(':');
+            let hours = parseInt(hStr, 10);
+            let minutes = parseInt(mStr, 10) || 0;
+
+            const isPM = /pm/i.test(timeStr);
+            const isAM = /am/i.test(timeStr);
+            if (isPM && hours < 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+
+            return new Date(year, month - 1, day, hours, minutes);
+        } catch {
+            return new Date();
+        }
+    }, []);
+
     const getAppointmentPrice = useCallback((apt: any) => {
         const service = getServiceById(apt.serviceId);
         const addServices = apt.additionalServices || [];
 
-        const customPriceItem = addServices.find((s: string) => s.startsWith('Cotización Confirmada:'));
-        if (customPriceItem) {
-            const priceMatch = customPriceItem.match(/\$(\d+)/);
-            if (priceMatch) return Number(priceMatch[1]);
-        }
+        const customPriceItem = addServices.find((s: string) =>
+            s.startsWith('Cotización Confirmada:') || s.startsWith('Cotización Estimada:')
+        );
 
-        const quoteItem = addServices.find((s: string) => s.startsWith('Cotización Estimada:'));
-        if (quoteItem) {
-            const priceMatch = quoteItem.match(/\$(\d+)/);
-            if (priceMatch) return Number(priceMatch[1]);
+        if (customPriceItem) {
+            const match = customPriceItem.match(/\$(\d+(\.\d+)?)/);
+            if (match) {
+                return parseFloat(match[1]);
+            }
         }
 
         let total = service?.price || 0;
-        addServices.forEach((name: string) => {
-            if (name.startsWith('Referencia:')) return;
-            const extraMatch = name.match(/\(\+\$(\d+)/);
+        addServices.forEach((extra: string) => {
+            if (extra.startsWith('Cotización Confirmada:') || extra.startsWith('Cotización Estimada:') || extra.startsWith('Referencia:')) {
+                return;
+            }
+
+            const extraMatch = extra.match(/\(\+\$(\d+(\.\d+)?)\s*MXN\)/i) || extra.match(/\(\+\$(\d+(\.\d+)?)\)/i);
             if (extraMatch) {
-                total += Number(extraMatch[1]);
-            } else if (name.startsWith('Diseño Catálogo:')) {
-                const priceMatch = name.match(/\$(\d+)/);
-                if (priceMatch) total += Number(priceMatch[1]);
-            } else {
-                const matchingService = services.find(s => s.name === name);
-                if (matchingService) {
-                    total += matchingService.price;
+                total += parseFloat(extraMatch[1]);
+                return;
+            }
+
+            if (extra.startsWith('Diseño Catálogo:')) {
+                const priceMatch = extra.match(/\$(\d+(\.\d+)?)/);
+                if (priceMatch) {
+                    total += parseFloat(priceMatch[1]);
+                    return;
                 }
+            }
+
+            const cleanName = extra
+                .split('(+')[0]
+                .replace(/^Extra:\s*/i, '')
+                .replace(/^Diseño:\s*/i, '')
+                .replace(/^Largo:\s*/i, '')
+                .replace(/^Diseño Catálogo:\s*/i, '')
+                .replace(/^Adicional:\s*/i, '')
+                .trim();
+
+            const matchingService = services.find((s: any) =>
+                s.name.toLowerCase() === cleanName.toLowerCase() ||
+                s.name.toLowerCase() === extra.toLowerCase()
+            );
+            if (matchingService && matchingService.price) {
+                total += matchingService.price;
             }
         });
 
@@ -328,22 +436,7 @@ export default function Dashboard() {
         return appointments.filter(a => a.date === tStr && a.status !== 'cancelada');
     }, [appointments]);
 
-    const revenue = useMemo(() => {
-        return todayAppts.reduce((sum, a) => {
-            if (a.status === 'no_show' || a.status === 'cancelada') return sum;
-            const svc = services.find(s => s.id === a.serviceId);
-            if (!svc) return sum;
 
-            let isFinished = a.status === 'completada';
-            if (!isFinished) {
-                const end = new Date(`${a.date}T${a.time}`);
-                end.setMinutes(end.getMinutes() + svc.duration);
-                if (new Date() >= end) isFinished = true;
-            }
-
-            return isFinished ? sum + getAppointmentPrice(a) : sum;
-        }, 0);
-    }, [todayAppts, services, getAppointmentPrice]);
 
     const tomorrowAppts = useMemo(() => {
         const target = new Date();
@@ -398,6 +491,7 @@ export default function Dashboard() {
     }, [todayAppts]);
 
     const remindersSentCount = todayRemindersSent.length;
+    const [dashboardViewMode, setDashboardViewMode] = useState<'columns' | 'list'>('columns');
 
     // ── Reports Logic ──
     const currentMonthStats = useMemo(() => {
@@ -469,10 +563,12 @@ export default function Dashboard() {
         };
     }, [appointments, services, getAppointmentPrice]);
 
-    // Graph Data
-    const revenueChartData = useMemo(() => {
+    // Graph Data & Summary
+    const { chartData: revenueChartData, chartSummary } = useMemo(() => {
         const data = [];
         const today = new Date();
+        let totalRevenue = 0;
+        let totalAppointments = 0;
 
         if (chartRange === '7D' || chartRange === '30D') {
             const daysCount = chartRange === '7D' ? 7 : 30;
@@ -481,24 +577,27 @@ export default function Dashboard() {
                 const dateStr = format(d, 'yyyy-MM-dd');
                 const label = format(d, 'd MMM', { locale: es });
 
-                const dayRevenue = appointments
-                    .filter(a => a.date === dateStr && a.status !== 'cancelada')
-                    .reduce((sum, appt) => {
-                        const svc = services.find(s => s.id === appt.serviceId);
-                        if (!svc) return sum;
-                        let isFinished = appt.status === 'completada';
-                        if (!isFinished) {
-                            const end = new Date(`${appt.date}T${appt.time}`);
-                            end.setMinutes(end.getMinutes() + svc.duration);
-                            if (new Date() >= end) isFinished = true;
-                        }
-                        return isFinished ? sum + getAppointmentPrice(appt) : sum;
-                    }, 0);
+                const dayAppts = appointments.filter(a => a.date === dateStr && a.status !== 'cancelada');
+                const dayRevenue = dayAppts.reduce((sum, appt) => {
+                    const svc = services.find(s => s.id === appt.serviceId);
+                    if (!svc) return sum;
+                    let isFinished = appt.status === 'completada';
+                    if (!isFinished) {
+                        const end = new Date(`${appt.date}T${appt.time}`);
+                        end.setMinutes(end.getMinutes() + svc.duration);
+                        if (new Date() >= end) isFinished = true;
+                    }
+                    return isFinished ? sum + getAppointmentPrice(appt) : sum;
+                }, 0);
+
+                totalRevenue += dayRevenue;
+                totalAppointments += dayAppts.length;
 
                 data.push({
                     name: label,
                     date: dateStr,
-                    Ingresos: dayRevenue
+                    Ingresos: dayRevenue,
+                    Citas: dayAppts.length
                 });
             }
         } else if (chartRange === '3M') {
@@ -508,21 +607,25 @@ export default function Dashboard() {
                 const endOfTargetWeek = endOfWeek(startOfTargetWeek, { weekStartsOn: 1 });
                 const label = `${format(startOfTargetWeek, 'd', { locale: es })}-${format(endOfTargetWeek, 'd MMM', { locale: es })}`;
 
-                const weekRevenue = appointments
-                    .filter(a => {
-                        if (a.status === 'cancelada') return false;
-                        const d = new Date(a.date + 'T12:00:00');
-                        return isWithinInterval(d, { start: startOfTargetWeek, end: endOfTargetWeek });
-                    })
-                    .reduce((sum, appt) => {
-                        const svc = services.find(s => s.id === appt.serviceId);
-                        if (!svc) return sum;
-                        return sum + getAppointmentPrice(appt);
-                    }, 0);
+                const weekAppts = appointments.filter(a => {
+                    if (a.status === 'cancelada') return false;
+                    const d = new Date(a.date + 'T12:00:00');
+                    return isWithinInterval(d, { start: startOfTargetWeek, end: endOfTargetWeek });
+                });
+
+                const weekRevenue = weekAppts.reduce((sum, appt) => {
+                    const svc = services.find(s => s.id === appt.serviceId);
+                    if (!svc) return sum;
+                    return sum + getAppointmentPrice(appt);
+                }, 0);
+
+                totalRevenue += weekRevenue;
+                totalAppointments += weekAppts.length;
 
                 data.push({
                     name: label,
-                    Ingresos: weekRevenue
+                    Ingresos: weekRevenue,
+                    Citas: weekAppts.length
                 });
             }
         } else if (chartRange === 'AÑO') {
@@ -532,43 +635,95 @@ export default function Dashboard() {
                 const endOfTargetMonth = endOfMonth(targetMonth);
                 const label = format(targetMonth, 'MMM yy', { locale: es });
 
-                const monthRevenue = appointments
-                    .filter(a => {
-                        if (a.status === 'cancelada') return false;
-                        const d = new Date(a.date + 'T12:00:00');
-                        return isWithinInterval(d, { start: targetMonth, end: endOfTargetMonth });
-                    })
-                    .reduce((sum, appt) => {
-                        const svc = services.find(s => s.id === appt.serviceId);
-                        if (!svc) return sum;
-                        return sum + getAppointmentPrice(appt);
-                    }, 0);
+                const monthAppts = appointments.filter(a => {
+                    if (a.status === 'cancelada') return false;
+                    const d = new Date(a.date + 'T12:00:00');
+                    return isWithinInterval(d, { start: targetMonth, end: endOfTargetMonth });
+                });
+
+                const monthRevenue = monthAppts.reduce((sum, appt) => {
+                    const svc = services.find(s => s.id === appt.serviceId);
+                    if (!svc) return sum;
+                    return sum + getAppointmentPrice(appt);
+                }, 0);
+
+                totalRevenue += monthRevenue;
+                totalAppointments += monthAppts.length;
 
                 data.push({
                     name: label.charAt(0).toUpperCase() + label.slice(1),
-                    Ingresos: monthRevenue
+                    Ingresos: monthRevenue,
+                    Citas: monthAppts.length
                 });
             }
         }
 
-        return data;
+        const avgTicket = totalAppointments > 0 ? Math.round(totalRevenue / totalAppointments) : 0;
+
+        return {
+            chartData: data,
+            chartSummary: {
+                totalRevenue,
+                totalAppointments,
+                avgTicket
+            }
+        };
     }, [appointments, services, chartRange, getAppointmentPrice]);
 
-    const topServices = useMemo(() => {
-        const counts: Record<number, number> = {};
+    // Top Services Enriched with % of total revenue and top stylist
+    const topServicesData = useMemo(() => {
+        const serviceStats: Record<number, { count: number; revenue: number; stylists: Record<number, number> }> = {};
+        let totalRevenueSum = 0;
+
         appointments.forEach(a => {
             if (a.status === 'cancelada') return;
-            counts[a.serviceId] = (counts[a.serviceId] || 0) + 1;
+            const svc = services.find(s => s.id === a.serviceId);
+            if (!svc) return;
+            const price = getAppointmentPrice(a);
+
+            if (!serviceStats[a.serviceId]) {
+                serviceStats[a.serviceId] = { count: 0, revenue: 0, stylists: {} };
+            }
+            serviceStats[a.serviceId].count += 1;
+            serviceStats[a.serviceId].revenue += price;
+            totalRevenueSum += price;
+
+            if (a.stylistId) {
+                serviceStats[a.serviceId].stylists[a.stylistId] = (serviceStats[a.serviceId].stylists[a.stylistId] || 0) + 1;
+            }
         });
 
-        return Object.entries(counts)
-            .map(([id, count]) => {
+        const list = Object.entries(serviceStats)
+            .map(([id, stats]) => {
                 const svc = services.find(s => s.id === Number(id));
-                return { name: svc?.name || 'Unknown', count, price: svc?.price || 0 };
+                let topStylistName = '';
+                let maxStylistCount = 0;
+                Object.entries(stats.stylists).forEach(([stId, count]) => {
+                    if (count > maxStylistCount) {
+                        maxStylistCount = count;
+                        const st = stylists.find(s => s.id === Number(stId));
+                        if (st) topStylistName = st.name.split(' ')[0];
+                    }
+                });
+
+                const percentOfTotal = totalRevenueSum > 0 ? Math.round((stats.revenue / totalRevenueSum) * 100) : 0;
+
+                return {
+                    id: Number(id),
+                    name: svc?.name || 'Servicio',
+                    count: stats.count,
+                    revenue: stats.revenue,
+                    percentOfTotal,
+                    topStylistName
+                };
             })
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 3);
-    }, [appointments, services]);
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 4);
+
+        return { list, totalRevenueSum };
+    }, [appointments, services, stylists, getAppointmentPrice]);
+
+
 
     return (
         <div className="animate-fade-in space-y-6 md:space-y-8">
@@ -1222,132 +1377,7 @@ export default function Dashboard() {
                 })()
             }
 
-            {/* ── Lista de Espera (colapsable) ── */}
-            <div id="waiting-list-section" className="glass-panel rounded-2xl border border-white/5 overflow-hidden mb-8">
-                {/* Header / toggle */}
-                <button
-                    onClick={() => setWaitingListOpen(o => !o)}
-                    className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group"
-                >
-                    <div className="flex items-center gap-3">
-                        <span className="flex h-3 w-3 relative">
-                            {waitingList.length > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>}
-                            <span className={`relative inline-flex rounded-full h-3 w-3 ${waitingList.length > 0 ? 'bg-amber-500' : 'bg-slate-600'}`}></span>
-                        </span>
-                        <h3 className="font-bold text-lg text-white">
-                            Lista de Espera
-                            <span className="ml-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-sm font-black">
-                                {waitingList.length}
-                            </span>
-                        </h3>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {!waitingListOpen && (
-                            <button
-                                onClick={async (e) => {
-                                    e.stopPropagation();
-                                    const name = prompt('Nombre del cliente:');
-                                    if (!name) return;
-                                    const phone = prompt('WhatsApp (10 dígitos):');
-                                    if (!phone) return;
-                                    const date = prompt('Fecha (YYYY-MM-DD):', new Date().toLocaleDateString('en-CA'));
-                                    if (!date) return;
-                                    const serviceId = services[0]?.id || 0;
-                                    await addToWaitingList({ name, phone, date, serviceId } as any);
-                                    showToast('Cliente añadido a la lista', 'success');
-                                }}
-                                className="px-3 py-1.5 bg-accent/20 text-accent hover:bg-accent hover:text-white rounded-xl border border-accent/20 transition-all font-bold text-xs"
-                            >
-                                + Añadir
-                            </button>
-                        )}
-                        <ChevronDown
-                            size={20}
-                            className={`text-slate-400 transition-transform duration-300 ${waitingListOpen ? 'rotate-180' : ''}`}
-                        />
-                    </div>
-                </button>
 
-                {/* Expandable content */}
-                {waitingListOpen && (
-                    <div className="px-6 pb-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <p className="text-sm text-muted">Clientes esperando un espacio libre.</p>
-                            <button
-                                onClick={async () => {
-                                    const name = prompt('Nombre del cliente:');
-                                    if (!name) return;
-                                    const phone = prompt('WhatsApp (10 dígitos):');
-                                    if (!phone) return;
-                                    const date = prompt('Fecha (YYYY-MM-DD):', new Date().toLocaleDateString('en-CA'));
-                                    if (!date) return;
-                                    const serviceId = services[0]?.id || 0;
-                                    await addToWaitingList({ name, phone, date, serviceId } as any);
-                                    showToast('Cliente añadido a la lista', 'success');
-                                }}
-                                className="px-3 py-1.5 bg-accent/20 text-accent hover:bg-accent hover:text-white rounded-xl border border-accent/20 transition-all font-bold text-xs"
-                            >
-                                + Añadir a Lista
-                            </button>
-                        </div>
-
-                        {waitingList.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
-                                <Users size={32} className="mb-2 text-slate-500" />
-                                <p className="text-sm font-medium">No hay nadie en la lista de espera actualmente.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {waitingList.map(item => {
-                                    const svc = getServiceById(item.serviceId);
-                                    return (
-                                        <div key={item.id} className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-5 flex flex-col justify-between group hover:border-accent/30 transition-all duration-500 relative overflow-hidden">
-                                            <div className="absolute -right-4 -top-4 w-12 h-12 bg-accent/5 blur-xl rounded-full"></div>
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div>
-                                                    <span className="text-white font-black text-base block tracking-tight leading-none mb-1">{item.name.toUpperCase()}</span>
-                                                    <span className="text-[11px] text-slate-400 font-bold bg-white/5 px-2 py-0.5 rounded-lg border border-white/5 inline-flex items-center gap-1">
-                                                        <Phone size={10} /> {item.phone}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest">Solicita para:</span>
-                                                    <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
-                                                        {new Date(item.date + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 text-xs text-muted mb-4">
-                                                <Scissors size={12} className="opacity-40" />
-                                                <span>{svc?.name || 'Cualquier servicio'}</span>
-                                            </div>
-
-                                            <div className="flex gap-2">
-                                                <a
-                                                    href={`https://wa.me/${item.phone.replace(/\D/g, '')}?text=Hola ${item.name}, te contactamos de ${(businessConfig as any)?.name}. Vimos que estabas en nuestra lista de espera para el ${item.date}. ¿Aún estás interesado en agendar una cita?`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex-1 btn btn-sm bg-accent/20 text-accent hover:bg-accent hover:text-white py-2 rounded-lg border border-accent/20 transition-all font-bold text-xs flex items-center justify-center gap-2"
-                                                >
-                                                    <MessageCircle size={14} /> WhatsApp
-                                                </a>
-                                                <button
-                                                    onClick={() => removeFromWaitingList(item.id)}
-                                                    className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20"
-                                                    title="Eliminar de lista"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
 
             {/* ── SECCIÓN DEDICADA: CITAS PENDIENTES DE COTIZACIÓN (Solo si hay pendientes) ── */}
             {pendingPriceAppts.length > 0 && (
@@ -1404,7 +1434,7 @@ export default function Dashboard() {
                                         </div>
 
                                         <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 pt-1">
-                                            <Scissors size={14} className="text-slate-500 shrink-0" />
+                                            <Sparkles size={14} className="text-slate-500 shrink-0" />
                                             <span className="font-bold text-slate-200">{svc?.name || 'Servicio'}</span>
                                         </div>
 
@@ -1478,477 +1508,159 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* ── Top Stats Grid ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-blue-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
-                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-500/5 blur-2xl rounded-full group-hover:bg-blue-500/10 transition-all duration-700"></div>
-                    <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
-                        <Calendar size={26} />
-                    </div>
-                    <div className="relative z-10 w-full">
-                        <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">{t('dashboard.metrics.today_appts')}</p>
-                        {isLoading ? <Skeleton className="h-9 w-16" /> : <p className="text-3xl font-black text-white tracking-tighter">{todayAppts.length}</p>}
-                    </div>
-                </div>
-
-                {/* ── Recordatorios WhatsApp enviados hoy ── */}
-                <div className="glass-panel p-5 sm:p-6 rounded-[2rem] border border-emerald-500/10 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
-                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full pointer-events-none"></div>
-                    
-                    <div className="flex items-start justify-between gap-2 relative z-10">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 shadow-inner border border-white/5 shrink-0">
-                                <MessageCircle size={22} />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-tight truncate">Recordatorios hoy</p>
-                                {isLoading ? <Skeleton className="h-7 w-12 mt-1" /> : (
-                                    <p className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tighter mt-0.5">{remindersSentCount}</p>
-                                )}
-                            </div>
+            {/* ── Top Metric Banner (Single unified glass card with clean segments) ── */}
+            <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-white/10 bg-slate-900/60 shadow-xl mb-6 relative overflow-hidden">
+                <div className="grid grid-cols-3 divide-x divide-white/10 items-center">
+                    {/* 1. Citas Hoy */}
+                    <div className="flex items-center gap-2.5 sm:gap-4 px-2 sm:px-4">
+                        <div className="p-2 sm:p-3 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0 hidden sm:flex">
+                            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setIsRemindersExpanded(!isRemindersExpanded)}
-                            className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 transition-all flex items-center gap-1 text-[11px] font-bold shrink-0 mt-0.5"
-                            title="Ver citas con recordatorio enviado hoy"
-                        >
-                            <span>{isRemindersExpanded ? 'Ocultar' : 'Ver citas'}</span>
-                            <ChevronDown size={14} className={`transition-transform duration-300 ${isRemindersExpanded ? 'rotate-180' : ''}`} />
-                        </button>
-                    </div>
-
-                    <p className="text-[10px] text-slate-500 font-medium mt-2 relative z-10 leading-tight">
-                        WhatsApp automático · Envíos del día
-                    </p>
-
-                    {/* Desplegable de Citas con Recordatorio Enviado Hoy */}
-                    {isRemindersExpanded && (
-                        <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5 animate-fade-in relative z-10">
-                            <p className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
-                                <span>Citas de hoy con recordatorio:</span>
-                                <span className="text-emerald-400 font-mono text-xs">{todayRemindersSent.length}</span>
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-wider truncate">
+                                Citas Hoy
                             </p>
-                            {todayRemindersSent.length === 0 ? (
-                                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-slate-400 italic">
-                                    Aún no se han enviado recordatorios para las citas de hoy.
-                                </div>
-                            ) : (
-                                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                                    {todayRemindersSent.map((apt) => {
-                                        const svc = services.find(s => s.id === apt.serviceId);
-                                        const stylist = stylists.find(s => s.id === apt.stylistId);
-                                        return (
-                                            <div key={apt.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-emerald-500/20 text-xs gap-2">
-                                                <div className="space-y-0.5 min-w-0">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="font-black text-white truncate text-xs">{apt.clientName}</span>
-                                                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20 shrink-0">
-                                                            Enviado 🟢
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 truncate">
-                                                        <span className="font-semibold text-slate-300">{apt.time} hrs</span>
-                                                        <span>•</span>
-                                                        <span className="truncate">{svc?.name || 'Servicio'}</span>
-                                                        {stylist && (
-                                                            <>
-                                                                <span>•</span>
-                                                                <span className="text-pink-400 truncate">{stylist.name}</span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {apt.clientPhone && (
-                                                    <a
-                                                        href={`https://wa.me/${apt.clientPhone.replace(/\D/g, '')}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors shrink-0"
-                                                        title="WhatsApp del cliente"
-                                                    >
-                                                        <MessageCircle size={14} />
-                                                    </a>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-
-
-                {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
-                    <div className="glass-panel p-6 rounded-[2rem] border border-white/5 flex items-center gap-5 group hover:border-emerald-500/20 transition-all duration-500 relative overflow-hidden bg-slate-900/40">
-                        <div className="absolute -left-4 -top-4 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
-                        <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5 relative z-10">
-                            <DollarSign size={26} />
-                        </div>
-                        <div className="relative z-10">
-                            <div className="relative z-10 w-full">
-                                <p className="text-[10px] text-slate-500 mb-1 font-black uppercase tracking-widest">{t('dashboard.metrics.today_revenue')}</p>
-                                {isLoading ? <Skeleton className="h-9 w-24" /> : <p className="text-3xl font-black text-emerald-400 tracking-tighter">${revenue}</p>}
+                            <div className="flex items-baseline gap-1.5 mt-0.5">
+                                {isLoading ? (
+                                    <Skeleton className="h-7 w-12" />
+                                ) : (
+                                    <p className="text-xl sm:text-3xl font-black text-white tracking-tight">
+                                        {todayAppts.length}
+                                    </p>
+                                )}
+                                <span className="text-[10px] text-slate-500 font-medium hidden md:inline">para hoy</span>
                             </div>
                         </div>
                     </div>
-                )}
 
-                <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-amber-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
-                    <div className="absolute -left-4 -top-4 w-20 h-20 bg-amber-500/5 blur-2xl rounded-full group-hover:bg-amber-500/10 transition-all duration-700"></div>
-                    <div className="flex items-center gap-4 relative z-10 mb-4">
-                        <div className="p-3.5 rounded-2xl bg-amber-500/10 text-amber-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
-                            <Activity size={24} />
+                    {/* 2. Recordatorios WhatsApp enviados hoy */}
+                    <div className="flex items-center gap-2.5 sm:gap-4 px-2 sm:px-4">
+                        <div className="p-2 sm:p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0 hidden sm:flex">
+                            <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-[10px] text-slate-500 mb-0.5 font-black uppercase tracking-widest truncate">{t('dashboard.metrics.month_appts')}</p>
-                            <div className="flex items-center gap-2">
-                                {isLoading ? <Skeleton className="h-8 w-12" /> : (
-                                    <p className="text-3xl font-black text-white tracking-tighter">
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-wider truncate">
+                                Recordatorios
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                {isLoading ? (
+                                    <Skeleton className="h-7 w-10" />
+                                ) : (
+                                    <p className="text-xl sm:text-3xl font-black text-emerald-400 tracking-tight">
+                                        {remindersSentCount}
+                                    </p>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRemindersExpanded(!isRemindersExpanded)}
+                                    className="text-[9px] sm:text-[10px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-lg border border-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                                >
+                                    <span>{isRemindersExpanded ? 'Cerrar' : 'Ver'}</span>
+                                    <ChevronDown size={11} className={`transition-transform duration-300 ${isRemindersExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. Citas del Mes */}
+                    <div className="flex items-center gap-2.5 sm:gap-4 px-2 sm:px-4">
+                        <div className="p-2 sm:p-3 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 hidden sm:flex">
+                            <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-wider truncate">
+                                Citas del Mes
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                {isLoading ? (
+                                    <Skeleton className="h-7 w-12" />
+                                ) : (
+                                    <p className="text-xl sm:text-3xl font-black text-white tracking-tight">
                                         {currentMonthStats.count}
                                         {monthlyApptLimit > 0 && (
-                                            <span className="text-base font-bold text-slate-500">/{monthlyApptLimit}</span>
+                                            <span className="text-xs sm:text-base font-bold text-slate-500">/{monthlyApptLimit}</span>
                                         )}
                                     </p>
                                 )}
-                                <div className={`flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-lg border ${currentMonthStats.appsGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
-                                    {currentMonthStats.appsGrowth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                                    {Math.abs(Math.round(currentMonthStats.appsGrowth))}%
-                                </div>
+                                <span className={`text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded-md border ${
+                                    currentMonthStats.appsGrowth >= 0 
+                                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
+                                        : 'text-red-400 bg-red-500/10 border-red-500/20'
+                                }`}>
+                                    {currentMonthStats.appsGrowth >= 0 ? '↗' : '↘'} {Math.abs(Math.round(currentMonthStats.appsGrowth))}%
+                                </span>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Free plan progress bar */}
-                    {monthlyApptLimit > 0 && !isLoading && (() => {
-                        const pct = Math.min((currentMonthStats.count / monthlyApptLimit) * 100, 100);
-                        const isNear  = pct >= 70;
-                        const isFull  = pct >= 100;
-                        const barColor = isFull ? 'bg-red-500' : isNear ? 'bg-amber-500' : 'bg-violet-500';
-                        const textColor = isFull ? 'text-red-400' : isNear ? 'text-amber-400' : 'text-slate-500';
-                        return (
-                            <div className="relative z-10">
-                                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-700 ${barColor} ${isFull ? 'animate-pulse' : ''}`}
-                                        style={{ width: `${pct}%` }}
-                                    />
-                                </div>
-                                {isFull ? (
-                                    <p className="text-[10px] font-black text-red-400 tracking-tight">
-                                        ⚠️ Límite alcanzado — <span className="underline cursor-pointer hover:text-red-300">Actualiza a Pro</span>
-                                    </p>
-                                ) : (
-                                    <p className={`text-[10px] font-bold tracking-tight ${textColor}`}>
-                                        {monthlyApptLimit - currentMonthStats.count} citas restantes este mes
-                                    </p>
-                                )}
-                            </div>
-                        );
-                    })()}
-
-                    {/* No free limit: show canceled count */}
-                    {monthlyApptLimit <= 0 && (
-                        <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3">
-                            {t('dashboard.metrics.canceled', { count: currentMonthStats.canceled })}
-                        </div>
-                    )}
-                </div>
-
-                {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
-                    <div className="glass-panel p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group hover:border-pink-500/20 transition-all duration-500 bg-slate-900/40 flex flex-col justify-between h-full">
-                        <div className="absolute -left-4 -top-4 w-20 h-20 bg-pink-500/5 blur-2xl rounded-full group-hover:bg-pink-500/10 transition-all duration-700"></div>
-                        <div className="flex items-center gap-4 relative z-10 mb-4">
-                            <div className="p-3.5 rounded-2xl bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform duration-500 shadow-inner border border-white/5">
-                                <CreditCard size={24} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[10px] text-slate-500 mb-0.5 font-black uppercase tracking-widest truncate">{t('dashboard.metrics.month_revenue')}</p>
-                                <div className="flex items-center gap-2">
-                                    {isLoading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-black text-pink-400 tracking-tighter">${currentMonthStats.revenue}</p>}
-                                    <div className={`flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-lg border ${currentMonthStats.revenueGrowth >= 0 ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' : 'text-red-400 bg-red-400/5 border-red-400/20'}`}>
-                                        {currentMonthStats.revenueGrowth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                                        {Math.abs(Math.round(currentMonthStats.revenueGrowth))}%
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="text-[10px] text-slate-500 font-bold tracking-tight relative z-10 opacity-70 border-t border-white/5 pt-3 uppercase">
-                            {t('dashboard.metrics.vs_last_month', { amount: currentMonthStats.lastRevenue })}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* ── Revenue Chart ── */}
-                    <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 flex flex-col min-h-[350px]">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <TrendingUp size={20} className="text-accent" /> {t('dashboard.charts.revenue')}
-                            </h3>
-                            {/* Rango Selector */}
-                            <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 overflow-x-auto hide-scrollbar">
-                                {(["7D", "30D", "3M", "AÑO"] as ChartRange[]).map(range => (
-                                    <button
-                                        key={range}
-                                        onClick={() => setChartRange(range)}
-                                        aria-current={chartRange === range ? 'page' : undefined}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap ${chartRange === range
-                                            ? 'bg-[var(--accent)] text-white shadow-md'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                                            }`}
-                                    >
-                                        {range}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex-1 w-full relative">
-                            {revenueChartData.every(d => d.Ingresos === 0) ? (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
-                                    <Activity size={48} className="mb-4 text-slate-500" />
-                                    <p className="text-sm text-slate-400 font-medium">No hay suficientes datos de ingresos para esta semana.</p>
-                                </div>
-                            ) : (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                                        <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
-                                            itemStyle={{ color: 'hsl(var(--hue-accent), 100%, 60%)', fontWeight: 'bold' }}
-                                            labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                                            formatter={(value: any) => [`$${value}`, 'Ingresos']}
-                                        />
-                                        <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* ── Top Services ── */}
-                    <div className="glass-panel p-6 rounded-2xl border border-white/5">
-                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                            <Scissors size={20} className="text-pink-400" /> {t('dashboard.charts.top_services')}
-                        </h3>
-                        <div className="space-y-5">
-                            {topServices.length > 0 ? topServices.map((svc, i) => (
-                                <div key={i} className="group">
-                                    <div className="flex justify-between items-end mb-2">
-                                        <div>
-                                            <div className="text-sm font-bold text-white mb-0.5">{svc.name}</div>
-                                            <div className="text-xs text-slate-400">{svc.count} citas completadas</div>
-                                        </div>
-                                        <div className="text-sm font-black text-pink-400">${svc.price * svc.count}</div>
-                                    </div>
-                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-1000"
-                                            style={{ width: `${(svc.count / (topServices[0]?.count || 1)) * 100}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            )) : (
-                                <p className="text-sm text-slate-500 text-center py-10">No hay datos suficientes para mostrar.</p>
-                            )}
                         </div>
                     </div>
                 </div>
-            )}
 
-            {/* ── Próximas Citas Mañana (collapsible) ── */}
-            <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden">
-                {/* Header / toggle */}
-                <button
-                    onClick={() => setTomorrowOpen(o => !o)}
-                    className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group"
-                >
-                    <div className="flex items-center gap-3">
-                        <span className="flex h-3 w-3 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
-                        </span>
-                        <h3 className="font-bold text-lg text-white">
-                            Próximas Citas (Mañana)
-                            <span className="ml-2 px-2.5 py-0.5 rounded-full bg-accent/20 text-accent text-sm font-black">
-                                {tomorrowAppts.length}
+                {/* Desplegable de Citas con Recordatorio Enviado Hoy */}
+                {isRemindersExpanded && (
+                    <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5 animate-slide-down">
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/5">
+                            <div className="flex items-center gap-2">
+                                <MessageCircle size={14} className="text-emerald-400" />
+                                <h4 className="text-xs font-black text-white">Recordatorios WhatsApp enviados hoy</h4>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                {todayRemindersSent.length} {todayRemindersSent.length === 1 ? 'envío' : 'envíos'}
                             </span>
-                        </h3>
-                    </div>
-                    <ChevronDown
-                        size={20}
-                        className={`text-slate-400 transition-transform duration-300 ${tomorrowOpen ? 'rotate-180' : ''}`}
-                    />
-                </button>
-
-                {tomorrowOpen && (
-                    <div className="px-6 pb-6">
-                        <p className="text-sm text-muted mb-4">
-                            {reminders.length > 0
-                                ? `${reminders.length} de estas citas llevan 3+ días reservadas. Recuerda enviarles un recordatorio.`
-                                : 'Citas confirmadas para mañana.'}
-                        </p>
-
-                        {tomorrowAppts.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 opacity-40">
-                                <Calendar size={32} className="mb-2 text-slate-500" />
-                                <p className="text-sm">No hay citas agendadas para mañana.</p>
+                        </div>
+                        {todayRemindersSent.length === 0 ? (
+                            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-slate-400 italic">
+                                Aún no se han enviado recordatorios para las citas de hoy.
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {tomorrowAppts.map(appt => {
-                                    const svc = getServiceById(appt.serviceId);
-                                    const needsReminder = reminders.some(r => r.id === appt.id);
-                                    const [h, m] = appt.time.split(':');
-                                    let hh = parseInt(h);
-                                    const ampm = hh >= 12 ? 'pm' : 'am';
-                                    hh = hh % 12 || 12;
-                                    return (
-                                        <div key={appt.id} className={`bg-slate-900/40 backdrop-blur-md border p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group ${
-                                            needsReminder ? 'border-amber-500/30' : 'border-white/5'
-                                        }`}>
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <div className="font-black text-white text-base tracking-tight mb-1 flex items-center gap-2 flex-wrap">
-                                                        <span>{appt.clientName.toUpperCase()}</span>
-                                                        {appt.bookingSource === 'marketplace' && (
-                                                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                🛒 Buscador CitaLink
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <button
-                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === `quote-${appt.id}` ? null : `quote-${appt.id}`)}
-                                                             className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
-                                                                 expandedServiceApptId === `quote-${appt.id}`
-                                                                     ? 'bg-accent/20 border-accent/40 text-accent'
-                                                                     : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
-                                                             }`}
-                                                             title="Ver/ocultar desglose de servicios"
-                                                         >
-                                                             <Scissors size={12} className="text-accent shrink-0" />
-                                                             <span>{svc?.name}</span>
-                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `quote-${appt.id}` ? 'rotate-180 text-accent' : ''}`} />
-                                                         </button>
-                                                        {(() => {
-                                                            const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
-                                                            if (refItem) {
-                                                                const url = refItem.replace('Referencia: ', '');
-                                                                return (
-                                                                    <button
-                                                                        onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
-                                                                        className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
-                                                                    >
-                                                                        <Eye size={12} className="text-slate-900" />
-                                                                        <span>Diseño</span>
-                                                                    </button>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        })()}
-                                                    </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                                {todayRemindersSent.map((apt) => {
+                                    const svc = services.find(s => s.id === apt.serviceId);
+                                    const stylist = stylists.find(s => s.id === apt.stylistId);
+                                    const apptTimeStr = apt.time ? apt.time.slice(0, 5) : '';
+                                    const sentTimestamp = (apt as any).reminder_sent_at || (apt as any).updated_at;
+                                    let sentTimeStr = '';
+                                    if (sentTimestamp) {
+                                        try {
+                                            sentTimeStr = format(new Date(sentTimestamp), 'HH:mm');
+                                        } catch {
+                                            sentTimeStr = '';
+                                        }
+                                    }
 
-                                                    {/* Desplegable de detalles de servicio */}
-                                                    {expandedServiceApptId === `quote-${appt.id}` && (
-                                                        <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-accent/30 text-xs space-y-1 animate-fade-in relative z-10">
-                                                            <div className="text-[9px] font-black uppercase tracking-wider text-accent border-b border-white/10 pb-1 flex items-center justify-between">
-                                                                <span>Desglose Detallado</span>
-                                                            </div>
-                                                            <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-slate-400">Servicio Base:</span>
-                                                                    <span className="font-bold text-white">{svc?.name || 'Servicio'}</span>
-                                                                </div>
-                                                                {svc?.duration && (
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-400">Duración:</span>
-                                                                        <span>{svc.duration} min</span>
-                                                                    </div>
-                                                                )}
-                                                                {appt.additionalServices && appt.additionalServices.length > 0 && (
-                                                                    <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
-                                                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
-                                                                        {appt.additionalServices
-                                                                            .filter((s: string) => !s.startsWith('Referencia:'))
-                                                                            .map((extra: string, idx: number) => (
-                                                                                <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
-                                                                                    <span className="text-slate-500">•</span>
-                                                                                    <span className="break-words">{extra}</span>
-                                                                                </div>
-                                                                            ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>
+                                    return (
+                                        <div key={apt.id} className="p-3 rounded-2xl bg-slate-950/80 border border-emerald-500/20 text-xs flex flex-col justify-between gap-1.5 hover:border-emerald-500/40 transition-all">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="font-black text-white truncate text-xs">
+                                                    {apt.clientName} - {apt.clientPhone || 'Sin tel'}
+                                                </span>
+                                                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">
+                                                    Enviado 🟢
+                                                </span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium flex-wrap">
-                                                <Phone size={12} className="opacity-50" />
-                                                <span>{formatPhoneDisplay(appt.clientPhone)}</span>
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingNoteApptId(appt.id);
-                                                        setNoteText((appt as any).staff_notes || '');
-                                                    }}
-                                                    className={`px-2 py-0.5 rounded-md text-[9px] font-bold cursor-pointer transition-colors ${ (appt as any).staff_notes ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-500 hover:text-white'}`}
-                                                >
-                                                    {(appt as any).staff_notes ? '🗒️ Nota' : '+ Nota'}
-                                                </button>
-                                                {!businessConfig?.hideServicePrices && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedApptForPrice(appt);
-                                                            setNewPriceValue(String(getAppointmentPrice(appt)));
-                                                            setIsPriceModalOpen(true);
-                                                        }}
-                                                        className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border cursor-pointer hover:bg-white/5 active:scale-95 transition-all ${
-                                                            isPriceConfirmed(appt)
-                                                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
-                                                        }`}
-                                                        title="Ajustar precio de la cita"
-                                                    >
-                                                        <DollarSign size={9} />
-                                                        <span>{getAppointmentPrice(appt)}</span>
-                                                        <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
-                                                            {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
+
+                                            <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap">
+                                                <span className="text-slate-300 font-semibold">
+                                                    ⏰ Cita: <strong className="text-white">{apptTimeStr} hrs</strong>
+                                                </span>
+                                                {sentTimeStr && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="text-emerald-400 font-semibold">
+                                                            📤 Envío: <strong>{sentTimeStr} hrs</strong>
                                                         </span>
-                                                    </button>
+                                                    </>
                                                 )}
-                                                {needsReminder && (
-                                                    <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
+                                                <span>•</span>
+                                                <span className="truncate text-slate-300">
+                                                    {svc?.name || 'Servicio'}
+                                                </span>
+                                                {stylist && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="text-pink-400 truncate font-medium">
+                                                            {stylist.name}
+                                                        </span>
+                                                    </>
                                                 )}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => setRescheduleModal({ open: true, appt })}
-                                                    className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 transition-all flex items-center justify-center font-bold cursor-pointer"
-                                                    title="Reagendar Cita"
-                                                >
-                                                    <RefreshCw size={13} /> Reagendar
-                                                </button>
-                                                <button
-                                                    onClick={() => navigate('/admin/appointments')}
-                                                    className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 hover:text-white border border-white/5 hover:border-white/10 transition-all flex items-center justify-center font-bold cursor-pointer"
-                                                >
-                                                    <Calendar size={13} className="opacity-70" /> Gestionar
-                                                </button>
                                             </div>
                                         </div>
                                     );
@@ -1958,72 +1670,537 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
+                <div className="space-y-6">
+                    {/* ── Grid Principal de Gráfica y Servicios ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* ── Revenue & Volume Chart ── */}
+                        <div className="lg:col-span-2 glass-panel p-5 sm:p-7 rounded-3xl border border-white/10 flex flex-col min-h-[400px] bg-slate-900/60 shadow-xl relative overflow-hidden">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                <div>
+                                    <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                                        <TrendingUp size={20} className="text-accent" /> Rendimiento y Flujo de Clientes
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        Análisis detallado de facturación y volumen por período
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                    {/* Toggle Métrica: Ingresos ($) vs Citas (#) */}
+                                    <div className="flex bg-slate-800/80 p-1 rounded-xl border border-white/10">
+                                        <button
+                                            type="button"
+                                            onClick={() => setChartViewType('revenue')}
+                                            className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                                                chartViewType === 'revenue'
+                                                    ? 'bg-accent text-white shadow-lg'
+                                                    : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            💰 Ingresos ($)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setChartViewType('volume')}
+                                            className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                                                chartViewType === 'volume'
+                                                    ? 'bg-cyan-500 text-slate-950 shadow-lg'
+                                                    : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            👥 Citas (#)
+                                        </button>
+                                    </div>
+
+                                    {/* Rango Selector */}
+                                    <div className="flex bg-slate-800/80 p-1 rounded-xl border border-white/10">
+                                        {(["7D", "30D", "3M", "AÑO"] as ChartRange[]).map(range => (
+                                            <button
+                                                key={range}
+                                                type="button"
+                                                onClick={() => setChartRange(range)}
+                                                className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                                                    chartRange === range
+                                                        ? 'bg-white/20 text-white shadow-sm'
+                                                        : 'text-slate-400 hover:text-white'
+                                                }`}
+                                            >
+                                                {range}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Resumen Financiero del Período Seleccionado */}
+                            <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/5 mb-6">
+                                <div>
+                                    <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                        Total Período
+                                    </p>
+                                    <p className="text-base sm:text-2xl font-black text-white tracking-tight mt-0.5">
+                                        ${chartSummary.totalRevenue.toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="border-x border-white/5 px-2 sm:px-4">
+                                    <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                        Ticket Promedio
+                                    </p>
+                                    <p className="text-base sm:text-2xl font-black text-accent tracking-tight mt-0.5">
+                                        ${chartSummary.avgTicket}
+                                        <span className="text-[10px] sm:text-xs text-slate-500 font-normal ml-1 hidden sm:inline">/ cita</span>
+                                    </p>
+                                </div>
+                                <div className="pl-1 sm:pl-2">
+                                    <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                        Citas Realizadas
+                                    </p>
+                                    <p className="text-base sm:text-2xl font-black text-cyan-400 tracking-tight mt-0.5">
+                                        {chartSummary.totalAppointments}
+                                        <span className="text-[10px] sm:text-xs text-slate-500 font-normal ml-1 hidden sm:inline">completadas</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Gráfica Recharts */}
+                            <div className="flex-1 w-full relative min-h-[220px]">
+                                {revenueChartData.length === 0 || (chartViewType === 'revenue' && revenueChartData.every(d => d.Ingresos === 0)) || (chartViewType === 'volume' && revenueChartData.every(d => d.Citas === 0)) ? (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
+                                        <Activity size={44} className="mb-3 text-slate-500 animate-pulse-soft" />
+                                        <p className="text-sm text-slate-400 font-medium">No hay suficientes datos registrados para este período.</p>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0.4} />
+                                                    <stop offset="95%" stopColor="hsl(var(--hue-accent), 100%, 50%)" stopOpacity={0} />
+                                                </linearGradient>
+                                                <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                                                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                            <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
+                                            <YAxis
+                                                stroke="rgba(255,255,255,0.3)"
+                                                fontSize={11}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                tickFormatter={(value) => chartViewType === 'revenue' ? `$${value}` : `${value}`}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}
+                                                labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '6px' }}
+                                                formatter={(value: any, name: any) => [
+                                                    name === 'Ingresos' ? `$${Number(value).toLocaleString()}` : `${value} citas`,
+                                                    name === 'Ingresos' ? 'Facturado' : 'Citas'
+                                                ]}
+                                            />
+                                            {chartViewType === 'revenue' ? (
+                                                <Area type="monotone" dataKey="Ingresos" stroke="hsl(var(--hue-accent), 100%, 50%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                            ) : (
+                                                <Area type="monotone" dataKey="Citas" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorVolume)" />
+                                            )}
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ── Servicios Más Rentables ── */}
+                        <div className="glass-panel p-5 sm:p-7 rounded-3xl border border-white/10 bg-slate-900/60 shadow-xl flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                                        <Sparkles size={20} className="text-pink-400" /> Servicios Populares
+                                    </h3>
+                                    <span className="text-[10px] font-black uppercase text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded-full border border-pink-500/20">
+                                        Por Ganancia
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-400 mb-6">
+                                    Servicios que mayor facturación aportan al salón
+                                </p>
+
+                                <div className="space-y-4">
+                                    {topServicesData.list.length > 0 ? topServicesData.list.map((svc, i) => (
+                                        <div key={svc.id} className="group p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 transition-all">
+                                            <div className="flex justify-between items-start mb-1.5 gap-2">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <span className="w-5 h-5 rounded-full bg-pink-500/10 text-pink-400 text-[10px] font-black flex items-center justify-center shrink-0 border border-pink-500/20">
+                                                        {i + 1}
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs sm:text-sm font-black text-white truncate group-hover:text-pink-300 transition-colors">
+                                                            {svc.name}
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-400">
+                                                            {svc.count} {svc.count === 1 ? 'cita' : 'citas'} {svc.topStylistName && `· ⭐ ${svc.topStylistName}`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-xs sm:text-sm font-black text-pink-400">
+                                                        ${svc.revenue.toLocaleString()}
+                                                    </p>
+                                                    <p className="text-[9px] font-bold text-slate-400">
+                                                        {svc.percentOfTotal}% del total
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-700"
+                                                    style={{ width: `${Math.max(8, svc.percentOfTotal)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className="text-center py-12 text-slate-500 text-xs italic">
+                                            No hay citas completadas suficientes para calcular los servicios más rentables.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {topServicesData.totalRevenueSum > 0 && (
+                                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+                                    <span>Total facturado en servicios:</span>
+                                    <strong className="text-white font-black">${topServicesData.totalRevenueSum.toLocaleString()}</strong>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+            )}
+
             {/* Today's Appointments */}
             <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-accent shrink-0 shadow-lg shadow-accent/5">
                             <Calendar size={22} />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-black text-lg text-white tracking-tight">Próximas Citas de Hoy</h3>
+                                <h3 className="font-black text-lg text-white tracking-tight">
+                                    {dashboardViewMode === 'columns' ? 'Control de Citas' : 'Próximas Citas de Hoy'}
+                                </h3>
                             </div>
-                            <p className="text-xs text-slate-400">Citas programadas pendientes para la jornada de hoy</p>
+                            <p className="text-xs text-slate-400">
+                                {dashboardViewMode === 'columns'
+                                    ? 'Monitoreo en tiempo real por especialista'
+                                    : 'Citas programadas pendientes para la jornada de hoy'}
+                            </p>
                         </div>
                     </div>
-                    {!isEmployee && (
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
-                            {/* Short link to waiting list section */}
+
+                    <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+                        {/* View Mode Toggle */}
+                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10 shrink-0">
                             <button
-                                onClick={() => {
-                                    const el = document.getElementById('waiting-list-section');
-                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                                }}
-                                className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-all font-black text-[10px] uppercase tracking-wider"
+                                onClick={() => setDashboardViewMode('columns')}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                    dashboardViewMode === 'columns'
+                                        ? 'bg-accent text-slate-950 font-black shadow-lg shadow-accent/20'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                                title="Vista Multicolumna por Profesional (Estilo Google Calendar)"
                             >
-                                <Users size={14} />
-                                Lista de Espera
-                                {waitingList.length > 0 && (
-                                    <span className="bg-amber-500 text-white px-1.5 py-0.5 rounded-full text-[9px] min-w-[16px] h-4 flex items-center justify-center">
-                                        {waitingList.length}
-                                    </span>
-                                )}
+                                <User size={15} />
                             </button>
-                            <CustomSelect
-                                value={String(dashboardStylistId)}
-                                onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
-                                options={[
-                                    { value: 'all', label: 'Todos los Profesionales' },
-                                    ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
-                                ]}
-                                buttonClassName="bg-slate-900/60 border border-white/10 text-white rounded-2xl px-4 py-2 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[170px] shadow-sm"
-                                dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
-                            />
+                            <button
+                                onClick={() => setDashboardViewMode('list')}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                    dashboardViewMode === 'list'
+                                        ? 'bg-accent text-slate-950 font-black shadow-lg shadow-accent/20'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                                title="Vista en Lista de Citas"
+                            >
+                                <Calendar size={15} />
+                            </button>
                         </div>
-                    )}
+
+                        {!isEmployee && (
+                            <>
+                                <CustomSelect
+                                    value={String(dashboardStylistId)}
+                                    onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
+                                    options={[
+                                        { value: 'all', label: 'Todos los Profesionales' },
+                                        ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
+                                    ]}
+                                    buttonClassName="bg-slate-900/60 border border-white/10 text-white rounded-2xl px-3 py-2 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[140px] sm:min-w-[170px] shadow-sm shrink-0"
+                                    dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                                />
+
+                                {/* Button to open Waiting List Modal */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsWaitingListModalOpen(true)}
+                                    className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-2xl transition-all font-black text-[10px] uppercase tracking-wider shrink-0 cursor-pointer shadow-sm active:scale-95"
+                                    title="Abrir Lista de Espera"
+                                >
+                                    <Users size={14} />
+                                    <span className="hidden sm:inline">Lista de Espera</span>
+                                    {waitingList.length > 0 && (
+                                        <span className="bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-full text-[9px] min-w-[16px] h-4 flex items-center justify-center font-black">
+                                            {waitingList.length}
+                                        </span>
+                                    )}
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
 
-                {(() => {
-                    const now = new Date();
+                {dashboardViewMode === 'columns' ? (
+                    <div className="mt-2 min-h-[550px]">
+                        {tomorrowAppts.length > 0 && (
+                            <div className="mb-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shadow-sm">
+                                <span>📌</span>
+                                <span>{tomorrowAppts.length} {tomorrowAppts.length === 1 ? 'cita confirmada para mañana' : 'citas confirmadas para mañana'}</span>
+                            </div>
+                        )}
+                        <StylistColumnCalendar
+                            appointments={appointments}
+                            services={services}
+                            stylists={stylists}
+                            waitingList={waitingList}
+                            selectedStylistId={dashboardStylistId}
+                            onWhatsApp={(apt) => {
+                                const waPhone = apt.clientPhone.replace(/\D/g, '');
+                                window.open(`https://wa.me/${waPhone}`, '_blank');
+                            }}
+                            onReschedule={(apt) => setRescheduleModal({ open: true, appt: apt })}
+                            onNoShow={(apt) => handleNoShow(apt)}
+                            onOpenReceipt={(url) => setReceiptModalUrl(url)}
+                            onCancel={(apt) => {
+                                setCustomConfirm({
+                                    open: true,
+                                    title: 'Cancelar Cita',
+                                    message: `¿Estás seguro de que deseas cancelar la cita de ${apt.clientName}?`,
+                                    confirmLabel: 'Sí, Cancelar',
+                                    cancelLabel: 'Volver',
+                                    danger: true,
+                                    onConfirm: () => {
+                                        cancelAppointment(apt.id);
+                                    }
+                                });
+                            }}
+                        />
+                    </div>
+                ) : (
+                    <div className="space-y-6 pt-4 border-t border-white/10">
+                        {/* ── Próximas Citas Mañana (collapsible) ── */}
+                        <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                            {/* Header / toggle */}
+                            <button
+                                onClick={() => setTomorrowOpen(o => !o)}
+                                className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-3 w-3 relative">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+                                    </span>
+                                    <h3 className="font-bold text-lg text-white">
+                                        Próximas Citas (Mañana)
+                                        <span className="ml-2 px-2.5 py-0.5 rounded-full bg-accent/20 text-accent text-sm font-black">
+                                            {tomorrowAppts.length}
+                                        </span>
+                                    </h3>
+                                </div>
+                                <ChevronDown
+                                    size={20}
+                                    className={`text-slate-400 transition-transform duration-300 ${tomorrowOpen ? 'rotate-180' : ''}`}
+                                />
+                            </button>
+
+                            {tomorrowOpen && (
+                                <div className="px-6 pb-6">
+                                    <p className="text-sm text-muted mb-4">
+                                        {reminders.length > 0
+                                            ? `${reminders.length} de estas citas llevan 3+ días reservadas. Recuerda enviarles un recordatorio.`
+                                            : 'Citas confirmadas para mañana.'}
+                                    </p>
+
+                                    {tomorrowAppts.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                                            <Calendar size={32} className="mb-2 text-slate-500" />
+                                            <p className="text-sm">No hay citas agendadas para mañana.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {tomorrowAppts.map(appt => {
+                                                const svc = getServiceById(appt.serviceId);
+                                                const needsReminder = reminders.some(r => r.id === appt.id);
+                                                const [h, m] = appt.time.split(':');
+                                                let hh = parseInt(h);
+                                                const ampm = hh >= 12 ? 'pm' : 'am';
+                                                hh = hh % 12 || 12;
+                                                return (
+                                                    <div key={appt.id} className={`bg-slate-900/40 backdrop-blur-md border p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group ${
+                                                        needsReminder ? 'border-amber-500/30' : 'border-white/5'
+                                                    }`}>
+                                                        <div className="flex justify-between items-start mb-3">
+                                                            <div>
+                                                                <div className="font-black text-white text-base tracking-tight mb-1 flex items-center gap-2 flex-wrap">
+                                                                    <span>{appt.clientName.toUpperCase()}</span>
+                                                                    {appt.bookingSource === 'marketplace' && (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
+                                                                            🛒 Buscador CitaLink
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    <button
+                                                                         onClick={() => setExpandedServiceApptId(expandedServiceApptId === `quote-${appt.id}` ? null : `quote-${appt.id}`)}
+                                                                         className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
+                                                                             expandedServiceApptId === `quote-${appt.id}`
+                                                                                 ? 'bg-accent/20 border-accent/40 text-accent'
+                                                                                 : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
+                                                                         }`}
+                                                                         title="Ver/ocultar desglose de servicios"
+                                                                     >
+                                                                         <Sparkles size={12} className="text-accent shrink-0" />
+                                                                         <span>{getAppointmentFullServiceDisplay(appt, svc?.name)}</span>
+                                                                         <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `quote-${appt.id}` ? 'rotate-180 text-accent' : ''}`} />
+                                                                     </button>
+                                                                    {(() => {
+                                                                        const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
+                                                                        if (refItem) {
+                                                                            const url = refItem.replace('Referencia: ', '');
+                                                                            return (
+                                                                                <button
+                                                                                    onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
+                                                                                >
+                                                                                    <Eye size={12} className="text-slate-900" />
+                                                                                    <span>Diseño</span>
+                                                                                </button>
+                                                                            );
+                                                                        }
+                                                                        return null;
+                                                                    })()}
+                                                                </div>
+
+                                                                {/* Desplegable de detalles de servicio */}
+                                                                {expandedServiceApptId === `quote-${appt.id}` && (
+                                                                    <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-accent/30 text-xs space-y-1 animate-fade-in relative z-10">
+                                                                        <div className="text-[9px] font-black uppercase tracking-wider text-accent border-b border-white/10 pb-1 flex items-center justify-between">
+                                                                            <span>Desglose Detallado</span>
+                                                                        </div>
+                                                                        <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
+                                                                            <div className="flex justify-between items-center">
+                                                                                <span className="text-slate-400">Servicio Base:</span>
+                                                                                <span className="font-bold text-white">{svc?.name || 'Servicio'}</span>
+                                                                            </div>
+                                                                            {svc?.duration && (
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="text-slate-400">Duración:</span>
+                                                                                    <span>{svc.duration} min</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {appt.additionalServices && appt.additionalServices.length > 0 && (
+                                                                                <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
+                                                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
+                                                                                    {appt.additionalServices
+                                                                                        .filter((s: string) => !s.startsWith('Referencia:'))
+                                                                                        .map((extra: string, idx: number) => (
+                                                                                            <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
+                                                                                                <span className="text-slate-500">•</span>
+                                                                                                <span className="break-words">{extra}</span>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium flex-wrap">
+                                                            <Phone size={12} className="opacity-50" />
+                                                            <span>{formatPhoneDisplay(appt.clientPhone)}</span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingNoteApptId(appt.id);
+                                                                    setNoteText((appt as any).staff_notes || '');
+                                                                }}
+                                                                className={`px-2 py-0.5 rounded-md text-[9px] font-bold cursor-pointer transition-colors ${ (appt as any).staff_notes ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-500 hover:text-white'}`}
+                                                            >
+                                                                {(appt as any).staff_notes ? '🗒️ Nota' : '+ Nota'}
+                                                            </button>
+                                                            {!businessConfig?.hideServicePrices && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedApptForPrice(appt);
+                                                                        setNewPriceValue(String(getAppointmentPrice(appt)));
+                                                                        setIsPriceModalOpen(true);
+                                                                    }}
+                                                                    className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border cursor-pointer hover:bg-white/5 active:scale-95 transition-all ${
+                                                                        isPriceConfirmed(appt)
+                                                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
+                                                                    }`}
+                                                                    title="Ajustar precio de la cita"
+                                                                >
+                                                                    <DollarSign size={9} />
+                                                                    <span>{getAppointmentPrice(appt)}</span>
+                                                                    <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
+                                                                        {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
+                                                                    </span>
+                                                                </button>
+                                                            )}
+                                                            {needsReminder && (
+                                                                <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => setRescheduleModal({ open: true, appt })}
+                                                                className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 transition-all flex items-center justify-center font-bold cursor-pointer"
+                                                                title="Reagendar Cita"
+                                                            >
+                                                                <RefreshCw size={13} /> Reagendar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => navigate('/admin/appointments')}
+                                                                className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 hover:text-white border border-white/5 hover:border-white/10 transition-all flex items-center justify-center font-bold cursor-pointer"
+                                                            >
+                                                                <Calendar size={13} className="opacity-70" /> Gestionar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Próximas Citas Hoy */}
+                        <div>
+                            {(() => {
+                                const now = new Date();
                     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
                     const upcomingAppts = todayAppts.filter(appt => {
                         const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
                         if (!isMatch) return false;
 
-                        const svc = services.find(s => s.id === appt.serviceId);
-                        const duration = svc?.duration || 30;
-
-                        // Calculate end time
-                        const [hours, minutes] = appt.time.split(':').map(Number);
-                        const endMinutes = hours * 60 + minutes + duration;
-                        const endHours = Math.floor(endMinutes / 60);
-                        const endMins = endMinutes % 60;
-                        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-
-                        // Show if it hasn't finished yet and isn't completed/cancelled
-                        return currentTimeStr < endTimeStr && appt.status === 'confirmada';
+                        // Show if it isn't completed or cancelled
+                        return appt.status !== 'completada' && appt.status !== 'cancelada';
                     }).sort((a, b) => a.time.localeCompare(b.time));
 
                     if (upcomingAppts.length === 0) {
@@ -2043,6 +2220,15 @@ export default function Dashboard() {
                             {upcomingAppts.map(appt => {
                                 const svc = services.find(s => s.id === appt.serviceId);
                                 const isCurrentlyHappening = currentTimeStr >= appt.time;
+
+                                const canMarkNoShow = (() => {
+                                    if (appt.status === 'completada' || appt.status === 'cancelada' || appt.status === 'no_show') return false;
+                                    const startDt = parseApptDateTime(appt.date, appt.time);
+                                    const totalDur = getAppointmentTotalDuration(appt);
+                                    const maxNoShowDt = new Date(startDt.getTime() + (totalDur + 60) * 60 * 1000);
+                                    const nowTime = new Date();
+                                    return nowTime >= startDt && nowTime <= maxNoShowDt;
+                                })();
 
                                 const displayTime = (() => {
                                     const [h, m] = appt.time.split(':');
@@ -2121,7 +2307,7 @@ export default function Dashboard() {
                                                             }`}
                                                             title="Ver/ocultar desglose de servicios"
                                                         >
-                                                            <Scissors size={12} className="text-accent shrink-0" />
+                                                            <Sparkles size={12} className="text-accent shrink-0" />
                                                             <span>{svc?.name}</span>
                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `today-${appt.id}` ? 'rotate-180 text-accent' : ''}`} />
                                                         </button>
@@ -2243,14 +2429,19 @@ export default function Dashboard() {
                                                              <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
                                                                  <div className="flex justify-between items-center">
                                                                      <span className="text-slate-400">Servicio Base:</span>
-                                                                     <span className="font-bold text-white">{svc?.name || 'Servicio'}</span>
+                                                                     <span className="font-bold text-white">{getServiceById(appt.serviceId)?.name || 'Servicio'}</span>
                                                                  </div>
-                                                                 {svc?.duration && (
-                                                                     <div className="flex justify-between items-center">
-                                                                         <span className="text-slate-400">Duración:</span>
-                                                                         <span>{svc.duration} min</span>
-                                                                     </div>
-                                                                 )}
+                                                                 <div className="flex justify-between items-center">
+                                                                     <span className="text-slate-400">Duración:</span>
+                                                                     <span>
+                                                                         {(() => {
+                                                                             const baseSvc = getServiceById(appt.serviceId);
+                                                                             const baseDur = baseSvc?.duration || 60;
+                                                                             const totalDur = getAppointmentTotalDuration(appt);
+                                                                             return totalDur > baseDur ? `${totalDur} min (${baseDur} min base + ${totalDur - baseDur} min extra)` : `${baseDur} min`;
+                                                                         })()}
+                                                                     </span>
+                                                                 </div>
                                                                  {appt.additionalServices && appt.additionalServices.length > 0 && (
                                                                      <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
                                                                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
@@ -2270,16 +2461,18 @@ export default function Dashboard() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-2">
+                                                {canMarkNoShow && (
+                                                    <button 
+                                                        onClick={() => handleNoShow(appt)} 
+                                                        className="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-xl text-amber-300 border border-amber-500/30 text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider"
+                                                        title="Marcar No Asistió"
+                                                    >
+                                                        <UserX size={14} /> No Asistió
+                                                    </button>
+                                                )}
                                                 {isCurrentlyHappening ? (
                                                     <>
-                                                        <button 
-                                                            onClick={() => handleNoShow(appt)} 
-                                                            className="p-2 bg-orange-500/10 hover:bg-orange-500/20 rounded-xl text-orange-400 border border-orange-500/20 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
-                                                            title="No Asistió"
-                                                        >
-                                                            <UserX size={14} />
-                                                        </button>
                                                         <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
                                                         </span>
@@ -2309,35 +2502,18 @@ export default function Dashboard() {
                     );
                 })()}
             </div>
-            {/* Completed Appointments Today */}
-            <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-emerald-500/15 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/5">
-                            <CheckCircle2 size={22} />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-black text-lg text-emerald-400 tracking-tight">Citas Completadas Hoy</h3>
+
+                        {/* Completed Appointments Today */}
+                        <div className="pt-6 border-t border-white/10">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/5">
+                                    <CheckCircle2 size={22} />
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-lg text-emerald-400 tracking-tight">Citas Completadas Hoy</h3>
+                                    <p className="text-xs text-slate-400">Historial de atenciones finalizadas el día de hoy</p>
+                                </div>
                             </div>
-                            <p className="text-xs text-slate-400">Historial de atenciones finalizadas el día de hoy</p>
-                        </div>
-                    </div>
-                    {!isEmployee && (
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
-                            <CustomSelect
-                                value={String(dashboardStylistId)}
-                                onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
-                                options={[
-                                    { value: 'all', label: 'Todos los Profesionales' },
-                                    ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
-                                ]}
-                                buttonClassName="bg-slate-900/60 border border-emerald-500/20 text-emerald-400 rounded-2xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-500 flex items-center justify-between min-w-[170px] shadow-sm"
-                                dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
-                            />
-                        </div>
-                    )}
-                </div>
 
                 {(() => {
                     const now = new Date();
@@ -2349,8 +2525,7 @@ export default function Dashboard() {
 
                         if (appt.status === 'completada') return true;
 
-                        const svc = services.find(s => s.id === appt.serviceId);
-                        const duration = svc?.duration || 30;
+                        const duration = getAppointmentTotalDuration(appt);
 
                         // Calculate end time
                         const [hours, minutes] = appt.time.split(':').map(Number);
@@ -2389,7 +2564,7 @@ export default function Dashboard() {
                                     return `${hh}:${m}${ampm}`;
                                 })();
 
-                                const duration = svc?.duration || 30;
+                                const duration = getAppointmentTotalDuration(appt);
                                 const endTimeDisplay = (() => {
                                     const [hours, minutes] = appt.time.split(':').map(Number);
                                     const endMinutes = hours * 60 + minutes + duration;
@@ -2445,7 +2620,7 @@ export default function Dashboard() {
                                                              }`}
                                                              title="Ver/ocultar desglose de servicios"
                                                          >
-                                                             <Scissors size={12} className="text-emerald-400 shrink-0" />
+                                                             <Sparkles size={12} className="text-emerald-400 shrink-0" />
                                                              <span>{svc?.name}</span>
                                                              <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `tomorrow-${appt.id}` ? 'rotate-180 text-emerald-400' : ''}`} />
                                                          </button>
@@ -2589,6 +2764,9 @@ export default function Dashboard() {
                     );
                 })()}
             </div>
+        </div>
+    )}
+</div>
 
             {/* Full screen design reference photo preview modal */}
             {activePhotoUrl && (
@@ -2708,6 +2886,50 @@ export default function Dashboard() {
                 onClose={() => setRescheduleModal({ open: false, appt: null })}
                 appointment={rescheduleModal.appt}
             />
-        </div >
+
+            <WaitingListModal
+                isOpen={isWaitingListModalOpen}
+                onClose={() => setIsWaitingListModalOpen(false)}
+                waitingList={waitingList}
+                services={services}
+                businessName={(businessConfig as any)?.name || 'CitaLink'}
+                onAdd={addToWaitingList}
+                onRemove={removeFromWaitingList}
+                showToast={showToast}
+            />
+
+            {receiptModalUrl && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                    <div className="bg-[#1e293b] border border-cyan-500/30 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+                        <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                💳 Comprobante de Pago / Transferencia
+                            </h3>
+                            <button
+                                onClick={() => setReceiptModalUrl(null)}
+                                className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-black/50 p-2 flex items-center justify-center">
+                            <img
+                                src={receiptModalUrl}
+                                alt="Comprobante de Pago"
+                                className="max-w-full max-h-[60vh] object-contain rounded-xl"
+                            />
+                        </div>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => setReceiptModalUrl(null)}
+                                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

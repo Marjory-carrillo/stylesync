@@ -11,10 +11,10 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useWaitingList } from '../../lib/store/queries/useWaitingList';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { Trash2, User, UserX, Phone, Scissors, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Grid3X3, Plus, Download, AlertTriangle, ShieldCheck, Eye, DollarSign, Save, RefreshCw } from 'lucide-react';
+import { CustomSelect } from '../../components/CustomSelect';
+import { Trash2, User, UserX, Phone, Sparkles, ChevronDown, MessageCircle, Users, CalendarDays, Clock, Search, X, LayoutList, Plus, Download, AlertTriangle, ShieldCheck, Eye, DollarSign, Save, RefreshCw } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
-import WeekCalendar from '../../components/WeekCalendar';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
 import DatePickerInput from '../../components/DatePickerInput';
@@ -27,6 +27,8 @@ import { useQueryClient } from '@tanstack/react-query';
 export default function Appointments() {
     const { t } = useTranslation();
     const { userRole, userStylistId, tenantId } = useAuthStore();
+    const isEmployee = userRole === 'employee';
+    const [selectedStylistId, setSelectedStylistId] = useState<number | 'all'>(isEmployee && userStylistId ? userStylistId : 'all');
     const { showToast } = useUIStore();
     const queryClient = useQueryClient();
 
@@ -73,11 +75,45 @@ export default function Appointments() {
     const { cancellationLog, getMonthlyCancellations, deleteCancellationLog, clearAllCancellationLog } = useCancellationLog();
     const { isPhoneBlocked, blockPhone, unblockPhone } = useBlockedPhones();
 
-    // Helpers locales (ya tenemos services y stylists cargados arriba)
     const getServiceById = useCallback((id: number) =>
         services.find(s => s.id === id), [services]);
     const getStylistById = useCallback((id: number) =>
         stylists.find(s => s.id === id), [stylists]);
+
+    const isCalculatorOption = useCallback((s: string) => {
+        if (!s) return true;
+        const trimmed = s.trim();
+        return (
+            trimmed.startsWith('Referencia:') ||
+            trimmed.startsWith('Cotización') ||
+            trimmed.startsWith('Diseño:') ||
+            trimmed.startsWith('Diseño Catálogo:') ||
+            trimmed.startsWith('Largo:') ||
+            trimmed.startsWith('Forma:') ||
+            trimmed.startsWith('Grosor:') ||
+            trimmed.startsWith('Técnica:') ||
+            trimmed.startsWith('Color:') ||
+            trimmed.startsWith('Efecto:') ||
+            trimmed.startsWith('Decoración:') ||
+            trimmed.startsWith('Extra:') ||
+            trimmed.includes('(+')
+        );
+    }, []);
+
+    const getRealAddOns = useCallback((addServices?: string[]) => {
+        if (!addServices || addServices.length === 0) return [];
+        return addServices
+            .filter(s => !isCalculatorOption(s))
+            .map(s => {
+                const cleanName = s.split('(+')[0].replace(/^Adicional:\s*/i, '').trim();
+                const matchingSvc = services.find(serv =>
+                    serv.name.toLowerCase() === cleanName.toLowerCase() ||
+                    serv.name.toLowerCase() === s.toLowerCase()
+                );
+                return matchingSvc ? matchingSvc.name : cleanName;
+            })
+            .filter(Boolean) as string[];
+    }, [isCalculatorOption, services]);
 
     const getAppointmentPrice = useCallback((apt: any) => {
         const service = getServiceById(apt.serviceId);
@@ -226,7 +262,7 @@ export default function Appointments() {
         return allAppointments;
     }, [allAppointments, userRole, userStylistId]);
 
-    const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'espera'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'espera'>('list');
     const [filter, setFilter] = useState<'confirmada' | 'completada' | 'cancelada' | 'no_show'>('confirmada');
     const [historyModal, setHistoryModal] = useState<{ open: boolean; phone: string }>({ open: false, phone: '' });
     const [searchQuery, setSearchQuery] = useState('');
@@ -374,7 +410,7 @@ export default function Appointments() {
         if (!apt) return;
 
         const svc = getServiceById(apt.serviceId);
-        const addOnNames = (apt.additionalServices ?? []).filter((s: string) => !s.startsWith('Referencia:'));
+        const addOnNames = getRealAddOns(apt.additionalServices);
         const serviceName = svc ? svc.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '') : 'Servicio';
 
         await cancelAppointment({ id: apt.id, serviceName });
@@ -445,13 +481,7 @@ export default function Appointments() {
                         >
                             <LayoutList size={18} />
                         </button>
-                        <button
-                            onClick={() => setViewMode('calendar')}
-                            className={`p-1.5 rounded-lg transition-colors ${viewMode === 'calendar' ? 'bg-white/10 text-white' : 'text-muted hover:text-white'}`}
-                            title={t('appointments.view_calendar')}
-                        >
-                            <Grid3X3 size={18} />
-                        </button>
+
                         {/* Lista de Espera tab with live badge */}
                         <button
                             onClick={() => setViewMode('espera')}
@@ -515,6 +545,18 @@ export default function Appointments() {
                         </button>
                     )}
                 </div>
+                {/* Professional Filter */}
+                {!isEmployee && (
+                    <CustomSelect
+                        value={String(selectedStylistId)}
+                        onChange={(val: string) => setSelectedStylistId(val === 'all' ? 'all' : Number(val))}
+                        options={[
+                            { value: 'all', label: 'Todos los Profesionales' },
+                            ...stylists.map(s => ({ value: String(s.id), label: s.name }))
+                        ]}
+                    />
+                )}
+
                 {/* Date Filter with custom picker */}
                 <div className="relative">
                     <DatePickerInput
@@ -523,6 +565,15 @@ export default function Appointments() {
                         placeholder="Filtrar Fecha"
                         align="right"
                         className="h-full"
+                        appointmentCounts={(() => {
+                            const counts: Record<string, number> = {};
+                            (appointments || []).forEach(apt => {
+                                if (apt.status === 'cancelada') return;
+                                const d = apt.date.split('T')[0];
+                                counts[d] = (counts[d] || 0) + 1;
+                            });
+                            return counts;
+                        })()}
                     />
                     {dateFilter && (
                         <button
@@ -595,7 +646,7 @@ export default function Appointments() {
                                                             <div className="flex items-center gap-2 flex-wrap">
                                                                 {svc && (
                                                                     <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-lg">
-                                                                        <Scissors size={9} /> {svc.name}
+                                                                        <Sparkles size={9} /> {svc.name}
                                                                     </span>
                                                                 )}
                                                                 <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]">
@@ -639,20 +690,6 @@ export default function Appointments() {
                                 )}
                             </div>
                         </div>
-                    ) : viewMode === 'calendar' ? (
-                        <div className="flex-1 min-h-[600px] h-[calc(100vh-320px)] p-2 overflow-hidden">
-                            <WeekCalendar
-                                appointments={filteredAppointments}
-                                services={services}
-                                stylists={stylists}
-                                onWhatsApp={(apt) => {
-                                    const url = generateWhatsAppUrl(apt);
-                                    window.open(url, '_blank');
-                                }}
-                                onCancel={(apt) => handleAdminCancel(apt)}
-                                onOpenHistory={(phone) => setHistoryModal({ open: true, phone })}
-                            />
-                        </div>
                     ) : (
                         <div className="overflow-y-auto custom-scrollbar p-3 space-y-2 flex-1">
                             {/* Empty State / Loading State */}
@@ -673,7 +710,7 @@ export default function Appointments() {
                                 </div>
                             ) : filteredAppointments.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-60">
-                                    <Scissors size={48} className="text-white/10 mb-4" />
+                                    <Sparkles size={48} className="text-white/10 mb-4" />
                                     <h3 className="text-lg font-medium text-white mb-1">Sin citas aquí</h3>
                                     <p className="text-sm text-muted">No hay citas registradas en esta categoría.</p>
                                 </div>
@@ -846,15 +883,15 @@ export default function Appointments() {
                                                                         }`}
                                                                         title="Haz clic para ver/ocultar desglose completo del servicio"
                                                                     >
-                                                                         <Scissors size={12} className="text-accent shrink-0" />
+                                                                         <Sparkles size={12} className="text-accent shrink-0" />
                                                                          <span className="tracking-tight truncate max-w-[320px] uppercase font-black flex items-center gap-1">
-                                                                             <span>{service?.name}</span>
+                                                                             <span>{service?.name || 'Servicio'}</span>
                                                                              {(() => {
-                                                                                 const addOns = (apt.additionalServices || []).filter((s: string) => !s.startsWith('Referencia:'));
-                                                                                 if (addOns.length === 0) return null;
+                                                                                 const realAddOns = getRealAddOns(apt.additionalServices);
+                                                                                 if (realAddOns.length === 0) return null;
                                                                                  return (
                                                                                      <span className="text-amber-400 font-bold text-[10px] normal-case truncate max-w-[180px]">
-                                                                                         + {addOns.join(' + ')}
+                                                                                         + {realAddOns.join(' + ')}
                                                                                      </span>
                                                                                  );
                                                                              })()}

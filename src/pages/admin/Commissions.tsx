@@ -8,7 +8,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useServices } from '../../lib/store/queries/useServices';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calculator, Download, Calendar as CalendarIcon, DollarSign, Users, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Scissors, Clock, User } from 'lucide-react';
+import { Calculator, Download, Calendar as CalendarIcon, DollarSign, Users, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles, Clock, User } from 'lucide-react';
 import type { CommissionEntry } from '../../lib/types/store.types';
 
 export default function Commissions() {
@@ -645,7 +645,7 @@ export default function Commissions() {
                                                                                         <td className="p-3 text-slate-300">
                                                                                             <div className="flex flex-col">
                                                                                                 <span className="flex items-center gap-1.5 font-medium">
-                                                                                                    <Scissors size={12} className="opacity-40" />
+                                                                                                    <Sparkles size={12} className="opacity-40" />
                                                                                                     {svc?.name || 'Servicio'}
                                                                                                     {isMarketplace && (
                                                                                                         <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase">

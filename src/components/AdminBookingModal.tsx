@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, addDays, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, User, Phone, Scissors, Calendar, Clock, ChevronLeft, CheckCircle, AlertTriangle, Loader2, UserCheck, Plus, Minus } from 'lucide-react';
+import { X, User, Phone, Sparkles, Calendar, Clock, ChevronLeft, CheckCircle, AlertTriangle, Loader2, UserCheck, Plus, Minus } from 'lucide-react';
 import { useAppointments } from '../lib/store/queries/useAppointments';
 import { useServices } from '../lib/store/queries/useServices';
 import { useStylists } from '../lib/store/queries/useStylists';
@@ -600,7 +600,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     {/* Selected Service Card */}
                                     <div className="flex items-center gap-4 p-4 rounded-2xl border bg-accent/5 border-accent/20 text-left">
                                         <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                                            <Scissors size={18} className="text-accent" />
+                                            <Sparkles size={18} className="text-accent" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-white text-sm">{selectedService.name}</p>
@@ -849,7 +849,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                 className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
                                             >
                                                 <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-                                                    <Scissors size={18} className="text-accent" />
+                                                    <Sparkles size={18} className="text-accent" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-white text-sm">{svc.name}</p>
@@ -989,7 +989,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             <span className="text-slate-500 text-xs ml-auto">{formatPhoneDisplay(clientPhone)}</span>
                                         </div>
                                         <div className="flex items-center gap-2 text-sm text-white">
-                                            <Scissors size={14} className="text-accent shrink-0" />
+                                            <Sparkles size={14} className="text-accent shrink-0" />
                                             <span>{selectedService?.name}</span>
                                             <span className="text-accent font-bold ml-auto">${totalPrice}</span>
                                         </div>
