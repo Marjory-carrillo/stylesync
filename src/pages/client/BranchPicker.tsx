@@ -230,7 +230,7 @@ export default function BranchPicker() {
                                 style={{ transform: isHovered ? 'scale(1.06)' : 'scale(1)' }}
                             >
                                 {branch.logo_url ? (
-                                    <img src={branch.logo_url} className="w-full h-full object-cover" alt="" />
+                                    <img decoding="async" loading="lazy" src={branch.logo_url} className="w-full h-full object-cover" alt="" />
                                 ) : (
                                     <IconComponent size={26} className={`transition-colors duration-300 ${isHovered ? styles.text : 'text-slate-500'}`} />
                                 )}

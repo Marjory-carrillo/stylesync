@@ -153,7 +153,7 @@ export default function ResourceCalendar({
                                     <div className="sticky top-0 z-10 bg-slate-800/90 backdrop-blur border-b border-white/10 h-12 flex items-center justify-center gap-2 shadow-sm !rounded-t-[2.5rem] !rounded-b-none">
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-inner">
                                             {stylist.image ? (
-                                                <img src={stylist.image} className="w-full h-full object-cover rounded-full" />
+                                                <img decoding="async" loading="lazy" src={stylist.image} className="w-full h-full object-cover rounded-full" />
                                             ) : (
                                                 <User size={14} />
                                             )}

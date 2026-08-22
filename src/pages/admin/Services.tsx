@@ -79,7 +79,7 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
                         <div key={item.id} className="flex gap-3 p-3 bg-white/[0.02] border border-white/10 rounded-xl items-center">
                             {/* Imagen */}
                             <div className="w-16 h-16 rounded-lg overflow-hidden border border-white/5 shrink-0 bg-slate-900">
-                                <img src={item.imageUrl} alt="Diseño" className="w-full h-full object-cover" />
+                                <img decoding="async" loading="lazy" src={item.imageUrl} alt="Diseño" className="w-full h-full object-cover" />
                             </div>
 
                             {/* Inputs Modificables Inline */}
@@ -304,6 +304,7 @@ export default function Services() {
                                             <td className="p-4">
                                                 <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden border border-white/10">
                                                     <img
+                                                        decoding="async" loading="lazy"
                                                         src={service.image || PlaceholderSVG}
                                                         alt=""
                                                         className="w-full h-full object-cover"
@@ -576,7 +577,7 @@ export default function Services() {
                                 <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
                                     <div className="w-16 h-16 rounded-xl bg-black/20 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                         {formImage ? (
-                                            <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                                            <img decoding="async" loading="lazy" src={formImage} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
                                             <ImageIcon className="text-muted" size={24} />
                                         )}

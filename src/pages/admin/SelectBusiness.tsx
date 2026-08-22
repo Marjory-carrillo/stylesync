@@ -169,7 +169,7 @@ export default function SelectBusiness() {
                                             : 'border-white/10 bg-white/[0.04] group-hover:border-white/20'
                                     }`}>
                                         {tenant.logoUrl ? (
-                                            <img src={tenant.logoUrl} className="w-full h-full object-cover" alt="" />
+                                            <img decoding="async" loading="lazy" src={tenant.logoUrl} className="w-full h-full object-cover" alt="" />
                                         ) : (
                                             <IconComponent
                                                 size={28}

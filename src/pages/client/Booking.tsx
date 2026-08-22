@@ -2055,7 +2055,7 @@ export default function Booking() {
                                         <div className="flex items-center gap-5">
                                             <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/5 group-hover:scale-105 transition-transform duration-500">
                                                 {stylist.image ? (
-                                                    <img src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
+                                                    <img decoding="async" loading="lazy" src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
                                                         <Calendar size={32} />
@@ -2234,7 +2234,7 @@ export default function Booking() {
                                     <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
                                         <div className="w-28 h-28 rounded-xl bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                             {nailDesignUrl ? (
-                                                <img src={nailDesignUrl} alt="Referencia" className="w-full h-full object-cover" />
+                                                <img decoding="async" loading="lazy" src={nailDesignUrl} alt="Referencia" className="w-full h-full object-cover" />
                                             ) : (
                                                 <ImageIcon className="text-slate-600" size={24} />
                                             )}
@@ -2385,7 +2385,7 @@ export default function Booking() {
                                             <div className="flex items-center gap-3 p-3">
                                                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
                                                     {service.image ? (
-                                                        <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
+                                                        <img decoding="async" loading="lazy" src={service.image} alt={service.name} className="w-full h-full object-cover" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
                                                             <Calendar size={24} />
@@ -2511,6 +2511,7 @@ export default function Booking() {
                                                             >
                                                                 <div className="relative aspect-square overflow-hidden bg-slate-800">
                                                                     <img
+                                                                        decoding="async" loading="lazy"
                                                                         src={item.imageUrl}
                                                                         alt={item.title || svc?.name || 'Diseño'}
                                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -2574,6 +2575,7 @@ export default function Booking() {
                                                     {/* Imagen Principal */}
                                                     <div className="w-full aspect-square bg-slate-950 flex items-center justify-center">
                                                         <img
+                                                            decoding="async" loading="lazy"
                                                             src={expandedPhoto.imageUrl}
                                                             alt="Diseño expandido"
                                                             className="w-full h-full object-contain"
@@ -2823,7 +2825,7 @@ export default function Booking() {
                                                 >
                                                     <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-800 shrink-0">
                                                         {s.image ? (
-                                                            <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                                                            <img decoding="async" loading="lazy" src={s.image} alt={s.name} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-cyan-400/10 text-xs font-bold">
                                                                 {s.name.charAt(0).toUpperCase()}
@@ -3017,7 +3019,7 @@ export default function Booking() {
                             <div className="flex gap-4 mb-6">
                                 <div className="w-20 h-20 rounded-xl overflow-hidden shadow-lg border border-white/10 shrink-0">
                                     {selectedService.image ? (
-                                        <img src={selectedService.image} className="w-full h-full object-cover" />
+                                        <img decoding="async" loading="lazy" src={selectedService.image} className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full bg-slate-800 flex items-center justify-center"><RefreshCw className="text-muted" /></div>
                                     )}
@@ -3052,7 +3054,7 @@ export default function Booking() {
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted">{professionalLabel}</span>
                                     <div className="flex items-center gap-2">
-                                        {selectedStylist?.image && <img src={selectedStylist.image} className="w-5 h-5 rounded-full object-cover" />}
+                                        {selectedStylist?.image && <img decoding="async" loading="lazy" src={selectedStylist.image} className="w-5 h-5 rounded-full object-cover" />}
                                         <span className="text-sm text-white">{selectedStylist?.name ?? 'Cualquiera'}</span>
                                     </div>
                                 </div>
@@ -3358,7 +3360,7 @@ export default function Booking() {
                                 <div className="bg-white/5 rounded-3xl p-4 border border-white/10 w-full text-left">
                                     <div className="flex items-center gap-3 mb-2">
                                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center border border-white/10 shrink-0">
-                                            {selectedService?.image ? <img src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Calendar size={18} className="text-accent" />}
+                                            {selectedService?.image ? <img decoding="async" loading="lazy" src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Calendar size={18} className="text-accent" />}
                                         </div>
                                         <p className="font-black text-white text-sm leading-tight">
                                             {selectedService?.name}
@@ -3419,7 +3421,7 @@ export default function Booking() {
                                 <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 overflow-hidden flex items-center justify-center">
-                                            {selectedStylist?.image ? <img src={selectedStylist.image} className="w-full h-full object-cover" alt="" /> : <User size={20} className="text-slate-500" />}
+                                            {selectedStylist?.image ? <img decoding="async" loading="lazy" src={selectedStylist.image} className="w-full h-full object-cover" alt="" /> : <User size={20} className="text-slate-500" />}
                                         </div>
                                         <div className="text-left leading-tight">
                                             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Profesional</span>

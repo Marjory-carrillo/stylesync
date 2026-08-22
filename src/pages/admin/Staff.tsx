@@ -278,7 +278,7 @@ export default function Staff() {
                         <div className="flex flex-col items-center">
                             <div className="w-24 h-24 rounded-full mb-4 flex items-center justify-center overflow-hidden border-2 border-accent/20 shadow-glow">
                                 {person.image ? (
-                                    <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
+                                    <img decoding="async" loading="lazy" src={person.image} alt={person.name} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full bg-slate-800 flex items-center justify-center">
                                         <User size={40} className="text-muted" />
@@ -417,7 +417,7 @@ export default function Staff() {
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="w-12 h-12 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
                                             {formImage ? (
-                                                <img src={formImage} alt="Preview" className="w-full h-full object-cover" />
+                                                <img decoding="async" loading="lazy" src={formImage} alt="Preview" className="w-full h-full object-cover" />
                                             ) : (
                                                 <ImageIcon size={20} className="text-muted" />
                                             )}

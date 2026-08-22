@@ -1518,7 +1518,7 @@ export default function SuperAdminPanel() {
                                     {/* Logo */}
                                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-xl group-hover:scale-105 transition-transform">
                                         {tenant.logoUrl ? (
-                                            <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
+                                            <img decoding="async" loading="lazy" src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <Building2 size={22} className="text-slate-600 group-hover:text-accent transition-colors" />
                                         )}

@@ -1,14 +1,11 @@
-const CACHE_NAME = 'citalink-v3';
+const CACHE_NAME = 'citalink-v4';
 
-// Recursos esenciales a cachear en la instalación (ligero para primera carga instantánea en Safari)
-const PRECACHE_URLS = [
-    '/',
-    '/index.html'
-];
+// NO pre-cachear index.html — siempre network-first para obtener HTML fresco post-deploy
+const PRECACHE_URLS = [];
 
-// Instalar: precachear recursos estáticos
+// Instalar: skipWaiting inmediato (no precache de HTML)
 self.addEventListener('install', (event) => {
-    console.log('[SW] Instalando CitaLink v1...');
+    console.log('[SW] Instalando CitaLink v4...');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(PRECACHE_URLS);
@@ -18,7 +15,7 @@ self.addEventListener('install', (event) => {
 
 // Activar: limpiar caches viejos
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Activando...');
+    console.log('[SW] Activando v4...');
     event.waitUntil(
         caches.keys().then((keys) =>
             Promise.all(
@@ -29,7 +26,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch: Network-first para API, Cache-first para assets
+// Fetch: Network-first para navegación, Cache-first para assets estáticos
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
@@ -39,7 +36,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Assets estáticos → Cache first
+    // Assets estáticos → Cache first (imágenes, fuentes, /assets/)
     if (request.destination === 'image' || request.destination === 'font' || url.pathname.startsWith('/assets/')) {
         event.respondWith(
             caches.match(request).then((cached) => {
@@ -53,10 +50,17 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Navegación → Network first, fallback a cache
+    // Navegación → SIEMPRE Network first (obtener HTML fresco post-deploy)
     if (request.mode === 'navigate') {
         event.respondWith(
-            fetch(request).catch(() => caches.match('/index.html'))
+            fetch(request)
+                .then((response) => {
+                    // Cachear la respuesta exitosa para fallback offline
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+                    return response;
+                })
+                .catch(() => caches.match('/index.html'))
         );
         return;
     }

@@ -564,7 +564,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedStylist !== 'any' && selectedStylist?.id === st.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
                                         >
                                             {st.image ? (
-                                                <img src={st.image} alt={st.name} className="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" />
+                                                <img decoding="async" loading="lazy" src={st.image} alt={st.name} className="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" />
                                             ) : (
                                                 <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
                                                     <User size={18} className="text-accent" />

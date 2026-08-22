@@ -286,15 +286,24 @@ function App() {
       } finally {
         if (mounted) {
           useAuthStore.getState().setLoadingAuth(false);
+          // Siempre limpiar loadingTenant en finally para evitar SplashScreen infinito
+          if (useAuthStore.getState().loadingTenant) {
+            setTenantData({ tenantId: null, userRole: null, userStylistId: null });
+          }
         }
       }
     };
 
     // Safety fallback timer to prevent infinite splash loading on slow mobile networks
     const safetyTimer = setTimeout(() => {
-      if (mounted && useAuthStore.getState().loadingAuth) {
-        console.warn("Safety timer triggered: forcing loadingAuth to false");
-        useAuthStore.getState().setLoadingAuth(false);
+      const authState = useAuthStore.getState();
+      if (mounted && (authState.loadingAuth || authState.loadingTenant)) {
+        console.warn("Safety timer triggered: forcing loading states to false");
+        authState.setLoadingAuth(false);
+        // También limpiar loadingTenant para evitar SplashScreen infinito
+        if (authState.loadingTenant) {
+          setTenantData({ tenantId: null, userRole: null, userStylistId: null });
+        }
       }
       if (mounted && useGlobalStore.getState().loadingConfig) {
         useGlobalStore.setState({ loadingConfig: false });

@@ -247,6 +247,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                     {/* Large Clean QR Code */}
                                     <div className="p-4 bg-white rounded-3xl border-4 border-slate-100 shadow-xl">
                                         <img
+                                            decoding="async" loading="lazy"
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(bookingUrl)}`}
                                             alt={`QR Reservas ${businessName}`}
                                             className="w-56 h-56 object-contain"
@@ -259,7 +260,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                 <div className="h-[140px] flex-none flex items-start justify-center pt-6">
                                     <div className="flex items-center justify-center gap-3 pt-4 border-t border-slate-200 w-3/4 relative z-10">
                                         {logoUrl ? (
-                                            <img src={logoUrl} alt={businessName} className="w-12 h-12 mt-1 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0 relative z-10" />
+                                            <img decoding="async" loading="lazy" src={logoUrl} alt={businessName} className="w-12 h-12 mt-1 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0 relative z-10" />
                                         ) : null}
                                         <div className="flex flex-col justify-center max-w-[340px] py-1 relative z-10 overflow-visible">
                                             <span
@@ -351,6 +352,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                     {/* Large Clean QR Code */}
                                     <div className="p-4 bg-white rounded-3xl border-4 border-slate-100 shadow-xl">
                                         <img
+                                            decoding="async" loading="lazy"
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(reviewUrl)}`}
                                             alt={`QR Reseñas ${businessName}`}
                                             className="w-56 h-56 object-contain"
@@ -363,7 +365,7 @@ export default function BusinessQRCardsModal({ isOpen, onClose }: Props) {
                                 <div className="h-[140px] flex-none flex items-start justify-center pt-6">
                                     <div className="flex items-center justify-center gap-3 pt-4 border-t border-slate-200 w-3/4 relative z-10">
                                         {logoUrl ? (
-                                            <img src={logoUrl} alt={businessName} className="w-12 h-12 mt-1 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0 relative z-10" />
+                                            <img decoding="async" loading="lazy" src={logoUrl} alt={businessName} className="w-12 h-12 mt-1 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0 relative z-10" />
                                         ) : null}
                                         <div className="flex flex-col justify-center max-w-[340px] py-1 relative z-10 overflow-visible">
                                             <span

@@ -413,6 +413,7 @@ export default function Quoter() {
                                     title="Haz clic para ver en pantalla completa"
                                 >
                                     <img
+                                        decoding="async" loading="lazy"
                                         src={referenceImage}
                                         alt="Diseño de referencia"
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -738,7 +739,7 @@ export default function Quoter() {
                                     : 'bg-slate-900 border-white/20'
                             }`}>
                                 {businessConfig.logoUrl ? (
-                                    <img src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                    <img decoding="async" loading="lazy" src={businessConfig.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center font-black text-2xl text-pink-500">
                                         💅
@@ -903,6 +904,7 @@ export default function Quoter() {
                         </div>
                         <div className="p-3 overflow-auto flex items-center justify-center bg-slate-950/90">
                             <img
+                                decoding="async" loading="lazy"
                                 src={referenceImage}
                                 alt="Diseño de referencia a detalle"
                                 className="max-h-[78vh] w-auto object-contain rounded-lg shadow-xl"

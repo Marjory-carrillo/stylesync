@@ -82,7 +82,6 @@ body,
   min-height: 100vh;
   background-color: var(--color-bg, #0c101d) !important;
   background: var(--color-bg, #0c101d) !important;
-  background-attachment: fixed;
 }
 
 .h-screen {
@@ -130,16 +129,25 @@ body {
 }
 
 body {
-  /* Premium radial gradient background with CitaLink colors */
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fondo fijo acelerado por GPU — NO causa repaints en scroll en iOS Safari */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
   background-image:
     radial-gradient(circle at 15% 50%, hsla(var(--hue-primary), 80%, 15%, 0.4) 0, transparent 40%),
     radial-gradient(circle at 85% 30%, hsla(var(--hue-accent), 80%, 15%, 0.3) 0, transparent 40%),
     radial-gradient(circle at 50% 80%, hsla(var(--hue-secondary), 70%, 10%, 0.3) 0, transparent 50%),
     linear-gradient(to bottom, var(--color-bg), var(--color-bg-secondary));
-  background-attachment: fixed;
-  color: var(--color-text);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+  will-change: transform;
+  transform: translateZ(0);
+  pointer-events: none;
 }
 
 a {

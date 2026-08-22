@@ -2796,6 +2796,7 @@ export default function Dashboard() {
                         onClick={() => setIsZoomed(!isZoomed)}
                     >
                         <img 
+                            decoding="async" loading="lazy"
                             src={activePhotoUrl} 
                             alt="Diseño de referencia" 
                             className={`rounded-3xl object-contain border border-white/10 shadow-2xl transition-all duration-300 ${
@@ -2914,6 +2915,7 @@ export default function Dashboard() {
                         </div>
                         <div className="max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-black/50 p-2 flex items-center justify-center">
                             <img
+                                decoding="async" loading="lazy"
                                 src={receiptModalUrl}
                                 alt="Comprobante de Pago"
                                 className="max-w-full max-h-[60vh] object-contain rounded-xl"

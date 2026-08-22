@@ -193,6 +193,7 @@ export default function PublicReview() {
                         <div className="text-center space-y-3">
                             {tenant.logo_url ? (
                                 <img
+                                    decoding="async"
                                     src={tenant.logo_url}
                                     alt={businessName}
                                     className="w-20 h-20 rounded-2xl mx-auto object-cover border-2 border-white/10 shadow-xl"

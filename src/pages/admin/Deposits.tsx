@@ -422,6 +422,7 @@ export default function Deposits() {
 
                         <div className="rounded-2xl overflow-hidden border border-white/10 bg-black flex items-center justify-center max-h-[65vh]">
                             <img
+                                decoding="async" loading="lazy"
                                 src={selectedReceiptUrl}
                                 alt="Comprobante de Pago"
                                 className="max-h-[65vh] w-auto object-contain"

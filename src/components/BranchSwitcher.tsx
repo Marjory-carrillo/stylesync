@@ -67,7 +67,7 @@ export default function BranchSwitcher() {
                 {/* Mini Logo */}
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border transition-all duration-500 relative z-10 ${isOpen ? `${activeGradient.border} ${activeGradient.bg}` : 'border-white/5 bg-white/[0.03]'}`}>
                     {activeTenant?.logoUrl ? (
-                        <img src={activeTenant.logoUrl} className="w-full h-full object-cover" alt="" />
+                        <img decoding="async" loading="lazy" src={activeTenant.logoUrl} className="w-full h-full object-cover" alt="" />
                     ) : (
                         <ActiveIcon size={16} className={`${isOpen ? activeGradient.text : 'text-slate-400 group-hover:text-white'} transition-colors`} />
                     )}
@@ -119,7 +119,7 @@ export default function BranchSwitcher() {
                                         isActive ? `${gradient.bg} border ${gradient.border}` : 'bg-white/5 border border-white/5'
                                     }`}>
                                         {tenant.logoUrl ? (
-                                            <img src={tenant.logoUrl} className="w-full h-full object-cover" alt="" />
+                                            <img decoding="async" loading="lazy" src={tenant.logoUrl} className="w-full h-full object-cover" alt="" />
                                         ) : (
                                             <Ico size={14} className={isActive ? gradient.text : 'text-slate-500 group-hover:text-slate-300 transition-colors'} />
                                         )}

@@ -417,7 +417,7 @@ export default function StylistColumnCalendar({
                             {activeStylists.map(stylist => (
                                 <div key={stylist.id} className="p-3 flex items-center gap-2.5 justify-center text-center">
                                     {stylist.image ? (
-                                        <img src={stylist.image} alt={stylist.name} className="w-7 h-7 rounded-full object-cover border border-accent/40 shrink-0" />
+                                        <img decoding="async" loading="lazy" src={stylist.image} alt={stylist.name} className="w-7 h-7 rounded-full object-cover border border-accent/40 shrink-0" />
                                     ) : (
                                         <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shrink-0 text-xs font-black">
                                             {stylist.name.charAt(0)}
@@ -820,6 +820,7 @@ export default function StylistColumnCalendar({
                             ✕ Cerrar
                         </button>
                         <img
+                            decoding="async" loading="lazy"
                             src={activePhotoUrl}
                             alt="Foto de Referencia / Comprobante"
                             className="max-h-[85vh] w-auto object-contain rounded-2xl border border-white/20 shadow-2xl"

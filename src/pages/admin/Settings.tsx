@@ -681,7 +681,7 @@ export default function Settings() {
                         <div className="flex items-center gap-4 p-4 bg-white/5 rounded-lg border border-white/5">
                             <div className="w-16 h-16 rounded-lg bg-black/20 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                 {infoForm.logoUrl ? (
-                                    <img src={infoForm.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                    <img decoding="async" loading="lazy" src={infoForm.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                                 ) : (
                                     <ImageIcon className="text-muted" size={24} />
                                 )}

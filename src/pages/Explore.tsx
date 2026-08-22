@@ -306,6 +306,7 @@ export default function Explore() {
                                 {/* ── Top Cover Image Banner Header ── */}
                                 <div className="relative h-56 w-full overflow-hidden bg-[#0b1329]">
                                     <img
+                                        decoding="async" loading="lazy"
                                         src={t.coverUrl}
                                         alt={t.name}
                                         className="w-full h-full object-cover brightness-100 transition-opacity duration-300"
@@ -340,7 +341,7 @@ export default function Explore() {
                                             <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 blur-md opacity-40 group-hover:opacity-100 transition-opacity" />
                                             <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-[#0b1329] border-2 border-white/20 shrink-0 flex items-center justify-center shadow-2xl">
                                                 {t.logoUrl ? (
-                                                    <img src={t.logoUrl} alt={t.name} className="w-full h-full object-cover" />
+                                                    <img decoding="async" loading="lazy" src={t.logoUrl} alt={t.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <Store className="w-9 h-9 text-emerald-400" />
                                                 )}
