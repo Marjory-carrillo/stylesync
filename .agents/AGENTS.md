@@ -13,8 +13,7 @@
   - Usar siempre `Sparkles` ✨ de `lucide-react` para representar servicios, catálogo de citas y tarjetas de agenda.
   - Usar `Scissors` únicamente dentro de selectores explícitos donde el usuario elija la categoría específica "Barbería".
 - **Bundling & Chunks en Vite (`vite.config.ts`)**:
-  - Mantener siempre la división modular de vendor chunks (`vendor-react`, `vendor-supabase`, `vendor-charts`, `vendor-pdf-ocr`, `vendor-i18n`, `vendor-misc`).
-  - Nunca empaquetar todo `node_modules` en un único archivo `vendor.js` monolítico para permitir descargas paralelas en redes móviles.
+  - Mantener el empaquetado de `node_modules` en un chunk `vendor` seguro para evitar bloqueos por dependencias circulares en React (`React.useState undefined`).
 - **Rendimiento CSS & Scroll iOS**:
   - Nunca usar `background-attachment: fixed` en `html`, `body` o contenedores con scroll (causa repaints continuos en Safari iOS).
   - Los fondos degradados fijos deben ir en `body::before` con aceleración GPU (`will-change: transform`, `transform: translateZ(0)`).
