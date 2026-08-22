@@ -8,7 +8,7 @@ import { useUIStore } from '../uiStore';
 async function notifyAdmin(
     tenantId: string,
     eventType: 'new' | 'reschedule' | 'cancel' | 'price_update',
-    appointment: { client_name: string; client_phone: string; service_name?: string; date: string; time: string; stylist_id?: number | null; additional_services?: string[]; confirmed_price?: number },
+    appointment: { id?: string; client_name: string; client_phone: string; service_name?: string; date: string; time: string; stylist_id?: number | null; additional_services?: string[]; confirmed_price?: number },
     adminPhone?: string,
     businessName?: string,
 ) {
@@ -223,6 +223,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             showToast('Cita cancelada', 'success');
             if (tenantId && apt) {
                 notifyAdmin(tenantId, 'cancel', {
+                    id: id,
                     client_name: `${apt.clientName}${reason ? ` (Motivo: ${reason})` : ''}`,
                     client_phone: apt.clientPhone,
                     service_name: serviceName,
@@ -268,13 +269,14 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             });
             if (error) throw error;
             if (!data?.success) throw new Error(data?.error || 'Error al actualizar');
-            return { apt, newTime, newDate, serviceName };
+            return { id, apt, newTime, newDate, serviceName };
         },
-        onSuccess: ({ apt, newTime, newDate, serviceName }) => {
+        onSuccess: ({ id, apt, newTime, newDate, serviceName }) => {
             queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Hora actualizada', 'success');
             if (tenantId && apt) {
                 notifyAdmin(tenantId, 'reschedule', {
+                    id: id,
                     client_name: apt.clientName,
                     client_phone: apt.clientPhone,
                     service_name: serviceName,
@@ -348,6 +350,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 const apt = query.data?.find(a => a.id === id);
                 if (apt) {
                     notifyAdmin(tenantId, 'new', {
+                        id: id,
                         client_name: `${apt.clientName} (ANTICIPO APROBADO ✅)`,
                         client_phone: apt.clientPhone,
                         date: apt.date,

@@ -340,7 +340,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             const cleanPhone = normalizePhone(clientPhone);
             const wasBlocked = isPhoneBlocked(cleanPhone);
 
-            await addAppointment({
+            const res = await addAppointment({
                 clientName: clientName.trim(),
                 clientPhone: cleanPhone,
                 serviceId: selectedService.id,
@@ -377,6 +377,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                         admin_phone:   businessConfig.phone ?? undefined,
                         business_name: businessConfig.name  ?? undefined,
                         appointment: {
+                            id:                 (res as any)?.id,
                             client_name:        clientName.trim(),
                             client_phone:       cleanPhone,
                             service_name:       selectedService.name,

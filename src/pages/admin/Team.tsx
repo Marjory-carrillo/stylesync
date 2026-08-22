@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, canAddEmployee } from '../../lib/planLimits';
 import { supabase } from '../../lib/supabaseClient';
-import { Users, Mail, Shield, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Users, Mail, Shield, Plus, Trash2, AlertCircle, Copy, Check, Info, UserCheck, Clock, Loader2 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import { z } from 'zod';
 
@@ -15,6 +15,7 @@ interface TeamMember {
     role: 'owner' | 'admin' | 'employee';
     created_at: string;
     stylist_id?: number | null;
+    user_id?: string | null;
 }
 
 export default function Team() {
@@ -29,11 +30,13 @@ export default function Team() {
     const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid);
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState<'admin' | 'employee'>('employee');
     const [inviteStylistId, setInviteStylistId] = useState<string>('');
     const [confirmRevoke, setConfirmRevoke] = useState<{ open: boolean; memberId: string | null; email: string | null }>({ open: false, memberId: null, email: null });
     const [inviteError, setInviteError] = useState<string | null>(null);
+    const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
     useEffect(() => {
         if (tenantId) fetchMembers();
@@ -58,9 +61,23 @@ export default function Team() {
         }
     };
 
+    // Identificar los profesionales que ya tienen un correo asignado
+    const assignedStylistIds = useMemo(() => {
+        return new Set(
+            members
+                .map(m => m.stylist_id)
+                .filter((id): id is number => id !== null && id !== undefined)
+        );
+    }, [members]);
+
+    // Filtrar los profesionales disponibles para no repetir asignaciones
+    const availableStylists = useMemo(() => {
+        return stylists.filter(s => !assignedStylistIds.has(s.id));
+    }, [stylists, assignedStylistIds]);
+
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inviteEmail || !tenantId) return;
+        if (!inviteEmail || !tenantId || isSubmitting) return;
 
         const check = canAddEmployee(plan, members.length, businessConfig?.trialEndsAt, extraEmployeesPaid);
         if (!check.allowed) {
@@ -74,20 +91,21 @@ export default function Team() {
             return;
         }
         setInviteError(null);
+        setIsSubmitting(true);
 
         try {
             const { error } = await supabase
                 .from('tenant_users')
                 .insert({
                     tenant_id: tenantId,
-                    email: inviteEmail.trim(),
+                    email: inviteEmail.trim().toLowerCase(),
                     role: inviteRole,
-                    stylist_id: inviteStylistId ? parseInt(inviteStylistId) : null
+                    stylist_id: (inviteRole === 'employee' && inviteStylistId) ? parseInt(inviteStylistId) : null
                 });
 
             if (error) throw error;
 
-            showToast('Se ha agregado al equipo', 'success');
+            showToast('Se ha agregado al equipo correctamente', 'success');
             setInviteEmail('');
             setInviteStylistId('');
             fetchMembers();
@@ -98,7 +116,17 @@ export default function Team() {
             } else {
                 showToast(`Error: ${error.message || 'al invitar usuario'}`, 'error');
             }
+        } finally {
+            setIsSubmitting(false);
         }
+    };
+
+    const copyDirectLink = (email: string) => {
+        const link = `${window.location.origin}/login?email=${encodeURIComponent(email)}`;
+        navigator.clipboard.writeText(link);
+        setCopiedEmail(email);
+        showToast('Enlace directo de acceso copiado al portapapeles', 'success');
+        setTimeout(() => setCopiedEmail(null), 2500);
     };
 
     const removeMember = (id: string, email: string) => {
@@ -192,7 +220,7 @@ export default function Team() {
                                         Empleado
                                         <div className={`w-2 h-2 rounded-full transition-all duration-500 ${inviteRole === 'employee' ? 'bg-blue-500 scale-125 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
                                     </div>
-                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Acceso limitado a su propia agenda y prospectos.</div>
+                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Acceso limitado a su propia agenda personal. Sin ver finanzas ni clientes globales.</div>
                                 </button>
                                 <button
                                     type="button"
@@ -203,23 +231,27 @@ export default function Team() {
                                         Administrador
                                         <div className={`w-2 h-2 rounded-full transition-all duration-500 ${inviteRole === 'admin' ? 'bg-violet-500 scale-125 shadow-[0_0_8px_#8b5cf6]' : 'bg-slate-700'}`}></div>
                                     </div>
-                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Control total sobre finanzas, equipo y configuración.</div>
+                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Control total sobre agenda completa, finanzas, servicios y equipo.</div>
                                 </button>
                             </div>
                         </div>
 
-                        {inviteRole === 'employee' && stylists.length > 0 && (
-                            <div className="bg-white/5 p-5 rounded-2xl border border-white/5 animate-fade-in">
-                                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Perfil Público</label>
-                                <p className="text-[10px] text-slate-500 mb-3 font-medium">Vincular para habilitar la vista de agenda personal.</p>
+                        {inviteRole === 'employee' && (
+                            <div className="bg-white/5 p-5 rounded-2xl border border-white/5 animate-fade-in space-y-3">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Perfil de Profesional Vinculado</label>
+                                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                                        Selecciona al profesional del salón para que al iniciar sesión solo pueda ver sus propias citas asignadas.
+                                    </p>
+                                </div>
                                 <div className="relative">
                                     <select
                                         value={inviteStylistId}
                                         onChange={(e) => setInviteStylistId(e.target.value)}
                                         className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-blue-500/50 font-medium appearance-none transition-all cursor-pointer"
                                     >
-                                        <option value="">Sin vincular (acceso general)</option>
-                                        {stylists.map(s => (
+                                        <option value="">Sin vincular (acceso general a todas las citas)</option>
+                                        {availableStylists.map(s => (
                                             <option key={s.id} value={s.id} className="bg-slate-900">{s.name} ({s.role})</option>
                                         ))}
                                     </select>
@@ -227,15 +259,31 @@ export default function Team() {
                                         ▼
                                     </div>
                                 </div>
+                                {stylists.length > 0 && availableStylists.length === 0 && (
+                                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs p-3 rounded-xl flex items-center gap-2">
+                                        <AlertCircle size={15} className="shrink-0" />
+                                        <span>Todos los profesionales registrados ya tienen una cuenta vinculada.</span>
+                                    </div>
+                                )}
                             </div>
                         )}
 
                         <button
                             type="submit"
-                            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-95 group"
+                            disabled={isSubmitting}
+                            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-4 rounded-xl transition-all shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-95 group cursor-pointer disabled:cursor-not-allowed"
                         >
-                            <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-                            Enviar Invitación
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 size={20} className="animate-spin" />
+                                    <span>Agregando integrante...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                                    <span>Agregar al Equipo</span>
+                                </>
+                            )}
                         </button>
                     </form>
                 </section>
@@ -284,24 +332,28 @@ export default function Team() {
                                     <Users size={40} className="text-slate-700" />
                                 </div>
                                 <h4 className="text-xl font-bold text-white mb-2">Equipo Vacío</h4>
-                                <p className="text-sm text-slate-400 max-w-[240px] leading-relaxed">Aún no has invitado a ningún colaborador para administrar este negocio.</p>
+                                <p className="text-sm text-slate-400 max-w-[240px] leading-relaxed">Aún no has agregado a ningún colaborador para administrar este negocio.</p>
                             </div>
                         ) : (
                             members.map((member, index) => {
                                 const linkedStylist = member.stylist_id ? stylists.find(s => s.id === member.stylist_id) : null;
+                                const isConnected = !!member.user_id;
+
                                 return (
                                     <div
                                         key={member.id}
-                                        className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/[0.08] transition-all group animate-fade-in-up"
+                                        className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/[0.08] transition-all group animate-fade-in-up gap-4"
                                         style={{ animationDelay: `${index * 50}ms` }}
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center font-black text-slate-300 uppercase shadow-xl group-hover:scale-110 transition-transform">
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center font-black text-slate-300 uppercase shadow-xl group-hover:scale-105 transition-transform shrink-0">
                                                 {member.email.charAt(0)}
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-white text-base truncate max-w-[140px] sm:max-w-xs">{member.email}</p>
-                                                <div className="flex items-center gap-2 mt-1.5">
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-white text-base truncate max-w-[160px] sm:max-w-xs" title={member.email}>
+                                                    {member.email}
+                                                </p>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                                     {member.role === 'admin' ? (
                                                         <span className="text-[9px] font-black uppercase tracking-widest text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md">Administrador</span>
                                                     ) : (
@@ -313,22 +365,57 @@ export default function Team() {
                                                             Vínculo: {linkedStylist.name}
                                                         </span>
                                                     )}
+                                                    {isConnected ? (
+                                                        <span className="text-[9px] font-bold text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                            <UserCheck size={10} /> Cuenta activa
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[9px] font-bold text-amber-400/90 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                            <Clock size={10} /> Pendiente 1er ingreso
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => removeMember(member.id, member.email)}
-                                            className="p-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 rounded-xl transition-all active:scale-90"
-                                            title="Revocar acceso permanente"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => copyDirectLink(member.email)}
+                                                className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/20 rounded-xl transition-all active:scale-90"
+                                                title="Copiar enlace de acceso para enviar al colaborador"
+                                            >
+                                                {copiedEmail === member.email ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                                            </button>
+                                            <button
+                                                onClick={() => removeMember(member.id, member.email)}
+                                                className="p-2.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 rounded-xl transition-all active:scale-90"
+                                                title="Revocar acceso permanente"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </div>
-                                )
+                                );
                             })
                         )}
                     </div>
                 </section>
+            </div>
+
+            {/* Explanatory Info Card */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 relative overflow-hidden">
+                <div className="flex items-start gap-4">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                        <Info size={22} />
+                    </div>
+                    <div className="space-y-1">
+                        <h4 className="text-base font-bold text-white">¿Cómo funciona el acceso de colaboradores?</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Al agregar el correo del colaborador, queda registrado en tu equipo. Cuando esa persona inicie sesión o se registre en <strong>/login</strong> con ese mismo correo, entrará automáticamente a tu negocio con su rol asignado. Puedes usar el botón de <strong>Copiar Enlace</strong> en la tarjeta del integrante para compartirle el link directo por WhatsApp.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <ConfirmModal

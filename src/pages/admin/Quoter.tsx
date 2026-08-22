@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 
 export default function Quoter() {
     const { showToast } = useUIStore();
-    const { user, userRole } = useAuthStore();
+    const { user, userRole, userStylistId } = useAuthStore();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || {} as any;
     const { config, isLoading } = useNailCalculator();
@@ -33,18 +33,26 @@ export default function Quoter() {
     // Selection states
     const [selectedStylistId, setSelectedStylistId] = useState<string>('');
 
-    // Auto-select stylist: If user is employee matched by email, OR if there's only 1 qualified stylist
+    // Auto-select stylist: If user is employee matched by userStylistId/email, OR if there's only 1 qualified stylist
     useEffect(() => {
         if (qualifiedStylists.length === 0) return;
 
-        const userEmail = user?.email;
-
-        // If user is employee, match by email or name if possible
-        if (userRole === 'employee' && userEmail) {
-            const employeeStylist = qualifiedStylists.find(st => st.phone?.toLowerCase() === userEmail.toLowerCase() || st.name.toLowerCase().includes(userEmail.split('@')[0].toLowerCase()));
-            if (employeeStylist) {
-                setSelectedStylistId(String(employeeStylist.id));
-                return;
+        // If user is employee, match by userStylistId or email
+        if (userRole === 'employee') {
+            if (userStylistId) {
+                const employeeStylist = qualifiedStylists.find(st => st.id === userStylistId);
+                if (employeeStylist) {
+                    setSelectedStylistId(String(employeeStylist.id));
+                    return;
+                }
+            }
+            const userEmail = user?.email;
+            if (userEmail) {
+                const employeeStylist = qualifiedStylists.find(st => st.phone?.toLowerCase() === userEmail.toLowerCase() || st.name.toLowerCase().includes(userEmail.split('@')[0].toLowerCase()));
+                if (employeeStylist) {
+                    setSelectedStylistId(String(employeeStylist.id));
+                    return;
+                }
             }
         }
 
@@ -52,7 +60,7 @@ export default function Quoter() {
         if (qualifiedStylists.length === 1) {
             setSelectedStylistId(String(qualifiedStylists[0].id));
         }
-    }, [qualifiedStylists, userRole, user]);
+    }, [qualifiedStylists, userRole, userStylistId, user]);
     const [selectedBaseId, setSelectedBaseId] = useState<string>('');
     const [selectedSizeId, setSelectedSizeId] = useState<string>('');
     const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
@@ -295,6 +303,16 @@ export default function Quoter() {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <div className="w-10 h-10 rounded-full border-4 border-accent border-t-transparent animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (userRole === 'employee' && userStylistId && !qualifiedStylists.some(st => st.id === userStylistId)) {
+        return (
+            <div className="flex flex-col items-center justify-center p-12 text-center h-[60vh]">
+                <Calculator size={48} className="text-slate-500 mb-4" />
+                <h2 className="text-2xl font-bold text-white mb-2">Cotizador no Disponible</h2>
+                <p className="text-slate-400 max-w-md text-sm">Tu perfil de colaborador no tiene asignados servicios con cotizador de uñas.</p>
             </div>
         );
     }

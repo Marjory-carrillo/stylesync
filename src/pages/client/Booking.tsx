@@ -1006,6 +1006,7 @@ export default function Booking() {
                         admin_phone:   businessConfig?.phone ?? undefined,
                         business_name: businessConfig?.name  ?? undefined,
                         appointment: {
+                            id:                 (result as any)?.id,
                             client_name:        clientName.trim(),
                             client_phone:       clientPhone.trim(),
                             service_name:       combinedServiceName,

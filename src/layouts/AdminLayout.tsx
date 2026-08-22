@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
+import { useStylists } from '../lib/store/queries/useStylists';
+import { useServices } from '../lib/store/queries/useServices';
 import { useRealtimeNotifications } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
 import { LayoutDashboard, Users, Sparkles, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard } from 'lucide-react';
@@ -16,8 +18,10 @@ import { isAccountActive, isNailCalculatorEnabled } from '../lib/planLimits';
 
 export default function AdminLayout() {
     const { t, i18n } = useTranslation();
-    const { isSuperAdmin, userRole } = useAuthStore();
+    const { isSuperAdmin, userRole, userStylistId } = useAuthStore();
     const { data: tenantConfig } = useTenantData();
+    const { stylists } = useStylists();
+    const { services } = useServices();
     const businessConfig = tenantConfig || {} as any;
     const isEmployee = userRole === 'employee';
     const location = useLocation();
@@ -112,6 +116,20 @@ export default function AdminLayout() {
         businessConfig?.paymentStatus,
         businessConfig?.gracePeriodEndsAt
     );
+
+    const showNailCalculator = useMemo(() => {
+        if (!isNailCalculatorEnabled(businessConfig)) return false;
+        if (isEmployee && userStylistId) {
+            const myStylist = stylists.find(s => s.id === userStylistId);
+            if (myStylist) {
+                if (myStylist.serviceIds && myStylist.serviceIds.length > 0) {
+                    return services.some(s => s.enableQuoter && myStylist.serviceIds!.map(Number).includes(Number(s.id)));
+                }
+                return services.some(s => s.enableQuoter);
+            }
+        }
+        return true;
+    }, [businessConfig, isEmployee, userStylistId, stylists, services]);
 
     // SuperAdmin can bypass blocks for support purposes
     if (accountStatus.blocked && !isSuperAdmin) {
@@ -227,7 +245,7 @@ export default function AdminLayout() {
                         </Link>
                     )}
 
-                    {isNailCalculatorEnabled(businessConfig) && (
+                    {showNailCalculator && (
                         <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
                             <Calculator size={18} />
                             <span>Cotizador de Uñas</span>

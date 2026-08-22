@@ -226,6 +226,7 @@ export default function Appointments() {
                     tenant_id: tenantId,
                     event_type: 'price_update',
                     appointment: {
+                        id: apt.id,
                         client_name: apt.clientName,
                         client_phone: apt.clientPhone,
                         service_name: serviceObj?.name || 'Servicio',

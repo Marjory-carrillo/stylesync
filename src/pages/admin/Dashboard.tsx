@@ -392,6 +392,7 @@ export default function Dashboard() {
                         tenant_id: tenantId,
                         event_type: 'price_update',
                         appointment: {
+                            id: apt.id,
                             client_name: apt.clientName,
                             client_phone: apt.clientPhone,
                             service_name: mainSvc?.name || 'Servicio',

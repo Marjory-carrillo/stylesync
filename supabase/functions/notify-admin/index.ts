@@ -232,18 +232,21 @@ serve(async (req: Request) => {
             .split(' + Cotización')[0]
             .trim();
 
-        // Filtrar adicionales reales de la lista (excluyendo entradas de la calculadora)
-        const realAddOns = additionalServices.filter(s => 
-            !s.startsWith('Largo:') && 
-            !s.startsWith('Diseño:') && 
-            !s.startsWith('Extra:') && 
-            !s.startsWith('Estilo:') && 
-            !s.startsWith('Cotización') && 
-            !s.startsWith('Referencia:')
-        );
+        // Filtrar y limpiar adicionales reales de la lista (quitando prefijo 'Adicional:' y etiquetas de precio aisladas)
+        const realAddOns = additionalServices
+            .filter(s => 
+                !s.startsWith('Largo:') && 
+                !s.startsWith('Diseño:') && 
+                !s.startsWith('Extra:') && 
+                !s.startsWith('Estilo:') && 
+                !s.startsWith('Cotización') && 
+                !s.startsWith('Referencia:')
+            )
+            .map(s => s.replace(/^Adicional:\s*/i, '').replace(/\s*\(\+\$\d+.*?\)/i, '').trim())
+            .filter(Boolean);
 
         let formattedService = realAddOns.length > 0
-            ? `${mainServiceOnly} (+ ${realAddOns.join(', ')})`
+            ? `${mainServiceOnly} + ${realAddOns.join(', ')}`
             : mainServiceOnly;
 
         if (isVariablePrice && event_type === 'new') {
@@ -319,7 +322,7 @@ serve(async (req: Request) => {
                 clientSent = true;
 
             } else if (event_type === 'manual') {
-                // Cita agendada manualmente por el admin -> Enviar plantilla limpia sin PIN ni desglose de cotizador
+                // Cita agendada manualmente por el admin -> Enviar plantilla con enlace del negocio (el link de confirmación con ID se enviará en el recordatorio)
                 const bookingLink = businessSlug
                     ? `https://www.citalink.app/reserva/${businessSlug}`
                     : 'https://www.citalink.app';
@@ -368,9 +371,9 @@ serve(async (req: Request) => {
                     );
                 }
             } else if (event_type === 'price_update') {
-                const bookingLink = businessSlug
-                    ? `https://www.citalink.app/reserva/${businessSlug}`
-                    : 'https://www.citalink.app';
+                const bookingLink = appointment.id
+                    ? `https://www.citalink.app/reagendar/${appointment.id}`
+                    : (businessSlug ? `https://www.citalink.app/reserva/${businessSlug}` : 'https://www.citalink.app');
                 const confirmedPriceStr = appointment.confirmed_price ? `*${appointment.confirmed_price} MXN*` : '*0 MXN*';
                 clientSent = await sendTemplate(
                     appointment.client_phone, TEMPLATE_CLIENTE_ACTUALIZACION_PRECIO,
@@ -379,8 +382,8 @@ serve(async (req: Request) => {
                         '2': businessName, 
                         '3': fechaFormateada, 
                         '4': formattedService, 
-                        '5': confirmedPriceStr,
-                        '6': bookingLink
+                        '5': confirmedPriceStr, 
+                        '6': bookingLink 
                     }
                 );
                 if (!clientSent) {

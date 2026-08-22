@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
@@ -85,6 +85,20 @@ export default function Staff() {
     const [formCustomPrices, setFormCustomPrices] = useState<Record<number, { price?: number; duration?: number }>>({});
     const [formCustomQuoterConfig, setFormCustomQuoterConfig] = useState<Record<string, number>>({});
     const { services } = useServices();
+
+    const hasNailServiceAssigned = useMemo(() => {
+        if (!isNailCalculatorEnabled(businessConfig)) return false;
+        if (formServiceIds.length === 0) {
+            return services.some(s => s.enableQuoter);
+        }
+        return services.some(s => formServiceIds.includes(Number(s.id)) && s.enableQuoter);
+    }, [businessConfig, formServiceIds, services]);
+
+    useEffect(() => {
+        if (activeTab === 'quoter' && !hasNailServiceAssigned) {
+            setActiveTab('services');
+        }
+    }, [hasNailServiceAssigned, activeTab]);
 
     const openAdd = () => {
         const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid);
@@ -338,7 +352,7 @@ export default function Staff() {
                             >
                                 Servicios Asignados
                             </button>
-                            {isNailCalculatorEnabled(businessConfig) && (
+                            {hasNailServiceAssigned && (
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('quoter')}

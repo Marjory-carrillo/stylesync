@@ -223,18 +223,21 @@ serve(async (req: Request) => {
                 .eq('id', appt.service_id)
                 .single();
 
-            // Construir nombre del servicio únicamente con Servicios Adicionales reales (filtrando detalles del cotizador de uñas)
-            const realAddOns: string[] = (appt.additional_services ?? []).filter((s: string) => 
-                !s.startsWith('Largo:') && 
-                !s.startsWith('Diseño:') && 
-                !s.startsWith('Extra:') && 
-                !s.startsWith('Cotización') && 
-                !s.startsWith('Estilo:') &&
-                !s.startsWith('Referencia:')
-            );
+            // Construir nombre del servicio únicamente con Servicios Adicionales reales (filtrando detalles del cotizador de uñas y prefijos)
+            const realAddOns: string[] = (appt.additional_services ?? [])
+                .filter((s: string) => 
+                    !s.startsWith('Largo:') && 
+                    !s.startsWith('Diseño:') && 
+                    !s.startsWith('Extra:') && 
+                    !s.startsWith('Cotización') && 
+                    !s.startsWith('Estilo:') &&
+                    !s.startsWith('Referencia:')
+                )
+                .map((s: string) => s.replace(/^Adicional:\s*/i, '').replace(/\s*\(\+\$\d+.*?\)/i, '').trim())
+                .filter(Boolean);
 
             const serviceName = realAddOns.length > 0
-                ? `${svc?.name ?? 'Servicio'} (+ ${realAddOns.join(', ')})`
+                ? `${svc?.name ?? 'Servicio'} + ${realAddOns.join(', ')}`
                 : (svc?.name ?? 'Servicio');
 
             // ── BLOQUEO ANTI-DUPLICACIÓN (Atomic Lock con .select('id')) ──
