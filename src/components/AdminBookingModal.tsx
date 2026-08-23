@@ -186,6 +186,17 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return base;
     }, [businessConfig, selectedService, nailTotalPrice, services, selectedAddons]);
 
+    // Get total duration (base service + selected additional services)
+    const totalDuration = useMemo(() => {
+        let dur = selectedService?.duration ?? 30;
+        services.filter(s => s.isAddon).forEach(addon => {
+            if (selectedAddons[addon.id]) {
+                dur += (addon.duration || 0);
+            }
+        });
+        return dur;
+    }, [selectedService, services, selectedAddons]);
+
     const filteredServices = useMemo(() => {
         let list = services.filter(s => !s.isAddon);
         if (!selectedStylist || selectedStylist === 'any' || !selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) {
@@ -234,7 +245,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
                     return { id: a.id, stylistId: '0', start, end };
                 });
-            return getSmartSlots(baseDate, selectedService.duration, dateSchedule.start, dateSchedule.end, appts, blocked, bufferMinutes);
+            return getSmartSlots(baseDate, totalDuration, dateSchedule.start, dateSchedule.end, appts, blocked, bufferMinutes);
         }
 
         const allSlots = new Set<string>();
@@ -247,11 +258,11 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
                     return { id: a.id, stylistId: String(stylist.id), start, end };
                 });
-            const slots = getSmartSlots(baseDate, selectedService.duration, dateSchedule.start, dateSchedule.end, stylistAppts, blocked, bufferMinutes);
+            const slots = getSmartSlots(baseDate, totalDuration, dateSchedule.start, dateSchedule.end, stylistAppts, blocked, bufferMinutes);
             slots.forEach(s => allSlots.add(s));
         });
         return Array.from(allSlots).sort();
-    }, [selectedService, selectedDate, selectedStylist, stylists, appointments, services, blockedSlots, getScheduleForDate]);
+    }, [selectedService, totalDuration, selectedDate, selectedStylist, stylists, appointments, services, blockedSlots, getScheduleForDate, bufferMinutes]);
 
     // Step: datos — client data validation
     const handleDatosNext = () => {

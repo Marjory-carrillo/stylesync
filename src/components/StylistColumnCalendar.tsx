@@ -159,6 +159,7 @@ export default function StylistColumnCalendar({
                 .replace(/^Largo:\s*/i, '')
                 .replace(/^Diseño Catálogo:\s*/i, '')
                 .replace(/^Adicional:\s*/i, '')
+                .replace(/^Estilo:\s*/i, '')
                 .trim();
 
             const matchingService = services.find(s =>
@@ -197,6 +198,8 @@ export default function StylistColumnCalendar({
                 .replace(/^Diseño:\s*/i, '')
                 .replace(/^Largo:\s*/i, '')
                 .replace(/^Diseño Catálogo:\s*/i, '')
+                .replace(/^Adicional:\s*/i, '')
+                .replace(/^Estilo:\s*/i, '')
                 .trim();
 
             const matchingService = services.find(s =>
@@ -233,7 +236,7 @@ export default function StylistColumnCalendar({
         return { START_HOUR: baseStart, END_HOUR: baseEnd };
     }, [dayAppointments]);
 
-    const HOUR_HEIGHT = 88; // 88px per hour
+    const HOUR_HEIGHT = 100; // 100px per hour for better readability
     const HOURS = useMemo(() => Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i), [START_HOUR, END_HOUR]);
 
     // Helper to format full service string (base service + real catalog extra services ONLY)
@@ -443,7 +446,8 @@ export default function StylistColumnCalendar({
                                 return (
                                     <div
                                         key={h}
-                                        className="h-[88px] border-b border-white/5 pr-3 pt-2 text-right text-[11px] font-bold text-slate-500"
+                                        style={{ height: `${HOUR_HEIGHT}px` }}
+                                        className="border-b border-white/5 pr-3 pt-2 text-right text-[11px] font-bold text-slate-500 box-border"
                                     >
                                         {displayH}:00 <span className="text-[9px] text-slate-600 font-normal">{ampm}</span>
                                     </div>
@@ -472,7 +476,7 @@ export default function StylistColumnCalendar({
                             {/* Background Hour Lines */}
                             <div className="absolute inset-0 pointer-events-none">
                                 {HOURS.map(h => (
-                                    <div key={h} className="h-[88px] border-b border-white/5 w-full" />
+                                    <div key={h} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-white/5 w-full box-border" />
                                 ))}
                             </div>
 
@@ -490,6 +494,8 @@ export default function StylistColumnCalendar({
                                             const duration = getAppointmentTotalDuration(apt);
                                             const topPx = calculateTop(apt.time);
                                             const heightPx = calculateHeight(duration);
+                                            const isShort = duration <= 35 || heightPx < 70;
+                                            const totalPrice = getAppointmentTotalPrice(apt);
 
                                             const statusState = getAppointmentStatusState(apt);
 
@@ -499,9 +505,11 @@ export default function StylistColumnCalendar({
                                                     onClick={() => setSelectedApt(apt)}
                                                     style={{
                                                         top: `${topPx}px`,
-                                                        height: `${heightPx - 4}px`,
+                                                        height: `${Math.max(48, heightPx - 4)}px`,
                                                     }}
-                                                    className={`absolute left-1 right-1 rounded-2xl p-2.5 border text-left transition-all duration-300 cursor-pointer shadow-xl overflow-hidden group hover:z-20 hover:scale-[1.02] ${
+                                                    className={`absolute left-1 right-1 border text-left transition-all duration-300 cursor-pointer shadow-xl overflow-hidden group hover:z-20 hover:scale-[1.01] ${
+                                                        isShort ? 'rounded-xl p-2' : 'rounded-2xl p-2.5'
+                                                    } ${
                                                         statusState.isCompleted
                                                             ? 'bg-gradient-to-br from-emerald-950/80 to-slate-900/90 border-emerald-500/40 text-emerald-100 shadow-emerald-950/40'
                                                             : statusState.isLiveAtendiendo
@@ -513,70 +521,117 @@ export default function StylistColumnCalendar({
                                                             : 'bg-gradient-to-br from-slate-900/90 to-indigo-950/80 border-indigo-500/30 hover:border-indigo-400 text-slate-100'
                                                     }`}
                                                 >
-                                                    <div className="flex items-start justify-between gap-1 mb-1">
-                                                        <span className="text-xs font-black truncate">{apt.clientName}</span>
-                                                        <span className="text-[10px] font-bold opacity-80 shrink-0">
-                                                            {apt.time.slice(0, 5)}
-                                                        </span>
-                                                    </div>
-
-                                                    <p className="text-[11px] font-bold opacity-90 truncate leading-tight flex items-center gap-1" title={getAppointmentFullServiceDisplay(apt, service?.name)}>
-                                                        <Sparkles size={11} className="shrink-0 text-accent" />
-                                                        {getAppointmentFullServiceDisplay(apt, service?.name)}
-                                                    </p>
-
-                                                    <div className="mt-1.5 flex items-center gap-1 flex-wrap">
-                                                        {/* Dynamic Status Badge */}
-                                                        {apt.status === 'no_show' ? (
-                                                            <span className="px-1.5 py-0.5 rounded bg-orange-500/30 text-[9px] font-black text-orange-300 uppercase tracking-wider border border-orange-500/40">
-                                                                ⚠️ NO ASISTIÓ
-                                                            </span>
-                                                        ) : statusState.isCompleted ? (
-                                                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
-                                                                ✓ COMPLETADA
-                                                            </span>
-                                                        ) : statusState.isLiveAtendiendo ? (
-                                                            <span className="px-1.5 py-0.5 rounded bg-accent/30 text-[9px] font-black text-accent uppercase tracking-wider border border-accent/50 animate-pulse">
-                                                                🔴 ATENDIENDO
-                                                            </span>
-                                                        ) : statusState.isConfirmed ? (
-                                                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
-                                                                ✓ CONFIRMADA
-                                                            </span>
-                                                        ) : statusState.isPending ? (
-                                                            <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-[9px] font-black text-amber-300 uppercase tracking-wider border border-amber-500/40">
-                                                                ⌛ PENDIENTE
-                                                            </span>
-                                                        ) : (
-                                                            <span className="px-1.5 py-0.5 rounded bg-indigo-500/30 text-[9px] font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/40">
-                                                                📅 AGENDADA
-                                                            </span>
-                                                        )}
-
-                                                        {/* Marketplace Origin Badge */}
-                                                        {(apt.bookingSource === 'marketplace' || (apt as any).booking_source === 'marketplace') && (
-                                                            <span className="px-1.5 py-0.5 rounded bg-purple-500/30 text-[9px] font-black text-purple-300 border border-purple-500/40 uppercase tracking-wider">
-                                                                🛒 MARKETPLACE
-                                                            </span>
-                                                        )}
-
-                                                        {/* Total Confirmed Price Badge */}
-                                                        {(() => {
-                                                            const totalPrice = getAppointmentTotalPrice(apt);
-                                                            return totalPrice > 0 ? (
-                                                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/25 text-[9px] font-black text-emerald-300 border border-emerald-500/40">
-                                                                    💲 ${totalPrice} MXN
+                                                    {isShort ? (
+                                                        /* ── Modo Compacto para citas de 30-35 min (Cero texto cortado) ── */
+                                                        <div className="flex flex-col justify-between h-full">
+                                                            <div className="flex items-center justify-between gap-1 leading-none">
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    {/* Mini status indicator dot */}
+                                                                    {apt.status === 'no_show' ? (
+                                                                        <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" title="No asistió" />
+                                                                    ) : statusState.isCompleted ? (
+                                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Completada" />
+                                                                    ) : statusState.isLiveAtendiendo ? (
+                                                                        <span className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" title="Atendiendo" />
+                                                                    ) : statusState.isConfirmed ? (
+                                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Confirmada" />
+                                                                    ) : statusState.isPending ? (
+                                                                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Pendiente" />
+                                                                    ) : (
+                                                                        <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" title="Agendada" />
+                                                                    )}
+                                                                    <span className="text-xs font-black truncate">{apt.clientName}</span>
+                                                                </div>
+                                                                <span className="text-[10px] font-bold opacity-80 shrink-0 font-mono">
+                                                                    {apt.time.slice(0, 5)}
                                                                 </span>
-                                                            ) : null;
-                                                        })()}
+                                                            </div>
 
-                                                        {/* Staff Note Badge */}
-                                                        {((apt as any).staff_notes || (apt as any).notes) && (
-                                                            <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-[9px] font-bold text-amber-300 border border-amber-400/30 truncate max-w-[150px]">
-                                                                📝 {(apt as any).staff_notes || (apt as any).notes}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                            <div className="flex items-center justify-between gap-1 leading-none">
+                                                                <p className="text-[10px] font-semibold opacity-90 truncate flex items-center gap-1 min-w-0" title={getAppointmentFullServiceDisplay(apt, service?.name)}>
+                                                                    <Sparkles size={10} className="shrink-0 text-accent" />
+                                                                    <span className="truncate">{getAppointmentFullServiceDisplay(apt, service?.name)}</span>
+                                                                </p>
+                                                                <div className="flex items-center gap-1 shrink-0">
+                                                                    {(apt.bookingSource === 'marketplace' || (apt as any).booking_source === 'marketplace') && (
+                                                                        <span className="px-1 py-0.5 rounded bg-purple-500/30 text-[8px] font-black text-purple-300 border border-purple-500/40 leading-none">
+                                                                            MKT
+                                                                        </span>
+                                                                    )}
+                                                                    {totalPrice > 0 && (
+                                                                        <span className="px-1 py-0.5 rounded bg-emerald-500/25 text-[9px] font-black text-emerald-300 border border-emerald-500/40 leading-none">
+                                                                            ${totalPrice}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        /* ── Modo Completo para citas de 45+ min ── */
+                                                        <>
+                                                            <div className="flex items-start justify-between gap-1 mb-1">
+                                                                <span className="text-xs font-black truncate">{apt.clientName}</span>
+                                                                <span className="text-[10px] font-bold opacity-80 shrink-0">
+                                                                    {apt.time.slice(0, 5)}
+                                                                </span>
+                                                            </div>
+
+                                                            <p className="text-[11px] font-bold opacity-90 truncate leading-tight flex items-center gap-1" title={getAppointmentFullServiceDisplay(apt, service?.name)}>
+                                                                <Sparkles size={11} className="shrink-0 text-accent" />
+                                                                {getAppointmentFullServiceDisplay(apt, service?.name)}
+                                                            </p>
+
+                                                            <div className="mt-1.5 flex items-center gap-1 flex-wrap">
+                                                                {/* Dynamic Status Badge */}
+                                                                {apt.status === 'no_show' ? (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/30 text-[9px] font-black text-orange-300 uppercase tracking-wider border border-orange-500/40">
+                                                                        ⚠️ NO ASISTIÓ
+                                                                    </span>
+                                                                ) : statusState.isCompleted ? (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
+                                                                        ✓ COMPLETADA
+                                                                    </span>
+                                                                ) : statusState.isLiveAtendiendo ? (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-accent/30 text-[9px] font-black text-accent uppercase tracking-wider border border-accent/50 animate-pulse">
+                                                                        🔴 ATENDIENDO
+                                                                    </span>
+                                                                ) : statusState.isConfirmed ? (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
+                                                                        ✓ CONFIRMADA
+                                                                    </span>
+                                                                ) : statusState.isPending ? (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-[9px] font-black text-amber-300 uppercase tracking-wider border border-amber-500/40">
+                                                                        ⌛ PENDIENTE
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/30 text-[9px] font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/40">
+                                                                        📅 AGENDADA
+                                                                    </span>
+                                                                )}
+
+                                                                {/* Marketplace Origin Badge */}
+                                                                {(apt.bookingSource === 'marketplace' || (apt as any).booking_source === 'marketplace') && (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-purple-500/30 text-[9px] font-black text-purple-300 border border-purple-500/40 uppercase tracking-wider">
+                                                                        🛒 MARKETPLACE
+                                                                    </span>
+                                                                )}
+
+                                                                {/* Total Confirmed Price Badge */}
+                                                                {totalPrice > 0 && (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/25 text-[9px] font-black text-emerald-300 border border-emerald-500/40">
+                                                                        💲 ${totalPrice} MXN
+                                                                    </span>
+                                                                )}
+
+                                                                {/* Staff Note Badge */}
+                                                                {((apt as any).staff_notes || (apt as any).notes) && (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-[9px] font-bold text-amber-300 border border-amber-400/30 truncate max-w-[150px]">
+                                                                        📝 {(apt as any).staff_notes || (apt as any).notes}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -623,11 +678,8 @@ export default function StylistColumnCalendar({
                                 <strong className="text-accent font-bold">
                                     {(() => {
                                         const baseSvc = getServiceById(selectedApt.serviceId);
-                                        const baseDur = baseSvc?.duration || 60;
                                         const totalDur = getAppointmentTotalDuration(selectedApt);
-                                        return baseSvc?.name
-                                            ? `${baseSvc.name} (${totalDur > baseDur ? `${totalDur} min total` : `${baseDur} min`})`
-                                            : `Servicio (${totalDur} min)`;
+                                        return `${baseSvc?.name || 'Servicio'} (${totalDur} min)`;
                                     })()}
                                 </strong>
                             </div>
@@ -651,7 +703,7 @@ export default function StylistColumnCalendar({
                                             .map((extra: string, idx: number) => (
                                                 <div key={idx} className="flex items-center gap-1.5 text-xs">
                                                     <span className="text-accent font-bold">•</span>
-                                                    <span>{extra}</span>
+                                                    <span>{extra.replace(/\s*\(\+\d+\s*min\)/gi, '').replace(/\s*\(\d+\s*min\)/gi, '')}</span>
                                                 </div>
                                             ))}
                                         {selectedApt.additionalServices?.find((s: string) => s.startsWith('Referencia:')) && (

@@ -133,7 +133,7 @@ export default function Appointments() {
 
         let total = service?.price || 0;
         addServices.forEach((name: string) => {
-            if (name.startsWith('Referencia:')) return;
+            if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) return;
             const extraMatch = name.match(/\(\+\$(\d+)/);
             if (extraMatch) {
                 total += Number(extraMatch[1]);
@@ -141,8 +141,20 @@ export default function Appointments() {
                 const priceMatch = name.match(/\$(\d+)/);
                 if (priceMatch) total += Number(priceMatch[1]);
             } else {
-                const matchingService = services.find(s => s.name === name);
-                if (matchingService) {
+                const cleanName = name
+                    .split('(+')[0]
+                    .replace(/^Extra:\s*/i, '')
+                    .replace(/^Diseño:\s*/i, '')
+                    .replace(/^Largo:\s*/i, '')
+                    .replace(/^Diseño Catálogo:\s*/i, '')
+                    .replace(/^Adicional:\s*/i, '')
+                    .replace(/^Estilo:\s*/i, '')
+                    .trim();
+                const matchingService = services.find(s =>
+                    s.name.toLowerCase() === cleanName.toLowerCase() ||
+                    s.name.toLowerCase() === name.toLowerCase()
+                );
+                if (matchingService && matchingService.price) {
                     total += matchingService.price;
                 }
             }
@@ -150,6 +162,44 @@ export default function Appointments() {
 
         return total;
     }, [getServiceById, services]);
+
+    const getAppointmentTotalDuration = useCallback((apt: any) => {
+        const baseSvc = getServiceById(apt.serviceId);
+        let total = baseSvc?.duration || 60;
+        const addServices = apt.additionalServices || [];
+
+        addServices.forEach((name: string) => {
+            if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) {
+                return;
+            }
+
+            const durMatch = name.match(/\(\+(\d+)\s*min\)/i) || name.match(/(\d+)\s*min/i);
+            if (durMatch) {
+                total += Number(durMatch[1]);
+                return;
+            }
+
+            const cleanName = name
+                .split('(+')[0]
+                .replace(/^Extra:\s*/i, '')
+                .replace(/^Diseño:\s*/i, '')
+                .replace(/^Largo:\s*/i, '')
+                .replace(/^Diseño Catálogo:\s*/i, '')
+                .replace(/^Adicional:\s*/i, '')
+                .replace(/^Estilo:\s*/i, '')
+                .trim();
+
+            const matchingService = services.find((s: any) =>
+                s.name.toLowerCase() === cleanName.toLowerCase() ||
+                s.name.toLowerCase() === name.toLowerCase()
+            );
+            if (matchingService && matchingService.duration) {
+                total += matchingService.duration;
+            }
+        });
+
+        return total;
+    }, [services, getServiceById]);
 
     const isPriceConfirmed = useCallback((apt: any) => {
         // Si ya fue confirmada/editada manualmente por el administrador
@@ -927,23 +977,28 @@ export default function Appointments() {
                                                                                 <span className="text-slate-400">Servicio Base:</span>
                                                                                 <span className="font-bold text-white">{service?.name || 'Servicio'}</span>
                                                                             </div>
-                                                                            {service?.duration && (
-                                                                                <div className="flex justify-between items-center">
-                                                                                    <span className="text-slate-400">Duración:</span>
-                                                                                    <span>{service.duration} min</span>
-                                                                                </div>
-                                                                            )}
+                                                                            <div className="flex justify-between items-center">
+                                                                                <span className="text-slate-400">Duración:</span>
+                                                                                <span className="font-bold text-accent">
+                                                                                    {getAppointmentTotalDuration(apt)} min
+                                                                                </span>
+                                                                            </div>
                                                                             {apt.additionalServices && apt.additionalServices.length > 0 && (
                                                                                 <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
                                                                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
                                                                                     {apt.additionalServices
                                                                                         .filter((extra: string) => !extra.startsWith('Referencia:'))
-                                                                                        .map((extra: string, idx: number) => (
-                                                                                            <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
-                                                                                                <span className="text-slate-500">•</span>
-                                                                                                <span className="break-words">{extra}</span>
-                                                                                            </div>
-                                                                                        ))}
+                                                                                        .map((extra: string, idx: number) => {
+                                                                                            const cleanExtra = extra
+                                                                                                .replace(/\s*\(\+\d+\s*min\)/gi, '')
+                                                                                                .replace(/\s*\(\d+\s*min\)/gi, '');
+                                                                                            return (
+                                                                                                <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
+                                                                                                    <span className="text-slate-500">•</span>
+                                                                                                    <span className="break-words">{cleanExtra}</span>
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                                                                 </div>
                                                                             )}
                                                                         </div>
