@@ -9,36 +9,28 @@ description: Deploy completo - build, push, y deploy a Vercel + Supabase Edge Fu
 - Logueado en Vercel con `marjory-carrillo` (carrillomarjory7@gmail.com)
 - Proyecto vinculado: `vercel link --project citalink --yes`
 
-## Pasos
+## Pasos (Pipeline Rápido en 1 Solo Paso)
 
 // turbo-all
 
-1. Verificar que el build pasa localmente:
-```powershell
-npm run build 2>&1 | Select-Object -Last 15
-```
-
-2. Si hay errores de TypeScript, corregirlos antes de continuar.
-
-3. Si se modificaron Edge Functions de Supabase, deployarlas primero:
+1. Si se modificaron Edge Functions de Supabase, deployarlas primero:
 ```powershell
 npx supabase functions deploy <nombre-funcion> 2>&1
 ```
 Las funciones disponibles: `verify-otp`, `notify-admin`, `send-sms`
 
-4. Commit y push a GitHub:
+2. Ejecutar el pipeline consolidado (Git add, Git commit, Git push y Vercel deploy en un solo paso):
 ```powershell
-git add . ; git commit -m "<mensaje descriptivo>" ; git push
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1 -Message "<mensaje descriptivo>"
+```
+O directamente:
+```powershell
+git add . ; git commit -m "<mensaje descriptivo>" ; git push origin main ; vercel --prod --yes
 ```
 
-5. Deploy a Vercel producción:
-```powershell
-vercel --prod --yes 2>&1
-```
+3. Verificar que el deploy en Vercel muestre `Production:` y quede en estado `READY`.
 
-6. Verificar que el deploy fue exitoso (buscar `✅ Production:` en el output).
-
-7. Recordar al usuario hacer **Ctrl+Shift+R** (hard refresh) en el navegador para limpiar caché.
+4. Recordar al usuario hacer **Ctrl+Shift+R** (hard refresh) en el navegador para limpiar caché.
 
 ## Notas Importantes
 - La cuenta de Vercel es `marjory-carrillo` (carrillomarjory7@gmail.com)
