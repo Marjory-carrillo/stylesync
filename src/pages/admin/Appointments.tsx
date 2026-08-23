@@ -19,6 +19,7 @@ import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
 import DatePickerInput from '../../components/DatePickerInput';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
+import PhotoZoomViewer from '../../components/PhotoZoomViewer';
 import { formatPhoneDisplay } from '../../lib/schemas';
 import { supabase } from '../../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
@@ -325,7 +326,6 @@ export default function Appointments() {
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
     const [receiptModalUrl, setReceiptModalUrl] = useState<string | null>(null);
-    const [isZoomed, setIsZoomed] = useState(false);
     const [expandedServiceApptId, setExpandedServiceApptId] = useState<string | null>(null);
 
     // ── Staff Notes ──
@@ -434,6 +434,12 @@ export default function Appointments() {
         }
         return apt.status === filter;
     }).filter(apt => {
+        // Stylist / Professional filter
+        if (selectedStylistId !== 'all') {
+            if (apt.stylistId == null || Number(apt.stylistId) !== Number(selectedStylistId)) {
+                return false;
+            }
+        }
         // Text search filter
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
@@ -956,7 +962,7 @@ export default function Appointments() {
                                                                             const url = refItem.replace('Referencia: ', '');
                                                                             return (
                                                                                 <button
-                                                                                    onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                                    onClick={() => setActivePhotoUrl(url)}
                                                                                     className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
                                                                                 >
                                                                                     <Eye size={12} className="text-slate-900" />
@@ -1402,49 +1408,11 @@ export default function Appointments() {
             />
 
             {/* Full screen design reference photo preview modal */}
-            {activePhotoUrl && (
-                <div 
-                    className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 cursor-pointer animate-fade-in"
-                    onClick={() => setActivePhotoUrl(null)}
-                >
-                    {/* Fixed Top Bar (100% visible on Mobile & Laptop) */}
-                    <div className="absolute top-0 left-0 right-0 h-16 bg-[#0f1420]/90 backdrop-blur-md border-b border-white/10 px-6 flex items-center justify-between z-20 pointer-events-auto">
-                        <button 
-                            onClick={() => setIsZoomed(!isZoomed)}
-                            className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 bg-cyan-500 hover:bg-cyan-400 px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
-                        >
-                            {isZoomed ? '🔍 Ajustar a Pantalla' : '🔍 Ampliar Foto (Zoom)'}
-                        </button>
-                        <button 
-                            onClick={() => setActivePhotoUrl(null)}
-                            className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-
-                    {/* Image Container with native zoom/pan scrolling */}
-                    <div 
-                        className={`w-full h-[calc(100vh-64px)] mt-16 flex ${isZoomed ? 'overflow-auto items-start justify-start p-8' : 'items-center justify-center p-4'} transition-all`}
-                        onClick={() => setIsZoomed(!isZoomed)}
-                    >
-                        <img 
-                            decoding="async" loading="lazy"
-                            src={activePhotoUrl} 
-                            alt="Diseño de referencia" 
-                            className={`rounded-3xl border border-white/10 shadow-2xl transition-all duration-300 ${
-                                isZoomed 
-                                    ? 'max-w-none max-h-none w-[180%] cursor-zoom-out' 
-                                    : 'w-full h-full max-w-[90vw] max-h-[80vh] object-contain cursor-zoom-in'
-                            }`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsZoomed(!isZoomed);
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
+            <PhotoZoomViewer
+                photoUrl={activePhotoUrl}
+                onClose={() => setActivePhotoUrl(null)}
+                title="Foto de Referencia"
+            />
 
             {/* Modal para Editar Precio (Nails) */}
             {isPriceModalOpen && selectedApptForPrice && (

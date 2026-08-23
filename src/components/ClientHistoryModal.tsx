@@ -8,6 +8,7 @@ import { useClients } from '../lib/store/queries/useClients';
 import { useServices } from '../lib/store/queries/useServices';
 import { useStylists } from '../lib/store/queries/useStylists';
 import { formatPhoneDisplay } from '../lib/schemas';
+import PhotoZoomViewer from './PhotoZoomViewer';
 
 interface ClientHistoryModalProps {
     isOpen: boolean;
@@ -379,26 +380,12 @@ export const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({ isOpen, 
                 </div>
             </div>
 
-            {/* Modal de Vista Previa de Foto de Diseño */}
-            {activePhotoUrl && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in" onClick={() => setActivePhotoUrl(null)}>
-                    <div className="relative max-w-lg w-full bg-slate-900 border border-white/10 rounded-3xl p-4 shadow-2xl flex flex-col items-center gap-3" onClick={e => e.stopPropagation()}>
-                        <div className="w-full flex items-center justify-between border-b border-white/10 pb-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-white">Foto de Referencia</span>
-                            <button onClick={() => setActivePhotoUrl(null)} className="p-1 rounded-lg text-slate-400 hover:text-white">
-                                <X size={18} />
-                            </button>
-                        </div>
-                        <img
-                            src={activePhotoUrl}
-                            alt="Diseño de referencia"
-                            decoding="async"
-                            loading="lazy"
-                            className="max-h-[70vh] w-auto rounded-2xl object-contain shadow-md"
-                        />
-                    </div>
-                </div>
-            )}
+            {/* Modal de Vista Previa de Foto de Diseño con Zoom Interactivo */}
+            <PhotoZoomViewer
+                photoUrl={activePhotoUrl}
+                onClose={() => setActivePhotoUrl(null)}
+                title="Foto de Referencia"
+            />
         </div>
     );
 };

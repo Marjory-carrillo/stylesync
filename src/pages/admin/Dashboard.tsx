@@ -26,6 +26,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { formatPhoneDisplay } from '../../lib/schemas';
 import StylistColumnCalendar from '../../components/StylistColumnCalendar';
 import WaitingListModal from '../../components/WaitingListModal';
+import PhotoZoomViewer from '../../components/PhotoZoomViewer';
 
 type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 
@@ -152,7 +153,6 @@ export default function Dashboard() {
     const [isLinkCardExpanded, setIsLinkCardExpanded] = useState(false);
     const [isRemindersExpanded, setIsRemindersExpanded] = useState(false);
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
-    const [isZoomed, setIsZoomed] = useState(false);
     const [expandedServiceApptId, setExpandedServiceApptId] = useState<string | null>(null);
 
     const isLoading = apptsPending || svcsLoading;
@@ -450,9 +450,13 @@ export default function Dashboard() {
         const dd = String(target.getDate()).padStart(2, '0');
         const tStr = `${yyyy}-${mm}-${dd}`;
         return appointments
-            .filter(a => a.date === tStr && a.status !== 'cancelada')
+            .filter(a => {
+                if (a.date !== tStr || a.status === 'cancelada') return false;
+                if (dashboardStylistId !== 'all' && Number(a.stylistId) !== Number(dashboardStylistId)) return false;
+                return true;
+            })
             .sort((a, b) => a.time.localeCompare(b.time));
-    }, [appointments]);
+    }, [appointments, dashboardStylistId]);
 
     const reminders = useMemo(() => {
         return tomorrowAppts.filter(a => {
@@ -1464,7 +1468,7 @@ export default function Dashboard() {
                                                                          <span className="font-bold text-slate-300">• Referencia:</span>
                                                                          <button
                                                                              type="button"
-                                                                             onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                             onClick={() => setActivePhotoUrl(url)}
                                                                              className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1 rounded-lg hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
                                                                          >
                                                                              <Eye size={12} className="text-slate-900" />
@@ -2084,7 +2088,7 @@ export default function Dashboard() {
                                                                             const url = refItem.replace('Referencia: ', '');
                                                                             return (
                                                                                 <button
-                                                                                    onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                                    onClick={() => setActivePhotoUrl(url)}
                                                                                     className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
                                                                                 >
                                                                                     <Eye size={12} className="text-slate-900" />
@@ -2094,6 +2098,17 @@ export default function Dashboard() {
                                                                         }
                                                                         return null;
                                                                     })()}
+                                                                    {appt.stylistId && stylists.find(s => Number(s.id) === Number(appt.stylistId)) ? (
+                                                                        <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-300 uppercase bg-white/5 border border-white/10 px-2.5 py-1 rounded-xl">
+                                                                            <User size={12} className="text-emerald-400 opacity-80" />
+                                                                            <span>{stylists.find(s => Number(s.id) === Number(appt.stylistId))?.name.split(' ')[0]}</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase bg-white/5 border border-white/5 px-2.5 py-1 rounded-xl">
+                                                                            <User size={12} className="opacity-40" />
+                                                                            <span>Cualquiera</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
 
                                                                 {/* Desplegable de detalles de servicio */}
@@ -2326,7 +2341,7 @@ export default function Dashboard() {
                                                                 const url = refItem.replace('Referencia: ', '');
                                                                 return (
                                                                     <button
-                                                                        onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                        onClick={() => setActivePhotoUrl(url)}
                                                                         className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
                                                                     >
                                                                         <Eye size={12} className="text-slate-900" />
@@ -2639,7 +2654,7 @@ export default function Dashboard() {
                                                                 const url = refItem.replace('Referencia: ', '');
                                                                 return (
                                                                     <button
-                                                                        onClick={() => { setActivePhotoUrl(url); setIsZoomed(false); }}
+                                                                        onClick={() => setActivePhotoUrl(url)}
                                                                         className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
                                                                     >
                                                                         <Eye size={12} className="text-slate-900" />
@@ -2785,49 +2800,11 @@ export default function Dashboard() {
 </div>
 
             {/* Full screen design reference photo preview modal */}
-            {activePhotoUrl && (
-                <div 
-                    className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 cursor-pointer animate-fade-in"
-                    onClick={() => setActivePhotoUrl(null)}
-                >
-                    {/* Fixed Top Bar (100% visible on Mobile & Laptop) */}
-                    <div className="absolute top-0 left-0 right-0 h-16 bg-[#0f1420]/90 backdrop-blur-md border-b border-white/10 px-6 flex items-center justify-between z-20 pointer-events-auto">
-                        <button 
-                            onClick={() => setIsZoomed(!isZoomed)}
-                            className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 bg-cyan-500 hover:bg-cyan-400 px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
-                        >
-                            {isZoomed ? '🔍 Ajustar a Pantalla' : '🔍 Ampliar Foto (Zoom)'}
-                        </button>
-                        <button 
-                            onClick={() => setActivePhotoUrl(null)}
-                            className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-
-                    {/* Image Container with native zoom/pan scrolling */}
-                    <div 
-                        className={`w-full h-[calc(100vh-64px)] mt-16 flex ${isZoomed ? 'overflow-auto items-start justify-start p-8' : 'items-center justify-center p-4'} transition-all`}
-                        onClick={() => setIsZoomed(!isZoomed)}
-                    >
-                        <img 
-                            decoding="async" loading="lazy"
-                            src={activePhotoUrl} 
-                            alt="Diseño de referencia" 
-                            className={`rounded-3xl object-contain border border-white/10 shadow-2xl transition-all duration-300 ${
-                                isZoomed 
-                                    ? 'max-w-none max-h-none w-[180%] cursor-zoom-out' 
-                                    : 'max-w-full max-h-full cursor-zoom-in'
-                            }`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsZoomed(!isZoomed);
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
+            <PhotoZoomViewer
+                photoUrl={activePhotoUrl}
+                onClose={() => setActivePhotoUrl(null)}
+                title="Foto de Referencia"
+            />
 
             {isPriceModalOpen && selectedApptForPrice && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
