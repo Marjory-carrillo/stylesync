@@ -2,8 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
     Users, Plus, Trash2, Search, Copy, Check, ExternalLink, 
     BookOpen, MessageCircle, AlertCircle, RefreshCw, MapPin, ChevronDown, ChevronUp,
-    Navigation, Calendar, Clock, Sparkles, Camera, CheckCircle2, User, Send, ArrowRight,
-    Tag, Eye
+    Navigation, Calendar, Clock, Sparkles, Camera, CheckCircle2, User, Send, Eye
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
@@ -325,19 +324,21 @@ export default function SalesTracker() {
 
         setIsConverting(true);
         try {
-            const res = await createTenant({
-                name: convertForm.businessName.trim(),
-                slug: convertForm.slug.trim(),
-                address: convertForm.address.trim(),
-                category: convertForm.category,
-                ownerEmail: convertForm.ownerEmail.trim(),
-                ownerPassword: convertForm.ownerPassword.trim(),
-                timezone: 'America/Mexico_City',
-                noTrial: convertForm.noTrial
-            });
+            const res = await createTenant(
+                convertForm.businessName.trim(),
+                convertForm.slug.trim(),
+                convertForm.address.trim(),
+                convertForm.category,
+                convertForm.ownerEmail.trim(),
+                convertForm.ownerPassword.trim(),
+                'America/Mexico_City',
+                undefined,
+                undefined,
+                convertForm.noTrial
+            );
 
-            if (!res) {
-                throw new Error('Error al crear el negocio en CitaLink');
+            if (!res.success) {
+                throw new Error(res.error || 'Error al crear el negocio en CitaLink');
             }
 
             // Marcar el prospecto como cerrado / convertido
@@ -1371,7 +1372,7 @@ export default function SalesTracker() {
             {/* VISOR DE ZOOM PARA FOTOS DE FACHADAS/TARJETAS */}
             {selectedPhotoZoom && (
                 <PhotoZoomViewer
-                    imageUrl={selectedPhotoZoom}
+                    photoUrl={selectedPhotoZoom}
                     title="Foto de Fachada / Tarjeta de Presentación"
                     onClose={() => setSelectedPhotoZoom(null)}
                 />
