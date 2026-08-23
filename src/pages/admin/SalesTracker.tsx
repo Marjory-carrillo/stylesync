@@ -2,12 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
     Users, Plus, Trash2, Search, Copy, Check, ExternalLink, 
     BookOpen, MessageCircle, AlertCircle, RefreshCw, MapPin, ChevronDown, ChevronUp,
-    Navigation, Calendar, Clock, Sparkles, Camera, CheckCircle2, User, Send, Eye
+    Navigation, Calendar, Clock, Sparkles, Camera, CheckCircle2, User, Send, Eye,
+    Phone, Mail, X, Edit, Share2, ArrowUpRight, TrendingUp, XCircle, ShieldCheck
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
-import { format, isToday, parseISO } from 'date-fns';
+import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ConfirmModal from '../../components/ConfirmModal';
 import PhotoZoomViewer from '../../components/PhotoZoomViewer';
@@ -20,6 +21,7 @@ export interface Prospect {
     address: string;
     status: string;
     phone: string;
+    email?: string | null;
     notes: string;
     next_visit_at?: string | null;
     photo_url?: string | null;
@@ -39,12 +41,12 @@ const CATEGORIES = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; badge: string; icon: string; bg: string; border: string; text: string }> = {
-    'pendiente_visita': { label: 'Pendiente de 1ª Visita', badge: '🟡 Pendiente Visita', icon: '📍', bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400' },
+    'pendiente_visita': { label: 'Pendiente 1ª Visita', badge: '🟡 Pendiente Visita', icon: '📍', bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400' },
     'no_estaba': { label: 'Dueño Ausente', badge: '🚪 Dueño Ausente', icon: '🚪', bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
     'interesado': { label: 'Interesado (Demo Mostrada)', badge: '🔵 Interesado / Demo', icon: '💬', bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400' },
     'prueba_activa': { label: 'Prueba 30 Días Activa', badge: '🎁 Prueba 30 Días', icon: '🎁', bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400' },
-    'cerrado': { label: 'Cerrado / Cliente Activo', badge: '🟢 Cerrado / Activo', icon: '💎', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400' },
-    'no_interesado': { label: 'No Interesado', badge: '🔴 No Interesado', icon: '❌', bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400' },
+    'cerrado': { label: 'Adquirió CitaLink (Activo)', badge: '🟢 Adquirió CitaLink', icon: '💎', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400' },
+    'no_interesado': { label: 'Rechazado (No Interesado)', badge: '🔴 Rechazado', icon: '❌', bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400' },
     // Retrocompatibilidad
     'pendiente': { label: 'Pendiente', badge: '🟡 Pendiente', icon: '🟡', bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400' },
     'seguimiento': { label: 'Seguimiento', badge: '🔵 Seguimiento', icon: '🔵', bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400' }
@@ -66,12 +68,18 @@ export default function SalesTracker() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [dateRangeFilter, setDateRangeFilter] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
     const [onlyTodayVisits, setOnlyTodayVisits] = useState(false);
 
     // Modales & Forms
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedPhotoZoom, setSelectedPhotoZoom] = useState<string | null>(null);
+
+    // Detalle Completo del Negocio Modal
+    const [detailProspect, setDetailProspect] = useState<Prospect | null>(null);
 
     // WhatsApp Template Modal
     const [whatsAppModalProspect, setWhatsAppModalProspect] = useState<Prospect | null>(null);
@@ -114,6 +122,7 @@ export default function SalesTracker() {
         address: '',
         status: 'pendiente_visita',
         phone: '',
+        email: '',
         next_visit_at: '',
         notes: '',
         photo_url: '',
@@ -212,6 +221,7 @@ export default function SalesTracker() {
                 address: '',
                 status: 'pendiente_visita',
                 phone: '',
+                email: '',
                 next_visit_at: '',
                 notes: '',
                 photo_url: '',
@@ -251,19 +261,23 @@ export default function SalesTracker() {
             address: p.address || '',
             status: p.status || 'pendiente_visita',
             phone: p.phone || '',
+            email: p.email || '',
             next_visit_at: nextVisitFormatted,
             notes: p.notes || '',
             photo_url: p.photo_url || '',
             google_maps_url: p.google_maps_url || ''
         });
+        if (detailProspect?.id === p.id) {
+            setDetailProspect(null);
+        }
         setIsAddOpen(true);
     };
 
     const handleDelete = (id: string) => {
         setCustomConfirm({
             open: true,
-            title: '¿Eliminar Prospecto?',
-            message: '¿Estás seguro de que quieres eliminar este prospecto de campo? Esta acción no se puede deshacer.',
+            title: '¿Eliminar Registro?',
+            message: '¿Estás seguro de que quieres eliminar este negocio del historial? Esta acción no se puede deshacer.',
             confirmLabel: 'Sí, Eliminar',
             cancelLabel: 'Cancelar',
             danger: true,
@@ -275,7 +289,8 @@ export default function SalesTracker() {
                         .eq('id', id);
 
                     if (error) throw error;
-                    showToast('Prospecto eliminado', 'info');
+                    showToast('Registro eliminado', 'info');
+                    if (detailProspect?.id === id) setDetailProspect(null);
                     fetchProspects();
                 } catch (err: any) {
                     showToast('Error al eliminar: ' + err.message, 'error');
@@ -303,7 +318,7 @@ export default function SalesTracker() {
 
         const randomCode = Math.random().toString(36).slice(-6);
         const generatedPassword = 'CL!' + Math.random().toString(36).slice(-6);
-        const generatedEmail = `contacto.${cleanSlug || 'negocio'}.${randomCode}@citalink.app`;
+        const generatedEmail = p.email || `contacto.${cleanSlug || 'negocio'}.${randomCode}@citalink.app`;
 
         setConvertForm({
             businessName: p.name,
@@ -361,6 +376,9 @@ export default function SalesTracker() {
             }
 
             setConvertModalProspect(null);
+            if (detailProspect?.id === convertModalProspect.id) {
+                setDetailProspect({ ...detailProspect, status: 'cerrado' });
+            }
             fetchProspects();
         } catch (err: any) {
             showToast('Error al convertir: ' + err.message, 'error');
@@ -379,6 +397,40 @@ export default function SalesTracker() {
         window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
     };
 
+    // Filtrado por fecha
+    const filterByDateRange = (itemDateStr: string) => {
+        if (dateRangeFilter === 'all') return true;
+        try {
+            const itemDate = parseISO(itemDateStr);
+            const now = new Date();
+
+            if (dateRangeFilter === 'today') {
+                return isToday(itemDate);
+            }
+            if (dateRangeFilter === 'week') {
+                return isWithinInterval(itemDate, {
+                    start: startOfWeek(now, { weekStartsOn: 1 }),
+                    end: endOfWeek(now, { weekStartsOn: 1 })
+                });
+            }
+            if (dateRangeFilter === 'month') {
+                return isWithinInterval(itemDate, {
+                    start: startOfMonth(now),
+                    end: endOfMonth(now)
+                });
+            }
+            if (dateRangeFilter === 'custom') {
+                if (!customStartDate && !customEndDate) return true;
+                const start = customStartDate ? startOfDay(parseISO(customStartDate)) : new Date(0);
+                const end = customEndDate ? endOfDay(parseISO(customEndDate)) : new Date(8640000000000000);
+                return isWithinInterval(itemDate, { start, end });
+            }
+        } catch {
+            return true;
+        }
+        return true;
+    };
+
     // Metrics calculations
     const todayVisitsCount = useMemo(() => {
         return prospects.filter(p => {
@@ -391,12 +443,16 @@ export default function SalesTracker() {
         }).length;
     }, [prospects]);
 
-    const pendingFirstVisitCount = useMemo(() => {
-        return prospects.filter(p => p.status === 'pendiente_visita' || p.status === 'pendiente').length;
-    }, [prospects]);
-
     const closedCount = useMemo(() => {
         return prospects.filter(p => p.status === 'cerrado').length;
+    }, [prospects]);
+
+    const rejectedCount = useMemo(() => {
+        return prospects.filter(p => p.status === 'no_interesado').length;
+    }, [prospects]);
+
+    const inProgressCount = useMemo(() => {
+        return prospects.filter(p => p.status !== 'cerrado' && p.status !== 'no_interesado').length;
     }, [prospects]);
 
     const filteredProspects = useMemo(() => {
@@ -408,6 +464,7 @@ export default function SalesTracker() {
             
             const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
             const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+            const matchesDate = filterByDateRange(p.created_at);
 
             let matchesToday = true;
             if (onlyTodayVisits) {
@@ -419,9 +476,9 @@ export default function SalesTracker() {
                 }
             }
 
-            return matchesSearch && matchesStatus && matchesCategory && matchesToday;
+            return matchesSearch && matchesStatus && matchesCategory && matchesDate && matchesToday;
         });
-    }, [prospects, search, statusFilter, categoryFilter, onlyTodayVisits]);
+    }, [prospects, search, statusFilter, categoryFilter, dateRangeFilter, customStartDate, customEndDate, onlyTodayVisits]);
 
     // Plantillas de WhatsApp dinámicas
     const getWhatsAppTemplates = (p: Prospect) => {
@@ -496,7 +553,6 @@ export default function SalesTracker() {
         }
     ];
 
-    // Objections data
     const objections = [
         {
             q: "Ya tengo una libreta y me funciona bien",
@@ -545,7 +601,7 @@ export default function SalesTracker() {
                             </span>
                         </div>
                         <p className="text-slate-400 text-xs sm:text-sm font-medium tracking-wide mt-1">
-                            Prospección en calle, rutas en mapa, citas con dueños y conversión a negocio en 1 clic.
+                            Historial completo de prospección en calle: negocios activos, citas agendadas y motivos de rechazo.
                         </p>
                     </div>
                 </div>
@@ -561,6 +617,7 @@ export default function SalesTracker() {
                                 address: '',
                                 status: 'pendiente_visita',
                                 phone: '',
+                                email: '',
                                 next_visit_at: '',
                                 notes: '',
                                 photo_url: '',
@@ -583,8 +640,32 @@ export default function SalesTracker() {
                 </div>
             </div>
 
-            {/* Field Metrics Banner */}
+            {/* Field Metrics Banner con Historial de Conversión y Rechazo */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button
+                    onClick={() => { setStatusFilter('cerrado'); setOnlyTodayVisits(false); }}
+                    className={`glass-card p-4 border text-left transition-all rounded-2xl ${statusFilter === 'cerrado' ? 'bg-emerald-500/20 border-emerald-500/50 shadow-lg shadow-emerald-500/10' : 'border-white/5 bg-white/[0.02] hover:border-white/10'}`}
+                >
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">🟢 Adquirieron</p>
+                        <CheckCircle2 size={16} className="text-emerald-400" />
+                    </div>
+                    <h4 className="text-2xl font-black text-emerald-400 mt-1">{closedCount}</h4>
+                    <span className="text-[10px] text-slate-500 font-medium">Clientes activos CitaLink</span>
+                </button>
+
+                <button
+                    onClick={() => { setStatusFilter('no_interesado'); setOnlyTodayVisits(false); }}
+                    className={`glass-card p-4 border text-left transition-all rounded-2xl ${statusFilter === 'no_interesado' ? 'bg-rose-500/20 border-rose-500/50 shadow-lg shadow-rose-500/10' : 'border-white/5 bg-white/[0.02] hover:border-white/10'}`}
+                >
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">🔴 Rechazados</p>
+                        <XCircle size={16} className="text-rose-400" />
+                    </div>
+                    <h4 className="text-2xl font-black text-rose-400 mt-1">{rejectedCount}</h4>
+                    <span className="text-[10px] text-slate-500 font-medium">No interesados / Historial</span>
+                </button>
+
                 <button
                     onClick={() => { setOnlyTodayVisits(!onlyTodayVisits); setStatusFilter('all'); }}
                     className={`glass-card p-4 border text-left transition-all rounded-2xl ${onlyTodayVisits ? 'bg-amber-500/20 border-amber-500/50 shadow-lg shadow-amber-500/10' : 'border-white/5 bg-white/[0.02] hover:border-white/10'}`}
@@ -594,41 +675,23 @@ export default function SalesTracker() {
                         <Clock size={16} className="text-amber-400" />
                     </div>
                     <h4 className="text-2xl font-black text-amber-400 mt-1">{todayVisitsCount}</h4>
-                    <span className="text-[10px] text-slate-500 font-medium">Programadas para hoy</span>
+                    <span className="text-[10px] text-slate-500 font-medium">Citas pactadas para hoy</span>
                 </button>
 
                 <div className="glass-card p-4 border border-white/5 bg-white/[0.02] rounded-2xl">
                     <div className="flex items-center justify-between">
-                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">🟡 Pend. Visita</p>
-                        <MapPin size={16} className="text-yellow-400" />
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">⏳ En Proceso</p>
+                        <TrendingUp size={16} className="text-violet-400" />
                     </div>
-                    <h4 className="text-2xl font-black text-yellow-400 mt-1">{pendingFirstVisitCount}</h4>
-                    <span className="text-[10px] text-slate-500 font-medium">Por visitar en calle</span>
-                </div>
-
-                <div className="glass-card p-4 border border-white/5 bg-white/[0.02] rounded-2xl">
-                    <div className="flex items-center justify-between">
-                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">🟢 Cerrados</p>
-                        <CheckCircle2 size={16} className="text-emerald-400" />
-                    </div>
-                    <h4 className="text-2xl font-black text-emerald-400 mt-1">{closedCount}</h4>
-                    <span className="text-[10px] text-slate-500 font-medium">Clientes activos</span>
-                </div>
-
-                <div className="glass-card p-4 border border-white/5 bg-white/[0.02] rounded-2xl">
-                    <div className="flex items-center justify-between">
-                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">🗺️ Total</p>
-                        <Navigation size={16} className="text-violet-400" />
-                    </div>
-                    <h4 className="text-2xl font-black text-violet-400 mt-1">{prospects.length}</h4>
-                    <span className="text-[10px] text-slate-500 font-medium">Base de prospectos</span>
+                    <h4 className="text-2xl font-black text-violet-400 mt-1">{inProgressCount}</h4>
+                    <span className="text-[10px] text-slate-500 font-medium">Pendientes o en demo</span>
                 </div>
             </div>
 
             {/* Navigation Tabs */}
             <div className="flex border-b border-white/10 bg-slate-900/40 p-1.5 rounded-2xl backdrop-blur-md">
                 {[
-                    { id: 'prospects', label: '🗺️ Radar de Visitas y Clientes', count: filteredProspects.length },
+                    { id: 'prospects', label: '🗺️ Historial de Negocios y Visitas', count: filteredProspects.length },
                     { id: 'scripts', label: '💬 Guiones de Venta y Objeciones' },
                     { id: 'academy', label: '📚 Academia y Cierres' }
                 ].map(tab => (
@@ -650,12 +713,12 @@ export default function SalesTracker() {
             {/* VIEW 1: PROSPECTS CRM */}
             {activeTab === 'prospects' && (
                 <div className="space-y-4">
-                    {/* Search & Filters */}
+                    {/* Search & Advanced Filters */}
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                        <div className="relative sm:col-span-6">
+                        <div className="relative sm:col-span-4">
                             <input
                                 type="text"
-                                placeholder="Buscar por negocio, dueño, dirección o notas..."
+                                placeholder="Buscar negocio, dueño, dirección o notas..."
                                 className="w-full bg-slate-900/80 border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/40"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
@@ -674,26 +737,73 @@ export default function SalesTracker() {
                                 <option value="no_estaba" className="bg-slate-900">🚪 Dueño Ausente</option>
                                 <option value="interesado" className="bg-slate-900">🔵 Interesado / Demo</option>
                                 <option value="prueba_activa" className="bg-slate-900">🎁 Prueba 30 Días</option>
-                                <option value="cerrado" className="bg-slate-900">🟢 Cerrado / Activo</option>
-                                <option value="no_interesado" className="bg-slate-900">🔴 No Interesado</option>
+                                <option value="cerrado" className="bg-slate-900">🟢 Adquirió CitaLink</option>
+                                <option value="no_interesado" className="bg-slate-900">🔴 Rechazado</option>
                             </select>
                         </div>
 
-                        <div className="sm:col-span-3">
+                        <div className="sm:col-span-2">
                             <select
                                 className="w-full bg-slate-900/80 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40"
                                 value={categoryFilter}
                                 onChange={e => setCategoryFilter(e.target.value)}
                             >
-                                <option value="all" className="bg-slate-900">Todos los rubros</option>
+                                <option value="all" className="bg-slate-900">Todos rubros</option>
                                 {CATEGORIES.map(c => (
                                     <option key={c.id} value={c.id} className="bg-slate-900">{c.icon} {c.label}</option>
                                 ))}
                             </select>
                         </div>
+
+                        {/* Filtro de Fechas */}
+                        <div className="sm:col-span-3">
+                            <select
+                                className="w-full bg-slate-900/80 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40"
+                                value={dateRangeFilter}
+                                onChange={e => setDateRangeFilter(e.target.value as any)}
+                            >
+                                <option value="all" className="bg-slate-900">📅 Todo el histórico</option>
+                                <option value="today" className="bg-slate-900">📅 Registrados Hoy</option>
+                                <option value="week" className="bg-slate-900">📅 Esta Semana</option>
+                                <option value="month" className="bg-slate-900">📅 Este Mes</option>
+                                <option value="custom" className="bg-slate-900">📅 Rango personalizado...</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {/* Prospects List */}
+                    {/* Inputs de rango de fecha personalizado */}
+                    {dateRangeFilter === 'custom' && (
+                        <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/10 animate-fade-in">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-400">Desde:</span>
+                                <input
+                                    type="date"
+                                    className="bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white"
+                                    value={customStartDate}
+                                    onChange={e => setCustomStartDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-400">Hasta:</span>
+                                <input
+                                    type="date"
+                                    className="bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white"
+                                    value={customEndDate}
+                                    onChange={e => setCustomEndDate(e.target.value)}
+                                />
+                            </div>
+                            {(customStartDate || customEndDate) && (
+                                <button
+                                    onClick={() => { setCustomStartDate(''); setCustomEndDate(''); }}
+                                    className="text-xs text-rose-400 hover:underline font-bold"
+                                >
+                                    Limpiar fechas
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Prospects List (TARJETAS LIMPIAS Y ULTRA-ESCANABLES) */}
                     {loading ? (
                         <div className="py-24 text-center text-slate-500">
                             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-violet-400 opacity-60" />
@@ -702,13 +812,13 @@ export default function SalesTracker() {
                     ) : filteredProspects.length === 0 ? (
                         <div className="glass-card p-12 text-center border border-white/5 rounded-3xl">
                             <AlertCircle className="mx-auto text-slate-600 mb-3" size={36} />
-                            <h4 className="text-white font-black text-base uppercase">Sin resultados</h4>
+                            <h4 className="text-white font-black text-base uppercase">Sin registros en este periodo</h4>
                             <p className="text-slate-400 text-xs mt-1 max-w-sm mx-auto">
-                                No se encontraron prospectos con los filtros actuales. Registra un nuevo negocio con el botón de arriba.
+                                No se encontraron prospectos con los filtros seleccionados.
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredProspects.map(p => {
                                 const statusInfo = STATUS_CONFIG[p.status] || {
                                     badge: p.status,
@@ -717,161 +827,108 @@ export default function SalesTracker() {
                                     text: 'text-slate-300'
                                 };
                                 const catInfo = CATEGORIES.find(c => c.id === p.category) || { icon: '✨', label: 'Servicios' };
-
                                 const isNextVisitToday = p.next_visit_at && isToday(parseISO(p.next_visit_at));
 
                                 return (
                                     <div 
                                         key={p.id} 
-                                        className="glass-panel p-5 sm:p-6 border border-white/10 bg-[#161b2c]/90 rounded-3xl flex flex-col justify-between hover:border-violet-500/30 transition-all shadow-xl relative overflow-hidden group"
+                                        className="glass-panel p-5 border border-white/10 bg-[#161b2c]/95 rounded-3xl flex flex-col justify-between hover:border-violet-500/40 transition-all shadow-xl relative overflow-hidden group"
                                     >
-                                        {/* Background accent */}
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-2xl group-hover:bg-violet-500/10 transition-colors pointer-events-none"></div>
-
                                         <div>
-                                            {/* Header Card */}
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex items-center gap-2.5">
-                                                    <span className="text-2xl p-2 rounded-2xl bg-white/5 border border-white/10">{catInfo.icon}</span>
-                                                    <div>
-                                                        <h3 className="font-black text-white text-lg tracking-tight uppercase leading-snug">
+                                            {/* Cabecera Tarjeta: Icono, Nombre y Badge Estado */}
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <span className="text-xl p-2 rounded-2xl bg-white/5 border border-white/10 shrink-0">{catInfo.icon}</span>
+                                                    <div className="min-w-0">
+                                                        <h3 className="font-black text-white text-base tracking-tight uppercase truncate">
                                                             {p.name}
                                                         </h3>
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block truncate">
                                                             {catInfo.label}
                                                         </span>
                                                     </div>
                                                 </div>
 
-                                                <span className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider shrink-0 ${statusInfo.bg} ${statusInfo.border} ${statusInfo.text}`}>
+                                                <span className={`px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-wider shrink-0 ${statusInfo.bg} ${statusInfo.border} ${statusInfo.text}`}>
                                                     {statusInfo.badge}
                                                 </span>
                                             </div>
 
-                                            {/* Owner / Contact Name Chip (DESTACADO PARA RECORDAR AL LLEGAR) */}
-                                            <div className="mt-3.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="p-1.5 rounded-xl bg-amber-500/20 text-amber-400">
-                                                        <User size={14} />
+                                            {/* Badge del Dueño (Destacado y Limpio) */}
+                                            <div className="mt-3 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <div className="p-1 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+                                                        <User size={13} />
                                                     </div>
-                                                    <div>
-                                                        <span className="text-[9px] uppercase font-black tracking-widest text-amber-400/80 block">
-                                                            Preguntar por:
-                                                        </span>
-                                                        <p className="text-xs font-black text-white">
-                                                            {p.contact_name ? p.contact_name : <span className="text-slate-500 italic font-normal">Sin nombre de dueño registrado</span>}
-                                                        </p>
-                                                    </div>
+                                                    <p className="text-xs font-black text-white truncate">
+                                                        {p.contact_name ? p.contact_name : <span className="text-slate-500 italic font-normal text-[11px]">Dueño no registrado</span>}
+                                                    </p>
                                                 </div>
 
-                                                {/* Próxima visita */}
                                                 {p.next_visit_at && (
-                                                    <div className={`text-right px-2.5 py-1 rounded-xl border text-[10px] font-black uppercase ${isNextVisitToday ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pulse' : 'bg-white/5 border-white/10 text-slate-300'}`}>
-                                                        <div className="flex items-center gap-1">
-                                                            <Calendar size={10} />
-                                                            <span>{format(parseISO(p.next_visit_at), isNextVisitToday ? "'Hoy' HH:mm" : "dd MMM, HH:mm", { locale: es })}</span>
-                                                        </div>
-                                                    </div>
+                                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border ${isNextVisitToday ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pulse' : 'bg-white/5 border-white/10 text-slate-300'}`}>
+                                                        {format(parseISO(p.next_visit_at), isNextVisitToday ? "'Hoy' HH:mm" : "dd MMM", { locale: es })}
+                                                    </span>
                                                 )}
                                             </div>
 
-                                            {/* Dirección + Botón GPS */}
+                                            {/* Dirección compacta con botón GPS */}
                                             {p.address && (
-                                                <div className="mt-3 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-                                                    <p className="text-slate-300 text-xs flex items-center gap-1.5 truncate">
-                                                        <MapPin size={14} className="text-rose-400 shrink-0" />
-                                                        <span className="truncate">{p.address}</span>
-                                                    </p>
-                                                    <button
-                                                        onClick={() => openGoogleMaps(p)}
-                                                        className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shrink-0 transition-colors"
-                                                        title="Abrir en Google Maps / Waze"
-                                                    >
-                                                        <Navigation size={12} />
-                                                        <span>Cómo llegar</span>
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {/* Foto de Fachada / Tarjeta (si existe) */}
-                                            {p.photo_url && (
-                                                <div className="mt-3 flex items-center gap-3 p-2 rounded-2xl bg-white/[0.02] border border-white/5">
-                                                    <img 
-                                                        src={p.photo_url} 
-                                                        alt="Fachada o tarjeta" 
-                                                        className="w-14 h-14 rounded-xl object-cover border border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
-                                                        onClick={() => setSelectedPhotoZoom(p.photo_url!)}
-                                                        decoding="async"
-                                                        loading="lazy"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Foto adjunta</span>
-                                                        <button 
-                                                            onClick={() => setSelectedPhotoZoom(p.photo_url!)}
-                                                            className="text-xs text-violet-400 hover:text-violet-300 font-bold flex items-center gap-1 mt-0.5"
-                                                        >
-                                                            <Eye size={12} />
-                                                            <span>Ver con Zoom</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Notas libres */}
-                                            {p.notes && (
-                                                <div className="bg-black/20 border border-white/[0.05] p-3 rounded-2xl text-slate-300 text-xs mt-3 italic leading-relaxed">
-                                                    "{p.notes}"
-                                                </div>
+                                                <p className="text-slate-400 text-xs mt-2.5 flex items-center gap-1.5 truncate">
+                                                    <MapPin size={13} className="text-rose-400 shrink-0" />
+                                                    <span className="truncate">{p.address}</span>
+                                                </p>
                                             )}
                                         </div>
 
-                                        {/* Barra Inferior de Acciones */}
-                                        <div className="mt-5 pt-4 border-t border-white/10 flex flex-col gap-3">
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <span className="text-[10px] text-slate-500 font-bold">
-                                                    Registrado: {format(new Date(p.created_at), 'dd MMM yyyy', { locale: es })}
-                                                </span>
+                                        {/* Barra Inferior Limpia de Acciones */}
+                                        <div className="mt-4 pt-3 border-t border-white/10 flex flex-col gap-2">
+                                            {/* Botón Principal: Ver Detalle Completo */}
+                                            <button
+                                                onClick={() => setDetailProspect(p)}
+                                                className="w-full py-2.5 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all group-hover:border-violet-500/40"
+                                            >
+                                                <Eye size={14} className="text-violet-400" />
+                                                <span>Ver Detalle del Negocio</span>
+                                            </button>
 
-                                                {/* Botón Mágico: Convertir a Negocio CitaLink */}
-                                                <button
-                                                    onClick={() => openConvertModal(p)}
-                                                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all flex items-center gap-1.5"
-                                                >
-                                                    <Sparkles size={14} />
-                                                    <span>🚀 Convertir a Negocio (30 Días Gratis)</span>
-                                                </button>
-                                            </div>
-
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    {/* Botón WhatsApp con Selector de Plantillas */}
+                                            <div className="flex items-center justify-between gap-1.5">
+                                                {/* Acciones Rápidas */}
+                                                <div className="flex items-center gap-1.5">
                                                     {p.phone && (
                                                         <button
                                                             onClick={() => setWhatsAppModalProspect(p)}
-                                                            className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-1.5 transition-colors"
-                                                            title="Enviar mensaje por WhatsApp"
+                                                            className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors"
+                                                            title="WhatsApp"
                                                         >
                                                             <MessageCircle size={15} />
-                                                            <span>WhatsApp</span>
+                                                        </button>
+                                                    )}
+                                                    {p.address && (
+                                                        <button
+                                                            onClick={() => openGoogleMaps(p)}
+                                                            className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-colors"
+                                                            title="Cómo llegar (Maps / Waze)"
+                                                        >
+                                                            <Navigation size={15} />
                                                         </button>
                                                     )}
                                                 </div>
 
-                                                <div className="flex items-center gap-1.5">
+                                                {/* Botón Convertir si aún no es cerrado */}
+                                                {p.status !== 'cerrado' ? (
                                                     <button
-                                                        onClick={() => startEdit(p)}
-                                                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors text-xs font-bold"
+                                                        onClick={() => openConvertModal(p)}
+                                                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md hover:scale-105 transition-all flex items-center gap-1"
                                                     >
-                                                        Editar / Cita
+                                                        <Sparkles size={12} />
+                                                        <span>Activar 30 Días</span>
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(p.id)}
-                                                        className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors"
-                                                        title="Eliminar registro"
-                                                    >
-                                                        <Trash2 size={15} />
-                                                    </button>
-                                                </div>
+                                                ) : (
+                                                    <span className="text-[10px] font-black text-emerald-400 uppercase flex items-center gap-1">
+                                                        <CheckCircle2 size={12} /> Cliente Activo
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -994,6 +1051,200 @@ export default function SalesTracker() {
                 </div>
             )}
 
+            {/* MODAL DETALLE COMPLETO DEL NEGOCIO */}
+            {detailProspect && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setDetailProspect(null)} />
+                    <div className="relative w-full max-w-2xl bg-[#0d1322] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
+                        {/* Cabecera Modal Detalle */}
+                        <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10">
+                            <div className="flex items-center gap-3">
+                                <span className="text-3xl p-2.5 rounded-2xl bg-white/5 border border-white/10">
+                                    {CATEGORIES.find(c => c.id === detailProspect.category)?.icon || '✨'}
+                                </span>
+                                <div>
+                                    <h2 className="text-2xl font-black text-white uppercase tracking-tight">
+                                        {detailProspect.name}
+                                    </h2>
+                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+                                        {CATEGORIES.find(c => c.id === detailProspect.category)?.label || 'Servicios'}
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setDetailProspect(null)}
+                                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Contenido Completo de Datos */}
+                        <div className="mt-5 space-y-5">
+                            {/* Estado y Acciones Rápidas */}
+                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-slate-400 font-bold uppercase">Estado Actual:</span>
+                                    <span className={`px-3 py-1 rounded-full border text-xs font-black uppercase ${STATUS_CONFIG[detailProspect.status]?.bg || 'bg-white/5'} ${STATUS_CONFIG[detailProspect.status]?.border || 'border-white/10'} ${STATUS_CONFIG[detailProspect.status]?.text || 'text-slate-300'}`}>
+                                        {STATUS_CONFIG[detailProspect.status]?.badge || detailProspect.status}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => startEdit(detailProspect)}
+                                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-colors flex items-center gap-1.5"
+                                    >
+                                        <Edit size={13} />
+                                        <span>Editar Ficha</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(detailProspect.id)}
+                                        className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-xs font-bold text-rose-400 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <Trash2 size={13} />
+                                        <span>Eliminar</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Ficha de Contacto Completa */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Dueño / Encargado */}
+                                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
+                                    <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                                        <User size={18} />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] text-amber-400 font-black uppercase tracking-widest block">Dueño / Encargado</span>
+                                        <p className="text-sm font-black text-white mt-0.5">
+                                            {detailProspect.contact_name || <span className="text-slate-500 font-normal italic">No especificado</span>}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Teléfono / WhatsApp */}
+                                <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                                            <Phone size={18} />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest block">Teléfono / WhatsApp</span>
+                                            <p className="text-sm font-black text-white mt-0.5">
+                                                {detailProspect.phone || <span className="text-slate-500 font-normal italic">Sin teléfono</span>}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {detailProspect.phone && (
+                                        <button
+                                            onClick={() => setWhatsAppModalProspect(detailProspect)}
+                                            className="px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] uppercase flex items-center gap-1 shadow-md"
+                                        >
+                                            <Send size={11} />
+                                            <span>WhatsApp</span>
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Dirección Física & GPS */}
+                                <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex items-start justify-between gap-3 sm:col-span-2">
+                                    <div className="flex items-start gap-3 min-w-0">
+                                        <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 shrink-0">
+                                            <MapPin size={18} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest block">Dirección / Ubicación</span>
+                                            <p className="text-xs font-bold text-white mt-0.5 truncate">
+                                                {detailProspect.address || <span className="text-slate-500 font-normal italic">Sin dirección registrada</span>}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {detailProspect.address && (
+                                        <button
+                                            onClick={() => openGoogleMaps(detailProspect)}
+                                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase flex items-center gap-1.5 shrink-0"
+                                        >
+                                            <Navigation size={13} />
+                                            <span>Abrir en Maps</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Historial de Fechas y Próxima Visita */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest block">Fecha de Registro Inicial</span>
+                                    <p className="text-xs font-bold text-slate-300 mt-1 flex items-center gap-1.5">
+                                        <Calendar size={14} className="text-slate-400" />
+                                        {format(new Date(detailProspect.created_at), "dd 'de' MMMM yyyy, HH:mm 'hrs'", { locale: es })}
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest block">Próxima Visita Programada</span>
+                                    <p className="text-xs font-bold text-slate-300 mt-1 flex items-center gap-1.5">
+                                        <Clock size={14} className="text-amber-400" />
+                                        {detailProspect.next_visit_at ? format(parseISO(detailProspect.next_visit_at), "dd 'de' MMMM yyyy, HH:mm 'hrs'", { locale: es }) : <span className="text-slate-500 italic">No programada</span>}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Foto Adjunta con Zoom */}
+                            {detailProspect.photo_url && (
+                                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10">
+                                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2">Foto de Fachada o Tarjeta de Contacto</span>
+                                    <div className="flex items-center gap-4">
+                                        <img
+                                            src={detailProspect.photo_url}
+                                            alt="Fachada o tarjeta"
+                                            className="w-28 h-28 rounded-2xl object-cover border border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
+                                            onClick={() => setSelectedPhotoZoom(detailProspect.photo_url!)}
+                                            decoding="async"
+                                            loading="lazy"
+                                        />
+                                        <div>
+                                            <button
+                                                onClick={() => setSelectedPhotoZoom(detailProspect.photo_url!)}
+                                                className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+                                            >
+                                                <Eye size={14} />
+                                                <span>Ver con Zoom Completo</span>
+                                            </button>
+                                            <p className="text-[11px] text-slate-500 mt-2">Haz clic para acercar con rueda del ratón y mover libremente.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Bitácora de Notas / Acuerdos / Motivo de Rechazo */}
+                            <div className="p-4 rounded-2xl bg-black/30 border border-white/10">
+                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1.5">
+                                    📝 Bitácora de Notas, Acuerdos y Motivos
+                                </span>
+                                <p className="text-xs text-slate-200 leading-relaxed italic whitespace-pre-wrap">
+                                    {detailProspect.notes ? `"${detailProspect.notes}"` : <span className="text-slate-500 not-italic">Sin notas registradas.</span>}
+                                </p>
+                            </div>
+
+                            {/* Botón de Conversión a Negocio */}
+                            {detailProspect.status !== 'cerrado' && (
+                                <div className="pt-2">
+                                    <button
+                                        onClick={() => openConvertModal(detailProspect)}
+                                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 hover:scale-[1.01] transition-all"
+                                    >
+                                        <Sparkles size={18} />
+                                        <span>🚀 Convertir a Negocio CitaLink (30 Días Gratis)</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* MODAL REGISTRO / EDICIÓN */}
             {isAddOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1080,8 +1331,8 @@ export default function SalesTracker() {
                                         <option value="no_estaba" className="bg-slate-900">🚪 Dueño Ausente</option>
                                         <option value="interesado" className="bg-slate-900">🔵 Interesado / Demo</option>
                                         <option value="prueba_activa" className="bg-slate-900">🎁 Prueba 30 Días</option>
-                                        <option value="cerrado" className="bg-slate-900">🟢 Cerrado / Activo</option>
-                                        <option value="no_interesado" className="bg-slate-900">🔴 No Interesado</option>
+                                        <option value="cerrado" className="bg-slate-900">🟢 Adquirió CitaLink</option>
+                                        <option value="no_interesado" className="bg-slate-900">🔴 Rechazado (No Interesado)</option>
                                     </select>
                                 </div>
                             </div>
@@ -1145,13 +1396,13 @@ export default function SalesTracker() {
 
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    Notas de la Visita / Acuerdos
+                                    Notas de la Visita / Motivo de Rechazo o Acuerdos
                                 </label>
                                 <textarea
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white focus:outline-none focus:border-violet-500/40 h-24 placeholder-slate-600 resize-none font-medium leading-relaxed"
                                     value={formData.notes}
                                     onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                    placeholder="Ej. El dueño Carlos está después de las 5pm. Les interesa la prueba de 30 días..."
+                                    placeholder="Ej. El dueño Carlos regresa a las 5pm. / No le interesa porque prefiere agenda en papel..."
                                 />
                             </div>
 
