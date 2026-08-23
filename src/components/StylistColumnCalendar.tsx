@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Appointment, Service, Stylist, WaitingClient } from '../lib/types/store.types';
 import { format, addDays, subDays, isToday, parseISO } from 'date-fns';
