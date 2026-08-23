@@ -9,8 +9,9 @@ import {
     CheckCircle2, X, Sparkles, Scissors, Flower2, Stethoscope,
     Infinity as InfinityIcon, Star, Shield, Zap, Clock,
     BarChart2, Smartphone, ChevronDown, Instagram, Facebook,
-    Calculator, Percent, CalendarPlus, MapPin, Calendar,
-    Search, Store
+    Percent, CalendarPlus, MapPin, Menu,
+    Search, Store, ShieldCheck, Ban, ScanLine, Building2,
+    Check
 } from 'lucide-react';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -96,19 +97,14 @@ export default function Landing() {
         contactName: '', email: '', phone: ''
     });
 
-    // Interactive Simulator State
-    const [simSector, setSimSector] = useState<'barber' | 'nails' | 'spa'>('barber');
-    const [simService, setSimService] = useState('Corte Clásico + Barba ($280)');
-    const [simTime, setSimTime] = useState('16:00');
-    const [simDone, setSimDone] = useState(false);
+
 
     // Interactive ROI Calculator State
     const [roiProCount, setRoiProCount] = useState(3);
 
-
-
-    // Navbar scroll
+    // Navbar & Mobile menu state
     const [scrolled, setScrolled] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     useEffect(() => {
         const fn = () => setScrolled(window.scrollY > 40);
         window.addEventListener('scroll', fn);
@@ -177,9 +173,8 @@ export default function Landing() {
     /* ── Section visibility hooks ──── */
     const s1 = useInView(); const s2 = useInView(); const s3 = useInView();
     const s4 = useInView(); const s5 = useInView(); const s6 = useInView();
-    const s7 = useInView();
-
-
+    const s7 = useInView(); const sSec = useInView(); const sMulti = useInView();
+    const sNails = useInView();
 
     // Checkout return from Stripe
     const [checkoutResult, setCheckoutResult] = useState<'success' | 'cancel' | null>(null);
@@ -192,19 +187,6 @@ export default function Landing() {
         }
     }, []);
 
-    /* ── DATA ──────────────────────── */
-    const features = [
-        { icon: <CalendarDays className="w-6 h-6" />, color: 'from-violet-500 to-indigo-500', title: 'Agenda Inteligente 24/7', desc: 'Clientes reservan solos en 30 segundos. Sin llamadas ni papelería.' },
-        { icon: <MessageCircle className="w-6 h-6" />, color: 'from-emerald-500 to-teal-500', title: 'Recordatorios WhatsApp', desc: 'Reduce inasistencias hasta un 60% con notificaciones y confirmaciones automáticas.' },
-        { icon: <Calculator className="w-6 h-6" />, color: 'from-pink-500 to-rose-500', title: 'Cotizador de Uñas Interactivo', desc: 'Calculadora integrada para cotizar diseños basados en base, largo, estilos y extras.' },
-        { icon: <Percent className="w-6 h-6" />, color: 'from-orange-500 to-amber-500', title: 'Nómina y Comisiones', desc: 'Reportes automáticos de nómina y comisiones por estilista descargables en PDF.' },
-        { icon: <CalendarPlus className="w-6 h-6" />, color: 'from-blue-500 to-cyan-500', title: 'Lista de Espera Activa', desc: 'Tus clientes se anotan automáticamente para cubrir cancelaciones o huecos libres.' },
-        { icon: <Users className="w-6 h-6" />, color: 'from-purple-500 to-violet-500', title: 'Control de Equipo', desc: 'Gestión de turnos, días festivos y niveles de acceso (RBAC) para tus colaboradores.' },
-        { icon: <Shield className="w-6 h-6" />, color: 'from-indigo-500 to-blue-500', title: 'Branding y Personalización', desc: 'Página de reserva personalizada con el logotipo, colores y slug de tu negocio.' },
-        { icon: <Smartphone className="w-6 h-6" />, color: 'from-teal-500 to-emerald-500', title: 'App Instalable (PWA)', desc: 'Los clientes instalan CitaLink en su celular como una app nativa con un solo clic.' },
-        { icon: <BarChart2 className="w-6 h-6" />, color: 'from-red-500 to-orange-500', title: 'Reportes en Tiempo Real', desc: 'Monitorea ventas, ingresos estimados y rendimiento de personal en vivo.' },
-    ];
-
     const industries = [
         { icon: <Scissors className="w-7 h-7" />, label: 'Barberías', color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20' },
         { icon: <Sparkles className="w-7 h-7" />, label: 'Salones', color: 'text-pink-400', bg: 'bg-pink-400/10 border-pink-400/20' },
@@ -213,15 +195,47 @@ export default function Landing() {
     ];
 
     const testimonials = [
-        { name: 'Sofía R.', biz: 'Salón Sofía — CDMX', text: 'Antes perdía 5 citas por semana por WhatsApp mal anotado. Ahora todo llega solo al calendario. ¡Increíble!', stars: 5 },
-        { name: 'Rodrigo M.', biz: 'Barbería Bros — MTY', text: 'Mis clientes agendan desde las 11pm. Llegué a la barbería y ya tenía 8 citas agendadas mientras dormía.', stars: 5 },
-        { name: 'Valentina L.', biz: 'Spa Zen — GDL', text: 'La vista de calendario para mis 3 terapeutas es perfecta. Antes usaba una agenda compartida en Google Sheets.', stars: 5 },
+        { 
+            name: 'Andrea G.', 
+            biz: 'Nails Factory Studio — Monterrey, NL', 
+            text: 'Antes tardaba 15 min cotizando por WhatsApp. Con el cotizador de uñas en 30 segundos envío el ticket con desglose exacto y foto de referencia. ¡Mis clientas aman la formalidad!', 
+            stars: 5,
+            badge: '💅 Nail Studio'
+        },
+        { 
+            name: 'Carlos V.', 
+            biz: 'The Kings Barbershop — CDMX', 
+            text: 'Llego a la barbería y ya tengo 6 citas agendadas desde la madrugada. Los recordatorios por WhatsApp prácticamente eliminaron las inasistencias de mi equipo.', 
+            stars: 5,
+            badge: '✂️ Barbería'
+        },
+        { 
+            name: 'Daniela M.', 
+            biz: 'Estética D\'Glamour — Guadalajara, JAL', 
+            text: 'Manejo 4 estilistas con horarios y comisiones distintas. El calendario por columnas y el cálculo automático de nómina en PDF me ahorran horas de administración cada semana.', 
+            stars: 5,
+            badge: '✨ Salón de Belleza'
+        },
+        { 
+            name: 'Roberto S.', 
+            biz: 'Barber House — Puebla, PUE', 
+            text: 'La función de lista negra y verificación por WhatsApp nos salvó de citas falsas. Ahora solo agendan clientes reales que sí asisten a sus citas.', 
+            stars: 5,
+            badge: '🛡️ Seguridad'
+        },
+        { 
+            name: 'Mariana P.', 
+            biz: 'Luxe Nails & Spa — Querétaro, QRO', 
+            text: 'Tenemos 2 sucursales. Con el portal multi-sucursal cada una tiene su equipo y horarios independientes, pero yo veo todas las métricas en un solo lugar.', 
+            stars: 5,
+            badge: '🏢 Multi-Sucursal'
+        },
     ];
 
     const steps = [
-        { num: '01', icon: <Zap className="w-5 h-5" />, title: 'Crea tu cuenta', desc: 'Regístrate en 2 minutos. Carga tu logo y configuramos tus servicios y horarios.' },
-        { num: '02', icon: <Smartphone className="w-5 h-5" />, title: 'Comparte tu link', desc: 'Envía tu URL personalizada a tus clientes por WhatsApp, Instagram o en tu bio.' },
-        { num: '03', icon: <CalendarDays className="w-5 h-5" />, title: 'Las citas llegan solas', desc: 'Tu agenda se llena automáticamente mientras tú te enfocas en dar el mejor servicio.' },
+        { num: '01', icon: <Zap className="w-5 h-5" />, title: 'Crea tu cuenta', desc: 'Regístrate en 2 minutos. Carga tu logo y configuramos tus servicios, equipo y horarios.' },
+        { num: '02', icon: <Smartphone className="w-5 h-5" />, title: 'Comparte tu link', desc: 'Envía tu URL personalizada a tus clientes por WhatsApp, Instagram o en tu biografía.' },
+        { num: '03', icon: <CalendarDays className="w-5 h-5" />, title: 'Las citas llegan solas', desc: 'Tu agenda se llena automáticamente mientras tú te enfocas en atender a tus clientes.' },
     ];
 
     return (
@@ -262,9 +276,10 @@ export default function Landing() {
             )}
 
             {/* ═══════════ NAVBAR ═══════════ */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 backdrop-blur-xl border-b ${scrolled ? 'bg-[#020817]/80 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]' : 'bg-[#020817]/40 border-white/5 shadow-[0_4px_24px_rgba(0,0,0,0.2)]'}`}>
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 backdrop-blur-xl border-b ${scrolled || mobileMenuOpen ? 'bg-[#020817]/95 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]' : 'bg-[#020817]/40 border-white/5 shadow-[0_4px_24px_rgba(0,0,0,0.2)]'}`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
+                        {/* Logo */}
                         <div className="flex items-center gap-2 group cursor-pointer">
                             <div className="relative">
                                 <div className="absolute inset-0 bg-violet-500 blur-md opacity-30 group-hover:opacity-70 transition-opacity rounded-full" />
@@ -272,16 +287,20 @@ export default function Landing() {
                             </div>
                             <span className="text-lg sm:text-xl font-black tracking-tight">Cita<span className="text-violet-400">Link</span></span>
                         </div>
+
+                        {/* Desktop Links */}
                         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
                             <Link to="/explorar" className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors flex items-center gap-1.5">
                                 <Search className="w-4 h-4" /> Buscar Negocios
                             </Link>
                             <a href="#features" className="hover:text-white transition-colors">Funciones</a>
-                            <a href="#how" className="hover:text-white transition-colors">¿Cómo funciona?</a>
+                            <a href="#seguridad" className="hover:text-white transition-colors">Seguridad</a>
                             <a href="#precios" className="hover:text-white transition-colors">Precios</a>
                             <a href="#testimonials" className="hover:text-white transition-colors">Testimonios</a>
                         </div>
-                        <div className="flex items-center gap-2 sm:gap-3">
+
+                        {/* Desktop CTA / User Button */}
+                        <div className="hidden md:flex items-center gap-2 sm:gap-3">
                             {user ? (
                                 <Link to={dashboardPath} className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm transition-all flex items-center gap-2 shadow-lg shadow-violet-500/20">
                                     Mi Panel <ArrowRight className="w-4 h-4" />
@@ -295,12 +314,100 @@ export default function Landing() {
                                 </>
                             )}
                         </div>
+
+                        {/* Mobile Hamburger Toggle */}
+                        <div className="flex md:hidden items-center gap-2">
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="px-3 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md shadow-violet-600/20"
+                            >
+                                Probar Gratis
+                            </button>
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                aria-label="Abrir menú"
+                                className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                            >
+                                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                {/* Mobile Menu Dropdown Panel */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden border-t border-white/10 bg-[#030816]/98 backdrop-blur-2xl px-5 py-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <div className="space-y-1">
+                            <Link
+                                to="/explorar"
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-sm"
+                            >
+                                <Search className="w-4 h-4" /> Buscar Negocios
+                            </Link>
+                            <a
+                                href="#features"
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="block px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+                            >
+                                Funciones
+                            </a>
+                            <a
+                                href="#seguridad"
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="block px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+                            >
+                                Seguridad
+                            </a>
+                            <a
+                                href="#precios"
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="block px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+                            >
+                                Precios
+                            </a>
+                            <a
+                                href="#testimonials"
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="block px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+                            >
+                                Testimonios
+                            </a>
+                        </div>
+
+                        <div className="pt-3 border-t border-white/10 space-y-2">
+                            {user ? (
+                                <Link
+                                    to={dashboardPath}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-600/30"
+                                >
+                                    Mi Panel <ArrowRight className="w-4 h-4" />
+                                </Link>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => { setMobileMenuOpen(false); setIsModalOpen(true); }}
+                                        className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-violet-600/30"
+                                    >
+                                        Crear Cuenta Gratis (30 días)
+                                    </button>
+                                    <Link
+                                        to="/login"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-medium text-sm flex items-center justify-center hover:bg-white/10 transition-colors"
+                                    >
+                                        Iniciar Sesión
+                                    </Link>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
             </nav>
 
             {/* ═══════════ HERO ═══════════ */}
-            <section className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-16 overflow-hidden">
+            <section className="relative min-h-screen flex flex-col items-center justify-center pt-24 pb-16 overflow-hidden">
                 {/* Background glows */}
                 <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-violet-700/25 blur-[130px] rounded-full pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-[400px] h-[300px] bg-indigo-700/15 blur-[100px] rounded-full pointer-events-none" />
@@ -324,7 +431,7 @@ export default function Landing() {
                     </h1>
 
                     <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-300 mb-10 leading-relaxed font-normal">
-                        Reservas automáticas, recordatorios que evitan inasistencias y control total de tu equipo — todo en una sola plataforma para <strong className="text-white font-bold underline decoration-violet-500 decoration-2 underline-offset-4">salones, spas, barberías y clínicas.</strong>
+                        Reservas automáticas 24/7, recordatorios que evitan inasistencias por WhatsApp, cotizador de uñas y control total de tu equipo — para <strong className="text-white font-bold underline decoration-violet-500 decoration-2 underline-offset-4">salones, nail bars, barberías, spas y clínicas.</strong>
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -346,160 +453,73 @@ export default function Landing() {
                     </div>
 
                     {/* Social proof */}
-                    <div className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm text-slate-400 mb-16">
+                    <div className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm text-slate-400 mb-14">
                         <div className="flex items-center gap-2">
                             <div className="flex -space-x-2">
                                 {['bg-violet-500', 'bg-pink-500', 'bg-indigo-500', 'bg-emerald-500'].map((c, i) => (
-                                    <div key={i} className={`w-7 h-7 rounded-full ${c} border-2 border-[#020817] flex items-center justify-center text-[10px] font-bold text-white shadow-md`}>{['S','R','V','M'][i]}</div>
+                                    <div key={i} className={`w-7 h-7 rounded-full ${c} border-2 border-[#020817] flex items-center justify-center text-[10px] font-bold text-white shadow-md`}>{['A','C','D','M'][i]}</div>
                                 ))}
                             </div>
                             <span className="font-semibold text-white">+500 negocios activos</span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
                             {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
-                            <span className="ml-1 font-bold text-white">4.9/5 en reseñas</span>
+                            <span className="ml-1 font-bold text-white">4.9/5 en satisfacción</span>
                         </div>
                         <div className="flex items-center gap-2 font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
                             <CheckCircle2 className="w-4 h-4" /> Sin comisiones por reserva
                         </div>
                     </div>
 
-                    {/* Real App Preview */}
-                    <div className="relative mx-auto max-w-5xl mt-16 overflow-hidden">
-                        {/* Scale: 0.40 → ~384px visual (fits 375px phone), 0.65 on tablet, 100% desktop */}
-                        <div className="origin-top scale-[0.40] -mb-[276px] sm:scale-[0.65] sm:-mb-[161px] md:scale-100 md:mb-0">
-                        <div className="absolute -inset-4 bg-gradient-to-r from-violet-600/20 via-transparent to-indigo-600/20 blur-2xl rounded-3xl" />
-                        <div className="relative bg-[#0d1526] border border-white/8 rounded-2xl overflow-hidden shadow-[0_0_80px_-20px_rgba(124,58,237,0.35)]">
-                            {/* ── Browser chrome ── */}
-                            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#080e1c] border-b border-white/5">
-                                <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500/80"/><div className="w-3 h-3 rounded-full bg-amber-500/80"/><div className="w-3 h-3 rounded-full bg-emerald-500/80"/></div>
-                                <div className="flex-1 mx-4 bg-white/5 rounded-md px-3 py-1 text-xs text-slate-500 flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50 flex-shrink-0"/>citalink.app/admin
+                    {/* Real Dashboard Image in Hero */}
+                    <div className="relative mx-auto max-w-5xl mt-6 group">
+                        <div className="absolute -inset-4 bg-gradient-to-r from-violet-600/30 via-fuchsia-600/20 to-indigo-600/30 blur-3xl rounded-3xl opacity-75 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                        
+                        {/* Desktop Mockup (Pantallas medianas y grandes) */}
+                        <div className="hidden sm:block relative bg-[#0d1526] border border-white/15 rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_20px_80px_-15px_rgba(124,58,237,0.4)]">
+                            {/* Browser Chrome Header */}
+                            <div className="flex items-center gap-2 px-4 py-3 bg-[#080e1c] border-b border-white/10">
+                                <div className="flex gap-1.5">
+                                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                                    <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                                    <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                                </div>
+                                <div className="flex-1 mx-4 bg-white/5 border border-white/5 rounded-lg px-3 py-1 text-xs text-slate-400 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        <span className="font-mono text-[11px] text-slate-300">https://www.citalink.app/admin</span>
+                                    </div>
+                                    <span className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">Panel Oficial</span>
                                 </div>
                             </div>
-                            {/* ── App layout ── */}
-                            <div className="flex" style={{height: '460px'}}>
-                                {/* Sidebar */}
-                                <div className="w-52 flex-shrink-0 bg-[#060c1a] border-r border-white/5 flex flex-col py-4 px-3 gap-1">
-                                    {/* Logo */}
-                                    <div className="flex items-center gap-2 px-3 pb-4 mb-2 border-b border-white/5">
-                                        <div className="w-7 h-7 rounded-lg bg-violet-600/30 border border-violet-500/30 flex items-center justify-center">
-                                            <InfinityIcon className="w-4 h-4 text-violet-400" strokeWidth={2.5}/>
-                                        </div>
-                                        <span className="text-sm font-black text-white">Cita<span className="text-violet-400">Link</span></span>
-                                    </div>
-                                    {/* Nav items */}
-                                    {[
-                                        { label: 'Dashboard', active: true, dot: 'bg-violet-500' },
-                                        { label: 'Citas', active: false, dot: 'bg-blue-500' },
-                                        { label: 'Clientes', active: false, dot: 'bg-emerald-500' },
-                                        { label: 'Servicios', active: false, dot: 'bg-amber-500' },
-                                        { label: 'Equipo', active: false, dot: 'bg-pink-500' },
-                                        { label: 'Configuración', active: false, dot: 'bg-slate-500' },
-                                    ].map((item) => (
-                                        <div key={item.label} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${item.active ? 'bg-violet-500/15 text-violet-300 border border-violet-500/20' : 'text-slate-500 hover:text-slate-300'}`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${item.dot} ${item.active ? 'opacity-100' : 'opacity-30'}`}/>
-                                            {item.label}
-                                        </div>
-                                    ))}
-                                    {/* User */}
-                                    <div className="mt-auto flex items-center gap-2 px-3 pt-3 border-t border-white/5">
-                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[10px] font-black text-white">MA</div>
-                                        <div><p className="text-[10px] font-bold text-white">María A.</p><p className="text-[9px] text-slate-500">Super Admin</p></div>
-                                    </div>
-                                </div>
-                                {/* Main content */}
-                                <div className="flex-1 overflow-hidden bg-[#080d1c] p-5 flex flex-col gap-4">
-                                    {/* Header */}
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h2 className="text-sm font-black text-white">Dashboard</h2>
-                                            <p className="text-[10px] text-slate-500">Sábado, 28 de Marzo 2026</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <div className="px-3 py-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold flex items-center gap-1.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"/>EN VIVO
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Stats row */}
-                                    <div className="grid grid-cols-4 gap-3">
-                                        {[
-                                            { label: 'Citas Hoy', val: '12', icon: <CalendarDays className="w-3.5 h-3.5"/>, color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20', change: '+3 vs ayer' },
-                                            { label: 'Ingresos', val: '$3,240', icon: <TrendingUp className="w-3.5 h-3.5"/>, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', change: '+18%' },
-                                            { label: 'Clientes', val: '847', icon: <Users className="w-3.5 h-3.5"/>, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', change: '+12 nuevos' },
-                                            { label: 'Completadas', val: '94%', icon: <BarChart2 className="w-3.5 h-3.5"/>, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', change: 'Este mes' },
-                                        ].map((s) => (
-                                            <div key={s.label} className={`relative overflow-hidden rounded-xl border ${s.bg} p-3`}>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">{s.label}</p>
-                                                    <div className={`${s.color}`}>{s.icon}</div>
-                                                </div>
-                                                <p className={`text-lg font-black ${s.color}`}>{s.val}</p>
-                                                <p className="text-[9px] text-slate-500 mt-0.5">{s.change}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {/* Appointments + Chart */}
-                                    <div className="grid grid-cols-5 gap-3 flex-1 min-h-0">
-                                        {/* Appointment list */}
-                                        <div className="col-span-3 bg-[#0f172a]/60 border border-white/5 rounded-xl p-3 overflow-hidden">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <p className="text-[10px] text-white font-bold uppercase tracking-widest">Hoy — Próximas citas</p>
-                                                <span className="text-[9px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">12 citas</span>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                {[
-                                                    { time: '09:00', name: 'Carlos M.', svc: 'Corte Clásico', stylist: 'Ana G.', status: 'completada' },
-                                                    { time: '09:45', name: 'Romina P.', svc: 'Manicure Gel', stylist: 'Luis M.', status: 'completada' },
-                                                    { time: '10:30', name: 'Diego H.', svc: 'Masaje Relajante', stylist: 'Ana G.', status: 'confirmada' },
-                                                    { time: '11:15', name: 'Laura V.', svc: 'Corte + Tinte', stylist: 'Karen P.', status: 'confirmada' },
-                                                    { time: '12:00', name: 'Miguel T.', svc: 'Corte + Barba', stylist: 'Luis M.', status: 'confirmada' },
-                                                ].map((apt) => (
-                                                    <div key={apt.time} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] border border-transparent hover:border-white/5 transition-all">
-                                                        <span className="text-violet-400 font-mono text-[10px] w-10 shrink-0 font-bold">{apt.time}</span>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-white text-[10px] font-bold truncate">{apt.name}</p>
-                                                            <p className="text-slate-500 text-[9px] truncate">{apt.svc} · {apt.stylist}</p>
-                                                        </div>
-                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${apt.status === 'completada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
-                                                            {apt.status === 'completada' ? '✓ Lista' : '◷ Pendiente'}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        {/* Mini activity panel */}
-                                        <div className="col-span-2 flex flex-col gap-3">
-                                            <div className="bg-[#0f172a]/60 border border-white/5 rounded-xl p-3 flex-1">
-                                                <p className="text-[10px] text-white font-bold uppercase tracking-widest mb-3">Ingresos — Esta semana</p>
-                                                {/* Mini bar chart */}
-                                                <div className="flex items-end gap-1 h-20">
-                                                    {[40, 65, 55, 80, 70, 90, 75].map((h, i) => (
-                                                        <div key={i} className="flex-1 flex flex-col gap-0.5 items-center">
-                                                            <div className="w-full rounded-sm" style={{height: `${h}%`, background: i === 5 ? 'linear-gradient(to top, #7c3aed, #6366f1)' : 'rgba(124,58,237,0.2)'}}/>
-                                                            <span className="text-[7px] text-slate-600">{['L','M','X','J','V','S','D'][i]}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <MessageCircle className="w-3 h-3 text-emerald-400"/>
-                                                    <p className="text-[10px] text-emerald-400 font-bold">8 recordatorios enviados</p>
-                                                </div>
-                                                <p className="text-[9px] text-slate-500">WhatsApp automático para citas de mañana</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+
+                            {/* Screenshot Desktop Image */}
+                            <div className="relative overflow-hidden bg-[#060b18]">
+                                <img
+                                    src="/assets/dashboard-hero-desktop.png"
+                                    alt="Panel de Control CitaLink Desktop"
+                                    decoding="async"
+                                    className="w-full h-auto object-cover transform transition-transform duration-700 hover:scale-[1.01]"
+                                />
                             </div>
                         </div>
-                        </div>{/* end scale wrapper */}
+
+                        {/* Mobile Mockup (Pantallas pequeñas / Móviles) */}
+                        <div className="sm:hidden relative max-w-[300px] mx-auto bg-[#0d1526] border-2 border-violet-500/30 rounded-[2.5rem] p-2 shadow-[0_15px_60px_-10px_rgba(124,58,237,0.5)] overflow-hidden">
+                            <div className="relative rounded-[2rem] overflow-hidden bg-[#060b18] border border-white/10">
+                                <img
+                                    src="/assets/dashboard-hero-mobile.jpg"
+                                    alt="Panel de Control CitaLink Móvil"
+                                    decoding="async"
+                                    className="w-full h-auto object-cover"
+                                />
+                            </div>
+                        </div>
                     </div>
+
                 </div>
 
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce">
                     <ChevronDown className="w-6 h-6 text-slate-600" />
                 </div>
             </section>
@@ -526,7 +546,7 @@ export default function Landing() {
             {/* ═══════════ INDUSTRIES ═══════════ */}
             <section className="py-16 border-b border-white/5">
                 <div className="max-w-6xl mx-auto px-4">
-                    <p className="text-center text-slate-500 text-sm font-semibold uppercase tracking-widest mb-8">Perfecta para tu sector</p>
+                    <p className="text-center text-slate-500 text-sm font-semibold uppercase tracking-widest mb-8">Diseñada a la medida para tu sector</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {industries.map((ind, i) => (
                             <div key={i} className={`group flex flex-col items-center gap-3 p-6 rounded-2xl border ${ind.bg} cursor-pointer hover:scale-105 transition-transform duration-300`}>
@@ -554,7 +574,7 @@ export default function Landing() {
                                 ¿Buscas cortarte el pelo, hacerte las uñas o consentirte en un spa?
                             </h3>
                             <p className="text-sm text-slate-400 mt-1 max-w-xl">
-                                Explora barberías, salones, spas y clínicas cerca de ti. Compara servicios y agenda tu cita en segundos.
+                                Explora barberías, salones de uñas, spas y clínicas cerca de ti. Compara servicios, reseñas verificadas y agenda tu cita en segundos.
                             </p>
                         </div>
                     </div>
@@ -571,10 +591,10 @@ export default function Landing() {
             </section>
 
             {/* ═══════════ HOW IT WORKS ═══════════ */}
-            <section id="how" className="py-28 relative">
+            <section id="how" className="py-24 relative">
                 <div className="absolute inset-0 bg-gradient-to-b from-[#020817] via-[#080d1a] to-[#020817] pointer-events-none" />
                 <div ref={s2.ref} className={`relative max-w-6xl mx-auto px-4 transition-all duration-700 ${s2.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    <div className="text-center mb-20">
+                    <div className="text-center mb-16">
                         <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Empieza en minutos</span>
                         <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">Tan fácil como 1, 2, 3</h2>
                         <p className="text-slate-400 text-lg max-w-2xl mx-auto">Sin complicaciones técnicas. Sin contratos. Sin costos ocultos.</p>
@@ -603,259 +623,406 @@ export default function Landing() {
                 </div>
             </section>
 
-            {/* ═══════════ FEATURES ═══════════ */}
-            <section id="features" className="py-28 bg-[#050d1a]/60 border-t border-white/5">
-                <div ref={s3.ref} className={`max-w-6xl mx-auto px-4 transition-all duration-700 ${s3.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    <div className="text-center mb-20">
-                        <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Todo incluido</span>
-                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">Herramientas que multiplican tus resultados</h2>
-                        <p className="text-slate-400 text-lg max-w-2xl mx-auto">Olvídate de WhatsApp, Excel y agendas de papel. CitaLink centraliza todo en un solo lugar.</p>
+            {/* ═══════════ FEATURES BENTO GRID (ORGANIZADO POR BLOQUES 2 EN 2 EN MÓVIL) ═══════════ */}
+            <section id="features" className="py-16 sm:py-24 bg-[#050d1a]/80 border-t border-white/5 relative">
+                <div ref={s3.ref} className={`max-w-6xl mx-auto px-4 sm:px-6 transition-all duration-700 ${s3.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    <div className="text-center mb-12 sm:mb-16">
+                        <span className="text-violet-400 text-xs sm:text-sm font-bold uppercase tracking-widest">Ecosistema Completo</span>
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mt-2 sm:mt-3 mb-3 sm:mb-4">Herramientas que multiplican tus ingresos</h2>
+                        <p className="text-slate-400 text-sm sm:text-lg max-w-2xl mx-auto">Olvídate de WhatsApp desordenado y libretas de papel. CitaLink centraliza y automatiza toda tu operación.</p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {features.map((f, i) => (
-                            <div key={i} className="group relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-3xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-500 cursor-default">
-                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `radial-gradient(circle at 50% 0%, ${i % 2 === 0 ? 'rgba(124,58,237,0.08)' : 'rgba(99,102,241,0.08)'}, transparent 70%)` }} />
-                                <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-br ${f.color} mb-5 shadow-lg`}>
-                                    <div className="text-white">{f.icon}</div>
+                    <div className="space-y-10 sm:space-y-12">
+                        {/* Bloque 1: Agendamiento & Automatización */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                                <div className="p-1.5 sm:p-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                                    <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
-                                <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
+                                <h3 className="text-base sm:text-xl font-bold text-white">1. Agendamiento & Automatización Inteligente</h3>
                             </div>
-                        ))}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+                                {/* Agenda 24/7 (Grande span-2 en mobile y desktop) */}
+                                <div className="col-span-2 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-8 hover:border-violet-500/40 transition-all duration-500">
+                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
+                                        <div className="max-w-md">
+                                            <div className="inline-flex p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-500 text-white mb-3 sm:mb-4 shadow-lg">
+                                                <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6" />
+                                            </div>
+                                            <h4 className="text-lg sm:text-2xl font-bold text-white mb-1.5 sm:mb-2">Agenda Inteligente 24/7</h4>
+                                            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                                                Tus clientes eligen servicio, empleado y horario disponible en tiempo real en menos de 30 segundos, sin necesidad de llamarte ni esperar respuesta.
+                                            </p>
+                                            <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-semibold">
+                                                <span className="bg-violet-500/10 text-violet-300 border border-violet-500/20 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full">✓ Smart Slots</span>
+                                                <span className="bg-violet-500/10 text-violet-300 border border-violet-500/20 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full">✓ Google Calendar</span>
+                                                <span className="bg-violet-500/10 text-violet-300 border border-violet-500/20 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full">✓ Autoservicio</span>
+                                            </div>
+                                        </div>
+                                        <div className="w-full md:w-56 bg-[#030814] border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-1.5 sm:space-y-2 text-xs shadow-xl shrink-0">
+                                            <div className="flex justify-between items-center text-slate-400 text-[10px] sm:text-[11px] pb-1 border-b border-white/5">
+                                                <span>Cita confirmada</span>
+                                                <span className="text-emerald-400 font-bold">● En vivo</span>
+                                            </div>
+                                            <p className="text-white font-bold text-xs sm:text-sm">Corte + Barba VIP</p>
+                                            <p className="text-slate-400 text-[10px] sm:text-[11px]">Hoy · 16:30 hrs</p>
+                                            <div className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] text-center font-bold">
+                                                WhatsApp enviado
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Recordatorios WhatsApp (1 de 2 en móvil) */}
+                                <div className="col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-emerald-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <MessageCircle className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Recordatorios WhatsApp</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Reduce inasistencias hasta 60% con confirmaciones automáticas.
+                                        </p>
+                                    </div>
+                                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg sm:rounded-2xl p-1.5 sm:p-3 text-[9px] sm:text-xs text-emerald-300 font-medium leading-tight">
+                                        📲 Confirmación en 1 clic
+                                    </div>
+                                </div>
+
+                                {/* Lista de Espera (2 de 2 en móvil) */}
+                                <div className="col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-blue-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <CalendarPlus className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Lista de Espera Activa</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Cubre cancelaciones o huecos libres de forma automática.
+                                        </p>
+                                    </div>
+                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg sm:rounded-2xl p-1.5 sm:p-3 text-[9px] sm:text-xs text-blue-300 font-medium leading-tight">
+                                        ⚡ Cero huecos vacíos
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bloque 2: Gestión Financiera & Control Operativo (2 EN 2 EN MÓVIL) */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                                <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                                    <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                                </div>
+                                <h3 className="text-base sm:text-xl font-bold text-white">2. Gestión Financiera & Control Operativo</h3>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+                                {/* Nómina y Comisiones */}
+                                <div className="col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-amber-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <Percent className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Nómina y Comisiones</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Cálculo automático de ganancias por estilista listo en PDF.
+                                        </p>
+                                    </div>
+                                    <span className="text-[9px] sm:text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block font-semibold">
+                                        📄 Reporte en PDF
+                                    </span>
+                                </div>
+
+                                {/* Control de Equipo */}
+                                <div className="col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-purple-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-violet-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <Users className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Control de Equipo</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Horarios, turnos y cuentas privadas para cada colaborador.
+                                        </p>
+                                    </div>
+                                    <span className="text-[9px] sm:text-xs bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block font-semibold">
+                                        👥 Roles y Permisos
+                                    </span>
+                                </div>
+
+                                {/* Reportes en Tiempo Real (Span-2 en móvil para cerrar bloque de forma elegante) */}
+                                <div className="col-span-2 md:col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-red-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Reportes en Tiempo Real</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Gráficas de ingresos, servicios top y retención de clientes en vivo.
+                                        </p>
+                                    </div>
+                                    <span className="text-[9px] sm:text-xs bg-red-500/10 text-red-300 border border-red-500/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block font-semibold">
+                                        📊 Métricas financieras
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bloque 3: Marca, Cotizador & Fidelización (2 EN 2 EN MÓVIL) */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                                <div className="p-1.5 sm:p-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-pink-400">
+                                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                                </div>
+                                <h3 className="text-base sm:text-xl font-bold text-white">3. Marca, PWA & Experiencia Digital</h3>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+                                {/* Branding & ColorThief */}
+                                <div className="col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-indigo-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <Shield className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Branding Propio</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Tu logo, colores automáticos (ColorThief) y URL personalizada.
+                                        </p>
+                                    </div>
+                                    <span className="text-[9px] sm:text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block font-semibold">
+                                        🎨 100% tu marca
+                                    </span>
+                                </div>
+
+                                {/* App Instalable PWA */}
+                                <div className="col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-teal-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <Smartphone className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">App Instalable (PWA)</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Instalación directa en iPhone/Android sin pasar por App Store.
+                                        </p>
+                                    </div>
+                                    <span className="text-[9px] sm:text-xs bg-teal-500/10 text-teal-300 border border-teal-500/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block font-semibold">
+                                        📲 Carga ultrarrápida
+                                    </span>
+                                </div>
+
+                                {/* Seguridad y Control */}
+                                <div className="col-span-2 md:col-span-1 group relative overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 hover:border-violet-500/40 transition-all duration-500 flex flex-col justify-between">
+                                    <div>
+                                        <div className="inline-flex p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white mb-2.5 sm:mb-4 shadow-lg">
+                                            <ShieldCheck className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        </div>
+                                        <h4 className="text-xs sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Anti-Fraude & Bloqueo</h4>
+                                        <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed mb-2.5 sm:mb-4">
+                                            Validación de clientes por WhatsApp y bloqueo de ausencias.
+                                        </p>
+                                    </div>
+                                    <span className="text-[9px] sm:text-xs bg-pink-500/10 text-pink-300 border border-pink-500/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full inline-block font-semibold">
+                                        🛡️ Citas seguras
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════ DEMO INTERACTIVA Y CALCULADORA ═══════════ */}
-            <section className="py-28 border-t border-white/5 relative overflow-hidden bg-gradient-to-b from-[#020817] via-[#080f24] to-[#020817]">
-                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/15 blur-[140px] rounded-full pointer-events-none" />
-                <div ref={s4.ref} className={`max-w-6xl mx-auto px-4 transition-all duration-700 ${s4.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    
-                    <div className="text-center mb-16">
-                        <span className="px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold uppercase tracking-widest">
-                            🔥 Pruébalo tú mismo
-                        </span>
-                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">
-                            Simulador en vivo de reservas
+            {/* ═══════════ NUEVA SECCIÓN: 🔒 SEGURIDAD Y CONFIANZA (2 EN 2 EN MÓVIL) ═══════════ */}
+            <section id="seguridad" className="py-16 sm:py-24 border-t border-white/5 relative bg-[#040914]">
+                <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-violet-600/10 blur-[130px] rounded-full pointer-events-none" />
+                <div ref={sSec.ref} className={`max-w-6xl mx-auto px-4 sm:px-6 relative z-10 transition-all duration-700 ${sSec.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    <div className="text-center mb-12 sm:mb-16">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2 sm:mb-3">
+                            <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-400" /> Protección para tu Negocio
+                        </div>
+                        <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+                            Citas 100% reales, sin fraudes ni ausencias
                         </h2>
-                        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                            Interactúa con el simulador interactivo para ver exactamente cómo tus clientes agendarán cita en 30 segundos.
+                        <p className="text-slate-400 text-xs sm:text-lg max-w-2xl mx-auto mt-2 sm:mt-4">
+                            Herramientas avanzadas diseñadas para proteger el tiempo de tu equipo y la reputación de tu marca.
                         </p>
                     </div>
 
-                    <div className="grid lg:grid-cols-12 gap-8 items-stretch mb-20">
-                        {/* Selector interactivo izquierda */}
-                        <div className="lg:col-span-5 bg-white/[0.02] border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between backdrop-blur-xl">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-3">Paso 1: Elige tu giro</p>
-                                <div className="grid grid-cols-3 gap-2 mb-6">
-                                    {[
-                                        { id: 'barber', label: 'Barbería', icon: <Scissors className="w-4 h-4" /> },
-                                        { id: 'nails', label: 'Nail Bar', icon: <Sparkles className="w-4 h-4" /> },
-                                        { id: 'spa', label: 'Spa / Salón', icon: <Flower2 className="w-4 h-4" /> },
-                                    ].map((s) => (
-                                        <button
-                                            key={s.id}
-                                            onClick={() => {
-                                                setSimSector(s.id as any);
-                                                setSimDone(false);
-                                                if (s.id === 'barber') setSimService('Corte Clásico + Barba ($280)');
-                                                if (s.id === 'nails') setSimService('Uñas Acrílicas XL + Gel ($450)');
-                                                if (s.id === 'spa') setSimService('Facial Hidratante Profundo ($550)');
-                                            }}
-                                            className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all border ${
-                                                simSector === s.id
-                                                    ? 'bg-violet-600 text-white border-violet-400 shadow-lg shadow-violet-600/30'
-                                                    : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
-                                            }`}
-                                        >
-                                            {s.icon} {s.label}
-                                        </button>
-                                    ))}
-                                </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                        {/* OTP WhatsApp */}
+                        <div className="bg-white/[0.03] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 hover:border-violet-500/40 transition-all duration-300">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400 mb-2.5 sm:mb-4">
+                                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </div>
+                            <h3 className="text-xs sm:text-lg font-bold text-white mb-1 sm:mb-2 leading-tight">Verificación OTP</h3>
+                            <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed">
+                                Código de seguridad enviado por WhatsApp para validar clientes reales.
+                            </p>
+                        </div>
 
-                                <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-3">Paso 2: Selecciona Servicio</p>
-                                <div className="space-y-2 mb-6">
-                                    {(simSector === 'barber' ? [
-                                        { name: 'Corte Clásico + Barba ($280)', time: '45 min' },
-                                        { name: 'Corte Adulto Fade ($220)', time: '35 min' },
-                                        { name: 'Perfilado de Barba VIP ($180)', time: '25 min' },
-                                    ] : simSector === 'nails' ? [
-                                        { name: 'Uñas Acrílicas XL + Gel ($450)', time: '90 min' },
-                                        { name: 'Retiro + Manicure Ruso ($320)', time: '60 min' },
-                                        { name: 'Pedicure Spa Gelish ($380)', time: '50 min' },
-                                    ] : [
-                                        { name: 'Facial Hidratante Profundo ($550)', time: '60 min' },
-                                        { name: 'Masaje Relajante Corporal ($650)', time: '60 min' },
-                                        { name: 'Laminado de Cejas + Pestañas ($420)', time: '45 min' },
-                                    ]).map((item) => (
-                                        <div
-                                            key={item.name}
-                                            onClick={() => { setSimService(item.name); setSimDone(false); }}
-                                            className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                                                simService === item.name
-                                                    ? 'bg-violet-500/20 border-violet-500/60 text-white shadow-md'
-                                                    : 'bg-white/[0.02] border-white/5 text-slate-400 hover:border-white/10'
-                                            }`}
-                                        >
-                                            <span className="text-xs font-bold">{item.name}</span>
-                                            <span className="text-[10px] text-slate-500 font-mono">{item.time}</span>
+                        {/* Reseñas Anti-Fraude */}
+                        <div className="bg-white/[0.03] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 hover:border-amber-500/40 transition-all duration-300">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2.5 sm:mb-4">
+                                <Star className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </div>
+                            <h3 className="text-xs sm:text-lg font-bold text-white mb-1 sm:mb-2 leading-tight">Reseñas Verificadas</h3>
+                            <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed">
+                                Solo clientes con citas completadas pueden calificar y opinar.
+                            </p>
+                        </div>
+
+                        {/* Lista Negra */}
+                        <div className="bg-white/[0.03] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 hover:border-red-500/40 transition-all duration-300">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400 mb-2.5 sm:mb-4">
+                                <Ban className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </div>
+                            <h3 className="text-xs sm:text-lg font-bold text-white mb-1 sm:mb-2 leading-tight">Bloqueo de Clientes</h3>
+                            <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed">
+                                Bloquea números de clientes que no asisten para no perder espacios.
+                            </p>
+                        </div>
+
+                        {/* Depósitos IA */}
+                        <div className="bg-white/[0.03] border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 hover:border-emerald-500/40 transition-all duration-300">
+                            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-2.5 sm:mb-4">
+                                <ScanLine className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </div>
+                            <h3 className="text-xs sm:text-lg font-bold text-white mb-1 sm:mb-2 leading-tight">Anticipos & Depósitos</h3>
+                            <p className="text-slate-400 text-[10px] sm:text-sm leading-relaxed">
+                                Pide anticipos con validación de comprobantes y asegura tu agenda.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══════════ NUEVA SECCIÓN: 💅 COTIZADOR DE UÑAS DESTACADO ═══════════ */}
+            <section id="cotizador-nails" className="py-20 sm:py-24 border-t border-white/5 relative bg-gradient-to-b from-[#020817] via-[#140618] to-[#020817] overflow-hidden">
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-pink-600/15 blur-[140px] rounded-full pointer-events-none" />
+                <div ref={sNails.ref} className={`max-w-6xl mx-auto px-4 sm:px-6 relative z-10 transition-all duration-700 ${sNails.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                        
+                        {/* Lado izquierdo: Textos y Capacidades */}
+                        <div className="lg:col-span-7 space-y-6 text-center sm:text-left">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pink-500/15 border border-pink-500/30 text-pink-300 text-xs font-bold uppercase tracking-widest">
+                                <Sparkles className="w-4 h-4 text-pink-400" /> Especial para Salones de Uñas & Nail Studios
+                            </div>
+
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+                                Cotiza diseños de uñas complejos en <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-400 to-fuchsia-400">30 segundos.</span>
+                            </h2>
+
+                            <p className="text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed">
+                                Se acabaron las horas cotizando precios a mano por WhatsApp. Con el cotizador interactivo de CitaLink, calculas la base, el largo y cada detalle del arte con precisión milimétrica.
+                            </p>
+
+                            {/* Compact mobile-friendly chips grid */}
+                            <div className="grid grid-cols-2 gap-2 sm:gap-2.5 pt-1 text-left">
+                                {[
+                                    { t: 'Bases', d: 'Gel, Acrílico, Polygel, Rubber' },
+                                    { t: 'Largos', d: 'Personalizados (#1 al #7+)' },
+                                    { t: 'Técnicas', d: 'Francés, Espejo, Cat Eye, 3D' },
+                                    { t: 'Cristales', d: 'Por cantidad exacta de uñas' },
+                                    { t: 'Fotos', d: 'Pega de WhatsApp con Ctrl+V' },
+                                    { t: 'Temas', d: 'Rosa, Dark y Dorado' },
+                                    { t: 'Ticket Digital', d: 'Exportable en imagen' },
+                                    { t: 'WhatsApp', d: 'Envío directo al cliente' }
+                                ].map((item, idx) => (
+                                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-200 bg-white/[0.04] border border-white/5 p-2.5 rounded-xl hover:border-pink-500/30 transition-colors">
+                                        <Check className="w-3.5 h-3.5 text-pink-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="font-bold text-white leading-tight">{item.t}</p>
+                                            <p className="text-[10px] sm:text-[11px] text-slate-400 leading-tight mt-0.5">{item.d}</p>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                ))}
+                            </div>
 
-                                <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-3">Paso 3: Elige Horario</p>
-                                <div className="grid grid-cols-4 gap-2 mb-6">
-                                    {['10:00', '12:30', '16:00', '18:30'].map((t) => (
-                                        <button
-                                            key={t}
-                                            onClick={() => { setSimTime(t); setSimDone(false); }}
-                                            className={`py-2 rounded-xl text-xs font-bold border transition-all ${
-                                                simTime === t
-                                                    ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
-                                                    : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
-                                            }`}
-                                        >
-                                            {t}
-                                        </button>
-                                    ))}
+                            <div className="pt-2">
+                                <button
+                                    onClick={() => setIsModalOpen(true)}
+                                    className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold text-sm sm:text-base transition-all shadow-xl shadow-pink-950/50 hover:scale-105 flex items-center justify-center gap-3"
+                                >
+                                    <span>Pruébalo Gratis para tu Salón de Uñas</span>
+                                    <ArrowRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Lado derecho: Imagen Real del Ticket de Cotización */}
+                        <div className="lg:col-span-5 flex justify-center w-full">
+                            <div className="relative group w-full max-w-[320px] sm:max-w-[360px]">
+                                <div className="absolute -inset-3 bg-gradient-to-r from-pink-600/30 via-rose-600/30 to-fuchsia-600/30 blur-2xl rounded-[3rem] opacity-90 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border-2 border-pink-400/30 bg-gradient-to-b from-pink-100 to-pink-200">
+                                    <img
+                                        src="/assets/quoter-ticket.png"
+                                        alt="Mar Del Rey Nail's - Cotización de Uñas"
+                                        decoding="async"
+                                        loading="lazy"
+                                        className="w-full h-auto object-contain rounded-[2.3rem] transform transition-transform duration-500 hover:scale-[1.02]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══════════ NUEVA SECCIÓN: 🏢 MULTI-SUCURSAL ═══════════ */}
+            <section className="py-20 border-t border-white/5 relative bg-[#030712] overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-950/30 via-[#070e24] to-indigo-950/30 pointer-events-none" />
+                <div ref={sMulti.ref} className={`max-w-6xl mx-auto px-4 relative z-10 transition-all duration-700 ${sMulti.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    <div className="bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-white/[0.04] border border-white/10 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
+                        <div className="grid lg:grid-cols-12 gap-8 items-center">
+                            <div className="lg:col-span-7 space-y-4">
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold uppercase tracking-widest">
+                                    <Building2 className="w-4 h-4 text-violet-400" /> Para Cadenas y Franquicias
+                                </div>
+                                <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                                    ¿Manejas más de una sucursal?
+                                </h3>
+                                <p className="text-slate-300 text-base leading-relaxed">
+                                    Centraliza el control de todas tus ubicaciones en una sola cuenta. Cada sucursal cuenta con su propio personal, horarios y catálogo independiente, permitiendo a tus clientes elegir su sucursal favorita desde un portal unificado (<code className="text-violet-300 bg-violet-500/10 px-2 py-0.5 rounded font-mono text-xs">/sucursales/tu-marca</code>).
+                                </p>
+                                <div className="flex flex-wrap gap-4 pt-2">
+                                    <a
+                                        href="#precios"
+                                        className="px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm transition-all shadow-lg shadow-violet-500/20 flex items-center gap-2"
+                                    >
+                                        Ver Plan Business Multi-Sucursal <ArrowRight className="w-4 h-4" />
+                                    </a>
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => setSimDone(true)}
-                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 text-white font-black text-sm uppercase tracking-wider transition-all shadow-lg shadow-violet-500/30 hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2"
-                            >
-                                <Sparkles className="w-4 h-4 text-amber-400" /> Simular Reserva en Vivo →
-                            </button>
-                        </div>
-
-                        {/* Maqueta celular interactiva derecha */}
-                        <div className="lg:col-span-7 flex flex-col items-center justify-center relative">
-                            <div className="relative w-full max-w-sm">
-                                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full pointer-events-none" />
-                                <div className="relative bg-[#090f1e] border-4 border-slate-700/80 rounded-[2.5rem] overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.8)]">
-                                    {/* Notch */}
-                                    <div className="h-6 bg-[#090f1e] flex items-center justify-center">
-                                        <div className="w-24 h-4 rounded-full bg-slate-800 flex items-center justify-end px-2">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500/60" />
+                            {/* Mockup visual de sucursales */}
+                            <div className="lg:col-span-5 grid gap-3">
+                                {[
+                                    { name: 'Sucursal San Pedro (Matriz)', address: 'Av. Vasconcelos #450, NL', staff: '6 estilistas', active: true },
+                                    { name: 'Sucursal Valle Oriente', address: 'Plaza Fiesta San Agustín, NL', staff: '4 estilistas', active: false },
+                                    { name: 'Sucursal Cumbres Elite', address: 'Av. Paseo de los Leones, NL', staff: '5 estilistas', active: false },
+                                ].map((branch, i) => (
+                                    <div key={i} className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${branch.active ? 'bg-violet-600/15 border-violet-500/40 text-white shadow-lg' : 'bg-white/[0.02] border-white/5 text-slate-400'}`}>
+                                        <div>
+                                            <p className="font-bold text-sm text-white">{branch.name}</p>
+                                            <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <MapPin className="w-3 h-3 text-slate-500" /> {branch.address}
+                                            </p>
                                         </div>
+                                        <span className="text-xs font-mono font-semibold bg-white/5 px-2.5 py-1 rounded-lg border border-white/5 text-slate-300">
+                                            {branch.staff}
+                                        </span>
                                     </div>
-
-                                    {/* Contenido interactivo simulado - DISEÑO REAL DE CITALINK */}
-                                    <div className="p-4 space-y-3 min-h-[490px] bg-[#020817] text-slate-100 font-sans">
-                                        {/* Cabecera Real del Negocio */}
-                                        <div className="relative p-4 rounded-2xl bg-gradient-to-b from-violet-900/40 via-[#0b1329] to-[#050b18] border border-violet-500/20 text-center shadow-lg">
-                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-600 to-fuchsia-600 p-0.5 mx-auto mb-2.5 shadow-[0_0_20px_rgba(124,58,237,0.4)]">
-                                                <div className="w-full h-full bg-[#0b1329] rounded-[14px] flex items-center justify-center">
-                                                    {simSector === 'barber' ? <Scissors className="w-7 h-7 text-amber-400" /> : simSector === 'nails' ? <Sparkles className="w-7 h-7 text-pink-400" /> : <Flower2 className="w-7 h-7 text-emerald-400" />}
-                                                </div>
-                                            </div>
-                                            <h3 className="text-white font-black text-base tracking-tight">
-                                                {simSector === 'barber' ? 'Barbería El Estilo' : simSector === 'nails' ? 'Mar Del Rey Nail\'s' : 'Spa Zen & Estética'}
-                                            </h3>
-                                            <div className="flex items-center justify-center gap-2 mt-1">
-                                                <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                                                    ★ 4.9 <span className="text-slate-400 font-normal">(120+ opiniones)</span>
-                                                </span>
-                                                <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
-                                                    <MapPin className="w-3 h-3 text-slate-500" /> San Pedro, NL
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Barra de progreso de pasos real de CitaLink */}
-                                        <div className="flex items-center justify-between px-2 py-1 bg-white/[0.02] border border-white/5 rounded-xl text-[9px] font-bold text-slate-400">
-                                            <span className="text-violet-400 flex items-center gap-1"><span className="w-4 h-4 rounded-full bg-violet-600 text-white flex items-center justify-center text-[8px]">1</span> Servicio</span>
-                                            <span className="text-slate-600">→</span>
-                                            <span className={`${simDone ? 'text-violet-400' : 'text-slate-500'} flex items-center gap-1`}><span className="w-4 h-4 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[8px]">2</span> Horario</span>
-                                            <span className="text-slate-600">→</span>
-                                            <span className={`${simDone ? 'text-emerald-400' : 'text-slate-500'} flex items-center gap-1`}><span className="w-4 h-4 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[8px]">3</span> Confirmación</span>
-                                        </div>
-
-                                        {simDone ? (
-                                            /* Pantalla de Confirmación / Ticket Real */
-                                            <div className="bg-gradient-to-b from-emerald-950/30 to-[#040c1a] border border-emerald-500/30 rounded-2xl p-4 animate-fade-in space-y-3 shadow-xl">
-                                                <div className="flex items-center gap-2 text-emerald-400 font-black text-xs border-b border-emerald-500/20 pb-2">
-                                                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
-                                                    <span>¡Reserva Registrada en CitaLink!</span>
-                                                </div>
-                                                
-                                                {/* Detalle Ticket */}
-                                                <div className="bg-[#030814] p-3 rounded-xl border border-white/5 space-y-2 text-xs">
-                                                    <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
-                                                        <span className="text-slate-400 text-[10px]">Cliente:</span>
-                                                        <span className="text-white font-bold">Misael Aguilar</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
-                                                        <span className="text-slate-400 text-[10px]">Servicio:</span>
-                                                        <span className="text-violet-300 font-bold text-right">{simService}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
-                                                        <span className="text-slate-400 text-[10px]">Fecha y Hora:</span>
-                                                        <span className="text-emerald-400 font-bold font-mono">Hoy · {simTime} hrs</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center pt-0.5">
-                                                        <span className="text-slate-400 text-[10px]">Notificación:</span>
-                                                        <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                                            <MessageCircle className="w-3 h-3" /> WhatsApp Enviado
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-violet-500/10 border border-violet-500/20 p-2.5 rounded-xl text-[10px] text-violet-200 text-center font-medium">
-                                                    🔐 Acceso de Cita: <strong className="text-white font-mono bg-violet-600 px-2 py-0.5 rounded ml-1">4892</strong>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => setSimDone(false)}
-                                                    className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all border border-white/10"
-                                                >
-                                                    ← Probar Otra Cita
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            /* Tarjeta de Selección de Servicio Real */
-                                            <div className="space-y-3">
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Servicio Seleccionado</p>
-                                                
-                                                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-violet-900/30 to-indigo-900/30 border border-violet-500/40 flex items-center justify-between shadow-lg">
-                                                    <div className="space-y-1">
-                                                        <p className="text-white font-black text-xs">{simService}</p>
-                                                        <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                                                            <Clock className="w-3 h-3 text-violet-400" /> Atendido por profesional asignado
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
-                                                        Confirmado
-                                                    </span>
-                                                </div>
-
-                                                <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar className="w-4 h-4 text-violet-400" />
-                                                        <span className="text-xs text-slate-300">Horario de cita:</span>
-                                                    </div>
-                                                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">{simTime} hrs</span>
-                                                </div>
-
-                                                <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 flex items-center gap-2.5">
-                                                    <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                                                    <p className="text-[10px] text-slate-300 leading-snug">
-                                                        Confirmación y recordatorio vía WhatsApp listos para enviarse.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         </div>
                     </div>
+                </div>
+            </section>
 
+            {/* ═══════════ DEMO INTERACTIVA Y CALCULADORA DE ROI ═══════════ */}
+            <section className="py-24 border-t border-white/5 relative overflow-hidden bg-gradient-to-b from-[#020817] via-[#080f24] to-[#020817]">
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/15 blur-[140px] rounded-full pointer-events-none" />
+                <div ref={s4.ref} className={`max-w-6xl mx-auto px-4 transition-all duration-700 ${s4.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    
                     {/* ── CALCULADORA INTERACTIVA DE RETORNO DE INVERSIÓN (ROI) ── */}
-                    <div className="bg-gradient-to-r from-violet-950/40 via-[#0a1226] to-indigo-950/40 border border-violet-500/20 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
+                    <div className="bg-gradient-to-r from-violet-950/40 via-[#0a1226] to-indigo-950/40 border border-violet-500/20 rounded-3xl p-8 sm:p-12 shadow-2xl backdrop-blur-xl">
                         <div className="grid md:grid-cols-12 gap-8 items-center">
                             <div className="md:col-span-6 space-y-4">
                                 <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest">
@@ -901,22 +1068,60 @@ export default function Landing() {
                 </div>
             </section>
 
-            {/* ═══════════ TESTIMONIALS ═══════════ */}
-            <section id="testimonials" className="py-28 bg-[#050d1a]/60 border-t border-white/5">
+            {/* ═══════════ TESTIMONIALS (ACTUALIZADOS Y CREÍBLES) ═══════════ */}
+            <section id="testimonials" className="py-24 bg-[#050d1a]/60 border-t border-white/5">
                 <div ref={s5.ref} className={`max-w-6xl mx-auto px-4 transition-all duration-700 ${s5.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    <div className="text-center mb-20">
-                        <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Historias reales</span>
-                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">Negocios que ya transformaron su agenda</h2>
+                    <div className="text-center mb-16">
+                        <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Casos de Éxito</span>
+                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">Negocios que transformaron su operación</h2>
+                        <p className="text-slate-400 text-lg max-w-xl mx-auto">Experiencias reales de salones de uñas, barberías y estéticas en México.</p>
                     </div>
+                    
                     <div className="grid md:grid-cols-3 gap-6">
-                        {testimonials.map((t, i) => (
-                            <div key={i} className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 hover:border-violet-500/20 transition-all duration-300 group">
-                                <div className="flex gap-1 mb-4">
-                                    {[...Array(t.stars)].map((_, j) => <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
+                        {testimonials.slice(0, 3).map((t, i) => (
+                            <div key={i} className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 hover:border-violet-500/30 transition-all duration-300 group flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex gap-1">
+                                            {[...Array(t.stars)].map((_, j) => <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
+                                        </div>
+                                        <span className="text-[11px] font-bold bg-white/5 px-2.5 py-1 rounded-full text-slate-300 border border-white/5">
+                                            {t.badge}
+                                        </span>
+                                    </div>
+                                    <p className="text-slate-300 leading-relaxed mb-6 text-sm italic">"{t.text}"</p>
                                 </div>
-                                <p className="text-slate-300 leading-relaxed mb-6 text-sm italic">"{t.text}"</p>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">{t.name[0]}</div>
+                                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md">
+                                        {t.name[0]}
+                                    </div>
+                                    <div>
+                                        <p className="text-white font-bold text-sm">{t.name}</p>
+                                        <p className="text-slate-500 text-xs">{t.biz}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6 mt-6">
+                        {testimonials.slice(3, 5).map((t, i) => (
+                            <div key={i} className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 hover:border-violet-500/30 transition-all duration-300 group flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex gap-1">
+                                            {[...Array(t.stars)].map((_, j) => <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
+                                        </div>
+                                        <span className="text-[11px] font-bold bg-white/5 px-2.5 py-1 rounded-full text-slate-300 border border-white/5">
+                                            {t.badge}
+                                        </span>
+                                    </div>
+                                    <p className="text-slate-300 leading-relaxed mb-6 text-sm italic">"{t.text}"</p>
+                                </div>
+                                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md">
+                                        {t.name[0]}
+                                    </div>
                                     <div>
                                         <p className="text-white font-bold text-sm">{t.name}</p>
                                         <p className="text-slate-500 text-xs">{t.biz}</p>
@@ -928,185 +1133,155 @@ export default function Landing() {
                 </div>
             </section>
 
-            {/* ═══════════ PRICING ═══════════ */}
-            <section id="precios" className="py-28 border-t border-white/5 relative overflow-hidden">
+            {/* ═══════════ PRICING (CON TODAS LAS HERRAMIENTAS INCLUIDAS) ═══════════ */}
+            <section id="precios" className="py-24 border-t border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-violet-700/10 blur-[120px] rounded-full pointer-events-none" />
                 <div ref={s7.ref} className={`relative max-w-6xl mx-auto px-4 transition-all duration-700 ${s7.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
 
                     {/* Header */}
                     <div className="text-center mb-16">
-                        <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Planes simples</span>
-                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">Elige el plan que crece contigo</h2>
-                        <p className="text-slate-400 text-lg max-w-xl mx-auto">Sin contratos. Sin sorpresas. Cancela cuando quieras.</p>
+                        <span className="text-violet-400 text-sm font-bold uppercase tracking-widest">Precios Transparentes</span>
+                        <h2 className="text-4xl md:text-5xl font-black mt-3 mb-4">Elige el plan ideal para tu negocio</h2>
+                        <p className="text-slate-400 text-lg max-w-xl mx-auto">Todas las funciones incluidas en todos los planes. Sin contratos. Cancela cuando quieras.</p>
                     </div>
 
                     {/* Plan cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-
-                        {/* FREE */}
-                        <div className="relative bg-white/[0.02] border border-white/8 rounded-3xl p-8 hover:border-white/15 transition-all duration-300">
-                            <div className="mb-6">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Free</p>
-                                <div className="flex items-end gap-1">
-                                    <span className="text-5xl font-black text-white">$0</span>
-                                    <span className="text-slate-500 mb-2">/mes</span>
-                                </div>
-                                <p className="text-slate-400 text-sm mt-2">Para empezar a digitalizar tu negocio sin costo.</p>
-                            </div>
-                            <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl border border-white/10 text-slate-300 font-bold text-sm hover:bg-white/5 transition-all mb-8">
-                                Empezar Gratis
-                            </button>
-                            <ul className="space-y-3">
-                                {[
-                                    '1 sucursal',
-                                    '2 estilistas incluidos',
-                                    '30 citas por mes',
-                                    'Agenda online 24/7',
-                                    'Recordatorios WhatsApp (Demo)',
-                                    'App instalable (PWA)',
-                                ].map((f) => (
-                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
-                                        <CheckCircle2 className="w-4 h-4 text-slate-600 shrink-0" />{f}
-                                    </li>
-                                ))}
-                                {[
-                                    'Reportes avanzados',
-                                    'Citas ilimitadas',
-                                ].map((f) => (
-                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-600 line-through">
-                                        <X className="w-4 h-4 text-slate-700 shrink-0" />{f}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
 
                         {/* ESENCIAL */}
-                        <div className="relative bg-white/[0.02] border border-teal-500/20 rounded-3xl p-8 hover:border-teal-500/30 transition-all duration-300">
-                            <div className="mb-6">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-400 mb-2">Esencial</p>
-                                <div className="flex items-end gap-1">
-                                    <span className="text-5xl font-black text-white">$349</span>
-                                    <span className="text-slate-400 mb-2">/mes</span>
-                                    <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$499</span>
+                        <div className="relative bg-white/[0.02] border border-teal-500/20 rounded-3xl p-8 hover:border-teal-500/40 transition-all duration-300 flex flex-col justify-between">
+                            <div>
+                                <div className="mb-6">
+                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-400 mb-2">Esencial</p>
+                                    <div className="flex items-end gap-1">
+                                        <span className="text-5xl font-black text-white">$349</span>
+                                        <span className="text-slate-400 mb-2">/mes</span>
+                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$499</span>
+                                    </div>
+                                    <p className="text-slate-400 text-sm mt-2">Para profesionales independientes y dueños que trabajan solos.</p>
                                 </div>
-                                <p className="text-slate-400 text-sm mt-2">Para profesionales independientes que trabajan solos.</p>
+                                <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-300 font-bold text-sm hover:bg-teal-500/20 transition-all mb-6">
+                                    Empezar con Esencial
+                                </button>
+                                <ul className="space-y-2.5 text-xs">
+                                    {[
+                                        '1 sucursal incluida',
+                                        '1 profesional independiente',
+                                        '✨ Citas ILIMITADAS',
+                                        'Agenda online 24/7',
+                                        'Recordatorios WhatsApp oficiales',
+                                        'Cotizador de Uñas & Catálogo',
+                                        'Anticipos y depósitos bancarios',
+                                        'Lista de espera & Bloqueo de clientes',
+                                        'Branding personalizado',
+                                        'App instalable (PWA)',
+                                        'Soporte por WhatsApp',
+                                    ].map((f) => (
+                                        <li key={f} className="flex items-center gap-2 text-slate-300">
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0" />{f}
+                                        </li>
+                                    ))}
+                                    {['Colaboradores adicionales', 'Nómina y Comisiones avanzadas'].map((f) => (
+                                        <li key={f} className="flex items-center gap-2 text-slate-600 line-through">
+                                            <X className="w-3.5 h-3.5 text-slate-700 shrink-0" />{f}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
-                            <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-400 font-bold text-sm hover:bg-teal-500/20 transition-all mb-8">
-                                Empezar con Esencial
-                            </button>
-                            <ul className="space-y-3">
-                                {[
-                                    '1 sucursal',
-                                    '1 profesional independiente',
-                                    'Citas ilimitadas',
-                                    'Agenda online 24/7',
-                                    'Recordatorios WhatsApp',
-                                    'App instalable (PWA)',
-                                    'Branding personalizado',
-                                ].map((f) => (
-                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
-                                        <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />{f}
-                                    </li>
-                                ))}
-                                {['Profesionales adicionales', 'Módulo de Nómina y Comisiones'].map((f) => (
-                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-600 line-through">
-                                        <X className="w-4 h-4 text-slate-700 shrink-0" />{f}
-                                    </li>
-                                ))}
-                            </ul>
                         </div>
 
                         {/* PRO — Highlighted */}
-                        <div className="relative bg-gradient-to-b from-violet-950/60 to-[#070d1d] border border-violet-500/30 rounded-3xl p-8 shadow-[0_0_60px_-15px_rgba(124,58,237,0.4)]">
+                        <div className="relative bg-gradient-to-b from-violet-950/70 to-[#070d1d] border-2 border-violet-500/40 rounded-3xl p-8 shadow-[0_0_60px_-15px_rgba(124,58,237,0.4)] flex flex-col justify-between">
                             {/* Popular badge */}
                             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-violet-500/30">
+                                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-violet-500/40">
                                     ⭐ Más Popular
                                 </span>
                             </div>
-                            <div className="mb-6 mt-4">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-400 mb-2">Pro</p>
-                                <div className="flex items-end gap-1">
-                                    <span className="text-5xl font-black text-white">$649</span>
-                                    <span className="text-slate-400 mb-2">/mes</span>
-                                    <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$899</span>
+                            <div>
+                                <div className="mb-6 mt-4">
+                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-400 mb-2">Pro</p>
+                                    <div className="flex items-end gap-1">
+                                        <span className="text-5xl font-black text-white">$649</span>
+                                        <span className="text-slate-400 mb-2">/mes</span>
+                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$899</span>
+                                    </div>
+                                    <p className="text-slate-400 text-sm mt-2">Para salones, nail bars y barberías con equipo de trabajo.</p>
                                 </div>
-                                <p className="text-slate-400 text-sm mt-2">Para salones y barberías con un equipo de trabajo.</p>
+                                <button onClick={() => setIsModalOpen(true)} className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-500/30 mb-6">
+                                    Empezar con Pro →
+                                </button>
+                                <ul className="space-y-2.5 text-xs">
+                                    {[
+                                        '1 sucursal incluida',
+                                        '2 profesionales incluidos',
+                                        'Profesional extra: +$249/mes',
+                                        '✨ Citas ILIMITADAS',
+                                        'Nómina y Comisiones en PDF',
+                                        'Reportes analíticos avanzados',
+                                        'Cotizador de Uñas & Diseños',
+                                        'Anticipos & Verificación con IA',
+                                        'Recordatorios WhatsApp oficiales',
+                                        'Calendario por columnas de staff',
+                                        'Branding personalizado & QR imprimibles',
+                                        'Lista de espera & Bloqueo',
+                                    ].map((f) => (
+                                        <li key={f} className="flex items-center gap-2 text-slate-200">
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-violet-400 shrink-0" />{f}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
-                            <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-500/25 mb-8">
-                                Empezar con Pro →
-                            </button>
-                            <ul className="space-y-3">
-                                {[
-                                    '1 sucursal',
-                                    '2 profesionales incluidos',
-                                    'Profesional extra: +$249/mes',
-                                    'Módulo de Nómina y Comisiones',
-                                    'Citas ilimitadas',
-                                    'Agenda online 24/7',
-                                    'Recordatorios WhatsApp',
-                                    'App instalable (PWA)',
-                                    'Branding personalizado',
-                                    'Reportes avanzados',
-                                ].map((f) => (
-                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
-                                        <CheckCircle2 className="w-4 h-4 text-violet-400 shrink-0" />{f}
-                                    </li>
-                                ))}
-                                {['Múltiples sucursales'].map((f) => (
-                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-600 line-through">
-                                        <X className="w-4 h-4 text-slate-700 shrink-0" />{f}
-                                    </li>
-                                ))}
-                            </ul>
                         </div>
 
                         {/* BUSINESS */}
-                        <div className="relative bg-white/[0.02] border border-amber-500/20 rounded-3xl p-8 hover:border-amber-500/30 transition-all duration-300">
-                            <div className="mb-6">
-                                <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-400 mb-2">Business</p>
-                                <div className="flex items-end gap-1">
-                                    <span className="text-5xl font-black text-white">$1,249</span>
-                                    <span className="text-slate-500 mb-2">/mes</span>
-                                    <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$1,649</span>
+                        <div className="relative bg-white/[0.02] border border-amber-500/20 rounded-3xl p-8 hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between">
+                            <div>
+                                <div className="mb-6">
+                                    <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-400 mb-2">Business</p>
+                                    <div className="flex items-end gap-1">
+                                        <span className="text-5xl font-black text-white">$1,249</span>
+                                        <span className="text-slate-500 mb-2">/mes</span>
+                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$1,649</span>
+                                    </div>
+                                    <p className="text-slate-400 text-sm mt-2">Para cadenas con múltiples sucursales y franquicias.</p>
                                 </div>
-                                <p className="text-slate-400 text-sm mt-2">Para cadenas con múltiples sucursales y equipos grandes.</p>
+                                <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-sm hover:bg-amber-500/20 transition-all mb-6">
+                                    Hablar con Ventas
+                                </button>
+                                <ul className="space-y-2.5 text-xs">
+                                    {[
+                                        '🏢 2 sucursales incluidas',
+                                        'Sucursal extra: +$599/mes',
+                                        '2 profesionales por sucursal',
+                                        'Profesional extra: +$249/mes',
+                                        '✨ Todo lo del Plan Pro incluido',
+                                        'Panel Multi-Sucursal unificado',
+                                        'Reportes financieros por sucursal',
+                                        'Onboarding y soporte prioritario',
+                                    ].map((f) => (
+                                        <li key={f} className="flex items-center gap-2 text-slate-300">
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />{f}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
-                            <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-sm hover:bg-amber-500/20 transition-all mb-8">
-                                Hablar con Ventas
-                            </button>
-                            <ul className="space-y-3">
-                                {[
-                                    '2 sucursales incluidas',
-                                    'Sucursal extra: +$599/mes',
-                                    '2 profesionales por sucursal',
-                                    'Profesional extra: +$249/mes',
-                                    'Todo lo del plan Pro',
-                                    'Panel multi-sucursal unificado',
-                                    'Reportes por sucursal',
-                                    'Soporte dedicado',
-                                ].map((f) => (
-                                    <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
-                                        <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />{f}
-                                    </li>
-                                ))}
-                            </ul>
                         </div>
 
                     </div>
 
                     {/* Extra cost note */}
-                    <p className="text-center text-xs text-slate-600 mt-8">Todos los precios en MXN. IVA no incluido. Los empleados adicionales se cobran el siguiente ciclo de facturación.</p>
+                    <p className="text-center text-xs text-slate-500 mt-8">Todos los precios en MXN. IVA no incluido. Los colaboradores adicionales se agregan directamente desde tu panel.</p>
 
                     {/* FAQ */}
                     <div className="mt-20 max-w-2xl mx-auto">
                         <h3 className="text-2xl font-black text-white text-center mb-8">Preguntas frecuentes</h3>
                         <div className="space-y-3">
                             {[
-                                { q: '¿Puedo cambiar de plan cuando quiera?', a: 'Sí. Puedes subir o bajar de plan en cualquier momento desde tu panel. Los cambios aplican el siguiente ciclo.' },
-                                { q: '¿Qué pasa cuando vence el trial?', a: 'Tu cuenta pasa automáticamente al plan Free. Tus datos se conservan. Si quieres más funciones, solo actualiza tu plan.' },
-                                { q: '¿Hay costos de instalación?', a: 'No. CitaLink es 100% en la nube. No hay app que descargar, no hay hardware que comprar.' },
-                                { q: '¿Cómo funciona el costo por empleado extra?', a: 'Los primeros 2 empleados van incluidos en el plan Pro y Business. Si agregas profesionales adicionales, se cobrará $249/mes adicional por cada uno.' },
+                                { q: '¿Puedo cambiar de plan cuando quiera?', a: 'Sí. Puedes subir o bajar de plan en cualquier momento desde tu panel. Los cambios aplican de inmediato en tu ciclo de facturación.' },
+                                { q: '¿Cómo funciona la prueba gratis?', a: 'Te damos 30 días de prueba gratis con acceso completo a todas las funciones Pro para que puedas configurar tu negocio y recibir reservas reales sin costo ni tarjeta de crédito.' },
+                                { q: '¿El cotizador de uñas tiene costo adicional?', a: 'No, el cotizador de uñas viene completamente integrado y disponible para activar en cualquier servicio.' },
+                                { q: '¿Cómo funciona el cobro por colaborador adicional?', a: 'Los primeros 2 colaboradores van incluidos en el plan Pro y Business. Puedes agregar estilistas o barberos adicionales por solo $249/mes cada uno.' },
                             ].map((item, i) => (
                                 <FAQItem key={i} q={item.q} a={item.a} />
                             ))}
@@ -1117,7 +1292,7 @@ export default function Landing() {
             </section>
 
             {/* ═══════════ CTA FINAL ═══════════ */}
-            <section className="py-28 relative overflow-hidden">
+            <section className="py-24 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-900/30 via-[#020817] to-indigo-900/20" />
                 <div ref={s6.ref} className={`relative max-w-4xl mx-auto px-4 text-center transition-all duration-700 ${s6.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-medium mb-8">
@@ -1129,7 +1304,7 @@ export default function Landing() {
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">tu agenda?</span>
                     </h2>
                     <p className="text-slate-400 text-xl mb-10 max-w-xl mx-auto">
-                        Únete a más de 500 negocios que ya automatizaron sus reservas y aumentaron sus ingresos con CitaLink.
+                        Únete a los negocios que ya automatizaron sus reservas y aumentaron sus ingresos con CitaLink.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
                         {user ? (
@@ -1162,7 +1337,7 @@ export default function Landing() {
                         <div className="flex gap-3">
                             <a href="https://www.tiktok.com/@citalink.soporte" target="_blank" rel="noopener noreferrer"
                                className="group w-10 h-10 rounded-full bg-white/5 hover:bg-black border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.17 8.17 0 004.78 1.52V6.76a4.83 4.83 0 01-1.01-.07z"/></svg>
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 0 006.33-6.34V8.69a8.17 8.17 0 004.78 1.52V6.76a4.83 4.83 0 01-1.01-.07z"/></svg>
                             </a>
                             <a href="https://www.instagram.com/citalink_" target="_blank" rel="noopener noreferrer"
                                className="group w-10 h-10 rounded-full bg-white/5 hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300">
@@ -1195,64 +1370,182 @@ export default function Landing() {
                 </div>
             </footer>
 
-
-            {/* ═══════════ LEAD MODAL ═══════════ */}
+            {/* ═══════════ LEAD MODAL (REDESIGN ULTRA-PREMIUM) ═══════════ */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => !submitting && setIsModalOpen(false)} />
-                    <div className="relative z-10 bg-[#0b1221] border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
-                        <button onClick={() => setIsModalOpen(false)} className="absolute top-5 right-5 p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all">
-                            <X className="w-5 h-5" />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+                    {/* Backdrop con blur */}
+                    <div className="fixed inset-0 bg-[#020612]/80 backdrop-blur-xl animate-fade-in transition-all" onClick={() => !submitting && setIsModalOpen(false)} />
+                    
+                    {/* Tarjeta Modal Glassmorphism */}
+                    <div className="relative z-10 bg-gradient-to-b from-[#0c142b] via-[#080e20] to-[#040814] border border-violet-500/25 rounded-[2.5rem] p-6 sm:p-9 w-full max-w-lg shadow-[0_0_80px_rgba(124,58,237,0.25)] animate-fade-in max-h-[92vh] overflow-y-auto custom-scrollbar">
+                        
+                        {/* Brillo decorativo superior */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-1 bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
+                        
+                        {/* Botón cerrar */}
+                        <button
+                            onClick={() => setIsModalOpen(false)}
+                            aria-label="Cerrar modal"
+                            className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-sm"
+                        >
+                            <X className="w-4 h-4" />
                         </button>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2.5 bg-violet-500/10 rounded-xl border border-violet-500/20"><Sparkles className="w-5 h-5 text-violet-400" /></div>
-                            <h2 className="text-2xl font-black text-white">Prueba Gratis 30 Días</h2>
+
+                        {/* Encabezado */}
+                        <div className="flex items-start gap-4 mb-3">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-500 to-fuchsia-600 p-0.5 shrink-0 shadow-lg shadow-violet-500/30">
+                                <div className="w-full h-full bg-[#070e22] rounded-[14px] flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5 text-violet-300" />
+                                </div>
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black text-white tracking-tight">Prueba Gratis 30 Días</h2>
+                                <p className="text-slate-400 text-xs mt-0.5 leading-snug">Sin tarjeta de crédito. Acceso total a todas las funciones Pro.</p>
+                            </div>
                         </div>
-                        <p className="text-slate-400 text-sm mb-8">Sin tarjeta de crédito. Te enviamos tus accesos en menos de 24 horas.</p>
+
+                        {/* Badges de Confianza */}
+                        <div className="flex flex-wrap items-center gap-2 mb-6 pt-1">
+                            <span className="text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                                <Check className="w-3 h-3" /> Sin tarjeta
+                            </span>
+                            <span className="text-[11px] font-bold bg-violet-500/10 text-violet-300 border border-violet-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                                <Zap className="w-3 h-3" /> Activación rápida
+                            </span>
+                            <span className="text-[11px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3" /> Soporte incluido
+                            </span>
+                        </div>
 
                         {leadSuccess ? (
-                            <div className="py-12 text-center">
-                                <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+                            /* Pantalla de Éxito */
+                            <div className="py-8 text-center space-y-4">
+                                <div className="w-20 h-20 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-bounce">
                                     <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                                 </div>
-                                <h3 className="text-2xl font-black text-white mb-3">¡Ya casi!</h3>
-                                <p className="text-slate-400">Recibimos tu solicitud. Te contactaremos en las próximas horas con tus accesos personalizados.</p>
+                                <div className="space-y-1.5">
+                                    <h3 className="text-2xl font-black text-white">¡Solicitud Registrada!</h3>
+                                    <p className="text-slate-300 text-sm max-w-sm mx-auto">
+                                        Te contactaremos vía WhatsApp para entregarte los accesos de tu cuenta y ayudarte a configurar tu negocio.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => { setLeadSuccess(false); setIsModalOpen(false); }}
+                                    className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/10 transition-all"
+                                >
+                                    Entendido
+                                </button>
                             </div>
                         ) : (
+                            /* Formulario */
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                {errorMsg && <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{errorMsg}</div>}
-                                <div className="grid grid-cols-2 gap-4">
+                                {errorMsg && (
+                                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
+                                        {errorMsg}
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                     <div>
-                                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Tu Nombre</label>
-                                        <input required type="text" placeholder="Juan Pérez" className="w-full bg-[#060e1c] border border-slate-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500 transition-all" value={formData.contactName} onChange={e => setFormData({ ...formData, contactName: e.target.value })} />
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Tu Nombre</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="Juan Pérez"
+                                            className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                            value={formData.contactName}
+                                            onChange={e => setFormData({ ...formData, contactName: e.target.value })}
+                                        />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Nombre del Negocio</label>
-                                        <input required type="text" placeholder="Mi Negocio" className="w-full bg-[#060e1c] border border-slate-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500 transition-all" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} />
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Nombre del Negocio</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="Ej: Estudio Glow / Barbershop"
+                                            className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                            value={formData.businessName}
+                                            onChange={e => setFormData({ ...formData, businessName: e.target.value })}
+                                        />
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                     <div>
-                                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Tipo de Negocio</label>
-                                        <CustomSelect required value={formData.businessType} onChange={val => setFormData({ ...formData, businessType: val })} options={businessTypeOptions} placeholder="Selecciona..." />
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Giro o Rubro</label>
+                                        <CustomSelect
+                                            required
+                                            value={formData.businessType}
+                                            onChange={val => setFormData({ ...formData, businessType: val })}
+                                            options={businessTypeOptions}
+                                            placeholder="Selecciona..."
+                                        />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Tamaño del Equipo</label>
-                                        <CustomSelect required value={formData.employeeCount} onChange={val => setFormData({ ...formData, employeeCount: val })} options={employeeCountOptions} placeholder="Selecciona..." />
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Colaboradores</label>
+                                        <CustomSelect
+                                            required
+                                            value={formData.employeeCount}
+                                            onChange={val => setFormData({ ...formData, employeeCount: val })}
+                                            options={employeeCountOptions}
+                                            placeholder="Selecciona..."
+                                        />
                                     </div>
                                 </div>
+
                                 <div>
-                                    <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Correo Electrónico</label>
-                                    <input required type="email" placeholder="correo@ejemplo.com" className="w-full bg-[#060e1c] border border-slate-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500 transition-all" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">Correo Electrónico</label>
+                                    <input
+                                        required
+                                        type="email"
+                                        placeholder="correo@ejemplo.com"
+                                        className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                        value={formData.email}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    />
                                 </div>
+
                                 <div>
-                                    <label className="text-xs font-semibold text-slate-400 mb-1.5 block">WhatsApp de Contacto</label>
-                                    <input required type="tel" placeholder="+52 81 0000 0000" className="w-full bg-[#060e1c] border border-slate-700/50 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500 transition-all" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">WhatsApp de Contacto</label>
+                                    <input
+                                        required
+                                        type="tel"
+                                        placeholder="+52 81 0000 0000"
+                                        className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                        value={formData.phone}
+                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                    />
                                 </div>
-                                <button disabled={submitting} type="submit" className="w-full mt-2 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold tracking-wide transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {submitting ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enviando...</>) : 'Solicitar Acceso Ahora →'}
+
+                                <button
+                                    disabled={submitting}
+                                    type="submit"
+                                    className="w-full mt-2 py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 hover:brightness-110 active:scale-[0.98] text-white font-black text-sm uppercase tracking-wider transition-all shadow-xl shadow-violet-600/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>Procesando...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-4 h-4 text-amber-400" />
+                                            <span>Comenzar Mis 30 Días Gratis →</span>
+                                        </>
+                                    )}
                                 </button>
-                                <p className="text-center text-xs text-slate-600">Al enviar aceptas nuestros <Link to="/terms" className="underline hover:text-slate-400">Términos de Servicio</Link> y <Link to="/privacy" className="underline hover:text-slate-400">Aviso de Privacidad</Link>.</p>
+
+                                <p className="text-center text-[11px] text-slate-500 pt-1">
+                                    Al enviar aceptas nuestros{' '}
+                                    <Link to="/terms" className="text-slate-400 underline hover:text-white">
+                                        Términos de Servicio
+                                    </Link>{' '}
+                                    y{' '}
+                                    <Link to="/privacy" className="text-slate-400 underline hover:text-white">
+                                        Aviso de Privacidad
+                                    </Link>
+                                    .
+                                </p>
                             </form>
                         )}
                     </div>
