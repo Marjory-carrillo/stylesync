@@ -1,12 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
-import { useMarketplaceAnalytics, useToggleCommissionBilled } from '../../lib/store/queries/useMarketplaceAnalytics';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
     Zap, AlertTriangle, Calendar, Users,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
-    DollarSign, Pencil, Eye, Key, EyeOff, Download, ShoppingBag
+    DollarSign, Pencil, Eye, Key, EyeOff, Download, ShoppingBag,
+    Phone, MapPin, MessageCircle, Copy, Check, ExternalLink, Navigation, Globe, Shield, RefreshCw, Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -15,6 +15,7 @@ import { useUIStore } from '../../lib/store/uiStore';
 import { getPlanBadgeStyles } from '../../lib/planLimits';
 import type { PlanType } from '../../lib/planLimits';
 import { COUNTRY_PRESETS, getCountryPreset } from '../../lib/pricingConfig';
+import DatePickerInput from '../../components/DatePickerInput';
 
 // Modal de confirmación premium para borrado
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
@@ -121,6 +122,159 @@ const SmsConfirmModal = ({ isOpen, onClose, onConfirm, details }: any) => {
     );
 };
 
+const PricingRatesModal = ({ isOpen, onClose, smsTwilioCost, setSmsTwilioCost, whatsappCost, setWhatsappCost, showToast }: any) => {
+    const [localSmsCost, setLocalSmsCost] = useState(String(smsTwilioCost));
+    const [localWaCost, setLocalWaCost] = useState(String(whatsappCost));
+
+    useEffect(() => {
+        setLocalSmsCost(String(smsTwilioCost));
+        setLocalWaCost(String(whatsappCost));
+    }, [smsTwilioCost, whatsappCost, isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleSave = () => {
+        const parsedSms = parseFloat(localSmsCost) || 0.0085;
+        const parsedWa = parseFloat(localWaCost) || 0.0085;
+        setSmsTwilioCost(parsedSms);
+        setWhatsappCost(parsedWa);
+        localStorage.setItem('citalink_twilio_sms_cost', String(parsedSms));
+        localStorage.setItem('citalink_wa_cost', String(parsedWa));
+
+        let currentObj: any = { fxRate: 18.50, whatsappRate: parsedWa, twilioRate: parsedSms };
+        try {
+            const s = localStorage.getItem('citalink_variable_rates');
+            if (s) currentObj = { ...JSON.parse(s), whatsappRate: parsedWa, twilioRate: parsedSms };
+        } catch(e) {}
+        localStorage.setItem('citalink_variable_rates', JSON.stringify(currentObj));
+
+        if (showToast) showToast('Tarifas de mensajería actualizadas', 'success');
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+            <div className="w-full max-w-md bg-[#0a0f1a] border border-white/10 rounded-3xl p-6 shadow-2xl animate-scale-in space-y-5">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                            <Settings size={18} />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-white text-base tracking-tight uppercase">Tarifas de Mensajería</h3>
+                            <p className="text-[10px] text-slate-400">Configura el costo unitario por mensaje en dólares (USD)</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+                        <X size={16} />
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    {/* Costo SMS Twilio (+1 USA) */}
+                    <div className="space-y-2 p-3.5 rounded-2xl bg-cyan-500/5 border border-cyan-500/20">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-black text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                                <Phone size={13} />
+                                <span>Costo SMS Twilio (+1 USA/CA)</span>
+                            </label>
+                            <span className="text-[10px] font-bold text-cyan-400 font-mono">USD / SMS</span>
+                        </div>
+                        <div className="relative">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+                            <input
+                                type="number"
+                                step="0.0001"
+                                min="0"
+                                value={localSmsCost}
+                                onWheel={e => (e.target as HTMLElement).blur()}
+                                onChange={(e) => setLocalSmsCost(e.target.value)}
+                                className="w-full bg-black/50 border border-cyan-500/30 rounded-xl py-2.5 pl-8 pr-4 text-white text-sm font-bold focus:outline-none focus:border-cyan-400 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                placeholder="0.0085"
+                            />
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                            <span className="text-[9px] text-slate-400 font-bold">Presets comunes:</span>
+                            {['0.0079', '0.0085', '0.0100', '0.0150'].map(preset => (
+                                <button
+                                    key={preset}
+                                    type="button"
+                                    onClick={() => setLocalSmsCost(preset)}
+                                    className={`px-2 py-0.5 rounded-md text-[9px] font-bold font-mono transition-all ${
+                                        localSmsCost === preset
+                                            ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-500/50'
+                                            : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
+                                    }`}
+                                >
+                                    ${preset}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Costo WhatsApp Cloud API */}
+                    <div className="space-y-2 p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-black text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                                <MessageCircle size={13} />
+                                <span>Costo WhatsApp Cloud API</span>
+                            </label>
+                            <span className="text-[10px] font-bold text-emerald-400 font-mono">USD / mensaje</span>
+                        </div>
+                        <div className="relative">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+                            <input
+                                type="number"
+                                step="0.0001"
+                                min="0"
+                                value={localWaCost}
+                                onWheel={e => (e.target as HTMLElement).blur()}
+                                onChange={(e) => setLocalWaCost(e.target.value)}
+                                className="w-full bg-black/50 border border-emerald-500/30 rounded-xl py-2.5 pl-8 pr-4 text-white text-sm font-bold focus:outline-none focus:border-emerald-400 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                placeholder="0.0085"
+                            />
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                            <span className="text-[9px] text-slate-400 font-bold">Presets comunes:</span>
+                            {['0.0050', '0.0085', '0.0125'].map(preset => (
+                                <button
+                                    key={preset}
+                                    type="button"
+                                    onClick={() => setLocalWaCost(preset)}
+                                    className={`px-2 py-0.5 rounded-md text-[9px] font-bold font-mono transition-all ${
+                                        localWaCost === preset
+                                            ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50'
+                                            : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
+                                    }`}
+                                >
+                                    ${preset}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        className="flex-1 py-3 rounded-xl bg-accent hover:brightness-110 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-md"
+                    >
+                        Guardar Tarifas
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-all"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const formatDateForInput = (isoString?: string | null) => {
     if (!isoString) return '';
     try {
@@ -141,229 +295,665 @@ const formatAsEndOfDay = (dateStr: string) => {
     return new Date(`${datePart}T23:59:59`).toISOString();
 };
 
-const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
+const EditBusinessModal = ({ isOpen, onClose, tenant, onSave, onSwitchTenant, onResetPassword, onRelinkOwner, onDelete, smsStats, apptCount, smsUsCount, smsTwilioCost = 0.0085, whatsappCost = 0.0085, onOpenPricingModal }: any) => {
+    const [activeTab, setActiveTab] = useState<'info' | 'plan' | 'owner' | 'metrics'>('info');
     const [name, setName] = useState(tenant.name || '');
     const [slug, setSlug] = useState(tenant.slug || '');
     const [category, setCategory] = useState(tenant.category || 'barbershop');
+    const [phone, setPhone] = useState(tenant.phone || '');
+    const [address, setAddress] = useState(tenant.address || '');
+    const [googleMapsUrl, setGoogleMapsUrl] = useState(tenant.google_maps_url || '');
+    const [countryCode, setCountryCode] = useState(tenant.countryCode || tenant.country_code || 'MX');
     const [timezone, setTimezone] = useState(tenant.timezone || 'America/Mexico_City');
+    const [plan, setPlan] = useState<PlanType>((tenant.plan || 'free') as PlanType);
     const [trialEndsAt, setTrialEndsAt] = useState(formatDateForInput(tenant.trial_ends_at));
     const [subscriptionType, setSubscriptionType] = useState(tenant.subscription_type || 'manual');
     const [paymentStatus, setPaymentStatus] = useState(tenant.payment_status || 'active');
     const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(formatDateForInput(tenant.grace_period_ends_at));
+    const [marketplaceEnabled, setMarketplaceEnabled] = useState(tenant.marketplace_enabled || false);
     const [marketplaceCommissionRate, setMarketplaceCommissionRate] = useState<number>(tenant.marketplace_commission_rate ?? 15);
+    const [smsProvider, setSmsProvider] = useState(tenant.sms_provider || 'demo');
+    const [extraEmployeesPaid, setExtraEmployeesPaid] = useState<number>(tenant.extra_employees_paid || 0);
+    const [extraBranchesPaid, setExtraBranchesPaid] = useState<number>(tenant.extra_branches_paid || 0);
     const [isSaving, setIsSaving] = useState(false);
+    const [copiedSlug, setCopiedSlug] = useState(false);
+
+    const [ownerEmail, setOwnerEmail] = useState('');
+    const [loadingOwner, setLoadingOwner] = useState(false);
+
+    useEffect(() => {
+        if (!tenant?.id) return;
+        setLoadingOwner(true);
+        supabase
+            .from('tenant_users')
+            .select('email')
+            .eq('tenant_id', tenant.id)
+            .eq('role', 'owner')
+            .limit(1)
+            .maybeSingle()
+            .then(({ data }) => {
+                if (data?.email) setOwnerEmail(data.email);
+                setLoadingOwner(false);
+            });
+    }, [tenant?.id]);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
+        const preset = getCountryPreset(countryCode);
         const payload: any = {
-            name,
-            slug,
+            name: name.trim(),
+            slug: slug.trim().toLowerCase(),
             category,
+            phone: phone.trim() || null,
+            address: address.trim() || null,
+            google_maps_url: googleMapsUrl.trim() || null,
+            country_code: countryCode,
+            currency: preset.currency,
+            currency_symbol: preset.currencySymbol,
             timezone,
+            plan,
             trial_ends_at: trialEndsAt ? formatAsEndOfDay(trialEndsAt) : null,
             subscription_type: subscriptionType,
             payment_status: paymentStatus,
             grace_period_ends_at: gracePeriodEndsAt ? formatAsEndOfDay(gracePeriodEndsAt) : null,
+            marketplace_enabled: marketplaceEnabled,
             marketplace_commission_rate: marketplaceCommissionRate,
+            sms_provider: smsProvider,
+            extra_employees_paid: extraEmployeesPaid,
+            extra_branches_paid: extraBranchesPaid
         };
         await onSave(tenant.id, payload);
         setIsSaving(false);
     };
 
+    const handleCopySlug = () => {
+        navigator.clipboard.writeText(`https://www.citalink.app/${slug}`);
+        setCopiedSlug(true);
+        setTimeout(() => setCopiedSlug(false), 2000);
+    };
+
+    const cleanPhone = (phone || '').replace(/\D/g, '');
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-            <div className="w-full max-w-xl bg-[#0a0f1a] border border-white/[0.08] rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden animate-scale-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+            <div className="w-full max-w-2xl bg-[#0a0f1a] border border-white/[0.08] rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+                
                 {/* Header */}
-                <div className="relative p-6 pb-5 border-b border-white/5 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/5 to-transparent" />
-                    <div className="relative flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <Pencil size={20} className="text-white" />
+                <div className="relative p-5 sm:p-6 pb-4 border-b border-white/5 overflow-hidden bg-gradient-to-r from-blue-600/10 via-purple-600/5 to-transparent">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                            <div className="w-12 h-12 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                                {tenant.logoUrl ? (
+                                    <img decoding="async" loading="lazy" src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                    <Sparkles size={20} className="text-accent" />
+                                )}
                             </div>
-                            <div>
-                                <h3 className="text-xl font-black text-white tracking-tight">Editar Negocio</h3>
-                                <p className="text-slate-500 text-[11px] mt-0.5">Modificar parámetros de la sucursal</p>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight uppercase truncate">
+                                        {tenant.name}
+                                    </h3>
+                                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-[9px] font-black tracking-wider uppercase text-blue-400 border border-blue-500/20">
+                                        {getCountryPreset(countryCode).flag} {getCountryPreset(countryCode).currency}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={handleCopySlug}
+                                        className="text-xs font-mono text-accent/90 hover:text-accent flex items-center gap-1 transition-colors"
+                                        title="Copiar enlace"
+                                    >
+                                        <span>citalink.app/{slug}</span>
+                                        {copiedSlug ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2.5 hover:bg-white/5 rounded-xl transition-colors border border-transparent hover:border-white/10">
-                            <X size={18} className="text-slate-500" />
-                        </button>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => onSwitchTenant && onSwitchTenant(tenant.id)}
+                                className="px-3 py-2 rounded-xl bg-accent hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+                                title="Entrar al Panel de Control de este Negocio"
+                            >
+                                <Zap size={14} />
+                                <span className="hidden sm:inline">Entrar al Panel</span>
+                            </button>
+                            <button
+                                onClick={onClose}
+                                className="p-2 hover:bg-white/5 rounded-xl transition-colors border border-transparent hover:border-white/10 text-slate-500 hover:text-white"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Navigation Tabs */}
+                    <div className="flex items-center gap-1.5 mt-4 pt-2 border-t border-white/5 overflow-x-auto custom-scrollbar">
+                        {[
+                            { id: 'info' as const, label: '📋 Datos & Contacto' },
+                            { id: 'plan' as const, label: '💎 Plan & Cobro' },
+                            { id: 'owner' as const, label: '👤 Dueño & Accesos' },
+                            { id: 'metrics' as const, label: '💬 Mensajes & Métricas' },
+                        ].map(t => (
+                            <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => setActiveTab(t.id)}
+                                className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap border ${
+                                    activeTab === t.id
+                                        ? 'bg-accent/20 text-accent border-accent/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                                        : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-slate-200'
+                                }`}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-                    <div className="space-y-4">
-                        {/* Nombre */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Nombre Comercial</label>
-                            <input
-                                required type="text"
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                            />
-                        </div>
+                {/* Form Body */}
+                <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                    
+                    {/* TAB 1: DATOS & CONTACTO */}
+                    {activeTab === 'info' && (
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nombre Comercial *</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                    />
+                                </div>
 
-                        {/* Slug */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">URL Personalizada</label>
-                            <div className="flex">
-                                <div className="bg-white/[0.03] border border-white/[0.08] border-r-0 rounded-l-xl px-3.5 py-3 text-slate-500 text-xs font-medium shrink-0 flex items-center">citalink.app/</div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enlace Público / Slug *</label>
+                                    <div className="flex rounded-xl bg-white/[0.04] border border-white/[0.08] overflow-hidden focus-within:border-blue-500/40">
+                                        <span className="px-3 py-2.5 bg-white/5 text-slate-500 text-xs font-mono select-none flex items-center border-r border-white/5">
+                                            citalink.app/
+                                        </span>
+                                        <input
+                                            required
+                                            type="text"
+                                            className="flex-1 bg-transparent px-3 py-2.5 text-white font-mono text-sm focus:outline-none"
+                                            value={slug}
+                                            onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Rubro / Categoría */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rubro / Categoría</label>
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                                    {[
+                                        { id: 'barbershop', label: 'Barbería', icon: <Scissors size={14} /> },
+                                        { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={14} /> },
+                                        { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={14} /> },
+                                        { id: 'spa', label: 'Spa', icon: <Flower2 size={14} /> },
+                                        { id: 'consulting', label: 'Clínica', icon: <Briefcase size={14} /> },
+                                        { id: 'other', label: 'Otro', icon: <MoreHorizontal size={14} /> },
+                                    ].map(cat => {
+                                        const isSelected = category === cat.id;
+                                        return (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                onClick={() => setCategory(cat.id)}
+                                                className={`flex flex-col items-center gap-1 py-2 px-1.5 rounded-xl border text-center transition-all ${
+                                                    isSelected
+                                                        ? 'bg-accent/20 border-accent/40 text-accent font-black shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                                                        : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                                                }`}
+                                            >
+                                                {cat.icon}
+                                                <span className="text-[8px] font-bold uppercase tracking-wider">{cat.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Teléfono del Negocio */}
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Phone size={12} className="text-emerald-400" />
+                                        <span>Teléfono / WhatsApp de Recepción</span>
+                                    </label>
+                                    {cleanPhone && (
+                                        <a
+                                            href={`https://wa.me/${cleanPhone}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 transition-colors"
+                                        >
+                                            <MessageCircle size={11} />
+                                            <span>Abrir WhatsApp</span>
+                                        </a>
+                                    )}
+                                </div>
                                 <input
-                                    required type="text"
-                                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-r-xl px-3 py-3 text-white font-mono text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none"
-                                    value={slug}
-                                    onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                                    type="tel"
+                                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
+                                    placeholder="Ej. 8681361010 o +52 868 136 1010"
+                                    value={phone}
+                                    onChange={e => setPhone(e.target.value)}
                                 />
                             </div>
-                            {slug !== tenant.slug && (
-                                <p className="text-[10px] text-amber-500/80 ml-1 mt-1">
-                                    ⚠️ Cambiar el link de reserva dejará inactivo el enlace anterior del cliente.
-                                </p>
+
+                            {/* Dirección Física & Google Maps */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <MapPin size={12} className="text-rose-400" />
+                                        <span>Dirección Física del Local</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                        placeholder="Ej. Av. Hidalgo #120, Col. Centro"
+                                        value={address}
+                                        onChange={e => setAddress(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <Navigation size={12} className="text-blue-400" />
+                                            <span>Coordenadas / Maps</span>
+                                        </label>
+                                        {googleMapsUrl && (
+                                            <a
+                                                href={googleMapsUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[10px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 transition-colors"
+                                            >
+                                                <ExternalLink size={10} />
+                                                <span>Ver Mapa</span>
+                                            </a>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-xs font-mono"
+                                        placeholder="https://maps.google.com/?q=25.8690,-97.5027"
+                                        value={googleMapsUrl}
+                                        onChange={e => setGoogleMapsUrl(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* País, Moneda y Zona Horaria */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">País y Divisa</label>
+                                    <select
+                                        value={countryCode}
+                                        onChange={e => {
+                                            const code = e.target.value;
+                                            setCountryCode(code);
+                                            const preset = getCountryPreset(code);
+                                            if (preset.timezone) setTimezone(preset.timezone);
+                                        }}
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm cursor-pointer"
+                                    >
+                                        {Object.values(COUNTRY_PRESETS).map(country => (
+                                            <option key={country.code} value={country.code} className="bg-slate-900 text-white">
+                                                {country.flag} {country.name} ({country.currencySymbol} · {country.phonePrefix})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Zona Horaria</label>
+                                    <select
+                                        value={timezone}
+                                        onChange={e => setTimezone(e.target.value)}
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm cursor-pointer"
+                                    >
+                                        <option value="America/Mexico_City" className="bg-slate-900">🇲🇽 México Central (CDMX, Mty, Gdl)</option>
+                                        <option value="America/Tijuana" className="bg-slate-900">🇲🇽 México Pacífico (Tijuana, Mexicali)</option>
+                                        <option value="America/Mazatlan" className="bg-slate-900">🇲🇽 México Montaña (Mazatlán, Culiacán)</option>
+                                        <option value="America/Cancun" className="bg-slate-900">🇲🇽 México Este (Cancún)</option>
+                                        <option value="America/New_York" className="bg-slate-900">🇺🇸 EE.UU. Este (New York, Miami)</option>
+                                        <option value="America/Chicago" className="bg-slate-900">🇺🇸 EE.UU. Central (Chicago, Houston)</option>
+                                        <option value="Europe/Madrid" className="bg-slate-900">🇪🇸 España (Madrid, Barcelona)</option>
+                                        <option value="America/Bogota" className="bg-slate-900">🇨🇴/🇪🇨 Colombia / Perú / Ecuador</option>
+                                        <option value="America/Santiago" className="bg-slate-900">🇨🇱 Chile</option>
+                                        <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">🇦🇷 Argentina</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB 2: PLAN & COBRO */}
+                    {activeTab === 'plan' && (
+                        <div className="space-y-4 animate-fade-in">
+                            {/* Selector de Plan */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Plan de Suscripción</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {[
+                                        { key: 'free' as PlanType, name: 'Free', price: '$0', desc: 'Básico' },
+                                        { key: 'lite' as PlanType, name: 'Esencial', price: '$349', desc: '1 Staff' },
+                                        { key: 'pro' as PlanType, name: 'Pro', price: '$649', desc: 'Multi-Staff' },
+                                        { key: 'business' as PlanType, name: 'Business', price: '$1,249', desc: 'Sucursales' },
+                                    ].map(p => (
+                                        <button
+                                            type="button"
+                                            key={p.key}
+                                            onClick={() => setPlan(p.key)}
+                                            className={`p-3 rounded-2xl border text-center transition-all ${
+                                                plan === p.key
+                                                    ? 'bg-accent/20 border-accent/40 text-white shadow-lg shadow-accent/10'
+                                                    : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                                            }`}
+                                        >
+                                            <p className="font-black text-xs text-white">{p.name}</p>
+                                            <p className="text-[10px] font-bold text-accent">{p.price}/mes</p>
+                                            <p className="text-[9px] text-slate-500 mt-0.5">{p.desc}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Tipo de Suscripción & Estado de Pago */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tipo de Cobro</label>
+                                    <select
+                                        value={subscriptionType}
+                                        onChange={e => setSubscriptionType(e.target.value)}
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                    >
+                                        <option value="manual" className="bg-slate-900">👤 Manual (Cortesía / Efectivo / Demo)</option>
+                                        <option value="stripe" className="bg-slate-900">🔗 Stripe (Cobro Automático)</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado del Pago</label>
+                                    <select
+                                        value={paymentStatus}
+                                        onChange={e => setPaymentStatus(e.target.value)}
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
+                                    >
+                                        <option value="active" className="bg-slate-900">🟢 Activo (Acceso Total)</option>
+                                        <option value="grace_period" className="bg-slate-900">🟡 Período de Gracia (Aviso de Pago)</option>
+                                        <option value="suspended" className="bg-slate-900">🔴 Suspendido (Bloqueo)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Fechas de Trial y Período de Gracia */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Calendar size={12} className="text-amber-400" />
+                                        <span>Fin de Prueba Gratis (Trial)</span>
+                                    </label>
+                                    <DatePickerInput
+                                        value={trialEndsAt}
+                                        onChange={val => setTrialEndsAt(val)}
+                                        placeholder="Sin vencimiento..."
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Calendar size={12} className="text-rose-400" />
+                                        <span>Fin de Período de Gracia</span>
+                                    </label>
+                                    <DatePickerInput
+                                        value={gracePeriodEndsAt}
+                                        onChange={val => setGracePeriodEndsAt(val)}
+                                        placeholder="Sin periodo de gracia..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Marketplace CitaLink */}
+                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                                            <ShoppingBag size={14} className="text-emerald-400" />
+                                            <span>Marketplace / Explorar CitaLink</span>
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 mt-0.5">Permite que nuevos clientes encuentren este negocio en la app</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={marketplaceEnabled}
+                                        onChange={e => setMarketplaceEnabled(e.target.checked)}
+                                        className="w-5 h-5 accent-emerald-500 rounded cursor-pointer"
+                                    />
+                                </div>
+
+                                {marketplaceEnabled && (
+                                    <div className="space-y-1.5 pt-2 border-t border-white/5">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comisión de Marketplace</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[10, 15].map((rate) => (
+                                                <button
+                                                    key={rate}
+                                                    type="button"
+                                                    onClick={() => setMarketplaceCommissionRate(rate)}
+                                                    className={`py-2 px-3 rounded-xl border text-xs font-black transition-all ${
+                                                        marketplaceCommissionRate === rate
+                                                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                                                            : 'bg-white/[0.02] text-slate-400 border-white/5 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {rate}% Comisión
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB 3: DUEÑO & ACCESOS */}
+                    {activeTab === 'owner' && (
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Cuenta de Usuario del Dueño</span>
+                                        <p className="text-sm font-bold text-white font-mono mt-0.5">
+                                            {loadingOwner ? 'Cargando correo...' : (ownerEmail || 'Sin usuario asignado')}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                    <button
+                                        type="button"
+                                        onClick={() => onResetPassword && onResetPassword(tenant)}
+                                        className="py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                                    >
+                                        <Key size={13} />
+                                        <span>Cambiar Contraseña</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => onRelinkOwner && onRelinkOwner(tenant)}
+                                        className="py-2.5 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                                    >
+                                        <RefreshCw size={13} />
+                                        <span>Re-vincular Cuenta</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Contactar por WhatsApp */}
+                            {cleanPhone && (
+                                <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-2">
+                                    <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                        <MessageCircle size={14} />
+                                        <span>Enviar Mensaje Directo al Dueño</span>
+                                    </p>
+                                    <p className="text-[11px] text-slate-300">
+                                        Escríbele directamente a su WhatsApp ({phone}) para brindarle soporte o enviarle información de su cuenta.
+                                    </p>
+                                    <a
+                                        href={`https://wa.me/${cleanPhone}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider transition-colors shadow-lg shadow-emerald-600/20"
+                                    >
+                                        <MessageCircle size={13} />
+                                        <span>Abrir Chat de WhatsApp</span>
+                                    </a>
+                                </div>
                             )}
                         </div>
+                    )}
 
-                        {/* Zona Horaria */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Zona Horaria</label>
-                            <select
-                                value={timezone}
-                                onChange={e => setTimezone(e.target.value)}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
-                            >
-                                <option value="America/Mexico_City" className="bg-slate-900">Hora Central (CDMX, Monterrey)</option>
-                                <option value="America/Tijuana" className="bg-slate-900">Hora del Pacífico (Tijuana, Mexicali)</option>
-                                <option value="America/Mazatlan" className="bg-slate-900">Hora de la Montaña (Mazatlán, Culiacán)</option>
-                                <option value="America/Cancun" className="bg-slate-900">Hora del Este (Cancún)</option>
-                                <option value="America/Bogota" className="bg-slate-900">Colombia / Perú / Ecuador</option>
-                                <option value="America/Santiago" className="bg-slate-900">Chile</option>
-                                <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">Argentina</option>
-                                <option value="Europe/Madrid" className="bg-slate-900">España (Península)</option>
-                            </select>
-                        </div>
-
-                        {/* Categoría */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Categoría</label>
-                            <div className="grid grid-cols-3 gap-1.5">
-                                {[
-                                    { id: 'barbershop', label: 'Barbería', icon: <Scissors size={16} />, color: 'amber' },
-                                    { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={16} />, color: 'pink' },
-                                    { id: 'nail_bar', label: "Nail's", icon: <Sparkles size={16} />, color: 'rose' },
-                                    { id: 'spa', label: 'Spa', icon: <Flower2 size={16} />, color: 'emerald' },
-                                    { id: 'consulting', label: 'Clínica', icon: <Briefcase size={16} />, color: 'blue' },
-                                    { id: 'other', label: 'Otro', icon: <MoreHorizontal size={16} />, color: 'slate' },
-                                ].map(cat => {
-                                    const isSelected = category === cat.id;
-                                    const colorMap: Record<string, string> = {
-                                        amber: isSelected ? 'border-amber-400/50 bg-amber-400/10 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.1)]' : 'border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-amber-400',
-                                        pink: isSelected ? 'border-pink-400/50 bg-pink-400/10 text-pink-400 shadow-[0_0_12px_rgba(244,114,182,0.1)]' : 'border-white/5 text-slate-500 hover:border-pink-400/30 hover:text-pink-400',
-                                        rose: isSelected ? 'border-rose-400/50 bg-rose-400/10 text-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.1)]' : 'border-white/5 text-slate-500 hover:border-rose-400/30 hover:text-rose-400',
-                                        emerald: isSelected ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.1)]' : 'border-white/5 text-slate-500 hover:border-emerald-400/30 hover:text-emerald-400',
-                                        blue: isSelected ? 'border-blue-400/50 bg-blue-400/10 text-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.1)]' : 'border-white/5 text-slate-500 hover:border-blue-400/30 hover:text-blue-400',
-                                        slate: isSelected ? 'border-slate-400/50 bg-slate-400/10 text-slate-300' : 'border-white/5 text-slate-500 hover:border-slate-400/30 hover:text-slate-400',
-                                    };
-                                    return (
+                    {/* TAB 4: MENSAJES & MÉTRICAS */}
+                    {activeTab === 'metrics' && (
+                        <div className="space-y-4 animate-fade-in">
+                            {/* Proveedor de WhatsApp */}
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Proveedor de Notificaciones</label>
+                                    {onOpenPricingModal && (
                                         <button
-                                            key={cat.id} type="button"
-                                            onClick={() => setCategory(cat.id)}
-                                            className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border transition-all duration-200 cursor-pointer bg-white/[0.02] ${colorMap[cat.color]}`}
+                                            type="button"
+                                            onClick={onOpenPricingModal}
+                                            className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 transition-colors"
                                         >
-                                            {cat.icon}
-                                            <span className="text-[9px] font-bold uppercase tracking-wider leading-none">{cat.label}</span>
+                                            <Settings size={11} />
+                                            <span>Ajustar Tarifas USD</span>
                                         </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Tipo de Suscripción */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Tipo de Suscripción</label>
-                            <select
-                                value={subscriptionType}
-                                onChange={e => setSubscriptionType(e.target.value)}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
-                            >
-                                <option value="manual" className="bg-slate-900">Manual (Cortesía / Demo)</option>
-                                <option value="stripe" className="bg-slate-900">Stripe (Validación Automática)</option>
-                            </select>
-                        </div>
-
-                        {/* Estado del Pago */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Estado del Pago</label>
-                            <select
-                                value={paymentStatus}
-                                onChange={e => setPaymentStatus(e.target.value)}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm appearance-none"
-                            >
-                                <option value="active" className="bg-slate-900">🟢 Activo</option>
-                                <option value="grace_period" className="bg-slate-900">🟡 Período de Gracia (Aviso)</option>
-                                <option value="suspended" className="bg-slate-900">🔴 Suspendido (Bloqueo)</option>
-                            </select>
-                        </div>
-
-                        {/* Fin del Período de Gracia */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Fin Período de Gracia</label>
-                            <input
-                                type="date"
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
-                                value={gracePeriodEndsAt}
-                                onChange={e => setGracePeriodEndsAt(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Comisión de Marketplace */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Comisión del Marketplace</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {[10, 15].map((rate) => (
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
-                                        key={rate}
                                         type="button"
-                                        onClick={() => setMarketplaceCommissionRate(rate)}
-                                        className={`py-2.5 px-4 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-2 ${
-                                            marketplaceCommissionRate === rate
-                                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                                                : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:bg-white/10 hover:text-white'
+                                        onClick={() => setSmsProvider('whatsapp')}
+                                        className={`py-3 px-4 rounded-2xl border text-center transition-all ${
+                                            smsProvider === 'whatsapp'
+                                                ? 'bg-emerald-500/20 border-emerald-400 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] font-bold'
+                                                : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white'
                                         }`}
                                     >
-                                        <span>🛒 {rate}% Comisión</span>
+                                        <p className="text-xs font-black">💬 WhatsApp Cloud API</p>
+                                        <p className="text-[9px] text-emerald-400/80 mt-0.5">${whatsappCost} USD / mensaje</p>
                                     </button>
-                                ))}
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setSmsProvider('demo')}
+                                        className={`py-3 px-4 rounded-2xl border text-center transition-all ${
+                                            smsProvider === 'demo'
+                                                ? 'bg-amber-500/20 border-amber-400 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)] font-bold'
+                                                : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <p className="text-xs font-black">🔵 Modo Demo / Manual</p>
+                                        <p className="text-[9px] text-amber-400/80 mt-0.5">Sin costo de API</p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Métricas de Mensajes, Citas y Costos en USD */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase">Citas este Mes</span>
+                                    <p className="text-lg font-black text-white mt-0.5">{apptCount || 0}</p>
+                                    <span className="text-[9px] font-mono text-slate-400 block mt-0.5">Est. ${((apptCount || 0) * whatsappCost).toFixed(2)} USD</span>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase">WA esta Semana</span>
+                                    <p className="text-lg font-black text-emerald-400 mt-0.5">{smsStats?.week || 0}</p>
+                                    <span className="text-[9px] font-mono text-emerald-400/80 block mt-0.5">${((smsStats?.week || 0) * whatsappCost).toFixed(2)} USD</span>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase">WA Totales</span>
+                                    <p className="text-lg font-black text-blue-400 mt-0.5">{smsStats?.total || 0}</p>
+                                    <span className="text-[9px] font-mono text-blue-400/80 block mt-0.5">${((smsStats?.total || 0) * whatsappCost).toFixed(2)} USD</span>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase">SMS (+1 USA/CA)</span>
+                                    <p className="text-lg font-black text-cyan-400 mt-0.5">{smsUsCount || 0}</p>
+                                    <span className="text-[9px] font-mono text-cyan-400/80 block mt-0.5">${((smsUsCount || 0) * smsTwilioCost).toFixed(2)} USD</span>
+                                </div>
+                            </div>
+
+                            {/* Banner informativo de SMS Tradicional con botón para editar */}
+                            <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 text-xs text-cyan-300/90 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Phone size={14} className="shrink-0 text-cyan-400" />
+                                    <span className="text-[11px] leading-relaxed">
+                                        SMS a números <strong>+1 (USA/Canadá)</strong> vía Twilio tarificado a <strong>${smsTwilioCost} USD</strong> por SMS.
+                                    </span>
+                                </div>
+                                {onOpenPricingModal && (
+                                    <button
+                                        type="button"
+                                        onClick={onOpenPricingModal}
+                                        className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-bold border border-cyan-500/30 transition-all shrink-0"
+                                    >
+                                        Editar Tarifa
+                                    </button>
+                                )}
                             </div>
                         </div>
+                    )}
 
-                        {/* Expiración del Trial */}
-                        <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 ml-1">Vencimiento Período de Prueba</label>
-                            <input
-                                type="date"
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 transition-all outline-none text-sm"
-                                value={trialEndsAt}
-                                onChange={e => setTrialEndsAt(e.target.value)}
-                            />
+                    {/* Submit and Delete Bar */}
+                    <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+                        <button
+                            type="button"
+                            onClick={() => onDelete && onDelete(tenant)}
+                            className="py-3 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                        >
+                            <Trash2 size={14} />
+                            <span>Eliminar Negocio</span>
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="py-3 px-6 rounded-xl font-black text-white text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 transition-all duration-300 disabled:opacity-40 bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                {isSaving ? (
+                                    <><span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full"></span> Guardando...</>
+                                ) : (
+                                    <><Pencil size={14} /> Guardar Cambios</>
+                                )}
+                            </button>
                         </div>
                     </div>
-
-                    {/* Submit */}
-                    <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="w-full py-4 rounded-2xl font-black text-white text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2.5 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        {isSaving ? (
-                            <><span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span> Guardando...</>
-                        ) : (
-                            <><Pencil size={16} /> Guardar Cambios</>
-                        )}
-                    </button>
                 </form>
             </div>
         </div>
@@ -372,8 +962,6 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave }: any) => {
 
 export default function SuperAdminPanel() {
     const { allTenants, fetchAllTenants, switchTenant, deleteTenant, createTenant, updateTenant, relinkOwner, resetOwnerPassword } = useSuperAdmin();
-    const { data: mktData, refetch: refetchMarketplaceAnalytics } = useMarketplaceAnalytics();
-    const toggleCommissionBilled = useToggleCommissionBilled();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'lite' | 'pro' | 'business' | 'trial' | 'trial_expired' | 'at_risk'>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -388,7 +976,9 @@ export default function SuperAdminPanel() {
     const [isExistingOwner, setIsExistingOwner] = useState(false);
     const [selectedOwnerId, setSelectedOwnerId] = useState('');
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
+    const [totalSmsUsCount, setTotalSmsUsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, { total: number; week: number; month: number }>>({});
+    const [smsUsCountsByTenant, setSmsUsCountsByTenant] = useState<Record<string, number>>({});
     const [appointmentsLast30, setAppointmentsLast30] = useState<number | null>(null);
     const [appointmentsByTenant, setAppointmentsByTenant] = useState<Record<string, number>>({});
     const [uniqueClients, setUniqueClients] = useState<number | null>(null);
@@ -404,6 +994,15 @@ export default function SuperAdminPanel() {
     const [newPasswordInput, setNewPasswordInput] = useState('');
     const [isResettingPassword, setIsResettingPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
+    const [smsTwilioCost, setSmsTwilioCost] = useState<number>(() => {
+        const saved = localStorage.getItem('citalink_twilio_sms_cost');
+        return saved ? parseFloat(saved) : 0.0085;
+    });
+    const [whatsappCost, setWhatsappCost] = useState<number>(() => {
+        const saved = localStorage.getItem('citalink_wa_cost');
+        return saved ? parseFloat(saved) : 0.0085;
+    });
+    const [isCostModalOpen, setIsCostModalOpen] = useState(false);
 
     const getCategorySuffix = (catId: string) => {
         switch (catId) {
@@ -487,6 +1086,27 @@ export default function SuperAdminPanel() {
                 .select('*');
             if (monthData) {
                 setSmsByMonth(monthData.map((d: any) => ({ month_label: d.month_label, count: d.count || 0 })));
+            }
+
+            // 3. Obtener conteos de SMS tradicionales a números +1 (USA/CA)
+            try {
+                const { data: smsUsLogs } = await supabase
+                    .from('sms_logs')
+                    .select('id, tenant_id, phone, phone_to, provider')
+                    .or('provider.eq.twilio,provider.eq.sms,phone.like.+1%,phone_to.like.+1%');
+
+                if (smsUsLogs) {
+                    setTotalSmsUsCount(smsUsLogs.length);
+                    const usCounts: Record<string, number> = {};
+                    smsUsLogs.forEach((row: any) => {
+                        if (row.tenant_id) {
+                            usCounts[row.tenant_id] = (usCounts[row.tenant_id] || 0) + 1;
+                        }
+                    });
+                    setSmsUsCountsByTenant(usCounts);
+                }
+            } catch (usErr) {
+                console.warn("Error fetching SMS US metrics:", usErr);
             }
         } catch (err) {
             console.error("Error fetching SMS metrics:", err);
@@ -1052,55 +1672,64 @@ export default function SuperAdminPanel() {
                 </div>
             )}
             {/* HQ Header */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
                 <div className="absolute -top-10 -left-10 w-64 h-64 bg-accent/5 rounded-full blur-3xl -z-10 animate-pulse-soft"></div>
 
-                <div className="flex items-center gap-5">
-                    <div className="p-4 bg-gradient-to-br from-accent/20 to-blue-600/20 border border-white/10 rounded-2xl glass-card text-accent shadow-lg shadow-accent/10">
-                        <LayoutDashboard size={32} />
+                <div className="flex items-center gap-3.5">
+                    <div className="p-3 bg-gradient-to-br from-accent/20 to-blue-600/20 border border-white/10 rounded-2xl glass-card text-accent shadow-md shrink-0">
+                        <LayoutDashboard size={24} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-4xl font-black text-white tracking-tighter">CitaLink <span className="text-accent font-light italic">HQ</span></h1>
-                            <span className="bg-accent text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full tracking-widest uppercase mb-1">Central</span>
+                            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">CitaLink <span className="text-accent font-light italic">HQ</span></h1>
+                            <span className="bg-accent text-slate-900 text-[9px] font-black px-2 py-0.5 rounded-full tracking-widest uppercase">Central</span>
                         </div>
-                        <p className="text-slate-400 text-sm font-medium tracking-wide">Panel de Control Global y Desempeño de Plataforma</p>
+                        <p className="text-slate-400 text-xs font-medium tracking-wide">Panel de Control Global y Desempeño de Plataforma</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                     <a
                         href="/Guia_Configuracion_Negocio_CitaLink.pdf"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn border border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold py-3 px-5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-sm"
+                        className="btn border border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold py-2 px-3.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 text-xs"
                     >
-                        <Download size={18} className="text-pink-400" />
-                        <span>📄 Guía de Configuración (PDF)</span>
+                        <Download size={14} className="text-pink-400" />
+                        <span>Guía (PDF)</span>
                     </a>
                     <a
                         href="/Catalogo_CitaLink_Negocios.html"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold py-3 px-5 rounded-2xl transition-all shadow-lg flex items-center gap-2 text-sm"
+                        className="btn border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold py-2 px-3.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 text-xs"
                     >
-                        <Download size={18} className="text-emerald-400" />
-                        <span>🚀 Catálogo CitaLink</span>
+                        <Download size={14} className="text-emerald-400" />
+                        <span>Catálogo</span>
                     </a>
                     <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="btn btn-primary font-bold py-3.5 px-6 rounded-2xl shadow-xl shadow-accent/20 flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-sm"
+                        type="button"
+                        onClick={() => setIsCostModalOpen(true)}
+                        className="btn border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-bold py-2 px-3.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 text-xs"
+                        title="Configurar tarifas unitarias de Twilio SMS y WhatsApp"
                     >
-                        <Plus size={18} />
+                        <Settings size={13} className="text-cyan-400" />
+                        <span>Tarifas (${smsTwilioCost}/sms)</span>
+                    </button>
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="btn btn-primary font-black py-2 px-4 rounded-xl shadow-md shadow-accent/20 flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all text-xs"
+                    >
+                        <Plus size={15} />
                         <span>Nuevo Negocio</span>
                     </button>
                 </div>
             </header>
 
             {/* Core Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
                 <StatCard
-                    icon={<Building2 size={24} />}
+                    icon={<Building2 size={20} />}
                     title="Negocios Totales"
                     value={allTenants.length}
                     color="text-blue-400"
@@ -1114,9 +1743,9 @@ export default function SuperAdminPanel() {
                                         setFilterPlan('at_risk');
                                         document.getElementById('tenants-table')?.scrollIntoView({ behavior: 'smooth' });
                                     }}
-                                    className="px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 font-extrabold uppercase text-[8px] transition-all border border-red-500/20 tracking-tighter"
+                                    className="px-1.5 py-0.5 rounded bg-red-500/20 hover:bg-red-500/30 text-red-400 font-black uppercase text-[8px] border border-red-500/30"
                                 >
-                                    ⚠️ {planCounts.at_risk} EN RIESGO
+                                    ⚠️ {planCounts.at_risk} RIESGO
                                 </button>
                             )}
                         </div>
@@ -1124,46 +1753,77 @@ export default function SuperAdminPanel() {
                     delay="0"
                 />
                 <StatCard
-                    icon={<DollarSign size={24} />}
+                    icon={<DollarSign size={20} />}
                     title="MRR Estimado"
                     value={`$${mrrInfo.totalMrr.toLocaleString()} MXN`}
                     color="text-emerald-400"
-                    sub={`${mrrInfo.liteCount} Esen · ${mrrInfo.proCount} Pro · ${mrrInfo.businessCount} Biz · ${mrrInfo.activeTrials} Trials`}
+                    sub={`${mrrInfo.liteCount} Esen · ${mrrInfo.proCount} Pro · ${mrrInfo.businessCount} Biz`}
                     delay="1"
                 />
                 <StatCard
-                    icon={<Calendar size={24} />}
-                    title="Citas (últimos 30d)"
+                    icon={<Calendar size={20} />}
+                    title="Citas (30 días)"
                     value={appointmentsLast30 !== null ? appointmentsLast30 : '...'}
                     color="text-emerald-400"
-                    sub="En toda la plataforma"
+                    sub={`Est. $${(((appointmentsLast30 || 0) * whatsappCost)).toFixed(2)} USD en msgs`}
                     delay="2"
                 />
                 <StatCard
-                    icon={<Users size={24} />}
+                    icon={<Users size={20} />}
                     title="Clientes Únicos"
                     value={uniqueClients !== null ? uniqueClients : '...'}
                     color="text-violet-400"
-                    sub="Por teléfono registrado"
+                    sub="Teléfonos registrados"
                     delay="3"
                 />
                 <StatCard
-                    icon={<Zap size={24} />}
+                    icon={<Zap size={20} />}
                     title="WhatsApp Totales"
                     value={totalSmsCount !== null ? totalSmsCount : '...'}
                     color="text-emerald-400"
-                    sub="Mensajes WhatsApp enviados"
+                    sub={
+                        <button
+                            type="button"
+                            onClick={() => setIsCostModalOpen(true)}
+                            className="hover:underline text-emerald-400 text-left block truncate"
+                            title="Haz clic para ajustar la tarifa de WhatsApp"
+                        >
+                            Costo: $${(((totalSmsCount || 0) * whatsappCost)).toFixed(2)} USD (${whatsappCost} c/u)
+                        </button>
+                    }
                     delay="4"
+                />
+                <StatCard
+                    icon={<Phone size={20} />}
+                    title="SMS (+1 USA/CA)"
+                    value={totalSmsUsCount !== null ? totalSmsUsCount : 0}
+                    color="text-cyan-400"
+                    sub={
+                        <button
+                            type="button"
+                            onClick={() => setIsCostModalOpen(true)}
+                            className="hover:underline text-cyan-400 text-left block truncate font-bold"
+                            title="Haz clic para ajustar la tarifa de Twilio SMS"
+                        >
+                            Solo +1 · $${(((totalSmsUsCount || 0) * smsTwilioCost)).toFixed(2)} USD (${smsTwilioCost} c/u) ⚙️
+                        </button>
+                    }
+                    delay="5"
                 />
             </div>
 
             {/* Distribución por Categoría */}
-            <div className="glass-panel p-6 border border-white/5">
-                <h3 className="text-white font-black text-xl mb-6 flex items-center gap-2 uppercase tracking-tight">
-                    <BarChart3 className="text-violet-400" size={20} />
-                    Distribución por Categoría
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="glass-panel p-3.5 sm:p-4 rounded-2xl border border-white/5 bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <h3 className="text-white font-black text-xs sm:text-sm flex items-center gap-2 uppercase tracking-tight">
+                        <BarChart3 className="text-violet-400" size={15} />
+                        Distribución por Categoría
+                    </h3>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        {allTenants.length} Negocios Totales
+                    </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                     {(() => {
                         const categories = [
                             { id: 'barbershop', label: 'Barberías', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
@@ -1184,9 +1844,9 @@ export default function SuperAdminPanel() {
                                 count = allTenants.filter(t => t.category === cat.id || legacyMap[t.category || ''] === cat.id).length;
                             }
                             return (
-                                <div key={cat.id} className={`p-4 rounded-2xl ${cat.bg} border ${cat.border} flex flex-col items-center gap-1 text-center`}>
-                                    <span className={`text-3xl font-black ${cat.color}`}>{count}</span>
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{cat.label}</span>
+                                <div key={cat.id} className={`p-2 px-3 rounded-xl ${cat.bg} border ${cat.border} flex items-center justify-between gap-2 transition-transform hover:scale-[1.02]`}>
+                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider truncate">{cat.label}</span>
+                                    <span className={`text-base font-black ${cat.color}`}>{count}</span>
                                 </div>
                             );
                         });
@@ -1195,26 +1855,29 @@ export default function SuperAdminPanel() {
             </div>
 
             {/* Historial de Crecimiento Mensual */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
                 {/* Historial de Mensajes de WhatsApp */}
-                <div className="glass-panel p-6 border border-white/5 flex flex-col">
-                    <h3 className="text-white font-black text-lg mb-4 flex items-center gap-2 uppercase tracking-tight">
-                        <Zap className="text-emerald-400" size={18} />
-                        Historial Mensual de WhatsApp
-                    </h3>
-                    <div className="flex-1 max-h-60 overflow-y-auto space-y-2.5 pr-2 custom-scrollbar">
+                <div className="glass-panel p-3.5 sm:p-4 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col">
+                    <div className="flex items-center justify-between mb-2.5">
+                        <h3 className="text-white font-black text-xs sm:text-sm flex items-center gap-2 uppercase tracking-tight">
+                            <Zap className="text-emerald-400" size={15} />
+                            Historial Mensual WhatsApp
+                        </h3>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase">{totalSmsCount ?? 0} Totales</span>
+                    </div>
+                    <div className="flex-1 max-h-36 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                         {smsByMonth.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-xs">Sin registros de WhatsApp aún.</div>
+                            <div className="text-center py-4 text-slate-500 text-xs">Sin registros de WhatsApp aún.</div>
                         ) : (
                             smsByMonth.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.04] p-3.5 rounded-xl hover:bg-white/[0.04] transition-all">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 animate-pulse-soft"></div>
-                                        <span className="text-sm font-semibold text-slate-300 uppercase">{item.month_label}</span>
-                                    </div>
+                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.04] p-2 px-3 rounded-xl hover:bg-white/[0.04] transition-all text-xs">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-base font-black text-emerald-400">{item.count.toLocaleString()}</span>
-                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">mensajes</span>
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500/80 animate-pulse-soft"></div>
+                                        <span className="font-semibold text-slate-300 uppercase text-[11px]">{item.month_label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 font-mono">
+                                        <span className="font-black text-emerald-400">{item.count.toLocaleString()}</span>
+                                        <span className="text-[9px] font-bold text-slate-500 uppercase">msgs</span>
                                     </div>
                                 </div>
                             ))
@@ -1223,24 +1886,27 @@ export default function SuperAdminPanel() {
                 </div>
 
                 {/* Historial de Registro de Negocios */}
-                <div className="glass-panel p-6 border border-white/5 flex flex-col">
-                    <h3 className="text-white font-black text-lg mb-4 flex items-center gap-2 uppercase tracking-tight">
-                        <Building2 className="text-blue-400" size={18} />
-                        Historial Mensual de Negocios
-                    </h3>
-                    <div className="flex-1 max-h-60 overflow-y-auto space-y-2.5 pr-2 custom-scrollbar">
+                <div className="glass-panel p-3.5 sm:p-4 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col">
+                    <div className="flex items-center justify-between mb-2.5">
+                        <h3 className="text-white font-black text-xs sm:text-sm flex items-center gap-2 uppercase tracking-tight">
+                            <Building2 className="text-blue-400" size={15} />
+                            Historial Mensual Negocios
+                        </h3>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase">+{newThisMonth} Este Mes</span>
+                    </div>
+                    <div className="flex-1 max-h-36 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                         {tenantsByMonth.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-xs">Sin registros de negocios aún.</div>
+                            <div className="text-center py-4 text-slate-500 text-xs">Sin registros de negocios aún.</div>
                         ) : (
                             tenantsByMonth.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.04] p-3.5 rounded-xl hover:bg-white/[0.04] transition-all">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500/80"></div>
-                                        <span className="text-sm font-semibold text-slate-300 uppercase">{item.month_label}</span>
-                                    </div>
+                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.04] p-2 px-3 rounded-xl hover:bg-white/[0.04] transition-all text-xs">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-base font-black text-blue-400">+{item.count}</span>
-                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">nuevos</span>
+                                        <div className="w-2 h-2 rounded-full bg-blue-500/80"></div>
+                                        <span className="font-semibold text-slate-300 uppercase text-[11px]">{item.month_label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 font-mono">
+                                        <span className="font-black text-blue-400">+{item.count}</span>
+                                        <span className="text-[9px] font-bold text-slate-500 uppercase">nuevos</span>
                                     </div>
                                 </div>
                             ))
@@ -1248,177 +1914,6 @@ export default function SuperAdminPanel() {
                     </div>
                 </div>
             </div>
-
-
-            {/* ═══════════ MARKETPLACE LIVE ANALYTICS SECTION ═══════════ */}
-            <div className="glass-panel p-6 border border-emerald-500/20 bg-gradient-to-b from-emerald-950/20 via-slate-900/40 to-slate-950/60 rounded-3xl shadow-2xl space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                            <ShoppingBag size={24} />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-xl font-black text-white tracking-tight uppercase">
-                                    Marketplace Analytics & Métricas
-                                </h3>
-                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
-                                    LIVE
-                                </span>
-                            </div>
-                            <p className="text-xs text-slate-400">
-                                Búsquedas realizadas por clientes y seguimiento de citas/comisiones generadas.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Action Button: Recargar */}
-                    <button
-                        onClick={() => refetchMarketplaceAnalytics && refetchMarketplaceAnalytics()}
-                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2 self-start sm:self-auto"
-                    >
-                        <Sparkles size={14} className="text-emerald-400" />
-                        <span>Actualizar Métricas</span>
-                    </button>
-                </div>
-
-                {/* Metrics Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Búsquedas</p>
-                            <p className="text-2xl font-black text-emerald-400 mt-1">{mktData?.totalSearches ?? 0}</p>
-                        </div>
-                        <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            <Search size={20} />
-                        </div>
-                    </div>
-
-                    <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Citas Marketplace</p>
-                            <p className="text-2xl font-black text-cyan-400 mt-1">{mktData?.totalAppointments ?? 0}</p>
-                        </div>
-                        <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                            <Calendar size={20} />
-                        </div>
-                    </div>
-
-                    <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Comisiones Calculadas</p>
-                            <p className="text-2xl font-black text-amber-400 mt-1">
-                                ${(mktData?.totalCommissions ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                            </p>
-                        </div>
-                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                            <DollarSign size={20} />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Split View: Top Searched Terms vs Marketplace Appointments List */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Column: Lo más buscado */}
-                    <div className="bg-slate-950/60 border border-white/10 p-5 rounded-2xl flex flex-col space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                                <Search size={16} className="text-emerald-400" />
-                                🔥 Lo Más Buscado en el Marketplace
-                            </h4>
-                            <span className="text-[10px] text-slate-400 font-medium">Top 10 Términos</span>
-                        </div>
-
-                        <div className="space-y-2.5 overflow-y-auto max-h-72 pr-1 custom-scrollbar">
-                            {(!mktData?.topSearches || mktData.topSearches.length === 0) ? (
-                                <div className="text-center py-8 text-slate-500 text-xs italic">
-                                    No hay búsquedas registradas aún en el Marketplace.
-                                </div>
-                            ) : (
-                                mktData.topSearches.map((item, idx) => (
-                                    <div key={idx} className="space-y-1 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="font-bold text-slate-200 capitalize flex items-center gap-2">
-                                                <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 font-black text-[10px] flex items-center justify-center">
-                                                    #{idx + 1}
-                                                </span>
-                                                "{item.term}"
-                                            </span>
-                                            <span className="font-mono text-emerald-400 font-black text-xs">
-                                                {item.count} {item.count === 1 ? 'búsqueda' : 'búsquedas'}
-                                            </span>
-                                        </div>
-                                        <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-                                            <div
-                                                className="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all duration-500"
-                                                style={{ width: `${Math.max(item.percentage, 8)}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Right Column: Citas Marketplace Agendadas */}
-                    <div className="bg-slate-950/60 border border-white/10 p-5 rounded-2xl flex flex-col space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                                <Calendar size={16} className="text-cyan-400" />
-                                📅 Citas Agendadas vía Marketplace
-                            </h4>
-                            <span className="text-[10px] text-slate-400 font-medium">Recientes</span>
-                        </div>
-
-                        <div className="space-y-2.5 overflow-y-auto max-h-72 pr-1 custom-scrollbar">
-                            {(!mktData?.marketplaceAppointments || mktData.marketplaceAppointments.length === 0) ? (
-                                <div className="text-center py-8 text-slate-500 text-xs italic">
-                                    Aún no se han agendado citas a través de la fuente Marketplace.
-                                </div>
-                            ) : (
-                                mktData.marketplaceAppointments.map((appt) => (
-                                    <div key={appt.id} className="bg-white/[0.02] border border-white/5 p-3.5 rounded-xl space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-black text-emerald-400 uppercase tracking-tight">
-                                                {appt.tenantName}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                                                Comisión: ${appt.commissionAmount}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs text-slate-300">
-                                            <span className="font-semibold">{appt.clientName} ({appt.clientPhone})</span>
-                                            <span className="text-slate-400">{appt.date} • {appt.time}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/5">
-                                            <span>{appt.serviceName}</span>
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        await toggleCommissionBilled(appt.id, appt.commissionBilled);
-                                                        refetchMarketplaceAnalytics();
-                                                        showToast(appt.commissionBilled ? 'Marcada como pendiente' : 'Marcada como cobrada', 'success');
-                                                    } catch (e) {
-                                                        showToast('Error al actualizar estado', 'error');
-                                                    }
-                                                }}
-                                                className={`font-bold px-2 py-0.5 rounded-md border transition-all ${
-                                                    appt.commissionBilled
-                                                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
-                                                        : 'text-slate-400 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white'
-                                                }`}
-                                            >
-                                                {appt.commissionBilled ? '✓ Cobrada' : 'Marcar Cobrada'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
 
             {/* Tenant Management Table */}
             <div id="tenants-table" className="glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl">
@@ -1506,308 +2001,176 @@ export default function SuperAdminPanel() {
                 </div>
 
                 <div className="p-6 overflow-y-auto max-h-[600px] custom-scrollbar">
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3.5">
                         {filteredTenants.map((tenant, idx) => (
                             <div
                                 key={tenant.id}
-                                className="glass-card flex flex-col p-4 sm:p-5 border-white/5 hover:border-accent/20 hover:bg-white/5 transition-all duration-300 group"
-                                style={{ animationDelay: `${idx * 0.05}s` }}
+                                className="glass-card flex flex-col justify-between p-4 sm:p-4.5 rounded-2xl border border-white/10 hover:border-accent/30 hover:bg-white/[0.03] transition-all duration-200 group shadow-lg"
+                                style={{ animationDelay: `${idx * 0.03}s` }}
                             >
-                                {/* —— Top row: logo + info + action buttons —— */}
-                                <div className="flex items-start gap-3 sm:gap-4">
-                                    {/* Logo */}
-                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-xl group-hover:scale-105 transition-transform">
-                                        {tenant.logoUrl ? (
-                                            <img decoding="async" loading="lazy" src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <Building2 size={22} className="text-slate-600 group-hover:text-accent transition-colors" />
+                                {/* —— Cabecera y Datos Principales —— */}
+                                <div className="space-y-2.5">
+                                    {/* Fila 1: Logo + Nombre + Badges + Link externo */}
+                                    <div className="flex items-start justify-between gap-2.5">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            {/* Logo */}
+                                            <div className="w-11 h-11 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                                                {tenant.logoUrl ? (
+                                                    <img decoding="async" loading="lazy" src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <Sparkles size={18} className="text-accent" />
+                                                )}
+                                            </div>
+
+                                            {/* Nombre y Badges */}
+                                            <div className="min-w-0">
+                                                <h4 className="font-black text-white text-sm sm:text-base tracking-tight uppercase truncate">
+                                                    {tenant.name}
+                                                </h4>
+                                                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                    <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-[8px] font-black tracking-wider uppercase text-blue-400 border border-blue-500/20">
+                                                        {getCountryPreset(tenant.countryCode || tenant.country_code).flag} {getCountryPreset(tenant.countryCode || tenant.country_code).currency}
+                                                    </span>
+                                                    <span className="px-1.5 py-0.5 rounded bg-white/5 text-[8px] font-black tracking-wider uppercase text-slate-300 border border-white/10">
+                                                        {(() => {
+                                                            const cat = tenant.category?.toLowerCase() || '';
+                                                            if (cat === 'barbershop' || cat === 'barber') return 'Barbería';
+                                                            if (cat === 'beauty_salon' || cat === 'salon') return 'Salón';
+                                                            if (cat === 'nail_bar') return "Nail's";
+                                                            if (cat === 'spa') return 'Spa';
+                                                            if (cat === 'consulting' || cat === 'clinic') return 'Clínica';
+                                                            return 'Servicios';
+                                                        })()}
+                                                    </span>
+                                                    {(() => {
+                                                        const p = (tenant.plan || 'free') as PlanType;
+                                                        const b = getPlanBadgeStyles(p);
+                                                        return <span className={`px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border ${b.bg} ${b.text} ${b.border}`}>{p.toUpperCase()}</span>;
+                                                    })()}
+                                                    {(() => {
+                                                        if (!tenant.trial_ends_at) return null;
+                                                        const ends = new Date(tenant.trial_ends_at);
+                                                        const now = new Date();
+                                                        const diffTime = ends.getTime() - now.getTime();
+                                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                        if (diffDays > 0) {
+                                                            return (
+                                                                <span className="px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border bg-amber-500/10 text-amber-400 border-amber-500/20">
+                                                                    Trial · {diffDays}d
+                                                                </span>
+                                                            );
+                                                        } else if (tenant.plan === 'free' || !tenant.plan) {
+                                                            return (
+                                                                <span className="px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border bg-red-500/10 text-red-400 border-red-500/20">
+                                                                    Trial vencido
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Enlace externo */}
+                                        <a
+                                            href={`https://www.citalink.app/${tenant.slug}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-colors shrink-0"
+                                            title="Abrir enlace de reservas"
+                                        >
+                                            <ExternalLink size={13} />
+                                        </a>
+                                    </div>
+
+                                    {/* Fila 2: Enlace de reservas + Teléfono (en 2 columnas compactas) */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-white/[0.02] border border-white/5 rounded-xl p-2">
+                                        <div className="flex items-center gap-1.5 text-slate-300 font-mono text-[11px] truncate">
+                                            <span className="text-accent font-bold text-xs">🔗</span>
+                                            <span className="truncate">citalink.app/{tenant.slug}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5 text-[11px]">
+                                            <Phone size={11} className={tenant.phone ? 'text-emerald-400 shrink-0' : 'text-slate-500 shrink-0'} />
+                                            {tenant.phone ? (
+                                                <a
+                                                    href={`https://wa.me/${tenant.phone.replace(/\D/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-slate-200 hover:text-emerald-400 font-bold transition-colors truncate flex items-center gap-1"
+                                                    title="Escribir por WhatsApp"
+                                                >
+                                                    <span className="truncate">{tenant.phone}</span>
+                                                    <MessageCircle size={10} className="text-emerald-400 shrink-0" />
+                                                </a>
+                                            ) : (
+                                                <span className="text-slate-500 italic">Sin teléfono</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Fila 3: Dirección física (si existe) */}
+                                    {tenant.address && (
+                                        <p className="text-[10px] text-slate-400 flex items-center gap-1.5 truncate px-1">
+                                            <MapPin size={10} className="text-rose-400 shrink-0" />
+                                            <span className="truncate">{tenant.address}</span>
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* —— Fila Inferior: Métricas compactas + Acciones directas —— */}
+                                <div className="pt-2.5 border-t border-white/5 flex items-center justify-between gap-2">
+                                    {/* Métricas */}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1" title="Citas del mes y costo estimado de notificaciones">
+                                            <Calendar size={9} />
+                                            <span>{appointmentsByTenant[tenant.id] || 0} citas (${(((appointmentsByTenant[tenant.id] || 0) * whatsappCost)).toFixed(2)} USD)</span>
+                                        </span>
+                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1" title="WhatsApp enviados y costo">
+                                            <BarChart3 size={9} />
+                                            <span>{(smsCountsByTenant[tenant.id]?.month) || 0} WA (${((((smsCountsByTenant[tenant.id]?.month) || 0) * whatsappCost)).toFixed(2)} USD)</span>
+                                        </span>
+                                        {(smsUsCountsByTenant[tenant.id] || 0) > 0 && (
+                                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1" title="SMS enviados a números +1 USA vía Twilio">
+                                                <Phone size={9} />
+                                                <span>{smsUsCountsByTenant[tenant.id]} SMS +1 (${(((smsUsCountsByTenant[tenant.id] || 0) * smsTwilioCost)).toFixed(2)} USD)</span>
+                                            </span>
                                         )}
                                     </div>
 
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                                            <span className="px-2 py-0.5 rounded bg-blue-500/10 text-[8px] sm:text-[9px] font-black tracking-widest uppercase text-blue-400 border border-blue-500/20 shadow-inner shrink-0">
-                                                {getCountryPreset(tenant.countryCode || tenant.country_code).flag} {getCountryPreset(tenant.countryCode || tenant.country_code).currency}
-                                            </span>
-                                            <span className="px-2 py-0.5 rounded bg-white/5 text-[8px] sm:text-[9px] font-black tracking-widest uppercase text-slate-400 border border-white/5 shadow-inner shrink-0">
-                                                {(() => {
-                                                    const cat = tenant.category?.toLowerCase() || '';
-                                                    if (cat === 'barbershop' || cat === 'barber') return 'BARBERÍA';
-                                                    if (cat === 'beauty_salon' || cat === 'salon') return 'SALÓN';
-                                                    if (cat === 'nail_bar') return "NAIL'S";
-                                                    if (cat === 'spa') return 'SPA';
-                                                    if (cat === 'consulting' || cat === 'clinic') return 'CLÍNICA';
-                                                    if (cat === 'other') return 'OTRO';
-                                                    return cat.toUpperCase() || 'ESTÁNDAR';
-                                                })()}
-                                            </span>
-                                            {(() => {
-                                                const p = (tenant.plan || 'free') as PlanType;
-                                                const b = getPlanBadgeStyles(p);
-                                                return <span className={`px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 ${b.bg} ${b.text} ${b.border}`}>{p.toUpperCase()}</span>;
-                                            })()}
-                                            {tenant.extra_employees_paid > 0 && (
-                                                <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.05)]">
-                                                    +{tenant.extra_employees_paid} PROF. EXTRA
-                                                </span>
-                                            )}
-                                            {tenant.marketplace_enabled && (
-                                                 <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.1)]">
-                                                     🛒 MARKETPLACE ({tenant.marketplace_commission_rate || 15}%)
-                                                 </span>
-                                             )}
-                                            {tenant.extra_branches_paid > 0 && (
-                                                <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_12px_rgba(147,51,234,0.05)]">
-                                                    +{tenant.extra_branches_paid} SUC. EXTRA
-                                                </span>
-                                            )}
-                                            {(() => {
-                                                if (!tenant.trial_ends_at) return null;
-                                                const ends = new Date(tenant.trial_ends_at);
-                                                const now = new Date();
-                                                const diffTime = ends.getTime() - now.getTime();
-                                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                                
-                                                if (diffDays > 0) {
-                                                    return (
-                                                        <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.05)]">
-                                                            TRIAL · {diffDays} {diffDays === 1 ? 'DÍA' : 'DÍAS'}
-                                                        </span>
-                                                    );
-                                                } else if (tenant.plan === 'free' || !tenant.plan) {
-                                                    return (
-                                                        <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase border shrink-0 bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_12px_rgba(239,68,68,0.05)]">
-                                                            TRIAL VENCIDO
-                                                        </span>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </div>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-[10px] sm:text-xs font-mono text-accent/80 px-2 py-0.5 bg-accent/5 rounded border border-accent/20 tracking-tighter truncate max-w-[160px] sm:max-w-none">
-                                                citalink.app/{tenant.slug}
-                                            </span>
-                                            {tenant.brand_slug && (
-                                                <span className="flex items-center gap-1 text-[8px] font-black text-violet-400 px-2 py-0.5 bg-violet-500/10 rounded border border-violet-500/25 uppercase tracking-wider shrink-0">
-                                                    <Building2 size={8} />
-                                                    {allTenants.filter(t => t.brand_slug === tenant.brand_slug).length} suc.
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
- 
-                                    {/* Action buttons — always top-right */}
-                                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                                    {/* Acciones */}
+                                    <div className="flex items-center gap-1">
                                         <button
                                             type="button"
                                             onClick={() => setTenantToEdit(tenant)}
-                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-400 hover:text-accent transition-colors border border-transparent hover:border-accent/20"
-                                            title="Editar Parámetros"
+                                            className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-[11px] font-bold flex items-center gap-1 transition-all group-hover:border-accent/40"
+                                            title="Ver Detalle y Gestionar Negocio"
                                         >
-                                            <Pencil size={18} />
+                                            <Eye size={12} className="text-accent" />
+                                            <span>Ver Detalle</span>
                                         </button>
+
                                         <button
                                             type="button"
-                                            onClick={() => handleResetPasswordClick(tenant)}
-                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-400 hover:text-amber-400 transition-colors border border-transparent hover:border-amber-500/20"
-                                            title="Cambiar Contraseña del Dueño"
-                                        >
-                                            <Key size={18} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRelinkClick(tenant)}
-                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-400 hover:text-cyan-400 transition-colors border border-transparent hover:border-cyan-500/20"
-                                            title="Re-vincular Owner (arreglar login)"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                        <button
                                             onClick={async () => {
                                                 await switchTenant(tenant.id);
                                                 navigate('/admin');
                                             }}
-                                            className="btn btn-primary p-2.5 sm:p-3 rounded-xl shadow-none hover:shadow-accent/40"
-                                            title="Administrar Negocio"
+                                            className="p-1.5 px-2 rounded-lg bg-accent hover:brightness-110 text-slate-950 font-black text-[11px] transition-all shadow-sm flex items-center gap-0.5"
+                                            title="Entrar al Panel como Administrador"
                                         >
-                                            <ChevronRight size={18} />
+                                            <ChevronRight size={14} />
                                         </button>
+
                                         <button
+                                            type="button"
                                             onClick={() => handleDeleteClick(tenant)}
-                                            className="p-2.5 sm:p-3 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
+                                            className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-500 hover:text-red-400 border border-white/5 hover:border-red-500/20 transition-colors"
+                                            title="Eliminar Negocio"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={13} />
                                         </button>
-                                    </div>
-                                </div>
- 
-                                {/* —— Bottom row: stats + controls —— */}
-                                <div className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
- 
-                                    {/* WA Stats + Activity */}
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        {(() => {
-                                            const stats = smsCountsByTenant[tenant.id] || { total: 0, week: 0, month: 0 };
-                                            return (
-                                                <>
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="WA esta semana">
-                                                        <Calendar size={9} className="text-emerald-400" />
-                                                        <span className="text-[10px] font-black text-emerald-400">{stats.week}</span>
-                                                        <span className="text-[8px] text-emerald-400/60 font-bold">SEM</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20" title="WA este mes">
-                                                        <BarChart3 size={9} className="text-blue-400" />
-                                                        <span className="text-[10px] font-black text-blue-400">{stats.month}</span>
-                                                        <span className="text-[8px] text-blue-400/60 font-bold">MES</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="WA totales">
-                                                        <Zap size={9} className="text-emerald-400" />
-                                                        <span className="text-[10px] font-black text-emerald-400">{stats.total}</span>
-                                                        <span className="text-[8px] text-emerald-400/60 font-bold">TOT</span>
-                                                    </div>
-                                                </>
-                                            );
-                                        })()}
-
-                                        {/* Activity Citas (últimos 30 días) */}
-                                        {(() => {
-                                            const apptCount = appointmentsByTenant[tenant.id] || 0;
-                                            if (apptCount > 5) {
-                                                return (
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20" title="Citas en los últimos 30 días">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                                        <span className="text-[10px] font-black text-emerald-400">{apptCount}</span>
-                                                        <span className="text-[8px] text-emerald-400/60 font-bold">CITAS</span>
-                                                    </div>
-                                                );
-                                            } else if (apptCount > 0) {
-                                                return (
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20" title="Citas en los últimos 30 días">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                                        <span className="text-[10px] font-black text-amber-400">{apptCount}</span>
-                                                        <span className="text-[8px] text-amber-400/60 font-bold">CITAS</span>
-                                                    </div>
-                                                );
-                                            } else {
-                                                return (
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 rounded-lg border border-red-500/20" title="Sin citas en los últimos 30 días">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                                        <span className="text-[10px] font-black text-red-400 font-mono">INACTIVO</span>
-                                                    </div>
-                                                );
-                                            }
-                                        })()}
-                                    </div>
-
-                                    {/* Subscription & Payment Status Badges */}
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        {/* Sub Type Badge */}
-                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase border ${
-                                            tenant.subscription_type === 'stripe'
-                                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                                : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-                                        }`}>
-                                            {tenant.subscription_type === 'stripe' ? '🔗 STRIPE' : '👤 MANUAL'}
-                                        </span>
-
-                                        {/* Payment Status Badge */}
-                                        {tenant.subscription_type === 'stripe' && (
-                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase border ${
-                                                tenant.payment_status === 'active'
-                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                    : tenant.payment_status === 'grace_period'
-                                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                            }`}>
-                                                {tenant.payment_status === 'active' && '🟢 ACTIVO'}
-                                                {tenant.payment_status === 'grace_period' && '🟡 GRACIA'}
-                                                {tenant.payment_status === 'suspended' && '🔴 SUSPENDIDO'}
-                                            </span>
-                                        )}
-                                    </div>
- 
-                                    {/* Spacer */}
-                                    <div className="flex-1" />
- 
-                                    {/* Controls row — wrap on small screens */}
-                                    <div className="flex flex-wrap items-center gap-2">
-
-                                        {/* Mensajería */}
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/5">
-                                            <div className="flex flex-col items-start">
-                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">WA</span>
-                                                <span className={`text-[9px] font-bold leading-none ${tenant.sms_provider === 'whatsapp' ? 'text-emerald-400' : 'text-amber-500/70'}`}>
-                                                    {tenant.sms_provider === 'whatsapp' ? 'ON' : 'DEMO'}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                {(['demo', 'whatsapp'] as const).map((p) => (
-                                                    <button
-                                                        key={p}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (tenant.sms_provider === p) return;
-                                                            setPendingSmsChange({
-                                                                tenantId: tenant.id,
-                                                                tenantName: tenant.name,
-                                                                from: tenant.sms_provider || 'demo',
-                                                                to: p
-                                                            });
-                                                        }}
-                                                        className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
-                                                            tenant.sms_provider === p
-                                                                ? p === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                                                : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
-                                                        }`}
-                                                    >
-                                                        {p === 'demo' ? '🔵' : '💬'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Plan */}
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/5">
-                                            <div className="flex flex-col items-start">
-                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
-                                                <span className={`text-[9px] font-bold leading-none ${
-                                                    tenant.plan === 'business' ? 'text-violet-400' : tenant.plan === 'pro' ? 'text-amber-400' : tenant.plan === 'lite' ? 'text-teal-400' : 'text-slate-500'
-                                                }`}>
-                                                    {(tenant.plan === 'lite' ? 'esencial' : (tenant.plan || 'free')).toUpperCase()}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                {(['free', 'lite', 'pro', 'business'] as const).map((p) => (
-                                                    <button
-                                                        key={p}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const currentPlan = (tenant.plan || 'free') as PlanType;
-                                                            if (currentPlan === p) return;
-                                                            setPendingPlanChange({
-                                                                tenantId: tenant.id,
-                                                                tenantName: tenant.name,
-                                                                from: currentPlan,
-                                                                to: p
-                                                            });
-                                                        }}
-                                                        className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all ${
-                                                            (tenant.plan || 'free') === p
-                                                                ? p === 'business' ? 'bg-violet-500/20 text-violet-400 border border-violet-500/40'
-                                                                : p === 'pro' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                                                : p === 'lite' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40'
-                                                                : 'bg-slate-500/20 text-slate-400 border border-slate-500/40'
-                                                                : 'bg-white/5 text-slate-600 border border-white/5 hover:border-white/20 hover:text-slate-400'
-                                                        }`}
-                                                        title={p === 'free' ? 'Free ($0)' : p === 'lite' ? 'Esencial ($349, 1 Prof)' : p === 'pro' ? 'Pro ($649, 2 Profs)' : 'Business ($1,249)'}
-                                                    >
-                                                        {p === 'free' ? 'F' : p === 'lite' ? '⚡' : p === 'pro' ? '⭐' : '🚀'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1837,6 +2200,16 @@ export default function SuperAdminPanel() {
                 details={pendingSmsChange}
             />
 
+            <PricingRatesModal
+                isOpen={isCostModalOpen}
+                onClose={() => setIsCostModalOpen(false)}
+                smsTwilioCost={smsTwilioCost}
+                setSmsTwilioCost={setSmsTwilioCost}
+                whatsappCost={whatsappCost}
+                setWhatsappCost={setWhatsappCost}
+                showToast={showToast}
+            />
+
             {tenantToEdit && (
                 <EditBusinessModal
                     isOpen={!!tenantToEdit}
@@ -1852,6 +2225,26 @@ export default function SuperAdminPanel() {
                             showToast(res.error || 'Error al actualizar negocio', 'error');
                         }
                     }}
+                    onSwitchTenant={async (id: string) => {
+                        await switchTenant(id);
+                        navigate('/admin');
+                    }}
+                    onResetPassword={(t: any) => {
+                        handleResetPasswordClick(t);
+                    }}
+                    onRelinkOwner={(t: any) => {
+                        handleRelinkClick(t);
+                    }}
+                    onDelete={(t: any) => {
+                        setTenantToEdit(null);
+                        handleDeleteClick(t);
+                    }}
+                    smsStats={smsCountsByTenant[tenantToEdit.id]}
+                    apptCount={appointmentsByTenant[tenantToEdit.id] || 0}
+                    smsUsCount={smsUsCountsByTenant[tenantToEdit.id] || 0}
+                    smsTwilioCost={smsTwilioCost}
+                    whatsappCost={whatsappCost}
+                    onOpenPricingModal={() => setIsCostModalOpen(true)}
                 />
             )}
 
@@ -2203,19 +2596,19 @@ export default function SuperAdminPanel() {
     );
 }
 
-function StatCard({ icon, title, value, color, sub, delay }: { icon: any, title: string, value: any, color: string, sub: React.ReactNode, delay: string }) {
+function StatCard({ icon, title, value, color, sub, delay }: { icon: any, title: string, value: any, color: string, sub?: React.ReactNode, delay: string }) {
     return (
         <div
-            className="animate-scale-in glass-card p-6 border border-white/5 flex flex-col gap-4 group hover:bg-white/[0.04]"
+            className="animate-scale-in glass-panel p-3.5 sm:p-4 rounded-2xl border border-white/10 flex items-center gap-3.5 hover:border-white/25 hover:bg-white/[0.04] transition-all shadow-md group"
             style={{ animationDelay: `0.${delay}s` }}
         >
-            <div className={`p-3 rounded-2xl bg-white/5 border border-white/5 shadow-inner w-fit ${color}`}>
+            <div className={`w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform ${color}`}>
                 {icon}
             </div>
-            <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 mb-0.5">{title}</div>
-                <div className="text-3xl font-black text-white tracking-tight">{value}</div>
-                <div className="text-[10px] text-slate-600 font-medium mt-1">{sub}</div>
+            <div className="min-w-0 flex-1">
+                <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-400 truncate mb-0.5">{title}</p>
+                <div className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">{value}</div>
+                {sub && <div className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{sub}</div>}
             </div>
         </div>
     );

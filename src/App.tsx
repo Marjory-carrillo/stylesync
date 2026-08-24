@@ -22,6 +22,7 @@ const Login = lazy(() => import('./pages/Login'));
 const CreateBusiness = lazy(() => import('./pages/admin/CreateBusiness'));
 const SelectBusiness = lazy(() => import('./pages/admin/SelectBusiness'));
 const SuperAdminPanel = lazy(() => import('./pages/admin/SuperAdminPanel'));
+const SuperAdminCosts = lazy(() => import('./pages/admin/SuperAdminCosts'));
 const SuperAdminMarketplace = lazy(() => import('./pages/admin/SuperAdminMarketplace'));
 const SalesTracker = lazy(() => import('./pages/admin/SalesTracker'));
 const Leads = lazy(() => import('./pages/admin/Leads'));
@@ -393,6 +394,7 @@ function App() {
               <Route path="/super-admin" element={<SuperAdminRoute />}>
                 <Route element={<SuperAdminLayout />}>
                   <Route index element={<SuperAdminPanel />} />
+                  <Route path="costos" element={<SuperAdminCosts />} />
                   <Route path="marketplace" element={<SuperAdminMarketplace />} />
                   <Route path="cazador" element={<SalesTracker />} />
                   <Route path="prospectos" element={<Leads />} />

@@ -3,15 +3,18 @@ import {
     Users, Plus, Trash2, Search, Copy, Check, ExternalLink, 
     BookOpen, MessageCircle, AlertCircle, RefreshCw, MapPin, ChevronDown, ChevronUp,
     Navigation, Calendar, Clock, Sparkles, Camera, CheckCircle2, User, Send, Eye,
-    Phone, Mail, X, Edit, Share2, ArrowUpRight, TrendingUp, XCircle, ShieldCheck
+    Phone, X, Edit, TrendingUp, XCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
-import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ConfirmModal from '../../components/ConfirmModal';
 import PhotoZoomViewer from '../../components/PhotoZoomViewer';
+import DatePickerInput from '../../components/DatePickerInput';
+import { COUNTRY_PRESETS, getCountryPreset } from '../../lib/pricingConfig';
+import type { PlanType } from '../../lib/planLimits';
 
 export interface Prospect {
     id: string;
@@ -90,13 +93,47 @@ export default function SalesTracker() {
         businessName: '',
         slug: '',
         address: '',
+        phone: '',
+        googleMapsUrl: '',
         category: 'barbershop',
         ownerName: '',
         ownerEmail: '',
         ownerPassword: '',
+        countryCode: 'MX',
+        timezone: 'America/Mexico_City',
+        plan: 'free' as PlanType,
         noTrial: false
     });
     const [isConverting, setIsConverting] = useState(false);
+    const [gettingLocation, setGettingLocation] = useState(false);
+
+    // Capturar GPS actual en 1 clic
+    const captureCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            showToast('Geolocalización no soportada en este navegador', 'error');
+            return;
+        }
+        setGettingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lng = pos.coords.longitude.toFixed(6);
+                const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                setFormData(prev => ({ 
+                    ...prev, 
+                    google_maps_url: mapsUrl,
+                    address: prev.address ? prev.address : `Ubicación GPS (${lat}, ${lng})`
+                }));
+                showToast(`📍 Coordenadas capturadas: ${lat}, ${lng}`, 'success');
+                setGettingLocation(false);
+            },
+            err => {
+                showToast('No se pudo obtener la ubicación GPS: ' + err.message, 'error');
+                setGettingLocation(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
 
     // Custom confirm dialog state
     const [customConfirm, setCustomConfirm] = useState<{
@@ -189,7 +226,7 @@ export default function SalesTracker() {
                 address: formData.address.trim(),
                 status: formData.status,
                 phone: formData.phone.trim(),
-                next_visit_at: formData.next_visit_at ? new Date(formData.next_visit_at).toISOString() : null,
+                next_visit_at: formData.next_visit_at ? new Date(`${formData.next_visit_at}T12:00:00`).toISOString() : null,
                 notes: formData.notes.trim(),
                 photo_url: formData.photo_url || null,
                 google_maps_url: formData.google_maps_url.trim() || null,
@@ -203,7 +240,10 @@ export default function SalesTracker() {
                     .eq('id', editingId);
 
                 if (error) throw error;
-                showToast('Prospecto actualizado con éxito', 'success');
+                showToast('Negocio y visita actualizados con éxito', 'success');
+                if (detailProspect?.id === editingId) {
+                    setDetailProspect(prev => prev ? ({ ...prev, ...payload, id: editingId }) : null);
+                }
             } else {
                 const { error } = await supabase
                     .from('sales_prospects')
@@ -246,9 +286,7 @@ export default function SalesTracker() {
                 const year = d.getFullYear();
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 const day = String(d.getDate()).padStart(2, '0');
-                const hours = String(d.getHours()).padStart(2, '0');
-                const mins = String(d.getMinutes()).padStart(2, '0');
-                nextVisitFormatted = `${year}-${month}-${day}T${hours}:${mins}`;
+                nextVisitFormatted = `${year}-${month}-${day}`;
             } catch {
                 nextVisitFormatted = '';
             }
@@ -320,14 +358,21 @@ export default function SalesTracker() {
         const generatedPassword = 'CL!' + Math.random().toString(36).slice(-6);
         const generatedEmail = p.email || `contacto.${cleanSlug || 'negocio'}.${randomCode}@citalink.app`;
 
+        const defaultPreset = getCountryPreset('MX');
+
         setConvertForm({
             businessName: p.name,
             slug: cleanSlug,
             address: p.address || '',
+            phone: p.phone || '',
+            googleMapsUrl: p.google_maps_url || '',
             category: p.category || 'barbershop',
             ownerName: p.contact_name || '',
             ownerEmail: generatedEmail,
             ownerPassword: generatedPassword,
+            countryCode: 'MX',
+            timezone: defaultPreset.timezone || 'America/Mexico_City',
+            plan: 'free',
             noTrial: false
         });
         setConvertModalProspect(p);
@@ -339,6 +384,7 @@ export default function SalesTracker() {
 
         setIsConverting(true);
         try {
+            const preset = getCountryPreset(convertForm.countryCode);
             const res = await createTenant(
                 convertForm.businessName.trim(),
                 convertForm.slug.trim(),
@@ -346,21 +392,33 @@ export default function SalesTracker() {
                 convertForm.category,
                 convertForm.ownerEmail.trim(),
                 convertForm.ownerPassword.trim(),
-                'America/Mexico_City',
+                convertForm.timezone,
                 undefined,
                 undefined,
-                convertForm.noTrial
+                convertForm.noTrial,
+                convertForm.countryCode,
+                preset.currency,
+                preset.currencySymbol,
+                preset.phonePrefix,
+                convertForm.phone.trim() || undefined,
+                convertForm.googleMapsUrl.trim() || undefined
             );
 
             if (!res.success) {
                 throw new Error(res.error || 'Error al crear el negocio en CitaLink');
             }
 
-            // Marcar el prospecto como cerrado / convertido
+            // Actualizar plan si seleccionó uno diferente a free
+            if (convertForm.plan && res.data?.id) {
+                await supabase.from('tenants').update({ plan: convertForm.plan }).eq('id', res.data.id);
+            }
+
+            // Marcar el prospecto como cerrado / convertido con enlace al tenant
             await supabase
                 .from('sales_prospects')
                 .update({
                     status: 'cerrado',
+                    converted_tenant_id: res.data?.id || null,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', convertModalProspect.id);
@@ -368,8 +426,9 @@ export default function SalesTracker() {
             showToast(`¡Negocio "${convertForm.businessName}" creado con éxito! 30 días de prueba activados.`, 'success');
             
             // Abrir WhatsApp con mensaje de bienvenida y accesos si tiene teléfono
-            if (convertModalProspect.phone) {
-                const cleanPhone = convertModalProspect.phone.replace(/\D/g, '');
+            const finalPhone = convertForm.phone.trim() || convertModalProspect.phone;
+            if (finalPhone) {
+                const cleanPhone = finalPhone.replace(/\D/g, '');
                 const ownerGreeting = convertForm.ownerName ? `Hola ${convertForm.ownerName}` : `Hola`;
                 const msg = `🚀 ¡${ownerGreeting}! Tu cuenta de CitaLink para *${convertForm.businessName}* ya está lista con tus 30 días gratis.\n\n🔗 *Tu Enlace de Reservas:* https://www.citalink.app/${convertForm.slug}\n📱 *Panel de Control:* https://www.citalink.app/login\n📧 *Usuario:* ${convertForm.ownerEmail}\n🔑 *Contraseña:* ${convertForm.ownerPassword}\n\nCualquier duda o apoyo para configurar tus servicios, quedo a tu orden. ¡Mucho éxito!`;
                 window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -377,7 +436,7 @@ export default function SalesTracker() {
 
             setConvertModalProspect(null);
             if (detailProspect?.id === convertModalProspect.id) {
-                setDetailProspect({ ...detailProspect, status: 'cerrado' });
+                setDetailProspect({ ...detailProspect, status: 'cerrado', converted_tenant_id: res.data?.id || null });
             }
             fetchProspects();
         } catch (err: any) {
@@ -771,31 +830,31 @@ export default function SalesTracker() {
                         </div>
                     </div>
 
-                    {/* Inputs de rango de fecha personalizado */}
+                    {/* Inputs de rango de fecha personalizado con DatePickerInput */}
                     {dateRangeFilter === 'custom' && (
                         <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/10 animate-fade-in">
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-slate-400">Desde:</span>
-                                <input
-                                    type="date"
-                                    className="bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white"
+                                <DatePickerInput
                                     value={customStartDate}
-                                    onChange={e => setCustomStartDate(e.target.value)}
+                                    onChange={setCustomStartDate}
+                                    placeholder="Fecha inicial..."
+                                    className="w-44"
                                 />
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-slate-400">Hasta:</span>
-                                <input
-                                    type="date"
-                                    className="bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white"
+                                <DatePickerInput
                                     value={customEndDate}
-                                    onChange={e => setCustomEndDate(e.target.value)}
+                                    onChange={setCustomEndDate}
+                                    placeholder="Fecha final..."
+                                    className="w-44"
                                 />
                             </div>
                             {(customStartDate || customEndDate) && (
                                 <button
                                     onClick={() => { setCustomStartDate(''); setCustomEndDate(''); }}
-                                    className="text-xs text-rose-400 hover:underline font-bold"
+                                    className="text-xs text-rose-400 hover:underline font-bold ml-2"
                                 >
                                     Limpiar fechas
                                 </button>
@@ -867,7 +926,7 @@ export default function SalesTracker() {
 
                                                 {p.next_visit_at && (
                                                     <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border ${isNextVisitToday ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pulse' : 'bg-white/5 border-white/10 text-slate-300'}`}>
-                                                        {format(parseISO(p.next_visit_at), isNextVisitToday ? "'Hoy' HH:mm" : "dd MMM", { locale: es })}
+                                                        {isNextVisitToday ? 'Hoy' : format(parseISO(p.next_visit_at), "dd MMM", { locale: es })}
                                                     </span>
                                                 )}
                                             </div>
@@ -913,6 +972,13 @@ export default function SalesTracker() {
                                                             <Navigation size={15} />
                                                         </button>
                                                     )}
+                                                    <button
+                                                        onClick={() => startEdit(p)}
+                                                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                                                        title="Editar Negocio / Registrar Visita"
+                                                    >
+                                                        <Edit size={15} />
+                                                    </button>
                                                 </div>
 
                                                 {/* Botón Convertir si aún no es cerrado */}
@@ -1186,7 +1252,7 @@ export default function SalesTracker() {
                                     <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest block">Próxima Visita Programada</span>
                                     <p className="text-xs font-bold text-slate-300 mt-1 flex items-center gap-1.5">
                                         <Clock size={14} className="text-amber-400" />
-                                        {detailProspect.next_visit_at ? format(parseISO(detailProspect.next_visit_at), "dd 'de' MMMM yyyy, HH:mm 'hrs'", { locale: es }) : <span className="text-slate-500 italic">No programada</span>}
+                                        {detailProspect.next_visit_at ? (isToday(parseISO(detailProspect.next_visit_at)) ? `Hoy (${format(parseISO(detailProspect.next_visit_at), "dd 'de' MMMM yyyy", { locale: es })})` : format(parseISO(detailProspect.next_visit_at), "dd 'de' MMMM yyyy", { locale: es })) : <span className="text-slate-500 italic">No programada</span>}
                                     </p>
                                 </div>
                             </div>
@@ -1228,18 +1294,26 @@ export default function SalesTracker() {
                                 </p>
                             </div>
 
-                            {/* Botón de Conversión a Negocio */}
-                            {detailProspect.status !== 'cerrado' && (
-                                <div className="pt-2">
+                            {/* Botones de Acción en Detalle */}
+                            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                                <button
+                                    onClick={() => startEdit(detailProspect)}
+                                    className="flex-1 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md"
+                                >
+                                    <Edit size={15} />
+                                    <span>Editar Negocio / Visita</span>
+                                </button>
+
+                                {detailProspect.status !== 'cerrado' && (
                                     <button
                                         onClick={() => openConvertModal(detailProspect)}
-                                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 hover:scale-[1.01] transition-all"
+                                        className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5 hover:scale-[1.01] transition-all"
                                     >
-                                        <Sparkles size={18} />
-                                        <span>🚀 Convertir a Negocio CitaLink (30 Días Gratis)</span>
+                                        <Sparkles size={16} />
+                                        <span>Activar 30 Días Gratis</span>
                                     </button>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1251,7 +1325,7 @@ export default function SalesTracker() {
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsAddOpen(false)} />
                     <div className="relative w-full max-w-lg bg-[#0d1322] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-black text-white uppercase tracking-tight mb-5">
-                            {editingId ? 'Editar Prospecto de Campo' : 'Registrar Nuevo Prospecto'}
+                            {editingId ? '✏️ Actualizar Visita y Datos del Negocio' : '➕ Registrar Nuevo Prospecto de Campo'}
                         </h3>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
@@ -1337,10 +1411,22 @@ export default function SalesTracker() {
                                 </div>
                             </div>
 
+                            {/* Dirección o Ubicación + Capturar GPS */}
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    Dirección o Ubicación
-                                </label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        Dirección Física del Negocio
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={captureCurrentLocation}
+                                        disabled={gettingLocation}
+                                        className="text-[10px] text-violet-400 hover:text-violet-300 font-black flex items-center gap-1 transition-colors"
+                                    >
+                                        <Navigation size={11} className={gettingLocation ? 'animate-spin' : ''} />
+                                        <span>{gettingLocation ? 'Obteniendo GPS...' : '📍 Capturar mi GPS actual'}</span>
+                                    </button>
+                                </div>
                                 <input
                                     type="text"
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40"
@@ -1350,17 +1436,36 @@ export default function SalesTracker() {
                                 />
                             </div>
 
-                            {/* Programar Próxima Visita */}
+                            {/* Enlace de Google Maps / Coordenadas GPS */}
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <Navigation size={12} className="text-violet-400" />
+                                        <span>Coordenadas GPS / Enlace de Maps</span>
+                                    </span>
+                                    {formData.google_maps_url && (
+                                        <span className="text-[9px] text-emerald-400 font-bold">✓ Coordenadas fijadas</span>
+                                    )}
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/40 text-xs font-mono"
+                                    value={formData.google_maps_url}
+                                    onChange={e => setFormData({ ...formData, google_maps_url: e.target.value })}
+                                    placeholder="https://maps.google.com/?q=25.8690,-97.5027 o pulsa 'Capturar GPS'"
+                                />
+                            </div>
+
+                            {/* Programar Próxima Visita (DatePicker personalizado con tema oscuro) */}
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                     <Calendar size={12} className="text-violet-400" />
-                                    <span>Programar Próxima Visita / Vuelta</span>
+                                    <span>Programar Próxima Fecha de Visita</span>
                                 </label>
-                                <input
-                                    type="datetime-local"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40"
+                                <DatePickerInput
                                     value={formData.next_visit_at}
-                                    onChange={e => setFormData({ ...formData, next_visit_at: e.target.value })}
+                                    onChange={val => setFormData({ ...formData, next_visit_at: val })}
+                                    placeholder="Seleccionar fecha de próxima visita..."
                                 />
                             </div>
 
@@ -1509,7 +1614,7 @@ export default function SalesTracker() {
 
                         <form onSubmit={handleConvertSubmit} className="space-y-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nombre del Negocio</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nombre del Negocio *</label>
                                 <input
                                     type="text"
                                     required
@@ -1519,20 +1624,27 @@ export default function SalesTracker() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enlace / Slug</label>
+                            {/* Enlace Personalizado con Prefijo citalink.app/ */}
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enlace Público / URL Personalizada *</label>
+                                <div className="flex rounded-2xl bg-white/5 border border-white/10 overflow-hidden focus-within:border-emerald-500/40">
+                                    <span className="px-3.5 py-3 bg-white/5 text-slate-400 text-xs font-mono select-none flex items-center border-r border-white/10 shrink-0">
+                                        citalink.app/
+                                    </span>
                                     <input
                                         type="text"
                                         required
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40"
+                                        className="flex-1 bg-transparent px-3.5 py-3 text-sm text-white focus:outline-none font-mono"
                                         value={convertForm.slug}
-                                        onChange={e => setConvertForm({ ...convertForm, slug: e.target.value })}
+                                        onChange={e => setConvertForm({ ...convertForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                                        placeholder="mi-negocio"
                                     />
                                 </div>
+                            </div>
 
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rubro</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rubro / Categoría</label>
                                     <select
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40"
                                         value={convertForm.category}
@@ -1543,21 +1655,122 @@ export default function SalesTracker() {
                                         ))}
                                     </select>
                                 </div>
-                            </div>
 
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dirección</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40"
-                                    value={convertForm.address}
-                                    onChange={e => setConvertForm({ ...convertForm, address: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Correo de Acceso</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Teléfono / WhatsApp de Notificaciones</label>
+                                    <input
+                                        type="tel"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40"
+                                        value={convertForm.phone}
+                                        onChange={e => setConvertForm({ ...convertForm, phone: e.target.value })}
+                                        placeholder="Ej. 3312345678"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dirección Física</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40"
+                                        value={convertForm.address}
+                                        onChange={e => setConvertForm({ ...convertForm, address: e.target.value })}
+                                        placeholder="Ej. Calle Morelos #123, Col. Centro"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Coordenadas / Maps</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40 font-mono text-xs"
+                                        value={convertForm.googleMapsUrl}
+                                        onChange={e => setConvertForm({ ...convertForm, googleMapsUrl: e.target.value })}
+                                        placeholder="https://maps.google.com/?q=..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* País del Negocio y Zona Horaria */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">País y Moneda</label>
+                                    <select
+                                        value={convertForm.countryCode}
+                                        onChange={e => {
+                                            const code = e.target.value;
+                                            const preset = getCountryPreset(code);
+                                            setConvertForm({ ...convertForm, countryCode: code, timezone: preset.timezone || convertForm.timezone });
+                                        }}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40 cursor-pointer"
+                                    >
+                                        {Object.values(COUNTRY_PRESETS).map(country => (
+                                            <option key={country.code} value={country.code} className="bg-slate-900 text-white">
+                                                {country.flag} {country.name} ({country.currencySymbol} · {country.phonePrefix})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Zona Horaria</label>
+                                    <select
+                                        value={convertForm.timezone}
+                                        onChange={e => setConvertForm({ ...convertForm, timezone: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/40 cursor-pointer"
+                                    >
+                                        <option value="America/Mexico_City" className="bg-slate-900">🇲🇽 México Central (CDMX, Mty, Gdl)</option>
+                                        <option value="America/Tijuana" className="bg-slate-900">🇲🇽 México Pacífico (Tijuana, Mexicali)</option>
+                                        <option value="America/Mazatlan" className="bg-slate-900">🇲🇽 México Montaña (Mazatlán, Culiacán)</option>
+                                        <option value="America/Cancun" className="bg-slate-900">🇲🇽 México Este (Cancún)</option>
+                                        <option value="America/New_York" className="bg-slate-900">🇺🇸 EE.UU. Este (New York, Miami)</option>
+                                        <option value="America/Chicago" className="bg-slate-900">🇺🇸 EE.UU. Central (Chicago, Houston)</option>
+                                        <option value="America/Denver" className="bg-slate-900">🇺🇸 EE.UU. Montaña (Denver, Phoenix)</option>
+                                        <option value="America/Los_Angeles" className="bg-slate-900">🇺🇸 EE.UU. Pacífico (Los Angeles)</option>
+                                        <option value="Europe/Madrid" className="bg-slate-900">🇪🇸 España (Madrid, Barcelona)</option>
+                                        <option value="America/Bogota" className="bg-slate-900">🇨🇴/🇪🇨 Colombia / Perú / Ecuador</option>
+                                        <option value="America/Santiago" className="bg-slate-900">🇨🇱 Chile</option>
+                                        <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">🇦🇷 Argentina</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Selección de Plan Inicial */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                                    <span>Plan de Suscripción Inicial</span>
+                                    <span className="text-emerald-400 font-black text-[9px] uppercase">30 Días de Prueba Incluidos</span>
+                                </label>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {[
+                                        { key: 'free' as PlanType, name: 'Free', price: '$0', desc: 'Básico' },
+                                        { key: 'lite' as PlanType, name: 'Esencial', price: '$349', desc: '1 Staff' },
+                                        { key: 'pro' as PlanType, name: 'Pro', price: '$649', desc: 'Multi-Staff' },
+                                        { key: 'business' as PlanType, name: 'Business', price: '$1,249', desc: 'Sucursales' },
+                                    ].map(p => (
+                                        <button
+                                            type="button"
+                                            key={p.key}
+                                            onClick={() => setConvertForm({ ...convertForm, plan: p.key })}
+                                            className={`p-2.5 rounded-2xl border text-center transition-all ${
+                                                convertForm.plan === p.key
+                                                    ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg shadow-emerald-500/10'
+                                                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            <p className="font-black text-xs text-white">{p.name}</p>
+                                            <p className="text-[10px] font-bold text-emerald-400">{p.price}/m</p>
+                                            <p className="text-[9px] text-slate-500 mt-0.5">{p.desc}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Credenciales de Acceso */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Correo de Acceso *</label>
                                     <input
                                         type="email"
                                         required
@@ -1568,7 +1781,7 @@ export default function SalesTracker() {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contraseña Asignada</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contraseña Asignada *</label>
                                     <input
                                         type="text"
                                         required
@@ -1581,7 +1794,7 @@ export default function SalesTracker() {
 
                             <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs leading-relaxed flex items-center gap-2">
                                 <CheckCircle2 size={16} className="shrink-0" />
-                                <span>Al crear, se generará la agenda predeterminada y se enviarán los accesos por WhatsApp al dueño si hay teléfono.</span>
+                                <span>Al crear, se generará la agenda predeterminada y se enviarán los accesos por WhatsApp al dueño si hay teléfono registrado.</span>
                             </div>
 
                             <div className="flex gap-2 pt-2">
