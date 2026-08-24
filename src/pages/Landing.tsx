@@ -94,7 +94,7 @@ export default function Landing() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         businessName: '', businessType: '', employeeCount: '',
-        contactName: '', email: '', phone: ''
+        contactName: '', email: '', phone: '', address: ''
     });
 
 
@@ -119,7 +119,7 @@ export default function Landing() {
             const { error } = await supabase.from('leads').insert([{
                 business_name: formData.businessName, business_type: formData.businessType,
                 employee_count: formData.employeeCount, contact_name: formData.contactName,
-                email: formData.email, phone: formData.phone
+                email: formData.email, phone: formData.phone, address: formData.address
             }]);
             if (error) throw error;
             setLeadSuccess(true);
@@ -141,7 +141,7 @@ export default function Landing() {
                         other: 'Otro'
                     };
                     const typeLabel = bizTypes[formData.businessType] || formData.businessType;
-                    const messageText = `🆕 *Nuevo prospecto en CitaLink!*\n\n🏪 *Negocio:* ${formData.businessName} (${typeLabel})\n👤 *Contacto:* ${formData.contactName}\n📞 *Teléfono:* ${formData.phone}\n📧 *Email:* ${formData.email}\n👥 *Personal:* ${formData.employeeCount}`;
+                    const messageText = `🆕 *Nuevo prospecto en CitaLink!*\n\n🏪 *Negocio:* ${formData.businessName} (${typeLabel})\n👤 *Contacto:* ${formData.contactName}\n📞 *Teléfono:* ${formData.phone}\n📍 *Ubicación:* ${formData.address || 'No especificada'}\n📧 *Email:* ${formData.email}\n👥 *Personal:* ${formData.employeeCount}`;
                     
                     const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
                     const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -164,7 +164,7 @@ export default function Landing() {
                 console.warn('No se pudo enviar la notificación de lead al superadmin:', notiErr);
             }
 
-            setTimeout(() => { setIsModalOpen(false); setLeadSuccess(false); setFormData({ businessName: '', businessType: '', employeeCount: '', contactName: '', email: '', phone: '' }); }, 5000);
+            setTimeout(() => { setIsModalOpen(false); setLeadSuccess(false); setFormData({ businessName: '', businessType: '', employeeCount: '', contactName: '', email: '', phone: '', address: '' }); }, 5000);
         } catch (err: any) {
             setErrorMsg(err.message || 'Error al procesar. Intenta de nuevo.');
         } finally { setSubmitting(false); }
@@ -1505,16 +1505,29 @@ export default function Landing() {
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">WhatsApp de Contacto</label>
-                                    <input
-                                        required
-                                        type="tel"
-                                        placeholder="+52 81 0000 0000"
-                                        className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
-                                        value={formData.phone}
-                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                    />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">WhatsApp de Contacto</label>
+                                        <input
+                                            required
+                                            type="tel"
+                                            placeholder="+52 81 0000 0000"
+                                            className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                            value={formData.phone}
+                                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Dirección / Ciudad</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="Ej: Av. Juárez 123, Mty"
+                                            className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                            value={formData.address}
+                                            onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
 
                                 <button

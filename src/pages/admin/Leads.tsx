@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import {
     Users, Mail, Phone, Building2, Calendar, Search, MessageCircle,
     RefreshCw, Filter, ArrowRight, X, Trash2, Archive, CheckCircle2,
-    Download, Save, ShieldAlert
+    Download, Save, ShieldAlert, MapPin
 } from 'lucide-react';
 import type { Lead } from '../../lib/types/store.types';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -72,17 +72,43 @@ export default function Leads() {
     const [isCreatingTenant, setIsCreatingTenant] = useState(false);
     const [convertError, setConvertError] = useState<string | null>(null);
 
-    // ── WhatsApp Message Generator ──
-    const getWhatsAppUrl = (lead: Lead) => {
-        const cleanPhone = lead.phone.replace(/\D/g, '');
-        const message = `Hola ${lead.contact_name}, te escribo de CitaLink por tu solicitud para ${lead.business_name}. ¿Cómo estás?`;
-        return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    // ── WhatsApp Message Generator & Templates ──
+    const [waTemplateIndex, setWaTemplateIndex] = useState<number>(0);
+    const [customWaMessage, setCustomWaMessage] = useState<string>('');
+
+    const WA_TEMPLATES = [
+        {
+            title: '👋 Bienvenida & Demo',
+            getText: (lead: Lead) => `Hola ${lead.contact_name}, te escribo del equipo de CitaLink respecto a tu registro para *${lead.business_name}*. 👋 ¿Cómo estás? ¿Te gustaría que te agendemos una demo rápida para activar tu cuenta?`
+        },
+        {
+            title: '🚀 Activar Prueba',
+            getText: (lead: Lead) => `¡Hola ${lead.contact_name}! Vi tu interés en digitalizar *${lead.business_name}*. 🚀 Ya tenemos listo tu sistema con recordatorios automáticos por WhatsApp y agenda en línea. ¿Tienes 2 minutos para configurarlo juntos?`
+        },
+        {
+            title: '💈 Dudas & Soporte',
+            getText: (lead: Lead) => `Hola ${lead.contact_name}, te contacto de CitaLink para *${lead.business_name}*. ¿Tuviste alguna duda al registrarte o te gustaría que te apoyemos a cargar tus servicios y colaboradores?`
+        }
+    ];
+
+    const getWhatsAppUrl = (lead: Lead, msgOverride?: string) => {
+        if (!lead.phone) return '#';
+        let cleanPhone = lead.phone.replace(/\D/g, '');
+        if (cleanPhone.length === 10) {
+            cleanPhone = `52${cleanPhone}`;
+        }
+        const text = msgOverride !== undefined && msgOverride !== ''
+            ? msgOverride
+            : (WA_TEMPLATES[waTemplateIndex]?.getText(lead) || WA_TEMPLATES[0].getText(lead));
+        return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
     };
 
     // ── Open Lead Detail Modal ──
     const openLeadDetails = (lead: Lead) => {
         setSelectedLead(lead);
         setTempNotes(lead.notes || '');
+        setWaTemplateIndex(0);
+        setCustomWaMessage(WA_TEMPLATES[0].getText(lead));
     };
 
     // ── Save Notes ──
@@ -114,7 +140,7 @@ export default function Leads() {
         setConvertForm({
             businessName: lead.business_name,
             slug: cleanSlug,
-            address: '',
+            address: lead.address || lead.city || '',
             category: lead.business_type || 'barbershop',
             ownerEmail: lead.email,
             ownerPassword: generatedPassword,
@@ -494,6 +520,12 @@ export default function Leads() {
                                                         <span className="text-[10px] text-slate-400">{lead.phone}</span>
                                                     </div>
                                                 )}
+                                                {(lead.address || lead.city) && (
+                                                    <div className="flex items-center gap-1.5 text-[10px] text-cyan-400/80 font-medium">
+                                                        <MapPin className="w-3 h-3 opacity-60 shrink-0" />
+                                                        <span className="truncate max-w-[180px]">{lead.address || lead.city}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="p-6">
@@ -611,9 +643,23 @@ export default function Leads() {
                                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Email</span>
                                     <p className="font-bold text-white text-xs truncate">{selectedLead.email}</p>
                                 </div>
-                                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Teléfono</span>
-                                    <p className="font-bold text-white text-xs">{selectedLead.phone}</p>
+                                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between gap-2">
+                                    <div>
+                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Teléfono</span>
+                                        <p className="font-bold text-white text-xs">{selectedLead.phone || 'Sin teléfono'}</p>
+                                    </div>
+                                    {selectedLead.phone && (
+                                        <a
+                                            href={getWhatsAppUrl(selectedLead, customWaMessage)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-all hover:scale-105 flex items-center gap-1.5 text-xs font-bold shrink-0"
+                                            title="Abrir chat en WhatsApp"
+                                        >
+                                            <MessageCircle size={15} />
+                                            <span>Chat WA</span>
+                                        </a>
+                                    )}
                                 </div>
                                 <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
                                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Infraestructura</span>
@@ -622,6 +668,17 @@ export default function Leads() {
                                 <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
                                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Fecha Registro</span>
                                     <p className="font-bold text-white text-xs">{format(new Date(selectedLead.created_at), 'dd MMMM yyyy, HH:mm', { locale: es })}</p>
+                                </div>
+                                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl col-span-1 sm:col-span-2 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                                        <MapPin size={16} className="text-cyan-400" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Dirección / Ubicación</span>
+                                        <p className="font-bold text-white text-xs truncate">
+                                            {selectedLead.address || selectedLead.city || 'No especificada en el registro inicial'}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -647,6 +704,59 @@ export default function Leads() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* WhatsApp Direct Contact Section */}
+                            {selectedLead.phone && (
+                                <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-emerald-400 font-black uppercase tracking-wider flex items-center gap-1.5">
+                                            <MessageCircle size={14} /> Contactar por WhatsApp con Mensaje Predeterminado
+                                        </span>
+                                        <span className="text-[9px] text-emerald-400/70 font-mono">1-Clic Chat</span>
+                                    </div>
+
+                                    {/* Template Selector Pills */}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {WA_TEMPLATES.map((tmpl, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                    setWaTemplateIndex(idx);
+                                                    setCustomWaMessage(tmpl.getText(selectedLead));
+                                                }}
+                                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                    waTemplateIndex === idx
+                                                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black shadow-sm'
+                                                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                                                }`}
+                                            >
+                                                {tmpl.title}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Editable Message Preview */}
+                                    <textarea
+                                        rows={3}
+                                        value={customWaMessage}
+                                        onChange={(e) => setCustomWaMessage(e.target.value)}
+                                        placeholder="Escribe o personaliza el mensaje de WhatsApp..."
+                                        className="w-full bg-black/50 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-100 placeholder:text-slate-600 focus:outline-none focus:border-emerald-400 resize-none font-medium leading-relaxed"
+                                    />
+
+                                    {/* Big Green WhatsApp Launch Button */}
+                                    <a
+                                        href={getWhatsAppUrl(selectedLead, customWaMessage)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.01]"
+                                    >
+                                        <MessageCircle size={16} className="fill-slate-950" />
+                                        <span>Abrir Chat de WhatsApp Directo</span>
+                                    </a>
+                                </div>
+                            )}
 
                             {/* Notes input */}
                             <div className="space-y-2">
@@ -690,18 +800,33 @@ export default function Leads() {
                                 </button>
                             </div>
 
-                            {selectedLead.converted_tenant_id ? (
-                                <div className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl uppercase tracking-wider flex items-center gap-1.5">
-                                    <CheckCircle2 size={14} /> Cliente Convertido Activo
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => openConvertModal(selectedLead)}
-                                    className="btn btn-primary py-2.5 px-5 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 shadow-glow"
-                                >
-                                    Activar como Cliente <ArrowRight size={14} />
-                                </button>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {selectedLead.phone && (
+                                    <a
+                                        href={getWhatsAppUrl(selectedLead, customWaMessage)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="py-2.5 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                                        title="Contactar por WhatsApp"
+                                    >
+                                        <MessageCircle size={15} />
+                                        <span>WhatsApp</span>
+                                    </a>
+                                )}
+
+                                {selectedLead.converted_tenant_id ? (
+                                    <div className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl uppercase tracking-wider flex items-center gap-1.5">
+                                        <CheckCircle2 size={14} /> Cliente Convertido Activo
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => openConvertModal(selectedLead)}
+                                        className="btn btn-primary py-2.5 px-5 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 shadow-glow"
+                                    >
+                                        Activar como Cliente <ArrowRight size={14} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

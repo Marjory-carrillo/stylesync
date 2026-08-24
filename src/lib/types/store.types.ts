@@ -125,6 +125,8 @@ export interface Lead {
     contact_name: string;
     email: string;
     phone: string;
+    address?: string | null;
+    city?: string | null;
     status: string;
     notes?: string | null;
     archived_at?: string | null;
