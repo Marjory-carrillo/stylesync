@@ -115,6 +115,20 @@ export default function Landing() {
         e.preventDefault();
         setSubmitting(true);
         setErrorMsg(null);
+
+        // Validación estricta de teléfono (entre 10 y 12 dígitos)
+        const rawDigits = formData.phone.replace(/\D/g, '');
+        if (rawDigits.length < 10) {
+            setErrorMsg(`El WhatsApp debe tener mínimo 10 dígitos (ingresaste ${rawDigits.length}). Por favor introduce un número completo.`);
+            setSubmitting(false);
+            return;
+        }
+        if (rawDigits.length > 12) {
+            setErrorMsg(`El WhatsApp no debe exceder 12 dígitos (ingresaste ${rawDigits.length}). Por favor verifica el número.`);
+            setSubmitting(false);
+            return;
+        }
+
         try {
             const { error } = await supabase.from('leads').insert([{
                 business_name: formData.businessName, business_type: formData.businessType,
@@ -1507,15 +1521,37 @@ export default function Landing() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">WhatsApp de Contacto</label>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <label className="text-xs font-bold text-slate-300 block">WhatsApp de Contacto</label>
+                                            {formData.phone.trim().length > 0 && (
+                                                <span className={`text-[10px] font-bold ${
+                                                    formData.phone.replace(/\D/g, '').length < 10 
+                                                        ? 'text-amber-400' 
+                                                        : formData.phone.replace(/\D/g, '').length > 12 
+                                                            ? 'text-rose-400' 
+                                                            : 'text-emerald-400'
+                                                }`}>
+                                                    {formData.phone.replace(/\D/g, '').length < 10 && `⚠️ Mín 10 (${formData.phone.replace(/\D/g, '').length}/10)`}
+                                                    {formData.phone.replace(/\D/g, '').length > 12 && `⚠️ Máx 12 (${formData.phone.replace(/\D/g, '').length}/12)`}
+                                                    {formData.phone.replace(/\D/g, '').length >= 10 && formData.phone.replace(/\D/g, '').length <= 12 && `✓ Válido (${formData.phone.replace(/\D/g, '').length} dígitos)`}
+                                                </span>
+                                            )}
+                                        </div>
                                         <input
                                             required
                                             type="tel"
                                             placeholder="+52 81 0000 0000"
-                                            className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                            className={`w-full bg-[#040814]/90 border rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                                                formData.phone.trim().length > 0 && (formData.phone.replace(/\D/g, '').length < 10 || formData.phone.replace(/\D/g, '').length > 12)
+                                                    ? 'border-amber-500/80 focus:border-amber-500 focus:ring-amber-500/20'
+                                                    : 'border-slate-700/60 focus:border-violet-500 focus:ring-violet-500/20'
+                                            }`}
                                             value={formData.phone}
                                             onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                         />
+                                        <span className="text-[10px] text-slate-500 mt-1 block">
+                                            Entre 10 y 12 dígitos (ej: 81 1234 5678)
+                                        </span>
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-slate-300 mb-1.5 block">Dirección / Ciudad</label>
@@ -1527,6 +1563,9 @@ export default function Landing() {
                                             value={formData.address}
                                             onChange={e => setFormData({ ...formData, address: e.target.value })}
                                         />
+                                        <span className="text-[10px] text-slate-500 mt-1 block">
+                                            Ciudad o calle de tu sucursal
+                                        </span>
                                     </div>
                                 </div>
 
