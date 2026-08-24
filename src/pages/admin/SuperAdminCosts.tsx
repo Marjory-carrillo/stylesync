@@ -4,11 +4,10 @@ import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 import {
     DollarSign, TrendingUp, TrendingDown, Settings,
-    Building2, MessageCircle, Phone, Server, Search, Download, ArrowUpRight,
-    RefreshCw, Zap, ShieldAlert, Sparkles, Calendar, Plus, Trash2, Edit3,
+    Building2, MessageCircle, Phone, Server, Search, Download,
+    RefreshCw, Zap, Sparkles, Calendar, Plus, Trash2, Edit3,
     Scissors, Flower2, Briefcase, MoreHorizontal, BarChart3, PieChart as PieChartIcon,
-    Layers, CheckCircle2, X, AlertCircle, ToggleLeft, ToggleRight, Bot, CreditCard,
-    Check, Clock, AlertTriangle
+    CheckCircle2, X, ToggleLeft, ToggleRight, Bot
 } from 'lucide-react';
 import DatePickerInput from '../../components/DatePickerInput';
 import {
@@ -135,7 +134,7 @@ export default function SuperAdminCosts() {
     const [editingExpense, setEditingExpense] = useState<FixedExpense | null>(null);
 
     // Filtros de búsqueda y vista
-    const [showCharts, setShowCharts] = useState(true);
+    const [showCharts] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('all');
     const [filterPlan, setFilterPlan] = useState<string>('all');
@@ -1444,7 +1443,7 @@ function ExpenseFormModal({ isOpen, onClose, initialData, onSave }: { isOpen: bo
     const [category, setCategory] = useState<any>(initialData?.category || 'hosting');
     const [frequency, setFrequency] = useState<'monthly' | 'yearly'>(initialData?.frequency || 'monthly');
     const [notes, setNotes] = useState(initialData?.notes || '');
-    const [active, setActive] = useState(initialData?.active !== undefined ? initialData.active : true);
+    const [active] = useState(initialData?.active !== undefined ? initialData.active : true);
 
     if (!isOpen) return null;
 

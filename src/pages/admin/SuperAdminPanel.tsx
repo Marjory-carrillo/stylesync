@@ -6,7 +6,7 @@ import {
     Zap, AlertTriangle, Calendar, Users,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
     DollarSign, Pencil, Eye, Key, EyeOff, Download, ShoppingBag,
-    Phone, MapPin, MessageCircle, Copy, Check, ExternalLink, Navigation, Globe, Shield, RefreshCw, Settings
+    Phone, MapPin, MessageCircle, Copy, Check, ExternalLink, Navigation, RefreshCw, Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
@@ -313,8 +313,8 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave, onSwitchTenant, on
     const [marketplaceEnabled, setMarketplaceEnabled] = useState(tenant.marketplace_enabled || false);
     const [marketplaceCommissionRate, setMarketplaceCommissionRate] = useState<number>(tenant.marketplace_commission_rate ?? 15);
     const [smsProvider, setSmsProvider] = useState(tenant.sms_provider || 'demo');
-    const [extraEmployeesPaid, setExtraEmployeesPaid] = useState<number>(tenant.extra_employees_paid || 0);
-    const [extraBranchesPaid, setExtraBranchesPaid] = useState<number>(tenant.extra_branches_paid || 0);
+    const [extraEmployeesPaid] = useState<number>(tenant.extra_employees_paid || 0);
+    const [extraBranchesPaid] = useState<number>(tenant.extra_branches_paid || 0);
     const [isSaving, setIsSaving] = useState(false);
     const [copiedSlug, setCopiedSlug] = useState(false);
 
