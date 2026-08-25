@@ -344,6 +344,25 @@ export function useSuperAdmin() {
                 return { success: false, error: err.message };
             }
         },
+        /**
+         * Fija o restablece manualmente la fecha exacta de fin de prueba (o null si pasa a suscrito).
+         */
+        setTrialEndDate: async (tenantId: string, newDateIso: string | null): Promise<{ success: boolean; error?: string }> => {
+            if (!isSuperAdmin) return { success: false, error: 'No autorizado' };
+            try {
+                const { error: updateErr } = await supabase
+                    .from('tenants')
+                    .update({ trial_ends_at: newDateIso })
+                    .eq('id', tenantId);
+
+                if (updateErr) throw updateErr;
+
+                queryClient.invalidateQueries({ queryKey });
+                return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err.message };
+            }
+        },
         switchTenant
     };
 }

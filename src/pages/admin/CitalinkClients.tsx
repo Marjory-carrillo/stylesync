@@ -2,14 +2,15 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import { useUIStore } from '../../lib/store/uiStore';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
     Building2, Users, Search, MessageCircle, ExternalLink,
-    Clock, Shield, Sparkles, Copy, Check, Plus,
+    Clock, Shield, Copy, Check, Plus,
     RefreshCw, Globe, MapPin, Mail, Phone, Calendar,
     AlertTriangle, ChevronDown,
-    Eye, Scissors, Flower2, Dog, Briefcase, Store
+    Eye, Scissors, Flower2, Dog, Briefcase, Store,
+    Sliders
 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -43,8 +44,10 @@ const CATEGORY_MAP: Record<string, { label: string; icon: any; color: string }> 
     other: { label: 'Otro Giro', icon: Store, color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
 };
 
+import { Sparkles } from 'lucide-react';
+
 export default function CitalinkClients() {
-    const { allTenants, isLoading, fetchAllTenants, extendTrial, updateTenant, deleteTenant, switchTenant } = useSuperAdmin();
+    const { allTenants, isLoading, fetchAllTenants, setTrialEndDate, updateTenant, deleteTenant, switchTenant } = useSuperAdmin();
     const { showToast } = useUIStore();
     const navigate = useNavigate();
 
@@ -66,8 +69,12 @@ export default function CitalinkClients() {
     const [customWaMessage, setCustomWaMessage] = useState('');
     const [selectedTemplateIdx, setSelectedTemplateIdx] = useState<number>(0);
 
-    // ── Extend Trial Modal / Action ──
-    const [extendingId, setExtendingId] = useState<string | null>(null);
+    // ── Trial Management / Confirmation Modal State ──
+    const [trialModalTenant, setTrialModalTenant] = useState<TenantWithUsers | null>(null);
+    const [trialActionType, setTrialActionType] = useState<'add' | 'subtract' | 'reset_standard' | 'expire_now' | 'custom_days'>('add');
+    const [daysDelta, setDaysDelta] = useState<number>(7);
+    const [customDaysInput, setCustomDaysInput] = useState<number>(30);
+    const [isSavingTrial, setIsSavingTrial] = useState(false);
 
     // ── Change Plan Modal State ──
     const [planModalTenant, setPlanModalTenant] = useState<TenantWithUsers | null>(null);
@@ -160,7 +167,6 @@ export default function CitalinkClients() {
         if (tenant.registration_source === 'direct' || tenant.registration_source === 'manual') {
             return 'direct';
         }
-        // Inferencia para registros anteriores
         return 'direct';
     };
 
@@ -236,20 +242,56 @@ export default function CitalinkClients() {
         setTimeout(() => setCopiedSlug(null), 2500);
     };
 
-    // ── Extender prueba ──
-    const handleExtendTrial = async (tenantId: string, days: number) => {
-        setExtendingId(tenantId);
+    // ── Abrir Modal de Prueba con Acción Preseleccionada ──
+    const openTrialModal = (tenant: TenantWithUsers, preselectedDays: number = 7) => {
+        setTrialModalTenant(tenant);
+        setTrialActionType('add');
+        setDaysDelta(preselectedDays);
+        setCustomDaysInput(preselectedDays);
+    };
+
+    // ── Calcular Nueva Fecha para Vista Previa en Modal ──
+    const calculateNewTrialEnd = () => {
+        if (!trialModalTenant) return null;
+        const now = new Date();
+        let currentEnd = trialModalTenant.trial_ends_at ? new Date(trialModalTenant.trial_ends_at) : now;
+        if (currentEnd < now) currentEnd = now;
+
+        if (trialActionType === 'add') {
+            return addDays(currentEnd, daysDelta);
+        } else if (trialActionType === 'subtract') {
+            const result = addDays(currentEnd, -daysDelta);
+            return result < now ? now : result;
+        } else if (trialActionType === 'reset_standard') {
+            return addDays(now, 30);
+        } else if (trialActionType === 'expire_now') {
+            return new Date(now.getTime() - 86400000); // Ayer (vencido)
+        } else if (trialActionType === 'custom_days') {
+            return addDays(now, Math.max(0, customDaysInput));
+        }
+        return currentEnd;
+    };
+
+    // ── Aplicar Ajuste de Prueba en Supabase ──
+    const handleConfirmTrialAdjustment = async () => {
+        if (!trialModalTenant) return;
+        const newEnd = calculateNewTrialEnd();
+        if (!newEnd) return;
+
+        setIsSavingTrial(true);
         try {
-            const res = await extendTrial(tenantId, days);
+            const res = await setTrialEndDate(trialModalTenant.id, newEnd.toISOString());
             if (res.success) {
-                showToast(`¡Prueba extendida +${days} días con éxito!`, 'success');
+                const daysRemaining = Math.max(0, differenceInDays(newEnd, new Date()));
+                showToast(`Período de prueba actualizado para "${trialModalTenant.name}" (${daysRemaining} días restantes)`, 'success');
+                setTrialModalTenant(null);
             } else {
-                showToast(res.error || 'Error al extender prueba', 'error');
+                showToast(res.error || 'Error al actualizar período de prueba', 'error');
             }
         } catch (err: any) {
             showToast(err.message, 'error');
         } finally {
-            setExtendingId(null);
+            setIsSavingTrial(false);
         }
     };
 
@@ -569,9 +611,13 @@ export default function CitalinkClients() {
                                             </span>
                                         </div>
 
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${trial.badgeColor}`}>
+                                        <button
+                                            onClick={() => openTrialModal(tenant, 7)}
+                                            className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity ${trial.badgeColor}`}
+                                            title="Clic para ajustar días de prueba"
+                                        >
                                             {trial.label}
-                                        </span>
+                                        </button>
                                     </div>
 
                                     {/* Business Name & Slug */}
@@ -638,12 +684,21 @@ export default function CitalinkClients() {
                                     {/* ══ TRIAL PROGRESS & ADAPTIVE TRACKER ══ */}
                                     <div className="space-y-1.5">
                                         <div className="flex items-center justify-between text-[10px] font-bold">
-                                            <span className="text-slate-400 uppercase tracking-wider">Período de Prueba</span>
+                                            <button
+                                                onClick={() => openTrialModal(tenant, 7)}
+                                                className="text-slate-400 hover:text-cyan-300 uppercase tracking-wider flex items-center gap-1 transition-colors"
+                                            >
+                                                <Sliders size={11} /> Período de Prueba
+                                            </button>
                                             <span className={trial.isExpired ? 'text-red-400' : 'text-slate-300'}>
                                                 {trial.isExpired ? 'Vencida' : `${trial.daysLeft} de ${trial.totalDays} días restantes`}
                                             </span>
                                         </div>
-                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                        <div 
+                                            onClick={() => openTrialModal(tenant, 7)}
+                                            className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden cursor-pointer hover:h-2 transition-all"
+                                            title="Clic para ajustar o corregir período de prueba"
+                                        >
                                             <div
                                                 className={`h-full transition-all duration-500 ${
                                                     trial.isExpired
@@ -660,7 +715,7 @@ export default function CitalinkClients() {
 
                                 {/* ══ QUICK ACTIONS BAR ══ */}
                                 <div className="space-y-2 pt-2 border-t border-white/5">
-                                    {/* Action Buttons: Entrar al panel + Extender prueba */}
+                                    {/* Action Buttons: Entrar al panel + Botones con Confirmación */}
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={() => handleImpersonate(tenant)}
@@ -672,33 +727,30 @@ export default function CitalinkClients() {
 
                                         <div className="flex gap-1">
                                             <button
-                                                onClick={() => handleExtendTrial(tenant.id, 7)}
-                                                disabled={extendingId === tenant.id}
-                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] border border-white/5 transition-colors"
-                                                title="Extender +7 días de prueba"
+                                                onClick={() => openTrialModal(tenant, 7)}
+                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 font-bold text-[11px] border border-white/5 transition-colors"
+                                                title="Extender o ajustar días de prueba (con confirmación)"
                                             >
                                                 +7d
                                             </button>
                                             <button
-                                                onClick={() => handleExtendTrial(tenant.id, 15)}
-                                                disabled={extendingId === tenant.id}
-                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] border border-white/5 transition-colors"
-                                                title="Extender +15 días de prueba"
+                                                onClick={() => openTrialModal(tenant, 15)}
+                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 font-bold text-[11px] border border-white/5 transition-colors"
+                                                title="Extender o ajustar días de prueba (con confirmación)"
                                             >
                                                 +15d
                                             </button>
                                             <button
-                                                onClick={() => handleExtendTrial(tenant.id, 30)}
-                                                disabled={extendingId === tenant.id}
-                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] border border-white/5 transition-colors"
-                                                title="Extender +30 días de prueba"
+                                                onClick={() => openTrialModal(tenant, 30)}
+                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 font-bold text-[11px] border border-white/5 transition-colors"
+                                                title="Extender o ajustar días de prueba (con confirmación)"
                                             >
                                                 +30d
                                             </button>
                                         </div>
                                     </div>
 
-                                    {/* Secondary Actions: Cambiar Plan / Eliminar */}
+                                    {/* Secondary Actions: Cambiar Plan / Ajustar Días / Eliminar */}
                                     <div className="flex items-center justify-between text-[11px] pt-1">
                                         <button
                                             onClick={() => {
@@ -708,6 +760,13 @@ export default function CitalinkClients() {
                                             className="text-slate-400 hover:text-cyan-300 font-bold flex items-center gap-1 transition-colors"
                                         >
                                             <Shield size={12} /> Plan: <span className="text-white uppercase">{tenant.plan || 'Free'}</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => openTrialModal(tenant, 7)}
+                                            className="text-slate-400 hover:text-amber-300 font-medium flex items-center gap-1 transition-colors"
+                                        >
+                                            <Clock size={11} /> Ajustar Días
                                         </button>
 
                                         <button
@@ -724,6 +783,167 @@ export default function CitalinkClients() {
                     })}
                 </div>
             )}
+
+            {/* ══ MODAL DE GESTIÓN & CONFIRMACIÓN DE PERÍODO DE PRUEBA ══ */}
+            {trialModalTenant && (() => {
+                const currentTrial = getTrialInfo(trialModalTenant);
+                const newEndDate = calculateNewTrialEnd();
+                const newDaysRemaining = newEndDate ? Math.max(0, differenceInDays(newEndDate, new Date())) : 0;
+                const currentEndDateStr = trialModalTenant.trial_ends_at
+                    ? format(new Date(trialModalTenant.trial_ends_at), "d 'de' MMMM, yyyy", { locale: es })
+                    : 'Sin fecha establecida';
+                const newEndDateStr = newEndDate
+                    ? format(newEndDate, "d 'de' MMMM, yyyy", { locale: es })
+                    : 'Sin fecha';
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-[#0d131f] border border-white/10 rounded-[2.2rem] w-full max-w-lg p-6 sm:p-7 space-y-6 shadow-2xl relative overflow-hidden">
+                            {/* Top Accent Line */}
+                            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500" />
+
+                            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                                        <Clock size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black text-white">Ajustar Período de Prueba</h3>
+                                        <p className="text-xs text-slate-400">{trialModalTenant.name}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setTrialModalTenant(null)}
+                                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {/* Current Status Box */}
+                            <div className="p-3.5 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between text-xs">
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Estado Actual</span>
+                                    <p className="font-bold text-white mt-0.5">
+                                        {currentTrial.isExpired ? 'Prueba Vencida' : `${currentTrial.daysLeft} días restantes`}
+                                    </p>
+                                    <span className="text-[10px] text-slate-400">Vence: {currentEndDateStr}</span>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl border ${currentTrial.badgeColor}`}>
+                                    {currentTrial.label}
+                                </span>
+                            </div>
+
+                            {/* Action Options */}
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    ¿Qué deseas hacer?
+                                </label>
+
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <button
+                                        onClick={() => setTrialActionType('add')}
+                                        className={`p-3 rounded-xl border text-left font-bold transition-all ${
+                                            trialActionType === 'add'
+                                                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 ring-1 ring-cyan-500/40'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                                        }`}
+                                    >
+                                        ➕ Sumar Días
+                                    </button>
+
+                                    <button
+                                        onClick={() => setTrialActionType('subtract')}
+                                        className={`p-3 rounded-xl border text-left font-bold transition-all ${
+                                            trialActionType === 'subtract'
+                                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 ring-1 ring-amber-500/40'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                                        }`}
+                                    >
+                                        ➖ Restar / Quitar Días
+                                    </button>
+
+                                    <button
+                                        onClick={() => setTrialActionType('reset_standard')}
+                                        className={`p-3 rounded-xl border text-left font-bold transition-all ${
+                                            trialActionType === 'reset_standard'
+                                                ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 ring-1 ring-purple-500/40'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                                        }`}
+                                    >
+                                        🔄 Reiniciar a 30 Días
+                                    </button>
+
+                                    <button
+                                        onClick={() => setTrialActionType('expire_now')}
+                                        className={`p-3 rounded-xl border text-left font-bold transition-all ${
+                                            trialActionType === 'expire_now'
+                                                ? 'bg-red-500/20 border-red-500/50 text-red-300 ring-1 ring-red-500/40'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                                        }`}
+                                    >
+                                        ⏰ Vencer Prueba Ahora
+                                    </button>
+                                </div>
+
+                                {/* Quantity selector if Add or Subtract */}
+                                {(trialActionType === 'add' || trialActionType === 'subtract') && (
+                                    <div className="space-y-2 pt-1">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                            Cantidad de Días a {trialActionType === 'add' ? 'Sumar' : 'Restar'}:
+                                        </span>
+                                        <div className="flex gap-2">
+                                            {[7, 15, 30, 60].map(d => (
+                                                <button
+                                                    key={d}
+                                                    onClick={() => setDaysDelta(d)}
+                                                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                                        daysDelta === d
+                                                            ? 'bg-white/20 text-white border-white/40'
+                                                            : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/20'
+                                                    }`}
+                                                >
+                                                    {trialActionType === 'add' ? `+${d}d` : `-${d}d`}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Result Preview Box */}
+                            <div className="p-4 bg-black/40 rounded-2xl border border-white/10 space-y-1 text-xs">
+                                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-wider block">
+                                    Resultado tras Confirmar:
+                                </span>
+                                <p className="text-white font-bold text-sm">
+                                    {trialActionType === 'expire_now'
+                                        ? '🔴 La prueba quedará marcada como Vencida inmediatamente.'
+                                        : `🟢 Quedarán ${newDaysRemaining} días de prueba (Vence el ${newEndDateStr})`}
+                                </p>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-end gap-3 pt-1">
+                                <button
+                                    onClick={() => setTrialModalTenant(null)}
+                                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleConfirmTrialAdjustment}
+                                    disabled={isSavingTrial}
+                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                                >
+                                    {isSavingTrial ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                                    Confirmar y Aplicar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ══ MODAL: WHATSAPP CON PLANTILLAS INTELIGENTES ══ */}
             {selectedTenantForWa && (
