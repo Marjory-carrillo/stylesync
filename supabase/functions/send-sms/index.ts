@@ -9,6 +9,8 @@ const TWILIO_WA_FROM = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708'
 // ── Plantilla OTP aprobada por Meta ─────────────────────────────────────────
 // 🔐 Código CitaLink para {{1}}: {{2}} ⏱ Este código es válido por 10 minutos.
 const OTP_TEMPLATE_SID = 'HXd40f3d2ff477c580f15009ad07c89cb9';
+// ── Plantilla Alerta de Nuevo Negocio para SuperAdmin aprobada por Meta ──────
+const TEMPLATE_SUPERADMIN_NUEVO_NEGOCIO = 'HX878dcd19ec5a3f0a439395330923ec8d';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -22,13 +24,13 @@ serve(async (req: Request) => {
 
     try {
         const body = await req.json();
-        const { to, message, tenant_id, provider: requestedProvider, otp_code, business_name } = body;
+        const { to, message, tenant_id, provider: requestedProvider, otp_code, business_name, template_sid, template_variables } = body;
 
-        console.log('[send-sms] Request:', { to, tenant_id, provider: requestedProvider, has_otp: !!otp_code });
+        console.log('[send-sms] Request:', { to, tenant_id, provider: requestedProvider, has_otp: !!otp_code, has_template: !!template_sid });
 
-        if (!to || !message) {
+        if (!to || (!message && !template_sid)) {
             return new Response(
-                JSON.stringify({ success: false, error: 'Faltan campos: to, message' }),
+                JSON.stringify({ success: false, error: 'Faltan campos: to, message/template' }),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
@@ -79,7 +81,16 @@ serve(async (req: Request) => {
 
             let formData: URLSearchParams;
 
-            if (otp_code && business_name) {
+            if (template_sid && template_variables) {
+                // ── Usar plantilla específica aprobada por Meta ──────────────
+                console.log('[send-sms] Using custom template ContentSid:', template_sid);
+                formData = new URLSearchParams({
+                    To: waTo,
+                    From: TWILIO_WA_FROM,
+                    ContentSid: template_sid,
+                    ContentVariables: JSON.stringify(template_variables),
+                });
+            } else if (otp_code && business_name) {
                 // ── Usar plantilla aprobada por Meta para OTP ────────────────
                 console.log('[send-sms] Using OTP template ContentSid');
                 formData = new URLSearchParams({

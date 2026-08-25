@@ -182,6 +182,19 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
 
                 const messageText = `🚀 *¡Nuevo Negocio Registrado en CitaLink!*\n\n🏪 *Negocio:* ${businessName}\n🏷️ *Giro:* ${catLabel}\n👤 *Dueño:* ${contactName}\n📞 *WhatsApp:* ${phone}\n📧 *Email:* ${email}\n📍 *Dirección:* ${address || 'No especificada'}\n🌐 *Link de Reservas:* https://www.citalink.app/${slug}\n📱 *Origen:* Registro Online (Landing Page)\n⚡ *Período de Prueba:* ${trialDays} días (Vence el ${dateStr})\n\nNotificación automática del sistema CitaLink.`;
 
+                const templateSid = 'HX878dcd19ec5a3f0a439395330923ec8d';
+                const templateVariables = {
+                    '1': businessName,
+                    '2': catLabel,
+                    '3': contactName,
+                    '4': phone,
+                    '5': email,
+                    '6': address || 'No especificada',
+                    '7': `https://www.citalink.app/${slug}`,
+                    '8': 'Registro Online (Landing Page)',
+                    '9': `${trialDays} días (Vence el ${dateStr})`,
+                };
+
                 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
                 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
@@ -194,8 +207,10 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
                     },
                     body: JSON.stringify({
                         to: globalConfig.superadmin_phone,
-                        message: messageText,
                         provider: 'whatsapp',
+                        template_sid: templateSid,
+                        template_variables: templateVariables,
+                        message: messageText,
                     }),
                 });
             }
