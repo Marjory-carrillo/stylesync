@@ -33,6 +33,9 @@ async function notifyAdmin(
     } catch (_) { /* fire-and-forget */ }
 }
 
+// Module-level in-flight mutex to block concurrent spam across all components
+const inFlightLocks = new Set<string>();
+
 export const useAppointments = (options?: { startDate?: string; adminPhone?: string; businessName?: string; tenantId?: string }) => {
     const { tenantId: authTenantId } = useAuthStore();
     const tenantId = options?.tenantId || authTenantId;
@@ -201,23 +204,43 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
 
             if (!tenantId) throw new Error('No tenant info');
             const apt = query.data?.find(a => a.id === id);
-            const { data, error } = await supabase.rpc('cancel_appointment_by_client', {
-                p_appointment_id: id,
-                p_tenant_id: tenantId,
-            });
-            if (error) throw error;
-            if (!data?.success) throw new Error(data?.error || 'Error al cancelar');
 
-            if (reason) {
-                await supabase
-                    .from('appointments')
-                    .update({ cancellation_reason: reason })
-                    .eq('id', id);
+            // Si ya está cancelada o ya se está procesando la cancelación de esta cita, evitar duplicados
+            const lockKey = `cancel:${id}`;
+            if (inFlightLocks.has(lockKey)) {
+                console.warn(`[useAppointments] Cancelación en curso para cita ${id}, ignorando llamada duplicada.`);
+                return { id, apt, serviceName, reason, skipped: true };
+            }
+            if (apt && apt.status === 'cancelada') {
+                console.warn(`[useAppointments] La cita ${id} ya estaba cancelada previamente.`);
+                return { id, apt, serviceName, reason, skipped: true };
             }
 
-            return { id, apt, serviceName, reason };
+            inFlightLocks.add(lockKey);
+
+            try {
+                const { data, error } = await supabase.rpc('cancel_appointment_by_client', {
+                    p_appointment_id: id,
+                    p_tenant_id: tenantId,
+                });
+                if (error) throw error;
+                if (!data?.success) throw new Error(data?.error || 'Error al cancelar');
+
+                if (reason) {
+                    await supabase
+                        .from('appointments')
+                        .update({ cancellation_reason: reason })
+                        .eq('id', id);
+                }
+
+                return { id, apt, serviceName, reason, skipped: false };
+            } finally {
+                // Mantener el bloqueo 3 segundos para amortiguar ráfagas de clics con mala conexión
+                setTimeout(() => inFlightLocks.delete(lockKey), 3000);
+            }
         },
-        onSuccess: ({ id, apt, serviceName, reason }) => {
+        onSuccess: ({ id, apt, serviceName, reason, skipped }) => {
+            if (skipped) return;
             if (getDevicePendingId() === id) clearDevicePending();
             queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Cita cancelada', 'success');
@@ -256,22 +279,35 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         onError: (err: any) => showToast(`Error al completar: ${err.message}`, 'error'),
     });
 
-    // UPDATE TIME + DATE
+    // UPDATE TIME + DATE (REAGENDAR)
     const updateTimeMutation = useMutation({
         mutationFn: async ({ id, newTime, newDate, serviceName }: { id: string; newTime: string; newDate?: string; serviceName: string }) => {
             if (!tenantId) throw new Error('No tenant info');
             const apt = query.data?.find(a => a.id === id);
-            const { data, error } = await supabase.rpc('update_appointment_time_by_client', {
-                p_appointment_id: id,
-                p_tenant_id: tenantId,
-                p_new_time: newTime,
-                p_new_date: newDate ?? null,
-            });
-            if (error) throw error;
-            if (!data?.success) throw new Error(data?.error || 'Error al actualizar');
-            return { id, apt, newTime, newDate, serviceName };
+
+            const lockKey = `reschedule:${id}`;
+            if (inFlightLocks.has(lockKey)) {
+                console.warn(`[useAppointments] Reagendamiento en curso para cita ${id}, ignorando llamada duplicada.`);
+                return { id, apt, newTime, newDate, serviceName, skipped: true };
+            }
+            inFlightLocks.add(lockKey);
+
+            try {
+                const { data, error } = await supabase.rpc('update_appointment_time_by_client', {
+                    p_appointment_id: id,
+                    p_tenant_id: tenantId,
+                    p_new_time: newTime,
+                    p_new_date: newDate ?? null,
+                });
+                if (error) throw error;
+                if (!data?.success) throw new Error(data?.error || 'Error al actualizar');
+                return { id, apt, newTime, newDate, serviceName, skipped: false };
+            } finally {
+                setTimeout(() => inFlightLocks.delete(lockKey), 3000);
+            }
         },
-        onSuccess: ({ id, apt, newTime, newDate, serviceName }) => {
+        onSuccess: ({ id, apt, newTime, newDate, serviceName, skipped }) => {
+            if (skipped) return;
             queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             showToast('Hora actualizada', 'success');
             if (tenantId && apt) {
@@ -375,6 +411,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         confirmByClient: confirmByClientMutation.mutateAsync,
         isAdding: addMutation.isPending,
         isCancelling: cancelMutation.isPending,
+        isUpdatingTime: updateTimeMutation.isPending,
         isCompleting: completeMutation.isPending,
         isMarkingNoShow: markNoShowMutation.isPending,
         isConfirmingByClient: confirmByClientMutation.isPending,

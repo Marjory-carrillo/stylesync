@@ -297,7 +297,7 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
                             disabled={isSaving || !newDate || !newTime || isDayClosed}
                             className="flex-1 py-3 px-4 rounded-xl bg-accent hover:brightness-110 text-white text-xs font-bold shadow-lg shadow-accent/20 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <RefreshCw size={14} /> {isSaving ? 'Guardando...' : 'Confirmar Reagendamiento'}
+                            <RefreshCw size={14} className={isSaving ? 'animate-spin' : ''} /> {isSaving ? 'Reagendando...' : 'Confirmar Reagendamiento'}
                         </button>
                     </div>
                 </form>

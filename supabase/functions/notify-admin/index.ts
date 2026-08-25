@@ -114,6 +114,9 @@ async function sendTemplate(
     return res.ok;
 }
 
+// In-memory deduplication cache for Edge runtime (5 minutes window)
+const recentEventsCache = new Map<string, number>();
+
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -123,6 +126,69 @@ serve(async (req: Request) => {
         const directPhone = payload.admin_phone as string | undefined;
         const directName  = payload.business_name as string | undefined;
         const directSlug  = payload.business_slug as string | undefined;
+
+        // ── 🛡️ BLINDAJE ANTI-DUPLICADOS / DEDUPLICATION LOCK ────────────────────────
+        const dedupKey = `${tenant_id || 'no_tenant'}:${event_type}:${appointment?.id || appointment?.client_phone || 'unknown'}`;
+        const nowMs = Date.now();
+        
+        // Limpiar llaves viejas de memoria (> 10 mins)
+        for (const [k, timestamp] of recentEventsCache.entries()) {
+            if (nowMs - timestamp > 10 * 60 * 1000) {
+                recentEventsCache.delete(k);
+            }
+        }
+
+        if (recentEventsCache.has(dedupKey)) {
+            const lastSent = recentEventsCache.get(dedupKey)!;
+            // Si ya se envió en los últimos 3 minutos, bloquear reenvío inmediato
+            if (nowMs - lastSent < 3 * 60 * 1000) {
+                console.warn(`[notify-admin] 🛡️ BLOQUEO ANTI-DUPLICADO EN MEMORIA: ${dedupKey} ya fue enviado hace ${Math.round((nowMs - lastSent)/1000)}s.`);
+                return new Response(
+                    JSON.stringify({ success: true, deduplicated: true, message: 'Notificación ya enviada previamente (deduplicada)' }),
+                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+        }
+
+        // Supabase client for logging & DB check
+        const supabaseLog = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('APP_SERVICE_KEY')!
+        );
+
+        // Verificación en Base de Datos (para casos donde la Edge Function se ejecuta en pods paralelos)
+        if (tenant_id && (appointment?.id || appointment?.client_phone)) {
+            const threeMinutesAgo = new Date(nowMs - 3 * 60 * 1000).toISOString();
+            const phoneToCheck = appointment?.client_phone?.replace(/\D/g, '').slice(-10);
+            
+            const { data: recentLogs } = await supabaseLog
+                .from('sms_logs')
+                .select('id, created_at, message_type')
+                .eq('tenant_id', tenant_id)
+                .gte('created_at', threeMinutesAgo)
+                .ilike('message_type', `%${event_type}%`);
+
+            if (recentLogs && recentLogs.length > 0) {
+                // Si encontramos un registro reciente de este mismo evento
+                const isDuplicate = recentLogs.some(log => 
+                    (appointment?.id && log.message_type?.includes(appointment.id)) ||
+                    (phoneToCheck && log.phone_to?.includes(phoneToCheck))
+                );
+
+                if (isDuplicate) {
+                    console.warn(`[notify-admin] 🛡️ BLOQUEO ANTI-DUPLICADO EN DB: Registro reciente encontrado para ${dedupKey}.`);
+                    recentEventsCache.set(dedupKey, nowMs);
+                    return new Response(
+                        JSON.stringify({ success: true, deduplicated: true, message: 'Notificación ya procesada en DB (deduplicada)' }),
+                        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                    );
+                }
+            }
+        }
+
+        // Registrar en caché de memoria para proteger los siguientes milisegundos
+        recentEventsCache.set(dedupKey, nowMs);
+
         // Nombres de servicios adicionales (para formato ➕ Adicional: ...)
         const additionalServices: string[] = appointment?.additional_services ?? [];
         const isVariablePrice: boolean = appointment?.is_variable_price ?? payload?.is_variable_price ?? false;
@@ -303,7 +369,7 @@ serve(async (req: Request) => {
                 await supabaseLog.from('sms_logs').insert({
                     tenant_id,
                     phone_to: target.phone,
-                    message_type: `${target.role}_${event_type}`,
+                    message_type: appointment?.id ? `${target.role}_${event_type}#${appointment.id}` : `${target.role}_${event_type}`,
                     provider: 'whatsapp',
                     status: 'sent',
                 }).then(r => { if (r.error) console.warn(`[notify-admin] sms_logs insert error (${target.role}):`, r.error.message); });
@@ -399,7 +465,7 @@ serve(async (req: Request) => {
                 await supabaseLog.from('sms_logs').insert({
                     tenant_id,
                     phone_to: appointment.client_phone,
-                    message_type: `client_${event_type}`,
+                    message_type: appointment?.id ? `client_${event_type}#${appointment.id}` : `client_${event_type}`,
                     provider: 'whatsapp',
                     status: 'sent',
                 }).then(r => { if (r.error) console.warn('[notify-admin] sms_logs insert error (client):', r.error.message); });

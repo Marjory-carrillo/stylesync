@@ -29,7 +29,7 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { verifyBankReceipt } from '../../lib/verifyReceipt';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone, Loader2 } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
@@ -1093,7 +1093,11 @@ export default function Booking() {
     };
 
     // ── Manage existing ───
+    const [isCancellingClient, setIsCancellingClient] = useState(false);
+
     const handleClientCancel = async (appointmentId: string, reason?: string) => {
+        if (isCancellingClient) return;
+        setIsCancellingClient(true);
         try {
             const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
             const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
@@ -1103,9 +1107,12 @@ export default function Booking() {
                 : 'Servicio';
 
             await cancelAppointment({ id: appointmentId, serviceName: activeCombinedServiceName, reason });
+            setIsCancelConfirmOpen(false);
             setStep(11);
         } catch (error) {
             console.error('Error al cancelar:', error);
+        } finally {
+            setIsCancellingClient(false);
         }
     };
 
@@ -3756,20 +3763,20 @@ export default function Booking() {
                                         Conservar Cita
                                     </button>
                                     <button
-                                        disabled={!isValid}
+                                        disabled={!isValid || isCancellingClient}
                                         onClick={() => {
-                                            if (!isValid || !activeAppt) return;
+                                            if (!isValid || !activeAppt || isCancellingClient) return;
                                             const finalReason = selectedCancelReason === 'Otro' ? `Otro: ${customCancelReasonText.trim()}` : selectedCancelReason;
-                                            setIsCancelConfirmOpen(false);
                                             handleClientCancel(activeAppt.id, finalReason);
                                         }}
-                                        className={`flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all ${
-                                            isValid
+                                        className={`flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                                            isValid && !isCancellingClient
                                                 ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30'
                                                 : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
                                         }`}
                                     >
-                                        Sí, Cancelar
+                                        {isCancellingClient && <Loader2 size={16} className="animate-spin" />}
+                                        {isCancellingClient ? 'Cancelando...' : 'Sí, Cancelar'}
                                     </button>
                                 </div>
                             );
