@@ -380,7 +380,7 @@ export default function GlobalSettings() {
                                         <span className="text-slate-500 font-mono">WhatsApp Instantáneo</span>
                                     </div>
                                     <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-[11px] font-mono text-emerald-300 leading-relaxed whitespace-pre-wrap">
-{`🚀 *¡Nuevo Negocio Creado en CitaLink!*
+{`🚀 *¡Nuevo Negocio Registrado en CitaLink!*
 
 🏪 *Negocio:* Barbería El Neón
 🏷️ *Giro:* Barbería
@@ -390,7 +390,9 @@ export default function GlobalSettings() {
 📍 *Dirección:* Av. Principal #123
 🌐 *Link de Reservas:* https://www.citalink.app/elneon
 📱 *Origen:* Registro Online (Landing Page)
-⚡ *Período de Prueba:* ${config.trial_days || 30} días`}
+⚡ *Período de Prueba:* ${config.trial_days || 30} días (Vence el 25 de septiembre)
+
+Notificación automática del sistema CitaLink.`}
                                     </div>
                                     <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
                                         Se enviará automáticamente a tu WhatsApp cada vez que un nuevo cliente registre su negocio desde la web.
