@@ -678,7 +678,12 @@ export default function Booking() {
 
         const capableStylists = stylists.filter(s => {
             if (!s.serviceIds || s.serviceIds.length === 0) return true;
-            return s.serviceIds.includes(Number(selectedService.id));
+            const canDoMain = s.serviceIds.map(Number).includes(Number(selectedService.id));
+            if (!canDoMain) return false;
+            if (selectedAddOns.length > 0) {
+                return selectedAddOns.every(addOnId => s.serviceIds!.map(Number).includes(Number(addOnId)));
+            }
+            return true;
         });
         const stylistsToCheck = selectedStylist ? [selectedStylist] : capableStylists;
         const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
@@ -744,7 +749,7 @@ export default function Booking() {
         });
 
         return metadata;
-    }, [selectedService, totalDuration, selectedDate, selectedDateSchedule, blockedSlots, selectedStylist, stylists, appointments, services, dateAppointments, updatingAppointmentId]);
+    }, [selectedService, totalDuration, selectedDate, selectedDateSchedule, blockedSlots, selectedStylist, selectedAddOns, stylists, appointments, services, dateAppointments, updatingAppointmentId]);
 
     // Detect if the day is manually blocked (e.g., "All Day" block such as 00:00 - 23:59)
     const isDayBlockedManually = useMemo(() => {
@@ -1163,6 +1168,17 @@ export default function Booking() {
         }
 
         setSelectedTime(time);
+
+        // Auto-asignar profesional disponible desde el momento que elige la hora
+        if (!selectedStylist) {
+            const availableStylists = slotsMetadata[time] || [];
+            if (availableStylists.length > 0) {
+                const assigned = stylists.find(s => String(s.id) === String(availableStylists[0])) || null;
+                if (assigned) {
+                    setSelectedStylist(assigned);
+                }
+            }
+        }
         
         // Auto-desplazar lo necesario para que el botón de acción sea visible sin ocultar el logo
         setTimeout(() => {
@@ -1176,6 +1192,17 @@ export default function Booking() {
     // Botón "Continuar" del Step 3: envía OTP y muestra banner WhatsApp
     const handleContinueToOtp = async () => {
         if (!selectedService || !selectedTime || !clientName || !clientPhone) return;
+
+        // Garantizar asignación del profesional antes del envío del código OTP
+        if (!selectedStylist) {
+            const availableStylists = slotsMetadata[selectedTime] || [];
+            if (availableStylists.length > 0) {
+                const assigned = stylists.find(s => String(s.id) === String(availableStylists[0])) || null;
+                if (assigned) {
+                    setSelectedStylist(assigned);
+                }
+            }
+        }
 
         // Consulta directa para obtener sms_provider (evita bug de cache)
         let currentProvider = 'demo';
@@ -2648,9 +2675,17 @@ export default function Booking() {
                             {services
                                 .filter(s => {
                                     if (!s.isAddon || s.id === selectedService.id) return false;
-                                    if (!selectedStylist) return true;
-                                    if (!selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) return true;
-                                    return selectedStylist.serviceIds.includes(Number(s.id));
+                                    if (selectedStylist) {
+                                        if (!selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) return true;
+                                        return selectedStylist.serviceIds.map(Number).includes(Number(s.id));
+                                    }
+                                    // Si eligió "Cualquier Profesional", solo mostrar adicionales que al menos uno de los profesionales que hace el servicio principal sepa realizar
+                                    const capableForMain = stylists.filter(st =>
+                                        !st.serviceIds || st.serviceIds.length === 0 || st.serviceIds.map(Number).includes(Number(selectedService.id))
+                                    );
+                                    return capableForMain.some(st =>
+                                        !st.serviceIds || st.serviceIds.length === 0 || st.serviceIds.map(Number).includes(Number(s.id))
+                                    );
                                 })
                                 .map((s: Service) => {
                                     const isSelected = selectedAddOns.some(id => Number(id) === Number(s.id));
@@ -2905,7 +2940,18 @@ export default function Booking() {
                                 ) : businessConfig?.depositEnabled && calculatedDeposit > 0 ? (
                                     <button
                                         className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
-                                        onClick={() => setStep(4)}
+                                        onClick={() => {
+                                            if (!selectedStylist && selectedTime) {
+                                                const availableStylists = slotsMetadata[selectedTime] || [];
+                                                if (availableStylists.length > 0) {
+                                                    const assigned = stylists.find(s => String(s.id) === String(availableStylists[0])) || null;
+                                                    if (assigned) {
+                                                        setSelectedStylist(assigned);
+                                                    }
+                                                }
+                                            }
+                                            setStep(4);
+                                        }}
                                     >
                                         <span>Ver Datos de Anticipo y Continuar</span>
                                         <ChevronRight size={20} />
