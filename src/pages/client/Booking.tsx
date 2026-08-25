@@ -2389,7 +2389,7 @@ export default function Booking() {
                                                         <img decoding="async" loading="lazy" src={service.image} alt={service.name} className="w-full h-full object-cover" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                            <Calendar size={24} />
+                                                            <Sparkles size={24} />
                                                         </div>
                                                     )}
                                                 </div>
@@ -3361,7 +3361,7 @@ export default function Booking() {
                                 <div className="bg-white/5 rounded-3xl p-4 border border-white/10 w-full text-left">
                                     <div className="flex items-center gap-3 mb-2">
                                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center border border-white/10 shrink-0">
-                                            {selectedService?.image ? <img decoding="async" loading="lazy" src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Calendar size={18} className="text-accent" />}
+                                            {selectedService?.image ? <img decoding="async" loading="lazy" src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Sparkles size={18} className="text-accent" />}
                                         </div>
                                         <p className="font-black text-white text-sm leading-tight">
                                             {selectedService?.name}
