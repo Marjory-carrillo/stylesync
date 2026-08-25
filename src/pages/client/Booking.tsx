@@ -1385,8 +1385,9 @@ export default function Booking() {
 
 
             {/* Step Titles for internal steps */}
-            {step === 2 && <h2 className="text-xl font-black text-white text-center mb-6">Elige un Servicio</h2>}
-            {step === 22 && <h2 className="text-xl font-black text-white text-center mb-6">Elige tu {professionalLabel}</h2>}
+            {step === 2 && <h2 className="text-xl font-black text-white text-center mb-6">Elige tu Profesional</h2>}
+            {step === 22 && <h2 className="text-xl font-black text-white text-center mb-6">Elige un Servicio</h2>}
+            {step === 23 && <h2 className="text-xl font-black text-white text-center mb-6">Servicios Adicionales</h2>}
             {step === 25 && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Fecha</h2>}
             {step === 3 && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Hora</h2>}
             {step === 4 && <h2 className="text-xl font-black text-white text-center mb-6">Confirma tu Reserva</h2>}
@@ -2428,7 +2429,9 @@ export default function Booking() {
                                         </div>
                                     ))}
                                 </div>
-                                <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro {professionalLabel.toLowerCase()}</button>
+                                {stylists.length > 1 && (
+                                    <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro profesional</button>
+                                )}
                             </>
                         )}
 

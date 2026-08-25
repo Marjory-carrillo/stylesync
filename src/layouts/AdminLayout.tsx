@@ -34,19 +34,27 @@ export default function AdminLayout() {
     const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
     const { getMonthlyCancellations } = useCancellationLog();
 
-    // Detectar si el usuario debe ver el Asistente de Bienvenida (por flag en DB o por ?welcome=true)
+    // Detectar si el usuario debe ver el Asistente de Bienvenida (solo una vez por tenant)
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const isWelcomeUrl = urlParams.get('welcome') === 'true';
+        const tenantId = tenantConfig?.id || localStorage.getItem('citalink_tenant_id') || 'current';
+        const isLocallyDismissed = localStorage.getItem(`citalink_onboarding_dismissed_${tenantId}`) === 'true';
+
+        // Limpiar ?welcome=true de la URL para que no vuelva a saltar en futuros F5
+        if (isWelcomeUrl) {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
 
         if (
             (isWelcomeUrl || (tenantConfig && tenantConfig.onboarding_completed === false)) &&
+            !isLocallyDismissed &&
             userRole === 'owner' &&
             !isSuperAdmin
         ) {
             setIsOnboardingOpen(true);
         }
-    }, [tenantConfig?.onboarding_completed, userRole, isSuperAdmin]);
+    }, [tenantConfig?.id, tenantConfig?.onboarding_completed, userRole, isSuperAdmin]);
 
     // Control dinámico de scroll y alturas para el Panel de Admin
     useEffect(() => {
@@ -401,7 +409,14 @@ export default function AdminLayout() {
             {isNewApptModalOpen && (
                 <AdminBookingModal isOpen={true} onClose={() => setIsNewApptModalOpen(false)} />
             )}
-            <OnboardingWizard isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} />
+            <OnboardingWizard
+                isOpen={isOnboardingOpen}
+                onClose={() => {
+                    const tenantId = tenantConfig?.id || localStorage.getItem('citalink_tenant_id') || 'current';
+                    localStorage.setItem(`citalink_onboarding_dismissed_${tenantId}`, 'true');
+                    setIsOnboardingOpen(false);
+                }}
+            />
         </div>
     );
 }

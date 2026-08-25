@@ -142,6 +142,7 @@ export interface Toast {
 }
 
 export interface BusinessConfig {
+    id?: string;
     name: string;
     address: string;
     googleMapsUrl: string;

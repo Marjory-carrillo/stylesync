@@ -26,6 +26,7 @@ export const useTenantData = (overrideTenantId?: string) => {
             if (!data) return null;
 
             return {
+                id: data.id,
                 name: data.name,
                 address: data.address || '',
                 phone: data.phone || '',

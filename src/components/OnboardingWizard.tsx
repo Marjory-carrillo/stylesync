@@ -473,6 +473,14 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     const handleComplete = async () => {
         setIsFinishing(true);
         try {
+            const tenantId = storeTenantId || tenant?.id || localStorage.getItem('citalink_tenant_id') || 'current';
+            localStorage.setItem(`citalink_onboarding_dismissed_${tenantId}`, 'true');
+
+            // Limpiar query params de bienvenida
+            if (window.location.search.includes('welcome')) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+
             let maps = businessMapsUrl.trim();
             const coordRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
             if (maps && coordRegex.test(maps)) {
