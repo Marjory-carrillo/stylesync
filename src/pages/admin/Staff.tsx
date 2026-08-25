@@ -299,8 +299,8 @@ export default function Staff() {
                                     </div>
                                 )}
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-1">{person.name}</h3>
-                            <p className="text-accent text-sm font-medium mb-2">{person.role}</p>
+                            <h3 className="text-xl font-bold text-white mb-1 capitalize">{person.name}</h3>
+                            <p className="text-accent text-sm font-medium mb-2 capitalize">{person.role}</p>
 
                             {businessConfig?.commissionsEnabled && businessConfig?.plan !== 'lite' && (
                                 <div className="flex items-center gap-2 mb-4">

@@ -1327,7 +1327,7 @@ export default function Booking() {
                             </div>
                         </div>
                     )}
-                    <h2 className="text-2xl font-black text-white tracking-tight">
+                    <h2 className="text-2xl font-black text-white tracking-tight capitalize">
                         {step === 10 ? 'Tu Cita' : (businessConfig?.name || 'Reserva online')}
                     </h2>
                     {step !== 10 && businessConfig?.description && (
@@ -2031,7 +2031,7 @@ export default function Booking() {
                                             </div>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">Cualquier {professionalLabel}</h4>
+                                            <h4 className="font-bold text-white text-lg mb-1 truncate group-hover:text-cyan-400 transition-colors">Cualquier Profesional</h4>
                                             <p className="text-xs text-slate-400">El primer disponible · Ver todos los servicios</p>
                                         </div>
                                     </div>
@@ -2064,10 +2064,10 @@ export default function Booking() {
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-white text-lg mb-0.5 truncate group-hover:text-cyan-400 transition-colors">{stylist.name}</h4>
+                                                <h4 className="font-bold text-white text-lg mb-0.5 truncate group-hover:text-cyan-400 transition-colors capitalize">{stylist.name}</h4>
                                                 
                                                 {/* Highlighted Specialty Badge */}
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-400/10 text-cyan-300 border border-cyan-400/20 mb-1">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-400/10 text-cyan-300 border border-cyan-400/20 mb-1 capitalize">
                                                     <Sparkles size={11} className="text-cyan-400" />
                                                     {stylist.role || 'Especialista'}
                                                 </span>
@@ -3056,7 +3056,7 @@ export default function Booking() {
                                     <span className="text-sm text-muted">{professionalLabel}</span>
                                     <div className="flex items-center gap-2">
                                         {selectedStylist?.image && <img decoding="async" loading="lazy" src={selectedStylist.image} className="w-5 h-5 rounded-full object-cover" />}
-                                        <span className="text-sm text-white">{selectedStylist?.name ?? 'Cualquiera'}</span>
+                                        <span className="text-sm text-white capitalize">{selectedStylist?.name ?? 'Cualquier Profesional'}</span>
                                     </div>
                                 </div>
                             </div>
