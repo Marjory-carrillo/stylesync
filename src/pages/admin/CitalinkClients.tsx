@@ -1,0 +1,895 @@
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
+import { useUIStore } from '../../lib/store/uiStore';
+import { format, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+import {
+    Building2, Users, Search, MessageCircle, ExternalLink,
+    Clock, Shield, Sparkles, Copy, Check, Plus,
+    RefreshCw, Globe, MapPin, Mail, Phone, Calendar,
+    AlertTriangle, ChevronDown,
+    Eye, Scissors, Flower2, Dog, Briefcase, Store
+} from 'lucide-react';
+import ConfirmModal from '../../components/ConfirmModal';
+
+interface TenantWithUsers {
+    id: string;
+    name: string;
+    slug: string;
+    category: string;
+    address?: string;
+    phone?: string;
+    plan?: string;
+    trial_ends_at?: string | null;
+    created_at?: string;
+    registration_source?: 'landing' | 'direct' | 'web' | 'manual' | null;
+    primary_color?: string;
+    logo_url?: string;
+    owner_id?: string;
+    tenant_users?: Array<{ email: string; role: string }>;
+    contact_name?: string;
+}
+
+const CATEGORY_MAP: Record<string, { label: string; icon: any; color: string }> = {
+    barbershop: { label: 'Barbería', icon: Scissors, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    nail_bar: { label: "Salón de Uñas", icon: Sparkles, color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
+    nails: { label: "Salón de Uñas", icon: Sparkles, color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
+    beauty_salon: { label: 'Salón de Belleza', icon: Sparkles, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    lashes: { label: 'Pestañas & Cejas', icon: Eye, color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20' },
+    spa: { label: 'Spa & Estética', icon: Flower2, color: 'text-teal-400 bg-teal-500/10 border-teal-500/20' },
+    pet_grooming: { label: 'Peluquería Canina', icon: Dog, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+    consulting: { label: 'Consultorio', icon: Briefcase, color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+    other: { label: 'Otro Giro', icon: Store, color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
+};
+
+export default function CitalinkClients() {
+    const { allTenants, isLoading, fetchAllTenants, extendTrial, updateTenant, deleteTenant, switchTenant } = useSuperAdmin();
+    const { showToast } = useUIStore();
+    const navigate = useNavigate();
+
+    // Recargar lista al montar
+    useEffect(() => {
+        if (fetchAllTenants) fetchAllTenants();
+    }, [fetchAllTenants]);
+
+    // ── Tabs: 'landing' (Web) | 'direct' (Presencial) | 'all' (Todos) ──
+    const [activeTab, setActiveTab] = useState<'all' | 'landing' | 'direct'>('all');
+
+    // ── Search & Filter State ──
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'evaluating' | 'expiring' | 'expired' | 'subscribed'>('all');
+    const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+    // ── WhatsApp Modal State ──
+    const [selectedTenantForWa, setSelectedTenantForWa] = useState<TenantWithUsers | null>(null);
+    const [customWaMessage, setCustomWaMessage] = useState('');
+    const [selectedTemplateIdx, setSelectedTemplateIdx] = useState<number>(0);
+
+    // ── Extend Trial Modal / Action ──
+    const [extendingId, setExtendingId] = useState<string | null>(null);
+
+    // ── Change Plan Modal State ──
+    const [planModalTenant, setPlanModalTenant] = useState<TenantWithUsers | null>(null);
+    const [newPlan, setNewPlan] = useState<string>('pro');
+    const [isSavingPlan, setIsSavingPlan] = useState(false);
+
+    // ── Delete Confirm State ──
+    const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; tenant: TenantWithUsers | null }>({
+        open: false,
+        tenant: null
+    });
+
+    const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+    // ── Helper: Días restantes de prueba y estado adaptativo ──
+    const getTrialInfo = (tenant: TenantWithUsers) => {
+        if (!tenant.trial_ends_at) {
+            return {
+                status: 'subscribed' as const,
+                daysLeft: 0,
+                totalDays: 30,
+                progressPercent: 100,
+                label: 'Plan Activo',
+                badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+                isExpired: false
+            };
+        }
+
+        const now = new Date();
+        const trialEnd = new Date(tenant.trial_ends_at);
+        const createdAt = tenant.created_at ? new Date(tenant.created_at) : new Date(trialEnd.getTime() - 30 * 86400000);
+        
+        const totalDurationDays = Math.max(1, differenceInDays(trialEnd, createdAt) || 30);
+        const daysLeft = differenceInDays(trialEnd, now);
+        const daysPassed = Math.max(0, totalDurationDays - daysLeft);
+        const progressPercent = Math.min(100, Math.max(0, Math.round((daysPassed / totalDurationDays) * 100)));
+
+        if (daysLeft < 0) {
+            return {
+                status: 'expired' as const,
+                daysLeft: 0,
+                totalDays: totalDurationDays,
+                progressPercent: 100,
+                label: 'Prueba Vencida',
+                badgeColor: 'bg-red-500/10 text-red-400 border-red-500/30',
+                isExpired: true
+            };
+        }
+
+        if (daysLeft <= 5) {
+            return {
+                status: 'expiring' as const,
+                daysLeft,
+                totalDays: totalDurationDays,
+                progressPercent,
+                label: `¡Por Vencer! (${daysLeft} ${daysLeft === 1 ? 'día' : 'días'})`,
+                badgeColor: 'bg-orange-500/10 text-orange-400 border-orange-500/30 animate-pulse',
+                isExpired: false
+            };
+        }
+
+        if (daysPassed <= 7) {
+            return {
+                status: 'new' as const,
+                daysLeft,
+                totalDays: totalDurationDays,
+                progressPercent,
+                label: `Recién Creado (${daysLeft} días rest.)`,
+                badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+                isExpired: false
+            };
+        }
+
+        return {
+            status: 'evaluating' as const,
+            daysLeft,
+            totalDays: totalDurationDays,
+            progressPercent,
+            label: `En Prueba (${daysLeft} días rest.)`,
+            badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+            isExpired: false
+        };
+    };
+
+    // ── Origen del negocio ──
+    const getRegistrationSource = (tenant: TenantWithUsers): 'landing' | 'direct' => {
+        if (tenant.registration_source === 'landing' || tenant.registration_source === 'web') {
+            return 'landing';
+        }
+        if (tenant.registration_source === 'direct' || tenant.registration_source === 'manual') {
+            return 'direct';
+        }
+        // Inferencia para registros anteriores
+        return 'direct';
+    };
+
+    // ── Lista de Negocios y Métricas ──
+    const tenantList = useMemo(() => (allTenants || []) as TenantWithUsers[], [allTenants]);
+
+    const stats = useMemo(() => {
+        let total = tenantList.length;
+        let landingCount = 0;
+        let directCount = 0;
+        let activeTrials = 0;
+        let expiringTrials = 0;
+        let expiredTrials = 0;
+
+        tenantList.forEach(t => {
+            const src = getRegistrationSource(t);
+            if (src === 'landing') landingCount++;
+            else directCount++;
+
+            const trial = getTrialInfo(t);
+            if (trial.status === 'expiring') {
+                expiringTrials++;
+                activeTrials++;
+            } else if (trial.status === 'new' || trial.status === 'evaluating') {
+                activeTrials++;
+            } else if (trial.status === 'expired') {
+                expiredTrials++;
+            }
+        });
+
+        return { total, landingCount, directCount, activeTrials, expiringTrials, expiredTrials };
+    }, [tenantList]);
+
+    const filteredTenants = useMemo(() => {
+        return tenantList.filter(t => {
+            // Tab filter
+            const src = getRegistrationSource(t);
+            if (activeTab === 'landing' && src !== 'landing') return false;
+            if (activeTab === 'direct' && src !== 'direct') return false;
+
+            // Trial status filter
+            const trial = getTrialInfo(t);
+            if (statusFilter === 'new' && trial.status !== 'new') return false;
+            if (statusFilter === 'evaluating' && trial.status !== 'evaluating') return false;
+            if (statusFilter === 'expiring' && trial.status !== 'expiring') return false;
+            if (statusFilter === 'expired' && trial.status !== 'expired') return false;
+            if (statusFilter === 'subscribed' && trial.status !== 'subscribed') return false;
+
+            // Category filter
+            if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+
+            // Search term
+            if (searchTerm.trim()) {
+                const term = searchTerm.toLowerCase();
+                const nameMatch = t.name?.toLowerCase().includes(term);
+                const slugMatch = t.slug?.toLowerCase().includes(term);
+                const phoneMatch = t.phone?.toLowerCase().includes(term);
+                const emailMatch = t.tenant_users?.some(u => u.email?.toLowerCase().includes(term));
+                const addressMatch = t.address?.toLowerCase().includes(term);
+                if (!nameMatch && !slugMatch && !phoneMatch && !emailMatch && !addressMatch) return false;
+            }
+
+            return true;
+        });
+    }, [tenantList, activeTab, statusFilter, categoryFilter, searchTerm]);
+
+    // ── Copiar link público ──
+    const handleCopySlug = (slug: string) => {
+        const url = `https://www.citalink.app/${slug}`;
+        navigator.clipboard.writeText(url);
+        setCopiedSlug(slug);
+        showToast('¡Link copiado al portapapeles!', 'success');
+        setTimeout(() => setCopiedSlug(null), 2500);
+    };
+
+    // ── Extender prueba ──
+    const handleExtendTrial = async (tenantId: string, days: number) => {
+        setExtendingId(tenantId);
+        try {
+            const res = await extendTrial(tenantId, days);
+            if (res.success) {
+                showToast(`¡Prueba extendida +${days} días con éxito!`, 'success');
+            } else {
+                showToast(res.error || 'Error al extender prueba', 'error');
+            }
+        } catch (err: any) {
+            showToast(err.message, 'error');
+        } finally {
+            setExtendingId(null);
+        }
+    };
+
+    // ── Iniciar sesión en panel del negocio (Switch Tenant) ──
+    const handleImpersonate = (tenant: TenantWithUsers) => {
+        switchTenant(tenant.id);
+        showToast(`Entrando al panel de "${tenant.name}"...`, 'info');
+        navigate('/admin');
+    };
+
+    // ── Cambiar Plan ──
+    const handleSavePlan = async () => {
+        if (!planModalTenant) return;
+        setIsSavingPlan(true);
+        try {
+            const res = await updateTenant(planModalTenant.id, { plan: newPlan });
+            if (res.success) {
+                showToast(`Plan actualizado a "${newPlan.toUpperCase()}"`, 'success');
+                setPlanModalTenant(null);
+            } else {
+                showToast(res.error || 'Error al actualizar plan', 'error');
+            }
+        } catch (err: any) {
+            showToast(err.message, 'error');
+        } finally {
+            setIsSavingPlan(false);
+        }
+    };
+
+    // ── WhatsApp Templates Dinámicas ──
+    const getWaTemplates = (tenant: TenantWithUsers) => {
+        const trial = getTrialInfo(tenant);
+        const slugUrl = `citalink.app/${tenant.slug}`;
+
+        return [
+            {
+                title: '👋 1. Bienvenida & Configuración Rápida',
+                desc: 'Ideal para negocios recién creados (primeros 7 días).',
+                text: `¡Hola! Te escribe el equipo de soporte de CitaLink respecto a tu nuevo negocio *${tenant.name}*. 🚀\n\nQueremos darte la bienvenida y recordarte que ya tienes tu link de reservas activo en: https://www.${slugUrl}\n\n¿Te gustaría que te apoyemos a cargar tus servicios, colaboradores o personalizar tu marca en unos minutos? Estamos a tu orden.`
+            },
+            {
+                title: '📊 2. Seguimiento de Citas & Recordatorios',
+                desc: 'Para negocios a mitad de su período de prueba.',
+                text: `¡Hola! ¿Cómo va todo en *${tenant.name}*? 💈✨\n\nTe contacto de CitaLink para ver cómo ha sido tu experiencia con la agenda y los recordatorios por WhatsApp. Te quedan *${trial.daysLeft} días de prueba gratuita*.\n\n¿Tienes alguna duda o te gustaría activar alguna función adicional como anticipos bancarios o colaboradores?`
+            },
+            {
+                title: '⚡ 3. Cierre / Prueba por Vencer',
+                desc: 'Para negocios con 5 días o menos de prueba.',
+                text: `¡Hola! Tu período de prueba gratuita en CitaLink para *${tenant.name}* está por concluir (quedan *${trial.daysLeft} días*). ⏳\n\nPara que tus clientes sigan agendando sin interrupciones y mantengas tu link activo (https://www.${slugUrl}), ¿te gustaría que te activemos tu suscripción mensual o anual con un descuento especial?`
+            },
+            {
+                title: '🎁 4. Reactivación / Extensión de Prueba',
+                desc: 'Para negocios con la prueba vencida que no han suscrito.',
+                text: `¡Hola! Notamos que tu prueba gratuita en CitaLink para *${tenant.name}* finalizó. Sabemos que el día a día en el negocio es ocupado.\n\n¿Te gustaría que te regalemos *7 días adicionales de cortesía* para que puedas probarlo con tus clientes con calma? Solo respóndeme este mensaje y te la reactivamos al instante. 🙌`
+            }
+        ];
+    };
+
+    const openWhatsAppModal = (tenant: TenantWithUsers) => {
+        setSelectedTenantForWa(tenant);
+        const templates = getWaTemplates(tenant);
+        const trial = getTrialInfo(tenant);
+        
+        let defaultIdx = 0;
+        if (trial.status === 'new') defaultIdx = 0;
+        else if (trial.status === 'evaluating') defaultIdx = 1;
+        else if (trial.status === 'expiring') defaultIdx = 2;
+        else if (trial.status === 'expired') defaultIdx = 3;
+
+        setSelectedTemplateIdx(defaultIdx);
+        setCustomWaMessage(templates[defaultIdx].text);
+    };
+
+    const sendWhatsAppMessage = () => {
+        if (!selectedTenantForWa?.phone) return;
+        let cleanPhone = selectedTenantForWa.phone.replace(/\D/g, '');
+        if (cleanPhone.length === 10) cleanPhone = `52${cleanPhone}`;
+        const encoded = encodeURIComponent(customWaMessage);
+        window.open(`https://wa.me/${cleanPhone}?text=${encoded}`, '_blank');
+        setSelectedTenantForWa(null);
+    };
+
+    return (
+        <div className="w-full min-h-screen bg-[#070b14] text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 animate-fade-in">
+            
+            {/* ══ HEADER (FULL WIDTH) ══ */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-cyan-500/20 shrink-0">
+                        <Building2 size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight flex items-center gap-2.5">
+                            Clientes CitaLink
+                            <span className="text-xs bg-cyan-500/20 text-cyan-400 font-bold px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+                                {stats.total} Negocios
+                            </span>
+                        </h1>
+                        <p className="text-xs text-slate-400">
+                            Centro de control maestro: segmentación por origen, seguimiento adaptativo de pruebas y contacto directo
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => fetchAllTenants && fetchAllTenants()}
+                        className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                        title="Refrescar lista"
+                    >
+                        <RefreshCw size={16} className={isLoading ? 'animate-spin text-cyan-400' : ''} />
+                    </button>
+                    <button
+                        onClick={() => navigate('/super-admin/crear-negocio')}
+                        className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+                    >
+                        <Plus size={16} />
+                        Alta Presencial / Manual
+                    </button>
+                </div>
+            </div>
+
+            {/* ══ STATS CARDS (FULL WIDTH GRID) ══ */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
+                <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-white/5 bg-[#0d131f] space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Clientes</span>
+                    <p className="text-2xl sm:text-3xl font-black text-white">{stats.total}</p>
+                    <span className="text-[10px] text-slate-500">Negocios registrados</span>
+                </div>
+                <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 space-y-1">
+                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block flex items-center gap-1">
+                        <Globe size={11} /> Landing Page
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-black text-cyan-300">{stats.landingCount}</p>
+                    <span className="text-[10px] text-cyan-400/60">Auto-registros web</span>
+                </div>
+                <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-purple-500/20 bg-purple-500/5 space-y-1">
+                    <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest block flex items-center gap-1">
+                        <Users size={11} /> Presenciales
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-black text-purple-300">{stats.directCount}</p>
+                    <span className="text-[10px] text-purple-400/60">Altas directas SuperAdmin</span>
+                </div>
+                <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 space-y-1">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block flex items-center gap-1">
+                        <Clock size={11} /> En Prueba Activa
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-black text-amber-300">{stats.activeTrials}</p>
+                    <span className="text-[10px] text-amber-400/60">Evaluando sistema</span>
+                </div>
+                <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-orange-500/20 bg-orange-500/5 space-y-1">
+                    <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest block flex items-center gap-1">
+                        <AlertTriangle size={11} /> Por Vencer
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-black text-orange-300">{stats.expiringTrials}</p>
+                    <span className="text-[10px] text-orange-400/60">Últimos 5 días de trial</span>
+                </div>
+            </div>
+
+            {/* ══ TABS & FILTERS BAR (FULL WIDTH) ══ */}
+            <div className="space-y-4 w-full">
+                {/* Segmented Tabs */}
+                <div className="flex items-center gap-2 p-1.5 bg-[#0a0e17] border border-white/10 rounded-2xl w-full sm:w-fit overflow-x-auto">
+                    <button
+                        onClick={() => setActiveTab('all')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                            activeTab === 'all'
+                                ? 'bg-white/10 text-white shadow-md'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <Building2 size={14} />
+                        Todos los Negocios ({stats.total})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('landing')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                            activeTab === 'landing'
+                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-md shadow-cyan-500/10'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <Globe size={14} className="text-cyan-400" />
+                        Registro Online / Landing ({stats.landingCount})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('direct')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                            activeTab === 'direct'
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-md shadow-purple-500/10'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <Users size={14} className="text-purple-400" />
+                        Registro Presencial / Manual ({stats.directCount})
+                    </button>
+                </div>
+
+                {/* Search & Quick Dropdown Filters (Full Width Grid) */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full">
+                    <div className="relative md:col-span-6">
+                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por negocio, slug, teléfono, correo o ciudad..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full bg-[#0d131f] border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-xs text-white focus:outline-none focus:border-cyan-500/40 transition-all placeholder:text-slate-500"
+                        />
+                    </div>
+
+                    <div className="relative md:col-span-3">
+                        <select
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value as any)}
+                            className="w-full bg-[#0d131f] border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-cyan-500/40 transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="all">⚡ Todos los Estados de Prueba</option>
+                            <option value="new">🟢 Recién Registrados (Días 1-7)</option>
+                            <option value="evaluating">🟡 En Evaluación (Mitad de Prueba)</option>
+                            <option value="expiring">🔴 Por Vencer (Últimos 5 días)</option>
+                            <option value="expired">⏰ Prueba Vencida</option>
+                            <option value="subscribed">⭐ Plan Activo / Suscrito</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                    </div>
+
+                    <div className="relative md:col-span-3">
+                        <select
+                            value={categoryFilter}
+                            onChange={e => setCategoryFilter(e.target.value)}
+                            className="w-full bg-[#0d131f] border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-cyan-500/40 transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="all">🏷️ Todos los Giros / Rubros</option>
+                            <option value="barbershop">Barbería</option>
+                            <option value="nail_bar">Salón de Uñas</option>
+                            <option value="beauty_salon">Salón de Belleza</option>
+                            <option value="lashes">Pestañas & Cejas</option>
+                            <option value="spa">Spa & Estética</option>
+                            <option value="pet_grooming">Peluquería Canina</option>
+                            <option value="consulting">Consultorio</option>
+                            <option value="other">Otro Giro</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                    </div>
+                </div>
+            </div>
+
+            {/* ══ CLIENTS LIST / FULL WIDTH RESPONSIVE GRID ══ */}
+            {isLoading ? (
+                <div className="w-full p-16 text-center text-slate-400 space-y-3 glass-panel rounded-3xl border border-white/5">
+                    <RefreshCw size={32} className="animate-spin mx-auto text-cyan-400" />
+                    <p className="text-xs uppercase font-bold tracking-widest">Cargando negocios registrados...</p>
+                </div>
+            ) : filteredTenants.length === 0 ? (
+                <div className="w-full glass-panel p-16 text-center rounded-3xl border border-white/5 space-y-4">
+                    <Building2 size={48} className="mx-auto text-slate-600" />
+                    <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-white">No se encontraron negocios</h3>
+                        <p className="text-xs text-slate-400 max-w-md mx-auto">
+                            {searchTerm || statusFilter !== 'all' || categoryFilter !== 'all'
+                                ? 'Prueba ajustando los filtros de búsqueda o el estado de prueba seleccionado.'
+                                : activeTab === 'landing'
+                                ? 'Aún no hay negocios auto-registrados desde la landing page. Comparte el enlace https://www.citalink.app/register para recibir nuevos registros.'
+                                : 'Aún no hay negocios registrados en esta sección.'}
+                        </p>
+                    </div>
+                    {activeTab === 'landing' && (
+                        <button
+                            onClick={() => window.open('https://www.citalink.app/register', '_blank')}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-xs border border-cyan-500/30 transition-colors"
+                        >
+                            <ExternalLink size={13} />
+                            Ver Formulario de Registro Online
+                        </button>
+                    )}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 w-full">
+                    {filteredTenants.map(tenant => {
+                        const trial = getTrialInfo(tenant);
+                        const source = getRegistrationSource(tenant);
+                        const cat = CATEGORY_MAP[tenant.category] || CATEGORY_MAP['other'];
+                        const CatIcon = cat.icon;
+                        const ownerEmail = tenant.tenant_users?.[0]?.email || 'No registrado';
+                        const createdDateFormatted = tenant.created_at
+                            ? format(new Date(tenant.created_at), "d 'de' MMMM, yyyy", { locale: es })
+                            : 'Fecha no registrada';
+
+                        return (
+                            <div
+                                key={tenant.id}
+                                className="glass-panel p-5 rounded-3xl border border-white/10 hover:border-white/20 bg-[#0d131f] flex flex-col justify-between space-y-4 transition-all duration-300 group hover:shadow-xl hover:shadow-cyan-500/5 relative overflow-hidden"
+                            >
+                                {/* Top Banner Glow */}
+                                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                                    source === 'landing'
+                                        ? 'from-cyan-500 to-blue-500'
+                                        : 'from-purple-500 to-indigo-500'
+                                }`} />
+
+                                <div className="space-y-3.5">
+                                    {/* Badges Bar: Origen + Categoría + Estado de Prueba */}
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <div className="flex items-center gap-1.5">
+                                            {source === 'landing' ? (
+                                                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                                                    <Globe size={10} /> Landing Web
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/30">
+                                                    <Users size={10} /> Presencial
+                                                </span>
+                                            )}
+                                            <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg border ${cat.color}`}>
+                                                <CatIcon size={10} /> {cat.label}
+                                            </span>
+                                        </div>
+
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${trial.badgeColor}`}>
+                                            {trial.label}
+                                        </span>
+                                    </div>
+
+                                    {/* Business Name & Slug */}
+                                    <div>
+                                        <h3 className="text-lg font-black text-white capitalize tracking-tight group-hover:text-cyan-300 transition-colors">
+                                            {tenant.name}
+                                        </h3>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <a
+                                                href={`https://www.citalink.app/${tenant.slug}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 font-mono"
+                                            >
+                                                citalink.app/{tenant.slug}
+                                                <ExternalLink size={11} />
+                                            </a>
+                                            <button
+                                                onClick={() => handleCopySlug(tenant.slug)}
+                                                className="text-slate-500 hover:text-white transition-colors"
+                                                title="Copiar link de reservas"
+                                            >
+                                                {copiedSlug === tenant.slug ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Owner & Contact Details */}
+                                    <div className="p-3 bg-white/5 rounded-2xl border border-white/5 space-y-2 text-xs">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+                                                <Phone size={12} className="text-slate-500" />
+                                                {tenant.phone ? tenant.phone : 'Sin teléfono'}
+                                            </span>
+                                            {tenant.phone && (
+                                                <button
+                                                    onClick={() => openWhatsAppModal(tenant)}
+                                                    className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-lg transition-colors border border-emerald-500/20"
+                                                >
+                                                    <MessageCircle size={12} />
+                                                    WhatsApp
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5 text-slate-400 truncate">
+                                            <Mail size={12} className="text-slate-500 shrink-0" />
+                                            <span className="truncate">{ownerEmail}</span>
+                                        </div>
+
+                                        {tenant.address && (
+                                            <div className="flex items-start gap-1.5 text-slate-400 text-[11px] leading-tight">
+                                                <MapPin size={12} className="text-slate-500 shrink-0 mt-0.5" />
+                                                <span className="truncate">{tenant.address}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 pt-1 border-t border-white/5">
+                                            <Calendar size={11} />
+                                            <span>Registrado el {createdDateFormatted}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* ══ TRIAL PROGRESS & ADAPTIVE TRACKER ══ */}
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between text-[10px] font-bold">
+                                            <span className="text-slate-400 uppercase tracking-wider">Período de Prueba</span>
+                                            <span className={trial.isExpired ? 'text-red-400' : 'text-slate-300'}>
+                                                {trial.isExpired ? 'Vencida' : `${trial.daysLeft} de ${trial.totalDays} días restantes`}
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full transition-all duration-500 ${
+                                                    trial.isExpired
+                                                        ? 'bg-red-500'
+                                                        : trial.status === 'expiring'
+                                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                                                        : 'bg-gradient-to-r from-cyan-500 to-emerald-400'
+                                                }`}
+                                                style={{ width: `${trial.progressPercent}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ══ QUICK ACTIONS BAR ══ */}
+                                <div className="space-y-2 pt-2 border-t border-white/5">
+                                    {/* Action Buttons: Entrar al panel + Extender prueba */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => handleImpersonate(tenant)}
+                                            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-bold text-xs border border-cyan-500/30 transition-all hover:scale-[1.02]"
+                                        >
+                                            <Eye size={13} />
+                                            Entrar al Panel
+                                        </button>
+
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() => handleExtendTrial(tenant.id, 7)}
+                                                disabled={extendingId === tenant.id}
+                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] border border-white/5 transition-colors"
+                                                title="Extender +7 días de prueba"
+                                            >
+                                                +7d
+                                            </button>
+                                            <button
+                                                onClick={() => handleExtendTrial(tenant.id, 15)}
+                                                disabled={extendingId === tenant.id}
+                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] border border-white/5 transition-colors"
+                                                title="Extender +15 días de prueba"
+                                            >
+                                                +15d
+                                            </button>
+                                            <button
+                                                onClick={() => handleExtendTrial(tenant.id, 30)}
+                                                disabled={extendingId === tenant.id}
+                                                className="flex-1 flex items-center justify-center py-2 px-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-[11px] border border-white/5 transition-colors"
+                                                title="Extender +30 días de prueba"
+                                            >
+                                                +30d
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Secondary Actions: Cambiar Plan / Eliminar */}
+                                    <div className="flex items-center justify-between text-[11px] pt-1">
+                                        <button
+                                            onClick={() => {
+                                                setPlanModalTenant(tenant);
+                                                setNewPlan(tenant.plan || 'pro');
+                                            }}
+                                            className="text-slate-400 hover:text-cyan-300 font-bold flex items-center gap-1 transition-colors"
+                                        >
+                                            <Shield size={12} /> Plan: <span className="text-white uppercase">{tenant.plan || 'Free'}</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setDeleteConfirm({ open: true, tenant })}
+                                            className="text-red-400/60 hover:text-red-400 transition-colors"
+                                            title="Eliminar Negocio"
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* ══ MODAL: WHATSAPP CON PLANTILLAS INTELIGENTES ══ */}
+            {selectedTenantForWa && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-[#0d131f] border border-white/10 rounded-[2rem] w-full max-w-xl p-6 space-y-5 shadow-2xl">
+                        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                                    <MessageCircle size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-black text-white">Contactar por WhatsApp</h3>
+                                    <p className="text-xs text-slate-400">{selectedTenantForWa.name} ({selectedTenantForWa.phone})</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedTenantForWa(null)}
+                                className="text-slate-500 hover:text-white text-lg font-bold"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Plantillas Seleccionables */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Elige una Plantilla de Seguimiento:
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {getWaTemplates(selectedTenantForWa).map((tmpl, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            setSelectedTemplateIdx(idx);
+                                            setCustomWaMessage(tmpl.text);
+                                        }}
+                                        className={`p-2.5 rounded-xl text-left border transition-all text-xs ${
+                                            selectedTemplateIdx === idx
+                                                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 ring-1 ring-emerald-500/40'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                                        }`}
+                                    >
+                                        <p className="font-bold truncate">{tmpl.title}</p>
+                                        <p className="text-[10px] text-slate-500 line-clamp-1">{tmpl.desc}</p>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Mensaje Editable */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Mensaje a Enviar:
+                            </label>
+                            <textarea
+                                rows={6}
+                                value={customWaMessage}
+                                onChange={e => setCustomWaMessage(e.target.value)}
+                                className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-xs text-white focus:outline-none focus:border-emerald-500/40 transition-all resize-none custom-scrollbar font-mono leading-relaxed"
+                            />
+                        </div>
+
+                        {/* Botones de Acción */}
+                        <div className="flex items-center justify-end gap-3 pt-2">
+                            <button
+                                onClick={() => setSelectedTenantForWa(null)}
+                                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={sendWhatsAppMessage}
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
+                            >
+                                <MessageCircle size={15} />
+                                Abrir WhatsApp Web / App
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══ MODAL: CAMBIAR PLAN ══ */}
+            {planModalTenant && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-[#0d131f] border border-white/10 rounded-[2rem] w-full max-w-md p-6 space-y-5 shadow-2xl">
+                        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                                    <Shield size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-black text-white">Asignar Plan</h3>
+                                    <p className="text-xs text-slate-400">{planModalTenant.name}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setPlanModalTenant(null)}
+                                className="text-slate-500 hover:text-white text-lg font-bold"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Selecciona el Plan:
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { id: 'free', name: 'Free / Prueba' },
+                                    { id: 'lite', name: 'Plan Lite' },
+                                    { id: 'pro', name: 'Plan Pro (Recomendado)' },
+                                    { id: 'business', name: 'Plan Business' },
+                                ].map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setNewPlan(p.id)}
+                                        className={`p-3 rounded-xl text-left border transition-all text-xs font-bold ${
+                                            newPlan === p.id
+                                                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 ring-1 ring-cyan-500/40'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                                        }`}
+                                    >
+                                        {p.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-2">
+                            <button
+                                onClick={() => setPlanModalTenant(null)}
+                                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSavePlan}
+                                disabled={isSavingPlan}
+                                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black text-xs uppercase tracking-wider transition-all hover:scale-105"
+                            >
+                                {isSavingPlan ? 'Guardando...' : 'Guardar Plan'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══ MODAL DE CONFIRMACIÓN PARA ELIMINAR ══ */}
+            <ConfirmModal
+                isOpen={deleteConfirm.open}
+                title="¿Eliminar Negocio Permanentemente?"
+                message={`Esta acción eliminará "${deleteConfirm.tenant?.name}" y todos sus servicios, colaboradores y citas asociadas. No se puede deshacer.`}
+                confirmLabel="Sí, Eliminar Negocio"
+                cancelLabel="Cancelar"
+                danger={true}
+                onConfirm={async () => {
+                    if (deleteConfirm.tenant) {
+                        await deleteTenant(deleteConfirm.tenant.id);
+                        showToast('Negocio eliminado', 'info');
+                    }
+                    setDeleteConfirm({ open: false, tenant: null });
+                }}
+                onCancel={() => setDeleteConfirm({ open: false, tenant: null })}
+            />
+        </div>
+    );
+}

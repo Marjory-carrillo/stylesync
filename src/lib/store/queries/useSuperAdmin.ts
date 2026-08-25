@@ -17,7 +17,7 @@ export function useSuperAdmin() {
             if (!isSuperAdmin) return [];
             const { data, error } = await supabase
                 .from('tenants')
-                .select('*')
+                .select('*, tenant_users(email, role)')
                 .order('created_at', { ascending: false });
             if (error) throw error;
             return data || [];
@@ -46,6 +46,7 @@ export function useSuperAdmin() {
                 owner_id: existingOwnerId || user.id,
                 timezone: timezone || 'America/Mexico_City',
                 sms_provider: 'whatsapp',
+                registration_source: 'direct',
                 trial_ends_at: noTrial ? null : trialEnd.toISOString(),
                 country_code: countryCode || 'MX',
                 currency: currency || 'MXN',
@@ -303,6 +304,42 @@ export function useSuperAdmin() {
                     return { success: false, error: fnData.error || 'Error al actualizar contraseña' };
                 }
                 return { success: true };
+            } catch (err: any) {
+                return { success: false, error: err.message };
+            }
+        },
+        /**
+         * Extiende los días de prueba para un tenant específico.
+         */
+        extendTrial: async (tenantId: string, additionalDays: number): Promise<{ success: boolean; newTrialEnd?: string; error?: string }> => {
+            if (!isSuperAdmin) return { success: false, error: 'No autorizado' };
+            try {
+                const { data: currentTenant, error: fetchErr } = await supabase
+                    .from('tenants')
+                    .select('trial_ends_at')
+                    .eq('id', tenantId)
+                    .single();
+                if (fetchErr) throw fetchErr;
+
+                let baseDate = new Date();
+                if (currentTenant?.trial_ends_at) {
+                    const currentEnd = new Date(currentTenant.trial_ends_at);
+                    if (currentEnd > baseDate) {
+                        baseDate = currentEnd;
+                    }
+                }
+                baseDate.setDate(baseDate.getDate() + additionalDays);
+                const newTrialEnd = baseDate.toISOString();
+
+                const { error: updateErr } = await supabase
+                    .from('tenants')
+                    .update({ trial_ends_at: newTrialEnd, payment_status: 'active' })
+                    .eq('id', tenantId);
+
+                if (updateErr) throw updateErr;
+
+                queryClient.invalidateQueries({ queryKey });
+                return { success: true, newTrialEnd };
             } catch (err: any) {
                 return { success: false, error: err.message };
             }

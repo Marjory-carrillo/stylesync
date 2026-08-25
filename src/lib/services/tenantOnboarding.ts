@@ -139,11 +139,26 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
             localStorage.setItem('citalink_tenant_id', tenantId);
         }
 
+        // 1.5 Asegurar que el tenant quede marcado con origen 'landing' y datos de contacto
+        if (tenantId) {
+            try {
+                await supabase
+                    .from('tenants')
+                    .update({
+                        registration_source: 'landing',
+                        phone: phone || '',
+                    })
+                    .eq('id', tenantId);
+            } catch (updErr) {
+                console.warn('Error actualizando registration_source en tenant:', updErr);
+            }
+        }
+
         // 3. Notificación instantánea al Super Admin vía WhatsApp
         try {
             const { data: globalConfig } = await supabase
                 .from('global_configs')
-                .select('superadmin_phone')
+                .select('superadmin_phone, trial_days')
                 .eq('id', 'main')
                 .single();
 
@@ -156,10 +171,16 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
                     lashes: 'Pestañas / Lashes',
                     spa: 'Spa / Estética',
                     pet_grooming: 'Grooming Canino',
+                    consulting: 'Consultorio',
                     other: 'Otro Giro',
                 };
                 const catLabel = bizLabels[category] || category;
-                const messageText = `🚀 *¡Nuevo Negocio Auto-Registrado en CitaLink!*\n\n🏪 *Negocio:* ${businessName} (${catLabel})\n👤 *Dueño:* ${contactName}\n📞 *WhatsApp:* ${phone}\n📍 *Ubicación:* ${address || 'No especificada'}\n📧 *Email:* ${email}\n🔗 *Link:* citalink.app/${slug}\n\n⚡ *Cuenta creada en modo prueba 30 días automáticamente.*`;
+                const trialDays = globalConfig.trial_days || 30;
+                const trialEndDate = new Date();
+                trialEndDate.setDate(trialEndDate.getDate() + trialDays);
+                const dateStr = trialEndDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+
+                const messageText = `🚀 *¡Nuevo Negocio Creado en CitaLink!*\n\n🏪 *Negocio:* ${businessName}\n🏷️ *Giro:* ${catLabel}\n👤 *Dueño:* ${contactName}\n📞 *WhatsApp:* ${phone}\n📧 *Email:* ${email}\n📍 *Dirección:* ${address || 'No especificada'}\n🌐 *Link de Reservas:* https://www.citalink.app/${slug}\n📱 *Origen:* Registro Online (Landing Page)\n⚡ *Período de Prueba:* ${trialDays} días (Vence el ${dateStr})`;
 
                 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
                 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;

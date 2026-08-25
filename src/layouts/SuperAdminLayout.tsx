@@ -1,4 +1,4 @@
-import { Building2, Paintbrush, Settings as SettingsIcon, LogOut, Inbox, Infinity as InfinityIcon, Menu, X, Target, ShoppingBag, DollarSign } from 'lucide-react';
+import { Building2, Paintbrush, Settings as SettingsIcon, LogOut, Infinity as InfinityIcon, Menu, X, Target, ShoppingBag, DollarSign, Users } from 'lucide-react';
 import { useAuthStore } from '../lib/store/authStore';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -25,7 +25,7 @@ export default function SuperAdminLayout() {
         };
     }, []);
 
-    if (!isSuperAdmin) {
+    if (!user || !isSuperAdmin) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100">
                 <div className="p-8 bg-white rounded-lg shadow-md text-center">
@@ -45,11 +45,11 @@ export default function SuperAdminLayout() {
     };
 
     const navItems = [
-        { path: '/super-admin', icon: Building2, label: 'Negocios' },
+        { path: '/super-admin/clientes', icon: Users, label: 'Clientes CitaLink' },
+        { path: '/super-admin', icon: Building2, label: 'Gestión Negocios' },
         { path: '/super-admin/costos', icon: DollarSign, label: '💰 Costos & Rentabilidad' },
         { path: '/super-admin/marketplace', icon: ShoppingBag, label: '🛒 Marketplace & Comisiones' },
         { path: '/super-admin/cazador', icon: Target, label: '🎯 Cazador de Campo' },
-        { path: '/super-admin/prospectos', icon: Inbox, label: 'Prospectos Web' },
         { path: '/super-admin/branding', icon: Paintbrush, label: 'Branding' },
         { path: '/super-admin/settings', icon: SettingsIcon, label: 'Ajustes Globales' }
     ];

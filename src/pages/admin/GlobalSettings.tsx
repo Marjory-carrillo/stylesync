@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { Activity, ShieldCheck, Database, Sliders, Save, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Info } from 'lucide-react';
+import { Activity, ShieldCheck, Database, Sliders, Save, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Info, MessageCircle, Sparkles } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 import { z } from 'zod';
 
@@ -360,19 +360,40 @@ export default function GlobalSettings() {
 
                             <div className="space-y-3 relative z-10">
                                 <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
-                                    Teléfono WhatsApp de Notificaciones SuperAdmin
+                                    <MessageCircle size={14} className="text-emerald-400" />
+                                    WhatsApp para Alertas de Nuevos Negocios (Dueño CitaLink)
                                 </label>
                                 <input
                                     type="tel"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:outline-none focus:border-violet-500/40 transition-all placeholder:opacity-20"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:outline-none focus:border-emerald-500/40 transition-all placeholder:opacity-20"
                                     value={config.superadmin_phone || ''}
                                     onChange={(e) => setConfig({ ...config, superadmin_phone: e.target.value })}
                                     placeholder="ej. 528682992809"
                                 />
-                                <div className="flex items-start gap-2 p-4 bg-white/5 rounded-2xl border border-white/5 mt-4">
-                                    <Info size={16} className="text-violet-400 shrink-0 mt-0.5" />
-                                    <p className="text-[10px] uppercase font-black tracking-widest leading-relaxed text-slate-500">
-                                        Este número recibirá notificaciones automáticas vía WhatsApp cuando se registre un nuevo prospecto en la landing page.
+                                
+                                {/* Vista previa de la Plantilla de Notificación */}
+                                <div className="p-4 bg-black/40 rounded-2xl border border-white/10 space-y-2 mt-3">
+                                    <div className="flex items-center justify-between text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                                        <span className="flex items-center gap-1">
+                                            <Sparkles size={11} /> Plantilla de Notificación Automática
+                                        </span>
+                                        <span className="text-slate-500 font-mono">WhatsApp Instantáneo</span>
+                                    </div>
+                                    <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-[11px] font-mono text-emerald-300 leading-relaxed whitespace-pre-wrap">
+{`🚀 *¡Nuevo Negocio Creado en CitaLink!*
+
+🏪 *Negocio:* Barbería El Neón
+🏷️ *Giro:* Barbería
+👤 *Dueño:* Carlos Mendoza
+📞 *WhatsApp:* +52 868 123 4567
+📧 *Email:* carlos@gmail.com
+📍 *Dirección:* Av. Principal #123
+🌐 *Link de Reservas:* https://www.citalink.app/elneon
+📱 *Origen:* Registro Online (Landing Page)
+⚡ *Período de Prueba:* ${config.trial_days || 30} días`}
+                                    </div>
+                                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
+                                        Se enviará automáticamente a tu WhatsApp cada vez que un nuevo cliente registre su negocio desde la web.
                                     </p>
                                 </div>
                             </div>
