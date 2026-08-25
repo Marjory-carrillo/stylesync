@@ -14,6 +14,7 @@ import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
 import PWAInstallBanner from '../components/PWAInstallBanner';
 import PaymentBlockedScreen from '../components/PaymentBlockedScreen';
+import OnboardingWizard from '../components/OnboardingWizard';
 import { isAccountActive, isNailCalculatorEnabled } from '../lib/planLimits';
 
 export default function AdminLayout() {
@@ -29,8 +30,23 @@ export default function AdminLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
+    const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
     const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
     const { getMonthlyCancellations } = useCancellationLog();
+
+    // Detectar si el usuario debe ver el Asistente de Bienvenida (por flag en DB o por ?welcome=true)
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isWelcomeUrl = urlParams.get('welcome') === 'true';
+
+        if (
+            (isWelcomeUrl || (tenantConfig && tenantConfig.onboarding_completed === false)) &&
+            userRole === 'owner' &&
+            !isSuperAdmin
+        ) {
+            setIsOnboardingOpen(true);
+        }
+    }, [tenantConfig?.onboarding_completed, userRole, isSuperAdmin]);
 
     // Control dinámico de scroll y alturas para el Panel de Admin
     useEffect(() => {
@@ -385,6 +401,7 @@ export default function AdminLayout() {
             {isNewApptModalOpen && (
                 <AdminBookingModal isOpen={true} onClose={() => setIsNewApptModalOpen(false)} />
             )}
+            <OnboardingWizard isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} />
         </div>
     );
 }

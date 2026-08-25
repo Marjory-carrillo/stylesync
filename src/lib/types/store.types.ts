@@ -192,6 +192,8 @@ export interface BusinessConfig {
     depositClabe?: string;
     depositHolderName?: string;
     depositCancellationPolicy?: string;
+    onboardingCompleted?: boolean;
+    onboarding_completed?: boolean;
 }
 
 export interface Tenant extends BusinessConfig {

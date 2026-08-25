@@ -72,6 +72,8 @@ export const useTenantData = (overrideTenantId?: string) => {
                 depositClabe: data.deposit_clabe || '',
                 depositHolderName: data.deposit_holder_name || '',
                 depositCancellationPolicy: data.deposit_cancellation_policy || '',
+                onboardingCompleted: data.onboarding_completed ?? false,
+                onboarding_completed: data.onboarding_completed ?? false,
             };
         },
         enabled: !!tenantId,

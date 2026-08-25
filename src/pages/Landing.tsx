@@ -3,6 +3,7 @@ import { useAuthStore } from '../lib/store/authStore';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { CustomSelect } from '../components/CustomSelect';
+import { createSelfServeTenant, generateSlug } from '../lib/services/tenantOnboarding';
 
 import {
     CalendarDays, MessageCircle, Users, TrendingUp, ArrowRight,
@@ -11,16 +12,18 @@ import {
     BarChart2, Smartphone, ChevronDown, Instagram, Facebook,
     Percent, CalendarPlus, MapPin, Menu,
     Search, Store, ShieldCheck, Ban, ScanLine, Building2,
-    Check
+    Check, Eye, EyeOff
 } from 'lucide-react';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 const businessTypeOptions = [
-    { value: 'barbershop', label: 'Barbería' },
-    { value: 'salon', label: 'Salón de Belleza' },
-    { value: 'spa', label: 'Spa / Multiestética' },
-    { value: 'clinic', label: 'Clínica / Consultorio' },
-    { value: 'other', label: 'Otro' },
+    { value: 'nail_bar', label: "Salón de Uñas (Nail's) 💅" },
+    { value: 'barbershop', label: 'Barbería 💈' },
+    { value: 'beauty_salon', label: 'Salón de Belleza 💇‍♀️' },
+    { value: 'lashes', label: 'Pestañas & Cejas ✨' },
+    { value: 'spa', label: 'Spa / Multiestética 💆' },
+    { value: 'clinic', label: 'Clínica / Consultorio 🩺' },
+    { value: 'other', label: 'Otro Giro 🏪' },
 ];
 const employeeCountOptions = [
     { value: '1', label: 'Solo yo (1)' },
@@ -91,13 +94,18 @@ export default function Landing() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [leadSuccess, setLeadSuccess] = useState(false);
+    const [createdAccount, setCreatedAccount] = useState<{
+        email: string;
+        password: string;
+        businessName: string;
+        slug: string;
+    } | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [formData, setFormData] = useState({
-        businessName: '', businessType: '', employeeCount: '',
-        contactName: '', email: '', phone: '', address: ''
+        businessName: '', businessType: 'nail_bar', employeeCount: '1',
+        contactName: '', email: '', password: '', phone: '', address: ''
     });
-
-
+    const [showPassword, setShowPassword] = useState(false);
 
     // Interactive ROI Calculator State
     const [roiProCount, setRoiProCount] = useState(3);
@@ -129,59 +137,61 @@ export default function Landing() {
             return;
         }
 
+        if (formData.password && formData.password.length < 6) {
+            setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
+            setSubmitting(false);
+            return;
+        }
+
         try {
-            const { error } = await supabase.from('leads').insert([{
+            // 1. Guardar lead para seguimiento comercial
+            await supabase.from('leads').insert([{
                 business_name: formData.businessName, business_type: formData.businessType,
                 employee_count: formData.employeeCount, contact_name: formData.contactName,
                 email: formData.email, phone: formData.phone, address: formData.address
             }]);
-            if (error) throw error;
-            setLeadSuccess(true);
 
-            // ── Notificación por WhatsApp al SuperAdmin ──
-            try {
-                const { data: globalConfig } = await supabase
-                    .from('global_configs')
-                    .select('superadmin_phone')
-                    .eq('id', 'main')
-                    .single();
+            // 2. Creación autónoma del negocio y usuario
+            const passwordToUse = formData.password.trim() || 'citalink123';
+            const autoSlug = generateSlug(formData.businessName || 'mi-negocio');
 
-                if (globalConfig?.superadmin_phone) {
-                    const bizTypes: Record<string, string> = {
-                        barbershop: 'Barbería',
-                        salon: 'Salón de Belleza',
-                        spa: 'Spa / Multiestética',
-                        clinic: 'Clínica / Consultorio',
-                        other: 'Otro'
-                    };
-                    const typeLabel = bizTypes[formData.businessType] || formData.businessType;
-                    const messageText = `🆕 *Nuevo prospecto en CitaLink!*\n\n🏪 *Negocio:* ${formData.businessName} (${typeLabel})\n👤 *Contacto:* ${formData.contactName}\n📞 *Teléfono:* ${formData.phone}\n📍 *Ubicación:* ${formData.address || 'No especificada'}\n📧 *Email:* ${formData.email}\n👥 *Personal:* ${formData.employeeCount}`;
-                    
-                    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-                    const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-                    
-                    void fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json', 
-                            'Authorization': `Bearer ${ANON_KEY}`, 
-                            'apikey': ANON_KEY 
-                        },
-                        body: JSON.stringify({
-                            to: globalConfig.superadmin_phone,
-                            message: messageText,
-                            provider: 'whatsapp'
-                        }),
-                    });
-                }
-            } catch (notiErr) {
-                console.warn('No se pudo enviar la notificación de lead al superadmin:', notiErr);
+            const createRes = await createSelfServeTenant({
+                businessName: formData.businessName,
+                category: formData.businessType || 'nail_bar',
+                slug: autoSlug,
+                contactName: formData.contactName,
+                email: formData.email,
+                password: passwordToUse,
+                phone: formData.phone,
+                address: formData.address,
+                countryCode: 'MX',
+                currency: 'MXN',
+                currencySymbol: '$',
+                defaultPhonePrefix: '+52'
+            });
+
+            if (createRes.success) {
+                setCreatedAccount({
+                    email: formData.email,
+                    password: passwordToUse,
+                    businessName: formData.businessName,
+                    slug: createRes.slug || autoSlug,
+                });
+                setLeadSuccess(true);
+                // Redirigir al panel con recarga limpia
+                setTimeout(() => {
+                    window.location.href = '/admin?welcome=true';
+                }, 1500);
+                return;
+            } else {
+                setErrorMsg(createRes.error || 'No se pudo crear la cuenta automáticamente.');
             }
-
-            setTimeout(() => { setIsModalOpen(false); setLeadSuccess(false); setFormData({ businessName: '', businessType: '', employeeCount: '', contactName: '', email: '', phone: '', address: '' }); }, 5000);
         } catch (err: any) {
-            setErrorMsg(err.message || 'Error al procesar. Intenta de nuevo.');
-        } finally { setSubmitting(false); }
+            console.error('Error al registrar cuenta:', err);
+            setErrorMsg(err?.message || 'Error al procesar el registro.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     /* ── Section visibility hooks ──── */
@@ -1432,22 +1442,40 @@ export default function Landing() {
                         </div>
 
                         {leadSuccess ? (
-                            /* Pantalla de Éxito */
+                            /* Pantalla de Éxito y Acceso Directo */
                             <div className="py-8 text-center space-y-4">
                                 <div className="w-20 h-20 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-bounce">
                                     <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <h3 className="text-2xl font-black text-white">¡Solicitud Registrada!</h3>
+                                    <h3 className="text-2xl font-black text-white">¡Negocio Creado con Éxito!</h3>
                                     <p className="text-slate-300 text-sm max-w-sm mx-auto">
-                                        Te contactaremos vía WhatsApp para entregarte los accesos de tu cuenta y ayudarte a configurar tu negocio.
+                                        Tu cuenta y agenda para <strong className="text-emerald-400">{createdAccount?.businessName || formData.businessName}</strong> ya están listas.
                                     </p>
                                 </div>
+
+                                {createdAccount && (
+                                    <div className="p-4 rounded-2xl bg-black/60 border border-white/10 text-left max-w-sm mx-auto space-y-2 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Usuario:</span>
+                                            <span className="font-bold text-white">{createdAccount.email}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Contraseña:</span>
+                                            <span className="font-mono font-bold text-violet-300">{createdAccount.password}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Tu Link:</span>
+                                            <span className="font-mono text-emerald-400 font-bold">citalink.app/{createdAccount.slug}</span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <button
-                                    onClick={() => { setLeadSuccess(false); setIsModalOpen(false); }}
-                                    className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/10 transition-all"
+                                    onClick={() => { window.location.href = '/admin?welcome=true'; }}
+                                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black text-sm uppercase tracking-wider transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2"
                                 >
-                                    Entendido
+                                    <span>Entrar a mi Panel de Control Ahora →</span>
                                 </button>
                             </div>
                         ) : (
@@ -1472,7 +1500,14 @@ export default function Landing() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Nombre del Negocio</label>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <label className="text-xs font-bold text-slate-300 block">Nombre del Negocio</label>
+                                            {formData.businessName.trim().length > 0 && (
+                                                <span className="text-[10px] font-mono text-emerald-400 truncate max-w-[140px]">
+                                                    ✓ citalink.app/{generateSlug(formData.businessName)}
+                                                </span>
+                                            )}
+                                        </div>
                                         <input
                                             required
                                             type="text"
@@ -1481,6 +1516,11 @@ export default function Landing() {
                                             value={formData.businessName}
                                             onChange={e => setFormData({ ...formData, businessName: e.target.value })}
                                         />
+                                        {formData.businessName.trim().length > 0 && (
+                                            <span className="text-[10px] text-slate-400 mt-1 block">
+                                                🔗 Link público: <strong className="text-violet-300 font-mono">citalink.app/{generateSlug(formData.businessName)}</strong>
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1569,6 +1609,30 @@ export default function Landing() {
                                     </div>
                                 </div>
 
+                                <div>
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">Crea una Contraseña</label>
+                                    <div className="relative">
+                                        <input
+                                            required
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder="Mínimo 6 caracteres"
+                                            className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl pl-4 pr-11 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                            value={formData.password}
+                                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 mt-1 block">
+                                        Para entrar a administrar tu agenda inmediatamente
+                                    </span>
+                                </div>
+
                                 <button
                                     disabled={submitting}
                                     type="submit"
@@ -1577,7 +1641,7 @@ export default function Landing() {
                                     {submitting ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            <span>Procesando...</span>
+                                            <span>Activando tu cuenta de prueba...</span>
                                         </>
                                     ) : (
                                         <>
@@ -1586,6 +1650,16 @@ export default function Landing() {
                                         </>
                                     )}
                                 </button>
+
+                                <div className="text-center pt-1">
+                                    <Link
+                                        to="/register"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="text-xs text-violet-400 hover:text-violet-300 font-bold underline"
+                                    >
+                                        O usa el formulario de registro completo en pantalla completa →
+                                    </Link>
+                                </div>
 
                                 <p className="text-center text-[11px] text-slate-500 pt-1">
                                     Al enviar aceptas nuestros{' '}

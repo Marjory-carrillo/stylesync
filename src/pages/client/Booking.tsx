@@ -2059,7 +2059,7 @@ export default function Booking() {
                                                     <img decoding="async" loading="lazy" src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                        <Calendar size={32} />
+                                                        <User size={34} className="stroke-[1.75] text-cyan-300" />
                                                     </div>
                                                 )}
                                             </div>
@@ -2319,7 +2319,7 @@ export default function Booking() {
                                             onClick={() => {
                                                 setShowNailQuoterFlow(false);
                                                 const hasAddons = services.some(s => s.isAddon);
-                                                if (businessConfig?.enableAddons && hasAddons) {
+                                                if (hasAddons) {
                                                     setStep(23);
                                                 } else {
                                                     setStep(25);
@@ -2375,7 +2375,7 @@ export default function Booking() {
                                                     setShowNailQuoterFlow(true);
                                                 } else {
                                                     const hasAddons = services.some(s => s.isAddon);
-                                                    if (businessConfig?.enableAddons && hasAddons) {
+                                                    if (hasAddons) {
                                                         setStep(23);
                                                     } else {
                                                         setStep(25);

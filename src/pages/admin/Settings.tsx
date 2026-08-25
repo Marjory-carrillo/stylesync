@@ -14,7 +14,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
 import { useNavigate } from 'react-router-dom';
-import { Save, Plus, PlusCircle, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle } from 'lucide-react';
+import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle } from 'lucide-react';
 import { useReviews } from '../../lib/store/queries/useReviews';
 import BusinessQRCardsModal from '../../components/BusinessQRCardsModal';
 import { businessConfigSchema } from '../../lib/schemas';
@@ -984,32 +984,7 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        {/* Addons Toggle */}
-                        <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="text-white font-medium flex items-center gap-2">
-                                        <PlusCircle size={16} className="text-accent" />
-                                        Servicios Adicionales (Add-ons)
-                                    </h4>
-                                    <p className="text-sm text-muted mt-0.5">Permite a los clientes seleccionar servicios extras al reservar (ej. lavar cabello + mascarilla).</p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={infoForm.enableAddons ?? false}
-                                        onChange={async (e) => {
-                                            const val = e.target.checked;
-                                            setInfoForm({ ...infoForm, enableAddons: val });
-                                            await updateBusinessConfig({ enableAddons: val });
-                                            showToast(val ? 'Servicios adicionales activados' : 'Servicios adicionales desactivados', 'success');
-                                        }}
-                                    />
-                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                </label>
-                            </div>
-                        </div>
+
 
                         {/* Nail Calculator Toggle (For nail_bar and beauty_salon categories) */}
                         {(['nail_bar', 'beauty_salon'] as string[]).includes(businessConfig.category) && (
@@ -1206,34 +1181,9 @@ export default function Settings() {
                             )}
                         </div>
 
-                        {/* Hide Prices Toggle */}
+                        {/* Toggle: Permitir hasta 2 citas activas por número */}
                         <div className="p-4 bg-white/5 rounded-lg border border-white/5 space-y-3">
                             <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="text-white font-medium flex items-center gap-2">
-                                        <Percent size={16} className="text-accent" />
-                                        Ocultar Precios en Reservas
-                                    </h4>
-                                    <p className="text-sm text-muted mt-0.5">Cuando está activo, tus clientes no verán el precio de los servicios en tu link de reservas.</p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={infoForm.hideServicePrices ?? false}
-                                        onChange={async (e) => {
-                                            const val = e.target.checked;
-                                            setInfoForm({ ...infoForm, hideServicePrices: val });
-                                            await updateBusinessConfig({ hideServicePrices: val });
-                                            showToast(val ? 'Precios ocultos en reservas' : 'Precios visibles en reservas', 'success');
-                                        }}
-                                    />
-                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                </label>
-                            </div>
-
-                            {/* Toggle: Permitir hasta 2 citas activas por número */}
-                            <div className="flex items-center justify-between pt-2">
                                 <div>
                                     <h4 className="text-white font-medium flex items-center gap-2">
                                         <Calendar size={16} className="text-accent" />

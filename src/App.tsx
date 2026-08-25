@@ -19,6 +19,7 @@ const Commissions = lazy(() => import('./pages/admin/Commissions'));
 const Booking = lazy(() => import('./pages/client/Booking'));
 const BranchPicker = lazy(() => import('./pages/client/BranchPicker'));
 const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
 const CreateBusiness = lazy(() => import('./pages/admin/CreateBusiness'));
 const SelectBusiness = lazy(() => import('./pages/admin/SelectBusiness'));
 const SuperAdminPanel = lazy(() => import('./pages/admin/SuperAdminPanel'));
@@ -96,8 +97,13 @@ const AdminRoute = () => {
             Pide al dueño del negocio que te agregue desde la sección <strong className="text-slate-300">Equipo y Permisos</strong> usando este mismo correo.
           </p>
           <button
-            onClick={() => { import('./lib/supabaseClient').then(m => m.supabase.auth.signOut()); }}
-            className="w-full py-3 px-6 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-semibold transition-all"
+            onClick={async () => {
+              const { supabase } = await import('./lib/supabaseClient');
+              await supabase.auth.signOut();
+              localStorage.removeItem('citalink_tenant_id');
+              window.location.href = '/login';
+            }}
+            className="w-full py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold transition-all cursor-pointer shadow-lg"
           >
             Cerrar Sesión
           </button>
@@ -127,8 +133,13 @@ const AdminRoute = () => {
             Si eres dueño de un negocio, contacta al administrador de CitaLink. Si eres empleado, pide al dueño que te agregue desde <strong className="text-slate-300">Equipo y Permisos</strong>.
           </p>
           <button
-            onClick={() => { import('./lib/supabaseClient').then(m => m.supabase.auth.signOut()); }}
-            className="w-full py-3 px-6 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-semibold transition-all"
+            onClick={async () => {
+              const { supabase } = await import('./lib/supabaseClient');
+              await supabase.auth.signOut();
+              localStorage.removeItem('citalink_tenant_id');
+              window.location.href = '/login';
+            }}
+            className="w-full py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold transition-all cursor-pointer shadow-lg"
           >
             Cerrar Sesión
           </button>
@@ -353,8 +364,11 @@ function App() {
               <Route path="/review/:slug" element={<PublicReview />} />
               <Route path="/evaluar/:slug" element={<PublicReview />} />
 
-              {/* Client Routes */}
+              {/* Client Routes - Clean root slug & backwards-compatibility aliases */}
               <Route path="/reserva/:slug" element={<ClientRoute />}>
+                <Route index element={<Booking />} />
+              </Route>
+              <Route path="/b/:slug" element={<ClientRoute />}>
                 <Route index element={<Booking />} />
               </Route>
 
@@ -362,6 +376,7 @@ function App() {
               <Route path="/sucursales/:slug" element={<BranchPicker />} />
 
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Onboarding Route (User logged in, no tenant) */}
@@ -401,6 +416,11 @@ function App() {
                   <Route path="branding" element={<Branding />} />
                   <Route path="settings" element={<GlobalSettings />} />
                 </Route>
+              </Route>
+
+              {/* Clean Direct Business Route (e.g. citalink.app/barberia-el-neon) */}
+              <Route path="/:slug" element={<ClientRoute />}>
+                <Route index element={<Booking />} />
               </Route>
             </Routes>
           </Suspense>

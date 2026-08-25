@@ -10,14 +10,11 @@ export const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
       name: "Servicio Base (Técnica)",
       type: "radio",
       items: [
-        { id: "1", name: "Gel Semipermanente (Manos)", price: 120 },
-        { id: "2", name: "Gel Semipermanente con diseño(Manos)", price: 160 },
-        { id: "3", name: "Gel Semipermanente (Pies)", price: 150 },
-        { id: "4", name: "nivelación rubber", price: 170 },
-        { id: "5", name: "Baño de Acrílico (Sobre uña natural)", price: 250 },
-        { id: "6", name: "Softgel (Incluye color base)", price: 250 },
-        { id: "7", name: "Uñas Acrílicas (Set Nuevo)", price: 300 },
-        { id: "8", name: "Acripie (Acrílico en pies)", price: 230 }
+        { id: "2", name: "Gel semipermanente", price: 200 },
+        { id: "4", name: "Nivelación Rubber", price: 300 },
+        { id: "5", name: "Baño acrílico", price: 350 },
+        { id: "6", name: "Softgel (Incluye color base)", price: 400 },
+        { id: "7", name: "Uñas Acrílicas (1 tono liso)", price: 400 }
       ]
     },
     {
@@ -25,10 +22,14 @@ export const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
       name: "Tamaño (Largo)",
       type: "radio",
       items: [
-        { id: "s1", name: "Corto / Natural", price: 0 },
-        { id: "s2", name: "Mediano", price: 50 },
-        { id: "s3", name: "Largo", price: 100 },
-        { id: "s4", name: "Extra Largo (XL)", price: 150 }
+        { id: "s1", name: "Largo #1", price: 0 },
+        { id: "s2", name: "Largo #2", price: 100 },
+        { id: "s3", name: "Largo #3", price: 200 },
+        { id: "s4", name: "Largo #4", price: 300 },
+        { id: "s5", name: "Largo #5", price: 400 },
+        { id: "s6", name: "Largo #6", price: 500 },
+        { id: "s7", name: "Largo #7", price: 600 },
+        { id: "s8", name: "Largo #8", price: 700 }
       ]
     },
     {
@@ -36,12 +37,16 @@ export const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
       name: "Estilos / Diseño",
       type: "checkbox",
       items: [
-        { id: "d1", name: "Francés / Baby Boomer", price: 50 },
-        { id: "d2", name: "Efecto (Chrome, Aura, Cat Eye)", price: 50 },
-        { id: "d3", name: "Mano Alzada", price: 50, unit: "por uña" },
-        { id: "d4", name: "Cristales", price: 10, unit: "por pieza" },
-        { id: "d5", name: "Charms / Dije", price: 15, unit: "por pieza" },
-        { id: "d6", name: "Encapsulado", price: 50, unit: "por uña" }
+        { id: "d1", name: "Francés", unit: "por uña", price: 15 },
+        { id: "d2", name: "Efecto (Chrome, Aurora, Carey)", unit: "por uña", price: 15 },
+        { id: "d3", name: "Mano Alzada", unit: "por uña", price: 15 },
+        { id: "d4", name: "Cristales", unit: "por pieza", price: 5 },
+        { id: "d5", name: "Charms / Dije", unit: "por pieza", price: 20 },
+        { id: "d6", name: "Encapsulado", unit: "por uña", price: 20 },
+        { id: "d7", name: "Tono extra", unit: "por pieza", price: 30 },
+        { id: "d8", name: "Figuras 3D", unit: "por uña", price: 30 },
+        { id: "d9", name: "Relieves", unit: "por uña", price: 20 },
+        { id: "d10", name: "Cat Eye", unit: "por uña", price: 15 }
       ]
     },
     {
@@ -49,9 +54,10 @@ export const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
       name: "Adicionales / Extras",
       type: "checkbox",
       items: [
-        { id: "e1", name: "Retiro de sistema anterior", price: 50, duration: 30 },
-        { id: "e2", name: "Reparación de uña", price: 40, duration: 15 },
-        { id: "e3", name: "Retiro de otro salón", price: 100, duration: 30 }
+        { id: "e1", name: "Retiro de sistema anterior", price: 150, duration: 20 },
+        { id: "e2", name: "Reparación de uña", price: 50, duration: 15 },
+        { id: "e3", name: "Retiro de otro salón", price: 170, duration: 20 },
+        { id: "e4", name: "Retoque acrílico", price: 300, duration: 60 }
       ]
     },
     {
@@ -60,8 +66,8 @@ export const DEFAULT_NAIL_CONFIG: QuotingCategory[] = [
       type: "radio",
       items: [
         { id: "basic", name: "Básico (1 solo tono)", price: 0, desc: "Esmaltado liso de un solo color sin decoraciones." },
-        { id: "simple", name: "Sencillo (Francés o Efectos)", price: 50, desc: "Francés clásico/Baby boomer, efectos chrome/cat-eye, o diseño minimalista en 2-4 uñas." },
-        { id: "complex", name: "Elaborado (Full Art / Pedrería)", price: 150, desc: "Diseños a mano alzada en todas las uñas, cristales, charms, encapsulados o decoraciones 3D." }
+        { id: "simple", name: "Sencillo (Francés o Efectos)", price: 160, desc: "Francés clásico/Baby boomer, efectos chrome/cat-eye, o diseño minimalista en 2-4 uñas." },
+        { id: "complex", name: "Elaborado (Full Art / Pedrería)", price: 380, desc: "Diseños a mano alzada en todas las uñas, cristales, charms, encapsulados o decoraciones 3D." }
       ]
     }
 ];

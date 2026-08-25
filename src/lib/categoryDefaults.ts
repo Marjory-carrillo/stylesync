@@ -12,105 +12,118 @@ const STANDARD_SCHEDULE: WeekSchedule = {
 };
 
 export const CATEGORY_DEFAULTS: Record<string, {
-    services: Omit<Service, 'id'>[];
+    services: (Omit<Service, 'id'> & { is_addon?: boolean; enable_quoter?: boolean; description?: string })[];
     stylists: Omit<Stylist, 'id'>[];
     schedule: WeekSchedule;
 }> = {
     barbershop: {
         services: [
-            { name: 'Corte Clásico', price: 15, duration: 30, image: '' },
-            { name: 'Corte + Barba', price: 25, duration: 50, image: '' },
-            { name: 'Afeitado Royal', price: 12, duration: 25, image: '' },
-            { name: 'Corte Niño', price: 12, duration: 30, image: '' },
+            { name: 'Corte Clásico', price: 180, duration: 30, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Corte + Barba (Ritual)', price: 280, duration: 50, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Arreglo de Barba & Toalla Caliente', price: 150, duration: 25, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Corte Niño', price: 140, duration: 30, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Exfoliación & Mascarilla Black', price: 120, duration: 20, image: '', is_addon: true, enable_quoter: false },
         ],
         stylists: [
             { name: 'Barbero Principal', role: 'Master Barber', phone: '', image: '' },
-            { name: 'Silla 2', role: 'Junior Barber', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     },
     beauty_salon: {
         services: [
-            { name: 'Corte Dama', price: 30, duration: 45, image: '' },
-            { name: 'Tinte Completo', price: 60, duration: 120, image: '' },
-            { name: 'Balayage', price: 90, duration: 180, image: '' },
-            { name: 'Peinado Evento', price: 40, duration: 60, image: '' },
+            { name: 'Corte Dama & Peinado', price: 250, duration: 45, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Tinte Completo', price: 650, duration: 120, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Balayage / Efectos de Color', price: 1200, duration: 180, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Peinado Evento / Alaciado', price: 350, duration: 60, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Tratamiento Capilar Profundo', price: 300, duration: 30, image: '', is_addon: true, enable_quoter: false },
         ],
         stylists: [
             { name: 'Estilista Senior', role: 'Senior Stylist', phone: '', image: '' },
-            { name: 'Colorista', role: 'Color Expert', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     },
     nail_bar: {
         services: [
-            { name: 'Manicure Gel', price: 25, duration: 60, image: '' },
-            { name: 'Uñas Acrílicas', price: 45, duration: 90, image: '' },
-            { name: 'Pedicure Spa', price: 35, duration: 60, image: '' },
-            { name: 'Retiro de Gel', price: 10, duration: 30, image: '' },
+            { name: 'Manicura', price: 180, duration: 60, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Uñas Acrílicas (1 tono liso)', price: 300, duration: 120, image: '', is_addon: false, enable_quoter: true, description: '(Un tono liso)' },
+            { name: 'Uñas Poligel', price: 250, duration: 75, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Gel Semipermanente', price: 200, duration: 45, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Facial Express', price: 250, duration: 15, image: '', is_addon: true, enable_quoter: false },
         ],
         stylists: [
-            { name: 'Manicurista Pro', role: 'Nail Artist', phone: '', image: '' },
-            { name: 'Pedicurista', role: 'Staff', phone: '', image: '' },
+            { name: 'Master Nail Artist', role: 'Especialista en Uñas', phone: '', image: '' },
+        ],
+        schedule: STANDARD_SCHEDULE
+    },
+    nails: {
+        services: [
+            { name: 'Manicura', price: 180, duration: 60, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Uñas Acrílicas (1 tono liso)', price: 300, duration: 120, image: '', is_addon: false, enable_quoter: true, description: '(Un tono liso)' },
+            { name: 'Uñas Poligel', price: 250, duration: 75, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Gel Semipermanente', price: 200, duration: 45, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Facial Express', price: 250, duration: 15, image: '', is_addon: true, enable_quoter: false },
+        ],
+        stylists: [
+            { name: 'Master Nail Artist', role: 'Especialista en Uñas', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     },
     spa: {
         services: [
-            { name: 'Masaje Relajante', price: 50, duration: 60, image: '' },
-            { name: 'Limpieza Facial', price: 40, duration: 50, image: '' },
-            { name: 'Masaje Descontracturante', price: 60, duration: 60, image: '' },
+            { name: 'Masaje Relajante Completo', price: 550, duration: 60, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Limpieza Facial Profunda', price: 450, duration: 50, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Masaje Descontracturante', price: 650, duration: 60, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Exfoliación Corporal', price: 350, duration: 30, image: '', is_addon: true, enable_quoter: false },
         ],
         stylists: [
-            { name: 'Terapeuta 1', role: 'Masajista', phone: '', image: '' },
-            { name: 'Cosmetóloga', role: 'Facialist', phone: '', image: '' },
+            { name: 'Terapeuta Principal', role: 'Cosmetóloga & Terapeuta', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     },
     pet_grooming: {
         services: [
-            { name: 'Baño Perro Pequeño', price: 20, duration: 45, image: '' },
-            { name: 'Baño Perro Grande', price: 35, duration: 75, image: '' },
-            { name: 'Corte de Raza', price: 40, duration: 90, image: '' },
-            { name: 'Corte de Uñas', price: 10, duration: 15, image: '' },
+            { name: 'Baño Perro Pequeño', price: 200, duration: 45, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Baño Perro Grande', price: 350, duration: 75, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Corte de Raza & Estilizado', price: 400, duration: 90, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Corte de Uñas & Limpieza', price: 100, duration: 15, image: '', is_addon: true, enable_quoter: false },
         ],
         stylists: [
             { name: 'Groomer Principal', role: 'Estilista Canino', phone: '', image: '' },
-            { name: 'Asistente de Baño', role: 'Bañador', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     },
     consulting: {
         services: [
-            { name: 'Consulta General', price: 50, duration: 30, image: '' },
-            { name: 'Asesoría Especializada', price: 80, duration: 60, image: '' },
+            { name: 'Consulta General', price: 500, duration: 30, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Asesoría Especializada', price: 800, duration: 60, image: '', is_addon: false, enable_quoter: false },
         ],
         stylists: [
             { name: 'Consultor Principal', role: 'Especialista', phone: '', image: '' },
         ],
         schedule: {
             ...STANDARD_SCHEDULE,
-            saturday: { open: false, start: '10:00', end: '14:00' }, // Usually closed weekends
+            saturday: { open: false, start: '10:00', end: '14:00' },
         }
     },
     lashes: {
         services: [
-            { name: 'Pestañas Clásicas 1x1', price: 35, duration: 90, image: '' },
-            { name: 'Pestañas Volumen', price: 50, duration: 120, image: '' },
-            { name: 'Lifting de Pestañas', price: 25, duration: 60, image: '' },
-            { name: 'Diseño de Ceja & Henna', price: 15, duration: 30, image: '' },
+            { name: 'Pestañas Clásicas 1x1', price: 380, duration: 90, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Pestañas Volumen Híbrido / Ruso', price: 480, duration: 120, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Lifting de Pestañas', price: 300, duration: 60, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Diseño de Cejas & Laminado', price: 250, duration: 40, image: '', is_addon: false, enable_quoter: false },
         ],
         stylists: [
-            { name: 'Lashista Principal', role: 'Lash Artist Expert', phone: '', image: '' },
+            { name: 'Lashista Principal', role: 'Lash & Brow Expert', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     },
     other: {
         services: [
-            { name: 'Servicio General', price: 20, duration: 30, image: '' },
+            { name: 'Servicio Principal', price: 250, duration: 45, image: '', is_addon: false, enable_quoter: false },
+            { name: 'Servicio Secundario', price: 180, duration: 30, image: '', is_addon: false, enable_quoter: false },
         ],
         stylists: [
-            { name: 'Personal 1', role: 'Staff', phone: '', image: '' },
+            { name: 'Especialista Principal', role: 'Staff', phone: '', image: '' },
         ],
         schedule: STANDARD_SCHEDULE
     }
