@@ -460,46 +460,48 @@ export default function Staff() {
                                     </div>
                                 </div>
 
-                                {/* Personal Deposit Account Section */}
-                                <div className="pt-4 border-t border-white/10 space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <Zap size={16} className="text-emerald-400" />
-                                        <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Cuenta Propia para Anticipos (Opcional)</span>
+                                {/* Personal Deposit Account Section (Solo si anticipos están activos en el negocio) */}
+                                {businessConfig?.depositEnabled && (
+                                    <div className="pt-4 border-t border-white/10 space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <Zap size={16} className="text-emerald-400" />
+                                            <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Cuenta Propia para Anticipos (Opcional)</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-400">Si este profesional cobra sus anticipos en su cuenta personal, ingresa sus datos aquí. Si se deja en blanco, usará la cuenta del salón.</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Banco</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="ej. BBVA / Nu"
+                                                    value={formDepositBankName}
+                                                    onChange={e => setFormDepositBankName(e.target.value)}
+                                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">CLABE / Tarjeta</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="18 dígitos"
+                                                    value={formDepositClabe}
+                                                    onChange={e => setFormDepositClabe(e.target.value)}
+                                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Titular</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Nombre del Titular"
+                                                    value={formDepositHolderName}
+                                                    onChange={e => setFormDepositHolderName(e.target.value)}
+                                                    className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p className="text-[11px] text-slate-400">Si este profesional cobra sus anticipos en su cuenta personal, ingresa sus datos aquí. Si se deja en blanco, usará la cuenta del salón.</p>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Banco</label>
-                                            <input
-                                                type="text"
-                                                placeholder="ej. BBVA / Nu"
-                                                value={formDepositBankName}
-                                                onChange={e => setFormDepositBankName(e.target.value)}
-                                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">CLABE / Tarjeta</label>
-                                            <input
-                                                type="text"
-                                                placeholder="18 dígitos"
-                                                value={formDepositClabe}
-                                                onChange={e => setFormDepositClabe(e.target.value)}
-                                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Titular</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Nombre del Titular"
-                                                value={formDepositHolderName}
-                                                onChange={e => setFormDepositHolderName(e.target.value)}
-                                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         )}
 
