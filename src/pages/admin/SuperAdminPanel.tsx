@@ -3,7 +3,7 @@ import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
 import {
     Building2, Trash2, Search, ChevronRight,
     LayoutDashboard, Plus, X, BarChart3,
-    Zap, AlertTriangle, Calendar, Users,
+    Zap, AlertTriangle, Calendar, Users, UserPlus,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
     DollarSign, Pencil, Eye, Key, EyeOff, Download, ShoppingBag,
     Phone, MapPin, MessageCircle, Copy, Check, ExternalLink, Navigation, RefreshCw, Settings
@@ -308,7 +308,10 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave, onSwitchTenant, on
     const [plan, setPlan] = useState<PlanType>((tenant.plan || 'free') as PlanType);
     const [trialEndsAt, setTrialEndsAt] = useState(formatDateForInput(tenant.trial_ends_at));
     const [subscriptionType, setSubscriptionType] = useState(tenant.subscription_type || 'manual');
-    const [paymentStatus, setPaymentStatus] = useState(tenant.payment_status || 'active');
+    const isTrialExpired = !!(tenant.trial_ends_at && new Date(tenant.trial_ends_at) < new Date());
+    const [paymentStatus, setPaymentStatus] = useState(
+        tenant.payment_status ? tenant.payment_status : (isTrialExpired ? 'suspended' : 'active')
+    );
     const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState(formatDateForInput(tenant.grace_period_ends_at));
     const [marketplaceEnabled, setMarketplaceEnabled] = useState(tenant.marketplace_enabled || false);
     const [marketplaceCommissionRate, setMarketplaceCommissionRate] = useState<number>(tenant.marketplace_commission_rate ?? 15);
@@ -975,6 +978,37 @@ export default function SuperAdminPanel() {
     const [isCreating, setIsCreating] = useState(false);
     const [isExistingOwner, setIsExistingOwner] = useState(false);
     const [selectedOwnerId, setSelectedOwnerId] = useState('');
+    const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
+
+    // Lista única de dueños existentes para vincular sucursales
+    const uniqueOwners = useMemo(() => {
+        const ownerMap = new Map<string, { id: string; name: string; email: string; slug: string; category?: string; brandSlug?: string }>();
+        allTenants.forEach((t: any) => {
+            if (t.owner_id && !ownerMap.has(t.owner_id)) {
+                const ownerTu = t.tenant_users?.find((u: any) => u.role === 'owner') || t.tenant_users?.[0];
+                ownerMap.set(t.owner_id, {
+                    id: t.owner_id,
+                    name: t.name,
+                    email: ownerTu?.email || '',
+                    slug: t.slug || '',
+                    category: t.category || '',
+                    brandSlug: t.brand_slug || t.slug || '',
+                });
+            }
+        });
+        return Array.from(ownerMap.values());
+    }, [allTenants]);
+
+    const filteredOwners = useMemo(() => {
+        const q = ownerSearchQuery.toLowerCase().trim();
+        if (!q) return uniqueOwners;
+        return uniqueOwners.filter(o =>
+            o.name.toLowerCase().includes(q) ||
+            o.email.toLowerCase().includes(q) ||
+            o.slug.toLowerCase().includes(q) ||
+            (o.category && o.category.toLowerCase().includes(q))
+        );
+    }, [uniqueOwners, ownerSearchQuery]);
     const [totalSmsCount, setTotalSmsCount] = useState<number | null>(null);
     const [totalSmsUsCount, setTotalSmsUsCount] = useState<number | null>(null);
     const [smsCountsByTenant, setSmsCountsByTenant] = useState<Record<string, { total: number; week: number; month: number }>>({});
@@ -2422,83 +2456,171 @@ export default function SuperAdminPanel() {
                             {/* Divider */}
                             <div className="border-t border-white/5" />
 
-                            {/* â”€â”€ Sección: Acceso del Dueño â”€â”€ */}
+                            {/* ── Sección: Acceso del Dueño ── */}
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center gap-2">
-                                        <Users size={14} className="text-emerald-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Acceso del Dueño</span>
-                                    </div>
-                                    {/* Toggle: Existing Owner */}
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Users size={14} className="text-emerald-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Modalidad de Registro y Acceso</span>
+                                </div>
+
+                                {/* Selector Prominente de Modo: Negocio Nuevo vs Sucursal Existente */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1.5 bg-black/40 border border-white/10 rounded-2xl">
                                     <button
                                         type="button"
-                                        onClick={() => { setIsExistingOwner(!isExistingOwner); setSelectedOwnerId(''); }}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                                            isExistingOwner
-                                                ? 'bg-violet-500/20 text-violet-400 border-violet-500/40'
-                                                : 'bg-white/5 text-slate-500 border-white/10 hover:text-slate-300'
+                                        onClick={() => { setIsExistingOwner(false); setSelectedOwnerId(''); setOwnerSearchQuery(''); }}
+                                        className={`flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-black text-xs transition-all ${
+                                            !isExistingOwner
+                                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/40 border border-emerald-400/40 scale-[1.01]'
+                                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
                                         }`}
                                     >
-                                        <Building2 size={10} />
-                                        {isExistingOwner ? 'Dueño Existente' : '+ Nueva Cuenta'}
+                                        <UserPlus size={15} className={!isExistingOwner ? 'text-white' : 'text-slate-500'} />
+                                        <span>1. Negocio Nuevo (Cuenta Nueva)</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => { setIsExistingOwner(true); }}
+                                        className={`flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-black text-xs transition-all ${
+                                            isExistingOwner
+                                                ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-900/40 border border-violet-400/40 scale-[1.01]'
+                                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                                        }`}
+                                    >
+                                        <Building2 size={15} className={isExistingOwner ? 'text-white' : 'text-slate-500'} />
+                                        <span>2. Nueva Sucursal (Dueño Existente)</span>
                                     </button>
                                 </div>
 
                                 {isExistingOwner ? (
-                                    /* Existing Owner Selector */
-                                    <div className="space-y-2">
-                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Seleccionar Dueño Existente</label>
-                                        <select
-                                            required
-                                            value={selectedOwnerId}
-                                            onChange={e => setSelectedOwnerId(e.target.value)}
-                                            className="w-full bg-white/[0.04] border border-violet-500/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/30 transition-all outline-none text-sm appearance-none"
-                                        >
-                                            <option value="" className="bg-slate-900">â€” Elegir un dueño â€”</option>
-                                            {(() => {
-                                                // Get unique owners from existing tenants
-                                                const ownerMap = new Map<string, { id: string; name: string }>(); 
-                                                allTenants.forEach(t => {
-                                                    if (t.owner_id && !ownerMap.has(t.owner_id)) {
-                                                        ownerMap.set(t.owner_id, { id: t.owner_id, name: t.name });
-                                                    }
-                                                });
-                                                return Array.from(ownerMap.values()).map(owner => (
-                                                    <option key={owner.id} value={owner.id} className="bg-slate-900">
-                                                        Dueño de: {owner.name}
-                                                    </option>
-                                                ));
-                                            })()}
-                                        </select>
-                                        <p className="text-[10px] text-violet-400/70 ml-1">ðŸ“Ž La nueva sucursal aparecerá en el panel del dueño seleccionado.</p>
+                                    /* Existing Owner Searchable Combobox */
+                                    <div className="space-y-3 p-4 bg-violet-950/20 border border-violet-500/20 rounded-2xl animate-fade-in">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[11px] font-bold text-violet-300 flex items-center gap-1.5">
+                                                <Search size={13} className="text-violet-400" />
+                                                <span>Filtrar y Seleccionar Dueño Existente:</span>
+                                            </label>
+                                            {selectedOwnerId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setSelectedOwnerId(''); setOwnerSearchQuery(''); }}
+                                                    className="text-[10px] font-bold text-violet-400 hover:text-white underline cursor-pointer"
+                                                >
+                                                    Cambiar selección
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Input con filtro en vivo */}
+                                        <div className="relative">
+                                            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                            <input
+                                                type="text"
+                                                placeholder="Escribe el nombre del negocio o correo para filtrar rápido..."
+                                                value={ownerSearchQuery}
+                                                onChange={e => setOwnerSearchQuery(e.target.value)}
+                                                className="w-full bg-slate-900/90 border border-violet-500/30 rounded-xl pl-9 pr-8 py-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none text-xs font-medium"
+                                            />
+                                            {ownerSearchQuery && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOwnerSearchQuery('')}
+                                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1"
+                                                >
+                                                    <X size={13} />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Lista de resultados filtrables */}
+                                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                                            {filteredOwners.length === 0 ? (
+                                                <div className="p-4 text-center text-xs text-slate-500 bg-white/[0.02] rounded-xl border border-white/5">
+                                                    No se encontraron dueños con "{ownerSearchQuery}".
+                                                </div>
+                                            ) : (
+                                                filteredOwners.map(owner => {
+                                                    const isSelected = selectedOwnerId === owner.id;
+                                                    return (
+                                                        <button
+                                                            key={owner.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedOwnerId(owner.id);
+                                                                if (owner.brandSlug) setNewBusiness({ ...newBusiness, brandSlug: owner.brandSlug });
+                                                            }}
+                                                            className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
+                                                                isSelected
+                                                                    ? 'bg-violet-600/30 border-violet-500 text-white shadow-md shadow-violet-900/40'
+                                                                    : 'bg-white/[0.03] border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                                                            }`}
+                                                        >
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Building2 size={14} className={isSelected ? 'text-violet-300' : 'text-slate-500'} />
+                                                                    <span className="text-xs font-bold truncate text-white">{owner.name}</span>
+                                                                    {owner.category && (
+                                                                        <span className="text-[9px] px-2 py-0.5 rounded-md bg-white/10 text-slate-300 font-mono">
+                                                                            {owner.category}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {owner.email && (
+                                                                    <p className="text-[10px] text-slate-400 truncate ml-5 mt-0.5">
+                                                                        {owner.email}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                            {isSelected ? (
+                                                                <div className="w-5 h-5 rounded-full bg-violet-500 text-white flex items-center justify-center shrink-0 ml-2">
+                                                                    <Check size={12} />
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold text-violet-400 shrink-0 ml-2">
+                                                                    Elegir
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+
+                                        {selectedOwnerId && (
+                                            <div className="p-3 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center gap-2 text-violet-200 text-xs font-bold">
+                                                <Check size={16} className="text-violet-400 shrink-0" />
+                                                <span>Sucursal vinculada a: <strong className="text-white">{uniqueOwners.find(o => o.id === selectedOwnerId)?.name}</strong></span>
+                                            </div>
+                                        )}
+                                        <p className="text-[10px] text-violet-400/80 ml-1">📌 La nueva sucursal aparecerá automáticamente en el selector de sucursales del dueño.</p>
                                     </div>
                                 ) : (
                                     /* New Owner: Email + Password */
-                                    <>
+                                    <div className="space-y-3 p-4 bg-emerald-950/15 border border-emerald-500/20 rounded-2xl animate-fade-in">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div className="space-y-1.5">
-                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Correo Electrónico</label>
+                                                <label className="text-[11px] font-bold text-slate-300 ml-1">Correo Electrónico del Dueño</label>
                                                 <input
                                                     required type="email"
-                                                    className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
+                                                    className="w-full bg-slate-900/90 border border-emerald-500/30 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-all outline-none text-sm"
                                                     placeholder="dueno@correo.com"
                                                     value={newBusiness.ownerEmail}
                                                     onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[11px] font-bold text-slate-400 ml-1">Contraseña</label>
+                                                <label className="text-[11px] font-bold text-slate-300 ml-1">Contraseña de Acceso</label>
                                                 <input
                                                     required type="password" minLength={6}
-                                                    className="w-full bg-white/[0.04] border border-emerald-500/20 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/30 transition-all outline-none text-sm"
+                                                    className="w-full bg-slate-900/90 border border-emerald-500/30 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-all outline-none text-sm"
                                                     placeholder="Mín. 6 caracteres"
                                                     value={newBusiness.ownerPassword}
                                                     onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
                                                 />
                                             </div>
                                         </div>
-                                        <p className="text-[10px] text-slate-500/80 ml-1 -mt-1">El dueño usará estas credenciales para acceder a su panel de administración.</p>
-                                    </>
+                                        <p className="text-[10px] text-emerald-400/80 ml-1">El dueño usará estas credenciales para acceder a su panel de administración.</p>
+                                    </div>
                                 )}
                             </div>
 

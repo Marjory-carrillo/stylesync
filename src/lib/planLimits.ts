@@ -238,16 +238,17 @@ export function getPlanBadgeStyles(plan: PlanType): { bg: string; text: string; 
  * Checks if the account is currently active based on subscription type and payment status.
  */
 export function isAccountActive(
-    subscriptionType: 'stripe' | 'manual' = 'manual',
+    _subscriptionType: 'stripe' | 'manual' = 'manual',
     paymentStatus: 'active' | 'grace_period' | 'suspended' = 'active',
-    gracePeriodEndsAt?: string | null
+    gracePeriodEndsAt?: string | null,
+    trialEndsAt?: string | null
 ): { active: boolean; warning?: string; blocked: boolean } {
-    if (subscriptionType === 'manual') {
-        return { active: true, blocked: false };
+    // 1. Si el estado es explícitamente 'suspended', SIEMPRE está bloqueado
+    if (paymentStatus === 'suspended') {
+        return { active: false, blocked: true, warning: 'Tu cuenta ha sido suspendida por falta de pago o fin de prueba.' };
     }
-    if (paymentStatus === 'active') {
-        return { active: true, blocked: false };
-    }
+
+    // 2. Si está en período de gracia
     if (paymentStatus === 'grace_period') {
         if (gracePeriodEndsAt && new Date(gracePeriodEndsAt) < new Date()) {
             return { active: false, blocked: true, warning: 'Tu período de gracia ha expirado. Tu cuenta ha sido suspendida.' };
@@ -255,9 +256,22 @@ export function isAccountActive(
         return {
             active: true,
             blocked: false,
-            warning: 'Problema de pago detectado. Por favor, actualiza tu tarjeta para evitar la suspensión del servicio.'
+            warning: 'Problema de pago detectado. Por favor, regulariza tu suscripción para evitar la suspensión del servicio.'
         };
     }
+
+    // 3. Si el período de prueba venció y no cuenta con pago activo
+    if (trialEndsAt && new Date(trialEndsAt) < new Date()) {
+        if (paymentStatus !== 'active') {
+            return { active: false, blocked: true, warning: 'Tu período de prueba gratis ha vencido. Contacta a soporte o elige un plan para continuar.' };
+        }
+    }
+
+    // 4. Si el pago o prueba está activo
+    if (paymentStatus === 'active') {
+        return { active: true, blocked: false };
+    }
+
     return { active: false, blocked: true, warning: 'Tu cuenta ha sido suspendida por falta de pago.' };
 }
 

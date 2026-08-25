@@ -150,10 +150,31 @@ export function useSuperAdmin() {
     const deleteTenantMutation = useMutation({
         mutationFn: async (id: string) => {
             if (!isSuperAdmin) throw new Error('No autorizado');
-            // Limpiar tenant_users huérfanos antes de borrar el tenant
-            await supabase.from('tenant_users').delete().eq('tenant_id', id);
-            const { error } = await supabase.from('tenants').delete().eq('id', id);
-            if (error) throw new Error(error.message);
+
+            // 1. Llamar a Edge Function con clave service_role para borrado completo (DB + auth.users)
+            try {
+                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+                const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/create-owner`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ANON_KEY}`,
+                    },
+                    body: JSON.stringify({ action: 'delete_tenant', tenant_id: id }),
+                });
+                const resData = await res.json();
+                if (!resData.success) {
+                    throw new Error(resData.error || 'Error al eliminar tenant en servidor');
+                }
+            } catch (fnErr) {
+                console.warn('Fallback deleteTenant localmente:', fnErr);
+                // Fallback en caso de contingencia
+                await supabase.from('tenant_users').delete().eq('tenant_id', id);
+                const { error } = await supabase.from('tenants').delete().eq('id', id);
+                if (error) throw new Error(error.message);
+            }
+
             return id;
         },
         onSuccess: () => {

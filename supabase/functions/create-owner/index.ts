@@ -133,6 +133,82 @@ serve(async (req: Request) => {
 
     try {
         const body = await req.json();
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('APP_SERVICE_KEY') || Deno.env.get('SERVICE_ROLE_KEY') || '';
+        const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+        // Admin client (for user creation & table seeding with full service_role)
+        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+        // Regular client (for sending magic link emails)
+        const supabaseClient = createClient(supabaseUrl, anonKey);
+
+        // ── ACCIÓN: Eliminar Tenant y su Usuario de Authentication ─────────────
+        if (body.action === 'delete_tenant') {
+            const { tenant_id } = body;
+            if (!tenant_id) {
+                return new Response(
+                    JSON.stringify({ success: false, error: 'tenant_id es requerido.' }),
+                    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+
+            console.log('[create-owner] Deleting tenant and auth users:', tenant_id);
+
+            // 1. Obtener los user_ids asociados al tenant antes de borrar
+            const { data: tenant } = await supabaseAdmin.from('tenants').select('owner_id').eq('id', tenant_id).maybeSingle();
+            const { data: tenantUsers } = await supabaseAdmin.from('tenant_users').select('user_id, email').eq('tenant_id', tenant_id);
+
+            const userIdsToDelete = new Set<string>();
+            if (tenant?.owner_id) userIdsToDelete.add(tenant.owner_id);
+            if (tenantUsers) {
+                tenantUsers.forEach((tu: any) => {
+                    if (tu.user_id) userIdsToDelete.add(tu.user_id);
+                });
+            }
+
+            // 2. Borrar tablas relacionadas (evita bloqueos de FK)
+            await Promise.allSettled([
+                supabaseAdmin.from('appointments').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('services').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('stylists').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('schedule_config').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('tenant_users').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('sms_logs').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('announcements').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('blocked_slots').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('blocked_phones').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('nail_calculator_config').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('reviews').delete().eq('tenant_id', tenant_id),
+                supabaseAdmin.from('waiting_list').delete().eq('tenant_id', tenant_id),
+            ]);
+
+            // 3. Borrar el registro del tenant
+            const { error: delTenantErr } = await supabaseAdmin.from('tenants').delete().eq('id', tenant_id);
+            if (delTenantErr) {
+                console.error('[create-owner] Error deleting tenant row:', delTenantErr);
+            }
+
+            // 4. Borrar de auth.users si no es SuperAdmin
+            for (const uId of userIdsToDelete) {
+                try {
+                    const { data: uInfo } = await supabaseAdmin.auth.admin.getUserById(uId);
+                    const email = uInfo?.user?.email?.toLowerCase() || '';
+                    if (email && email !== 'citalink.soporte@gmail.com' && !email.includes('superadmin')) {
+                        await supabaseAdmin.auth.admin.deleteUser(uId);
+                        console.log('[create-owner] Deleted user from auth.users:', uId, email);
+                    }
+                } catch (delUserErr) {
+                    console.warn('[create-owner] Could not delete user from auth:', uId, delUserErr);
+                }
+            }
+
+            return new Response(
+                JSON.stringify({ success: true, message: 'Negocio y usuario de autenticación eliminados con éxito.' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+        }
+
         const {
             email, password, businessName, businessSlug, lookupOnly,
             createTenant = true, category = 'nail_bar', contactName,
@@ -154,15 +230,6 @@ serve(async (req: Request) => {
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
-
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('APP_SERVICE_KEY') || Deno.env.get('SERVICE_ROLE_KEY') || '';
-        const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-
-        // Admin client (for user creation & table seeding with full service_role)
-        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-        // Regular client (for sending magic link emails)
-        const supabaseClient = createClient(supabaseUrl, anonKey);
 
         const siteUrl = (Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://www.citalink.app').replace(/\/$/, '');
         const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`;

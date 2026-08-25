@@ -138,7 +138,8 @@ export default function AdminLayout() {
     const accountStatus = isAccountActive(
         businessConfig?.subscriptionType,
         businessConfig?.paymentStatus,
-        businessConfig?.gracePeriodEndsAt
+        businessConfig?.gracePeriodEndsAt,
+        businessConfig?.trialEndsAt
     );
 
     const showNailCalculator = useMemo(() => {
