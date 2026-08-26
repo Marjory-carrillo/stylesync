@@ -8,6 +8,8 @@ import { useClients } from '../lib/store/queries/useClients';
 import { useServices } from '../lib/store/queries/useServices';
 import { useStylists } from '../lib/store/queries/useStylists';
 import { formatPhoneDisplay } from '../lib/schemas';
+import { getRealAdditionalServices, formatAddOnItemDisplay } from '../lib/smartSlots';
+import { useTenantData } from '../lib/store/queries/useTenantData';
 import PhotoZoomViewer from './PhotoZoomViewer';
 
 interface ClientHistoryModalProps {
@@ -22,6 +24,7 @@ export const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({ isOpen, 
     const { clients } = useClients();
     const { services } = useServices();
     const { stylists } = useStylists();
+    const { data: tenantConfig } = useTenantData();
 
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
     const [expandedApptId, setExpandedApptId] = useState<string | number | null>(null);
@@ -30,39 +33,8 @@ export const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({ isOpen, 
     const isBlocked = isPhoneBlocked(clientPhone);
     const blockReason = getBlockReason(clientPhone);
 
-    const isCalculatorOption = (s: string) => {
-        if (!s) return true;
-        const trimmed = s.trim();
-        return (
-            trimmed.startsWith('Referencia:') ||
-            trimmed.startsWith('Cotización') ||
-            trimmed.startsWith('Diseño:') ||
-            trimmed.startsWith('Diseño Catálogo:') ||
-            trimmed.startsWith('Largo:') ||
-            trimmed.startsWith('Forma:') ||
-            trimmed.startsWith('Grosor:') ||
-            trimmed.startsWith('Técnica:') ||
-            trimmed.startsWith('Color:') ||
-            trimmed.startsWith('Efecto:') ||
-            trimmed.startsWith('Decoración:') ||
-            trimmed.startsWith('Extra:') ||
-            trimmed.includes('(+')
-        );
-    };
-
     const getRealAddOns = (addServices?: string[]) => {
-        if (!addServices || addServices.length === 0) return [];
-        return addServices
-            .filter(s => !isCalculatorOption(s))
-            .map(s => {
-                const cleanName = s.split('(+')[0].replace(/^Adicional:\s*/i, '').trim();
-                const matchingSvc = services.find(serv =>
-                    serv.name.toLowerCase() === cleanName.toLowerCase() ||
-                    serv.name.toLowerCase() === s.toLowerCase()
-                );
-                return matchingSvc ? matchingSvc.name : cleanName;
-            })
-            .filter(Boolean) as string[];
+        return getRealAdditionalServices(addServices, services);
     };
 
     const getAppointmentPrice = (apt: any) => {
@@ -366,7 +338,7 @@ export const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({ isOpen, 
                                                     {detailsList.map((item: string, idx: number) => (
                                                         <div key={idx} className="flex items-start gap-1.5 text-slate-300 pl-1 text-[11px]">
                                                             <span className="text-amber-400">•</span>
-                                                            <span>{item}</span>
+                                                            <span>{formatAddOnItemDisplay(item, services, (tenantConfig as any)?.nail_calculator_config)}</span>
                                                         </div>
                                                     ))}
                                                 </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabaseClient';
 import { useAuthStore } from './authStore';
 
@@ -69,6 +70,8 @@ export function useRealtimeNotifications() {
 
     const clearAll = useCallback(() => setNotifications([]), []);
 
+    const queryClient = useQueryClient();
+
     // Subscribe to Supabase Realtime
     useEffect(() => {
         if (!tenantId) return;
@@ -79,66 +82,88 @@ export function useRealtimeNotifications() {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'appointments',
-                filter: `tenant_id=eq.${tenantId}`,
             }, (payload) => {
                 const a = payload.new as any;
+                if (a && a.tenant_id && a.tenant_id !== tenantId) return;
                 addNotification({
                     type: 'new',
-                    clientName: a.client_name,
-                    clientPhone: a.client_phone,
-                    date: a.date,
-                    time: a.time,
+                    clientName: a?.client_name || 'Cliente',
+                    clientPhone: a?.client_phone || '',
+                    date: a?.date || '',
+                    time: a?.time || '',
                 });
+                queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                queryClient.refetchQueries({ queryKey: ['appointments'] });
+                queryClient.invalidateQueries({ queryKey: ['clients'] });
             })
             .on('postgres_changes', {
                 event: 'UPDATE',
                 schema: 'public',
                 table: 'appointments',
-                filter: `tenant_id=eq.${tenantId}`,
             }, (payload) => {
                 const a = payload.new as any;
-                if (a.status === 'cancelada') {
-                    addNotification({ type: 'cancel', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
-                } else if (a.status === 'completada') {
-                    addNotification({ type: 'complete', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
+                if (a && a.tenant_id && a.tenant_id !== tenantId) return;
+                if (a?.status === 'cancelada') {
+                    addNotification({ type: 'cancel', clientName: a?.client_name || 'Cliente', clientPhone: a?.client_phone || '', date: a?.date || '', time: a?.time || '' });
+                } else if (a?.status === 'completada') {
+                    addNotification({ type: 'complete', clientName: a?.client_name || 'Cliente', clientPhone: a?.client_phone || '', date: a?.date || '', time: a?.time || '' });
                 } else {
-                    addNotification({ type: 'reschedule', clientName: a.client_name, clientPhone: a.client_phone, date: a.date, time: a.time });
+                    addNotification({ type: 'reschedule', clientName: a?.client_name || 'Cliente', clientPhone: a?.client_phone || '', date: a?.date || '', time: a?.time || '' });
                 }
+                queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                queryClient.refetchQueries({ queryKey: ['appointments'] });
+                queryClient.invalidateQueries({ queryKey: ['cancellation_log'] });
+                queryClient.invalidateQueries({ queryKey: ['clients'] });
+            })
+            .on('postgres_changes', {
+                event: 'DELETE',
+                schema: 'public',
+                table: 'appointments',
+            }, (payload) => {
+                const a = (payload.old || payload.new) as any;
+                if (a && a.tenant_id && a.tenant_id !== tenantId) return;
+                queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                queryClient.refetchQueries({ queryKey: ['appointments'] });
+                queryClient.invalidateQueries({ queryKey: ['cancellation_log'] });
             })
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'cancellation_log',
-                filter: `tenant_id=eq.${tenantId}`,
             }, (payload) => {
                 const c = payload.new as any;
+                if (c && c.tenant_id && c.tenant_id !== tenantId) return;
                 addNotification({
                     type: 'cancel',
-                    clientName: c.client_name,
-                    clientPhone: c.client_phone,
-                    date: c.appointment_date || new Date().toISOString().split('T')[0],
-                    time: c.appointment_time || '',
+                    clientName: c?.client_name || 'Cliente',
+                    clientPhone: c?.client_phone || '',
+                    date: c?.appointment_date || new Date().toISOString().split('T')[0],
+                    time: c?.appointment_time || '',
                 });
+                queryClient.invalidateQueries({ queryKey: ['cancellation_log'] });
+                queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                queryClient.refetchQueries({ queryKey: ['appointments'] });
             })
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'waiting_list',
-                filter: `tenant_id=eq.${tenantId}`,
             }, (payload) => {
                 const w = payload.new as any;
+                if (w && w.tenant_id && w.tenant_id !== tenantId) return;
                 addNotification({
                     type: 'waiting_list',
-                    clientName: w.name || w.client_name,
-                    clientPhone: w.phone || w.client_phone,
-                    date: w.date,
+                    clientName: w?.name || w?.client_name || 'Cliente',
+                    clientPhone: w?.phone || w?.client_phone || '',
+                    date: w?.date || '',
                     time: 'Lista de espera',
                 });
+                queryClient.invalidateQueries({ queryKey: ['waiting_list'] });
             })
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, [tenantId, addNotification]);
+    }, [tenantId, addNotification, queryClient]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 

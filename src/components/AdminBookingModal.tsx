@@ -10,7 +10,7 @@ import { useBlockedPhones } from '../lib/store/queries/useBlockedPhones';
 import { useSchedule } from '../lib/store/queries/useSchedule';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../lib/store/queries/useNailCalculator';
-import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
+import { getSmartSlots, calculateAppointmentDuration, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 import { isNailCalculatorEnabled, isAppointmentActive } from '../lib/planLimits';
 import { useAuthStore } from '../lib/store/authStore';
 import { normalizePhone, formatPhoneDisplay } from '../lib/schemas';
@@ -186,16 +186,31 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return base;
     }, [businessConfig, selectedService, nailTotalPrice, services, selectedAddons]);
 
-    // Get total duration (base service + selected additional services)
+    // Get total duration (base service + selected additional services + nail quoter extras)
     const totalDuration = useMemo(() => {
         let dur = selectedService?.duration ?? 30;
+
+        // Sumar servicios adicionales generales
         services.filter(s => s.isAddon).forEach(addon => {
             if (selectedAddons[addon.id]) {
                 dur += (addon.duration || 0);
             }
         });
+
+        // Sumar extras del cotizador de uñas (si aplica)
+        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
+            const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+            if (extrasCat) {
+                extrasCat.items.forEach(item => {
+                    if (nailExtras[item.id]) {
+                        dur += (item.duration || 0);
+                    }
+                });
+            }
+        }
+
         return dur;
-    }, [selectedService, services, selectedAddons]);
+    }, [selectedService, services, selectedAddons, businessConfig, nailQuoterConfig, nailExtras]);
 
     const filteredServices = useMemo(() => {
         let list = services.filter(s => !s.isAddon);
@@ -240,9 +255,9 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             const appts: SlotAppointment[] = appointments
                 .filter(a => a.date === selectedDate && a.status === 'confirmada')
                 .map(a => {
-                    const svc = services.find(s => s.id === a.serviceId);
+                    const dur = calculateAppointmentDuration(a, services, nailQuoterConfig);
                     const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
-                    const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
+                    const end = new Date(start.getTime() + dur * 60000);
                     return { id: a.id, stylistId: '0', start, end };
                 });
             return getSmartSlots(baseDate, totalDuration, dateSchedule.start, dateSchedule.end, appts, blocked, bufferMinutes);
@@ -253,16 +268,16 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             const stylistAppts: SlotAppointment[] = appointments
                 .filter(a => a.date === selectedDate && a.status === 'confirmada' && String(a.stylistId) === String(stylist.id))
                 .map(a => {
-                    const svc = services.find(s => s.id === a.serviceId);
+                    const dur = calculateAppointmentDuration(a, services, nailQuoterConfig);
                     const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
-                    const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
+                    const end = new Date(start.getTime() + dur * 60000);
                     return { id: a.id, stylistId: String(stylist.id), start, end };
                 });
             const slots = getSmartSlots(baseDate, totalDuration, dateSchedule.start, dateSchedule.end, stylistAppts, blocked, bufferMinutes);
             slots.forEach(s => allSlots.add(s));
         });
         return Array.from(allSlots).sort();
-    }, [selectedService, totalDuration, selectedDate, selectedStylist, stylists, appointments, services, blockedSlots, getScheduleForDate, bufferMinutes]);
+    }, [selectedService, totalDuration, selectedDate, selectedStylist, stylists, appointments, services, blockedSlots, getScheduleForDate, bufferMinutes, nailQuoterConfig]);
 
     // Step: datos — client data validation
     const handleDatosNext = () => {
@@ -296,25 +311,30 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         // Build additionalServices/addOnNames
         let addOnNames: string[] = [];
         if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
-            if (nailSize) addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)`);
+            if (nailSize) {
+                const durText = (nailSize as any).duration ? `, +${(nailSize as any).duration} min` : '';
+                addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN${durText})`);
+            }
             
             if (stylesCategory) {
                 stylesCategory.items.forEach(item => {
                     const stState = selectedStyles[item.id];
                     if (stState?.checked) {
                         const hasUnit = !!item.unit;
+                        const durText = (item as any).duration ? `, +${(item as any).duration} min` : '';
                         if (hasUnit) {
                             const sub = (item.price || 0) * (stState.qty || 1);
-                            addOnNames.push(`Estilo: ${item.name} x${stState.qty || 1} (+$${sub} MXN)`);
+                            addOnNames.push(`Estilo: ${item.name} x${stState.qty || 1} (+$${sub} MXN${durText})`);
                         } else {
-                            addOnNames.push(`Estilo: ${item.name} (+$${item.price || 0} MXN)`);
+                            addOnNames.push(`Estilo: ${item.name} (+$${item.price || 0} MXN${durText})`);
                         }
                     }
                 });
             } else {
                 const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
                 if (designItem) {
-                    addOnNames.push(`Diseño: ${designItem.name} (+$${designItem.price} MXN)`);
+                    const durText = (designItem as any).duration ? `, +${(designItem as any).duration} min` : '';
+                    addOnNames.push(`Diseño: ${designItem.name} (+$${designItem.price} MXN${durText})`);
                 } else {
                     if (designLevel === 'basic') {
                         addOnNames.push(`Diseño: Básico / 1 Tono (+$0 MXN)`);
@@ -330,7 +350,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             if (extrasCat) {
                 extrasCat.items.forEach(item => {
                     if (nailExtras[item.id]) {
-                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN)`);
+                        const durText = item.duration ? `, +${item.duration} min` : '';
+                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN${durText})`);
                     }
                 });
             }
@@ -339,7 +360,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         // Agregar servicios adicionales generales seleccionados
         services.filter(s => s.isAddon).forEach(addon => {
             if (selectedAddons[addon.id]) {
-                addOnNames.push(`Adicional: ${addon.name} (+$${addon.price || 0} MXN)`);
+                const durText = addon.duration ? `, +${addon.duration} min` : '';
+                addOnNames.push(`Adicional: ${addon.name} (+$${addon.price || 0} MXN${durText})`);
             }
         });
 

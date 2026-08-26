@@ -11,6 +11,7 @@ import Pagination from '../../components/Pagination';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import { formatPhoneDisplay } from '../../lib/schemas';
+import { isQuoterOrMetaOption } from '../../lib/smartSlots';
 
 export default function Clients() {
     const { clients: dbClients, isPending: clientsPending, deleteClient, isDeleting, createClient, isCreating } = useClients();
@@ -100,26 +101,6 @@ export default function Clients() {
 
     const PAGE_SIZE = 12;
 
-    const isCalculatorOption = (s: string) => {
-        if (!s) return true;
-        const trimmed = s.trim();
-        return (
-            trimmed.startsWith('Referencia:') ||
-            trimmed.startsWith('Cotización') ||
-            trimmed.startsWith('Diseño:') ||
-            trimmed.startsWith('Diseño Catálogo:') ||
-            trimmed.startsWith('Largo:') ||
-            trimmed.startsWith('Forma:') ||
-            trimmed.startsWith('Grosor:') ||
-            trimmed.startsWith('Técnica:') ||
-            trimmed.startsWith('Color:') ||
-            trimmed.startsWith('Efecto:') ||
-            trimmed.startsWith('Decoración:') ||
-            trimmed.startsWith('Extra:') ||
-            trimmed.includes('(+')
-        );
-    };
-
     const formatClientMainService = (serviceStr?: string | null) => {
         if (!serviceStr || serviceStr === 'null' || serviceStr === 'undefined') {
             return { base: 'Sin historial', addOns: [] };
@@ -129,7 +110,7 @@ export default function Clients() {
         
         const base = parts[0];
         const addOns = parts.slice(1)
-            .filter(p => !isCalculatorOption(p))
+            .filter(p => !isQuoterOrMetaOption(p))
             .map(p => p.split('(+')[0].replace(/^Adicional:\s*/i, '').trim())
             .filter(Boolean);
 

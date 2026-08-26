@@ -10,6 +10,8 @@ import DatePickerInput from './DatePickerInput';
 import PhotoZoomViewer from './PhotoZoomViewer';
 import { supabase } from '../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTenantData } from '../lib/store/queries/useTenantData';
+import { calculateAppointmentDuration, getRealAdditionalServices, formatAddOnItemDisplay } from '../lib/smartSlots';
 
 interface StylistColumnCalendarProps {
     appointments: Appointment[];
@@ -37,6 +39,7 @@ export default function StylistColumnCalendar({
 }: StylistColumnCalendarProps) {
     const queryClient = useQueryClient();
     const [currentDate, setCurrentDate] = useState(new Date());
+    const { data: tenantConfig } = useTenantData();
     const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
     const [noteInput, setNoteInput] = useState('');
     const [isSavingNote, setIsSavingNote] = useState(false);
@@ -180,42 +183,7 @@ export default function StylistColumnCalendar({
 
     // Helper to calculate total duration of base service + extra services / quoter options
     const getAppointmentTotalDuration = (apt: Appointment) => {
-        const service = getServiceById(apt.serviceId);
-        let total = service?.duration || 60;
-
-        const addServices = apt.additionalServices || [];
-        addServices.forEach((name: string) => {
-            if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) {
-                return;
-            }
-
-            // Check if string contains explicit duration tag e.g. "(+15 min)" or "15min"
-            const durMatch = name.match(/\(\+(\d+)\s*min\)/i) || name.match(/(\d+)\s*min/i);
-            if (durMatch) {
-                total += Number(durMatch[1]);
-                return;
-            }
-
-            const cleanName = name
-                .split('(+')[0]
-                .replace(/^Extra:\s*/i, '')
-                .replace(/^Diseño:\s*/i, '')
-                .replace(/^Largo:\s*/i, '')
-                .replace(/^Diseño Catálogo:\s*/i, '')
-                .replace(/^Adicional:\s*/i, '')
-                .replace(/^Estilo:\s*/i, '')
-                .trim();
-
-            const matchingService = services.find(s =>
-                s.name.toLowerCase() === cleanName.toLowerCase() ||
-                s.name.toLowerCase() === name.toLowerCase()
-            );
-            if (matchingService && matchingService.duration) {
-                total += matchingService.duration;
-            }
-        });
-
-        return total;
+        return calculateAppointmentDuration(apt, services);
     };
 
     // Dynamic operating hours bounds calculation (Adapts automatically if business has early/late appointments)
@@ -246,26 +214,7 @@ export default function StylistColumnCalendar({
     // Helper to format full service string (base service + real catalog extra services ONLY)
     const getAppointmentFullServiceDisplay = (apt: Appointment, baseServiceName?: string) => {
         const base = baseServiceName || 'Servicio';
-        const catalogAddons = (apt.additionalServices || [])
-            .filter((s: string) =>
-                !s.startsWith('Referencia:') &&
-                !s.startsWith('Cotización Confirmada:') &&
-                !s.startsWith('Cotización Estimada:') &&
-                !s.startsWith('Largo:') &&
-                !s.startsWith('Diseño:') &&
-                !s.startsWith('Extra:') &&
-                !s.startsWith('Diseño Catálogo:')
-            )
-            .map((s: string) => {
-                const cleanName = s.split('(+')[0].replace(/^Adicional:\s*/i, '').trim();
-                const matchingSvc = services.find(serv =>
-                    serv.name.toLowerCase() === cleanName.toLowerCase() ||
-                    serv.name.toLowerCase() === s.toLowerCase()
-                );
-                return matchingSvc ? matchingSvc.name : null;
-            })
-            .filter(Boolean) as string[];
-
+        const catalogAddons = getRealAdditionalServices(apt.additionalServices, services);
         if (catalogAddons.length > 0) {
             return `${base} + ${catalogAddons.join(', ')}`;
         }
@@ -743,7 +692,7 @@ export default function StylistColumnCalendar({
                                             .map((extra: string, idx: number) => (
                                                 <div key={idx} className="flex items-center gap-1.5 text-xs">
                                                     <span className="text-accent font-bold">•</span>
-                                                    <span>{extra.replace(/\s*\(\+\d+\s*min\)/gi, '').replace(/\s*\(\d+\s*min\)/gi, '')}</span>
+                                                    <span>{formatAddOnItemDisplay(extra, services, (tenantConfig as any)?.nail_calculator_config)}</span>
                                                 </div>
                                             ))}
                                         {selectedApt.additionalServices?.find((s: string) => s.startsWith('Referencia:')) && (

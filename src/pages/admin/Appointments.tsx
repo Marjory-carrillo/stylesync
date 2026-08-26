@@ -17,6 +17,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import Pagination from '../../components/Pagination';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
+import { calculateAppointmentDuration, getRealAdditionalServices, formatAddOnItemDisplay } from '../../lib/smartSlots';
 import DatePickerInput from '../../components/DatePickerInput';
 import { ClientHistoryModal } from '../../components/ClientHistoryModal';
 import PhotoZoomViewer from '../../components/PhotoZoomViewer';
@@ -81,40 +82,9 @@ export default function Appointments() {
     const getStylistById = useCallback((id: number) =>
         stylists.find(s => s.id === id), [stylists]);
 
-    const isCalculatorOption = useCallback((s: string) => {
-        if (!s) return true;
-        const trimmed = s.trim();
-        return (
-            trimmed.startsWith('Referencia:') ||
-            trimmed.startsWith('Cotización') ||
-            trimmed.startsWith('Diseño:') ||
-            trimmed.startsWith('Diseño Catálogo:') ||
-            trimmed.startsWith('Largo:') ||
-            trimmed.startsWith('Forma:') ||
-            trimmed.startsWith('Grosor:') ||
-            trimmed.startsWith('Técnica:') ||
-            trimmed.startsWith('Color:') ||
-            trimmed.startsWith('Efecto:') ||
-            trimmed.startsWith('Decoración:') ||
-            trimmed.startsWith('Extra:') ||
-            trimmed.includes('(+')
-        );
-    }, []);
-
     const getRealAddOns = useCallback((addServices?: string[]) => {
-        if (!addServices || addServices.length === 0) return [];
-        return addServices
-            .filter(s => !isCalculatorOption(s))
-            .map(s => {
-                const cleanName = s.split('(+')[0].replace(/^Adicional:\s*/i, '').trim();
-                const matchingSvc = services.find(serv =>
-                    serv.name.toLowerCase() === cleanName.toLowerCase() ||
-                    serv.name.toLowerCase() === s.toLowerCase()
-                );
-                return matchingSvc ? matchingSvc.name : cleanName;
-            })
-            .filter(Boolean) as string[];
-    }, [isCalculatorOption, services]);
+        return getRealAdditionalServices(addServices, services);
+    }, [services]);
 
     const getAppointmentPrice = useCallback((apt: any) => {
         const service = getServiceById(apt.serviceId);
@@ -165,42 +135,8 @@ export default function Appointments() {
     }, [getServiceById, services]);
 
     const getAppointmentTotalDuration = useCallback((apt: any) => {
-        const baseSvc = getServiceById(apt.serviceId);
-        let total = baseSvc?.duration || 60;
-        const addServices = apt.additionalServices || [];
-
-        addServices.forEach((name: string) => {
-            if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) {
-                return;
-            }
-
-            const durMatch = name.match(/\(\+(\d+)\s*min\)/i) || name.match(/(\d+)\s*min/i);
-            if (durMatch) {
-                total += Number(durMatch[1]);
-                return;
-            }
-
-            const cleanName = name
-                .split('(+')[0]
-                .replace(/^Extra:\s*/i, '')
-                .replace(/^Diseño:\s*/i, '')
-                .replace(/^Largo:\s*/i, '')
-                .replace(/^Diseño Catálogo:\s*/i, '')
-                .replace(/^Adicional:\s*/i, '')
-                .replace(/^Estilo:\s*/i, '')
-                .trim();
-
-            const matchingService = services.find((s: any) =>
-                s.name.toLowerCase() === cleanName.toLowerCase() ||
-                s.name.toLowerCase() === name.toLowerCase()
-            );
-            if (matchingService && matchingService.duration) {
-                total += matchingService.duration;
-            }
-        });
-
-        return total;
-    }, [services, getServiceById]);
+        return calculateAppointmentDuration(apt, services);
+    }, [services]);
 
     const isPriceConfirmed = useCallback((apt: any) => {
         // Si ya fue confirmada/editada manualmente por el administrador
@@ -376,7 +312,7 @@ export default function Appointments() {
             let status = apt.status;
             if (status !== 'cancelada' && status !== 'completada') {
                 const end = new Date(`${apt.date}T${apt.time}`);
-                end.setMinutes(end.getMinutes() + (service?.duration || 0));
+                end.setMinutes(end.getMinutes() + getAppointmentTotalDuration(apt));
                 if (new Date() >= end) status = 'completada';
             }
             return [
@@ -416,12 +352,11 @@ export default function Appointments() {
     const todayStr = new Date().toLocaleDateString('en-CA');
 
     const filteredAppointments = appointments.filter(apt => {
-        const service = getServiceById(apt.serviceId);
         let isFinished = apt.status === 'completada';
 
         if (!isFinished && apt.status !== 'cancelada') {
             const end = new Date(`${apt.date.replace(/-/g, '/') } ${apt.time}`);
-            end.setMinutes(end.getMinutes() + (service?.duration || 0));
+            end.setMinutes(end.getMinutes() + getAppointmentTotalDuration(apt));
             if (new Date() >= end) isFinished = true;
         }
 
@@ -805,7 +740,7 @@ export default function Appointments() {
                                                 let isCompleted = apt.status === 'completada';
                                                 if (!isCompleted && apt.status !== 'cancelada') {
                                                     const end = new Date(`${apt.date.replace(/-/g, '/') } ${apt.time}`);
-                                                    end.setMinutes(end.getMinutes() + (service?.duration || 0));
+                                                    end.setMinutes(end.getMinutes() + getAppointmentTotalDuration(apt));
                                                     if (new Date() >= end) isCompleted = true;
                                                 }
 
@@ -995,13 +930,10 @@ export default function Appointments() {
                                                                                     {apt.additionalServices
                                                                                         .filter((extra: string) => !extra.startsWith('Referencia:'))
                                                                                         .map((extra: string, idx: number) => {
-                                                                                            const cleanExtra = extra
-                                                                                                .replace(/\s*\(\+\d+\s*min\)/gi, '')
-                                                                                                .replace(/\s*\(\d+\s*min\)/gi, '');
                                                                                             return (
                                                                                                 <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
                                                                                                     <span className="text-slate-500">•</span>
-                                                                                                    <span className="break-words">{cleanExtra}</span>
+                                                                                                    <span className="break-words">{formatAddOnItemDisplay(extra, services, (tenantConfig as any)?.nail_calculator_config)}</span>
                                                                                                 </div>
                                                                                             );
                                                                                         })}

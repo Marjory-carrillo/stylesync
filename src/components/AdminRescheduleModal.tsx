@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { X, Calendar, Clock, RefreshCw, User, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAppointments } from '../lib/store/queries/useAppointments';
 import { useServices } from '../lib/store/queries/useServices';
@@ -6,7 +7,7 @@ import { useStylists } from '../lib/store/queries/useStylists';
 import { useSchedule } from '../lib/store/queries/useSchedule';
 import { useBlockedSlots } from '../lib/store/queries/useBlockedSlots';
 import { useTenantData } from '../lib/store/queries/useTenantData';
-import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
+import { getSmartSlots, calculateAppointmentDuration, getRealAdditionalServices, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 import DatePickerInput from './DatePickerInput';
 import TimePickerInput from './TimePickerInput';
 import type { Appointment } from '../lib/types/store.types';
@@ -22,6 +23,7 @@ interface AdminRescheduleModalProps {
 }
 
 export default function AdminRescheduleModal({ isOpen, onClose, appointment }: AdminRescheduleModalProps) {
+    const queryClient = useQueryClient();
     const { updateAppointmentTime, appointments } = useAppointments();
     const { services } = useServices();
     const { stylists } = useStylists();
@@ -81,7 +83,7 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
     const availableSlots = useMemo(() => {
         if (!newDate || isDayClosed || !daySchedule || !appointment) return [];
 
-        const serviceDuration = service?.duration || 30;
+        const serviceDuration = calculateAppointmentDuration(appointment, services);
         const workStart = daySchedule.start || '09:00';
         const workEnd = daySchedule.end || '18:00';
 
@@ -98,8 +100,7 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
             })
             .map(a => {
                 const apptStart = parse(`${a.date} ${a.time.slice(0, 5)}`, 'yyyy-MM-dd HH:mm', new Date());
-                const apptSvc = (services || []).find((s: any) => String(s.id) === String(a.serviceId));
-                const dur = apptSvc?.duration || 30;
+                const dur = calculateAppointmentDuration(a, services);
                 const apptEnd = new Date(apptStart.getTime() + dur * 60000);
                 return {
                     id: a.id,
@@ -142,9 +143,7 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
 
         setIsSaving(true);
         try {
-            const addOnNames = (appointment.additionalServices ?? []).filter((s: string) => 
-                !s.startsWith('Cotización') && !s.startsWith('Referencia:') && !s.startsWith('Largo:') && !s.startsWith('Diseño:') && !s.startsWith('Extra:') && !s.startsWith('Estilo:')
-            );
+            const addOnNames = getRealAdditionalServices(appointment.additionalServices, services);
             const fullServiceName = service 
                 ? service.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '') 
                 : 'Servicio';
@@ -157,6 +156,9 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
             });
             onClose();
         } catch (_) {
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.refetchQueries({ queryKey: ['appointments'] });
+            onClose();
         } finally {
             setIsSaving(false);
         }
@@ -191,6 +193,19 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
                         <X size={18} />
                     </button>
                 </div>
+
+                {/* Cancellation Warning if appt was cancelled */}
+                {appointment.status === 'cancelada' && (
+                    <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs flex items-start gap-2.5">
+                        <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-red-200">Esta cita fue cancelada</p>
+                            <p className="text-[11px] text-red-300/80 mt-0.5">
+                                No es posible reagendar una cita que ya fue cancelada. Si el cliente desea agendar de nuevo, por favor crea una nueva cita.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Info Card */}
                 <div className="p-3.5 bg-slate-900/90 rounded-2xl border border-white/10 space-y-2 text-xs">
@@ -294,7 +309,7 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
                         </button>
                         <button
                             type="submit"
-                            disabled={isSaving || !newDate || !newTime || isDayClosed}
+                            disabled={isSaving || !newDate || !newTime || isDayClosed || appointment.status === 'cancelada'}
                             className="flex-1 py-3 px-4 rounded-xl bg-accent hover:brightness-110 text-white text-xs font-bold shadow-lg shadow-accent/20 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                         >
                             <RefreshCw size={14} className={isSaving ? 'animate-spin' : ''} /> {isSaving ? 'Reagendando...' : 'Confirmar Reagendamiento'}

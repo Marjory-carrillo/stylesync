@@ -15,6 +15,7 @@ import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import ConfirmModal from '../../components/ConfirmModal';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
+import { calculateAppointmentDuration, getRealAdditionalServices } from '../../lib/smartSlots';
 import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, CheckCircle2, RefreshCw } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -161,66 +162,12 @@ export default function Dashboard() {
     const getServiceById = useCallback((id: number) => services.find((s: any) => s.id === id), [services]);
 
     const getAppointmentTotalDuration = useCallback((apt: any) => {
-        const baseSvc = getServiceById(apt.serviceId);
-        let total = baseSvc?.duration || 60;
-        const addServices = apt.additionalServices || [];
-
-        addServices.forEach((name: string) => {
-            if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) {
-                return;
-            }
-
-            // Check if string contains explicit duration tag e.g. "(+15 min)" or "15min"
-            const durMatch = name.match(/\(\+(\d+)\s*min\)/i) || name.match(/(\d+)\s*min/i);
-            if (durMatch) {
-                total += Number(durMatch[1]);
-                return;
-            }
-
-            const cleanName = name
-                .split('(+')[0]
-                .replace(/^Extra:\s*/i, '')
-                .replace(/^Diseño:\s*/i, '')
-                .replace(/^Largo:\s*/i, '')
-                .replace(/^Diseño Catálogo:\s*/i, '')
-                .replace(/^Adicional:\s*/i, '')
-                .replace(/^Estilo:\s*/i, '')
-                .trim();
-
-            const matchingService = services.find((s: any) =>
-                s.name.toLowerCase() === cleanName.toLowerCase() ||
-                s.name.toLowerCase() === name.toLowerCase()
-            );
-            if (matchingService && matchingService.duration) {
-                total += matchingService.duration;
-            }
-        });
-
-        return total;
-    }, [services, getServiceById]);
+        return calculateAppointmentDuration(apt, services);
+    }, [services]);
 
     const getAppointmentFullServiceDisplay = useCallback((apt: any, baseServiceName?: string) => {
         const base = baseServiceName || 'Servicio';
-        const catalogAddons = (apt.additionalServices || [])
-            .filter((s: string) =>
-                !s.startsWith('Referencia:') &&
-                !s.startsWith('Cotización Confirmada:') &&
-                !s.startsWith('Cotización Estimada:') &&
-                !s.startsWith('Largo:') &&
-                !s.startsWith('Diseño:') &&
-                !s.startsWith('Extra:') &&
-                !s.startsWith('Diseño Catálogo:')
-            )
-            .map((s: string) => {
-                const cleanName = s.split('(+')[0].replace(/^Adicional:\s*/i, '').trim();
-                const matchingSvc = services.find((serv: any) =>
-                    serv.name.toLowerCase() === cleanName.toLowerCase() ||
-                    serv.name.toLowerCase() === s.toLowerCase()
-                );
-                return matchingSvc ? matchingSvc.name : null;
-            })
-            .filter(Boolean) as string[];
-
+        const catalogAddons = getRealAdditionalServices(apt.additionalServices, services);
         if (catalogAddons.length > 0) {
             return `${base} + ${catalogAddons.join(', ')}`;
         }
@@ -523,7 +470,6 @@ export default function Dashboard() {
             const isCanceled = a.status === 'cancelada';
             const isNoShow = a.status === 'no_show';
 
-            const svc = services.find(s => s.id === a.serviceId);
             const price = getAppointmentPrice(a);
 
             if (isCurrentMonth) {
@@ -534,7 +480,7 @@ export default function Dashboard() {
                     let isFinished = a.status === 'completada';
                     if (!isFinished) {
                         const end = new Date(`${a.date}T${a.time}`);
-                        end.setMinutes(end.getMinutes() + (svc?.duration || 0));
+                        end.setMinutes(end.getMinutes() + getAppointmentTotalDuration(a));
                         if (new Date() >= end) isFinished = true;
                     }
                     if (isFinished) {
@@ -547,7 +493,7 @@ export default function Dashboard() {
                     let isFinished = a.status === 'completada';
                     if (!isFinished) {
                         const end = new Date(`${a.date}T${a.time}`);
-                        end.setMinutes(end.getMinutes() + (svc?.duration || 0));
+                        end.setMinutes(end.getMinutes() + getAppointmentTotalDuration(a));
                         if (new Date() >= end) isFinished = true;
                     }
                     if (isFinished) {
@@ -569,7 +515,7 @@ export default function Dashboard() {
             appsGrowth,
             canceled: currentCanceled
         };
-    }, [appointments, services, getAppointmentPrice]);
+    }, [appointments, services, getAppointmentPrice, getAppointmentTotalDuration]);
 
     // Graph Data & Summary
     const { chartData: revenueChartData, chartSummary } = useMemo(() => {
@@ -592,7 +538,7 @@ export default function Dashboard() {
                     let isFinished = appt.status === 'completada';
                     if (!isFinished) {
                         const end = new Date(`${appt.date}T${appt.time}`);
-                        end.setMinutes(end.getMinutes() + svc.duration);
+                        end.setMinutes(end.getMinutes() + getAppointmentTotalDuration(appt));
                         if (new Date() >= end) isFinished = true;
                     }
                     return isFinished ? sum + getAppointmentPrice(appt) : sum;
@@ -2263,7 +2209,7 @@ export default function Dashboard() {
                                     return `${hh}:${m}${ampm}`;
                                 })();
 
-                                const duration = svc?.duration || 30;
+                                const duration = getAppointmentTotalDuration(appt);
                                 const endTimeDisplay = (() => {
                                     const [hours, minutes] = appt.time.split(':').map(Number);
                                     const endMinutes = hours * 60 + minutes + duration;

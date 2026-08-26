@@ -27,7 +27,7 @@ export const DAY_NAMES: Record<string, string> = {
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 import SplashScreen from '../../components/SplashScreen';
-import { getSmartSlots, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
+import { getSmartSlots, calculateAppointmentDuration, getRealAdditionalServices, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { verifyBankReceipt } from '../../lib/verifyReceipt';
 import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone, Loader2 } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
@@ -634,12 +634,12 @@ export default function Booking() {
         return appointments
             .filter(a => (!updatingAppointmentId || a.id !== updatingAppointmentId) && a.date === selectedDate && a.status !== 'cancelada' && (!selectedStylist || a.stylistId === selectedStylist.id))
             .map(a => {
-                const svc = services.find(s => s.id === a.serviceId);
+                const dur = calculateAppointmentDuration(a, services, nailQuoterConfig);
                 const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
-                const end = new Date(start.getTime() + (svc?.duration ?? 30) * 60000);
+                const end = new Date(start.getTime() + dur * 60000);
                 return { id: a.id, stylistId: String(a.stylistId ?? '0'), start, end };
             });
-    }, [appointments, selectedDate, selectedStylist, services, baseDate, updatingAppointmentId]);
+    }, [appointments, selectedDate, selectedStylist, services, baseDate, updatingAppointmentId, nailQuoterConfig]);
 
     const filteredServices = useMemo(() => {
         let base = services.filter(s => !s.isAddon);
@@ -725,18 +725,9 @@ export default function Booking() {
             const stylistApps = appointments
                 .filter(a => (!updatingAppointmentId || a.id !== updatingAppointmentId) && a.date === selectedDate && a.status !== 'cancelada' && String(a.stylistId) === String(stylist.id))
                 .map(a => {
-                    const svc = services.find(s => s.id === a.serviceId);
-                    let apptDuration = svc?.duration ?? 30;
-                    if (a.additionalServices && Array.isArray(a.additionalServices)) {
-                        a.additionalServices.forEach(name => {
-                            const addSvc = services.find(s => s.name === name);
-                            if (addSvc && addSvc.duration) {
-                                apptDuration += addSvc.duration;
-                            }
-                        });
-                    }
+                    const dur = calculateAppointmentDuration(a, services, nailQuoterConfig);
                     const start = parse(a.time.slice(0, 5), 'HH:mm', baseDate);
-                    const end = new Date(start.getTime() + apptDuration * 60000);
+                    const end = new Date(start.getTime() + dur * 60000);
                     return { id: a.id, stylistId: String(a.stylistId), start, end };
                 });
 
@@ -886,24 +877,30 @@ export default function Booking() {
         let addOnNames: string[] = [];
 
         // 1. Incluir servicios adicionales reales seleccionados del catálogo (ej. Facial, Ampolleta, Retiro)
-        const realAddOns = selectedAddOns
-            .map(id => services.find(s => Number(s.id) === Number(id))?.name)
-            .filter(Boolean) as string[];
-        addOnNames.push(...realAddOns);
+        selectedAddOns.forEach(id => {
+            const svc = services.find(s => Number(s.id) === Number(id));
+            if (svc) {
+                const parts: string[] = [];
+                if (svc.price) parts.push(`+$${svc.price} MXN`);
+                if (svc.duration) parts.push(`+${svc.duration} min`);
+                const meta = parts.length > 0 ? ` (${parts.join(', ')})` : '';
+                addOnNames.push(`Adicional: ${svc.name}${meta}`);
+            }
+        });
 
         // 2. Incluir detalles de diseño de la calculadora si el servicio la tiene activa
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
             if (nailSize) {
                 const sizeDur = selectedStylist?.customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
-                const durText = sizeDur > 0 ? ` (+${sizeDur} min)` : '';
-                addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN)${durText}`);
+                const durText = sizeDur > 0 ? `, +${sizeDur} min` : '';
+                addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN${durText})`);
             }
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
             if (designItem) {
                 const designDur = selectedStylist?.customQuoterConfig?.[`${designItem.id}_dur`] ?? (designItem as any).duration ?? 0;
-                const durText = designDur > 0 ? ` (+${designDur} min)` : '';
-                const priceText = designItem.price > 0 ? ` (+$${designItem.price} MXN)` : ' (Sin costo)';
-                addOnNames.push(`Diseño: ${designItem.name}${priceText}${durText}`);
+                const durText = designDur > 0 ? `, +${designDur} min` : '';
+                const priceText = designItem.price > 0 ? ` (+$${designItem.price} MXN${durText})` : (durText ? ` (Sin costo${durText})` : ' (Sin costo)');
+                addOnNames.push(`Diseño: ${designItem.name}${priceText}`);
             } else {
                 if (designLevel === 'basic') {
                     addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
@@ -913,13 +910,13 @@ export default function Booking() {
                     addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
                 }
             }
-            const extrasCat = nailQuoterConfig.find(c => c.id === 'extras');
+            const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
             if (extrasCat) {
                 extrasCat.items.forEach(item => {
                     if (nailExtras[item.id]) {
                         const itemDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`] ?? (item as any).duration ?? 0;
-                        const durText = itemDur > 0 ? ` (+${itemDur} min)` : '';
-                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN)${durText}`);
+                        const durText = itemDur > 0 ? `, +${itemDur} min` : '';
+                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN${durText})`);
                     }
                 });
             }
@@ -928,8 +925,8 @@ export default function Booking() {
             }
 
             // Calcular total acumulado incluyendo los servicios adicionales reales
-            const realAddOnsTotalPrice = realAddOns.reduce((sum, name) => {
-                const svc = services.find(s => s.name === name);
+            const realAddOnsTotalPrice = selectedAddOns.reduce((sum, id) => {
+                const svc = services.find(s => Number(s.id) === Number(id));
                 return sum + (svc?.price || 0);
             }, 0);
             const totalWithAddOns = nailTotalPrice + realAddOnsTotalPrice;
@@ -1101,9 +1098,9 @@ export default function Booking() {
         try {
             const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
             const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
-            const activeAddOnNames = activeAppt?.additionalServices ?? [];
+            const realAddons = getRealAdditionalServices(activeAppt?.additionalServices, services);
             const activeCombinedServiceName = activeService 
-                ? activeService.name + (activeAddOnNames.length > 0 ? ' + ' + activeAddOnNames.join(' + ') : '')
+                ? activeService.name + (realAddons.length > 0 ? ' + ' + realAddons.join(' + ') : '')
                 : 'Servicio';
 
             await cancelAppointment({ id: appointmentId, serviceName: activeCombinedServiceName, reason });
@@ -1129,9 +1126,9 @@ export default function Booking() {
         if (updatingAppointmentId) {
             const activeAppt = getActiveAppointmentByPhone(clientPhone.trim());
             const activeService = activeAppt ? getServiceById(activeAppt.serviceId) : null;
-            const activeAddOnNames = activeAppt?.additionalServices ?? [];
+            const realAddons = getRealAdditionalServices(activeAppt?.additionalServices, services);
             const activeCombinedServiceName = activeService 
-                ? activeService.name + (activeAddOnNames.length > 0 ? ' + ' + activeAddOnNames.join(' + ') : '')
+                ? activeService.name + (realAddons.length > 0 ? ' + ' + realAddons.join(' + ') : '')
                 : 'Servicio';
 
             await updateAppointmentTime({ id: updatingAppointmentId, newTime: time, newDate: selectedDate, serviceName: activeCombinedServiceName });
@@ -1729,21 +1726,7 @@ export default function Booking() {
 
                         {/* Appointment card */}
                         {(() => {
-                            const rawAddOns = (activeAppt.additionalServices || []) as string[];
-                            const realServiceAddons = rawAddOns.filter(name => {
-                                const svc = services.find(s => s.name === name);
-                                return svc ? (svc.isAddon ?? true) : false;
-                            });
-
-                            const addOnsToShow = realServiceAddons.length > 0 
-                                ? realServiceAddons 
-                                : rawAddOns.filter(s => 
-                                    !s.startsWith('Largo:') && 
-                                    !s.startsWith('Diseño:') && 
-                                    !s.startsWith('Extra:') && 
-                                    !s.startsWith('Cotización') && 
-                                    !s.startsWith('Referencia:')
-                                );
+                            const addOnsToShow = getRealAdditionalServices(activeAppt.additionalServices, services);
 
                             const activeStylist = activeAppt.stylistId ? stylists.find(st => st.id === activeAppt.stylistId) : null;
                             const formattedDate = format(new Date(activeAppt.date + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es });

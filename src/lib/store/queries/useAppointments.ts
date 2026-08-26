@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabaseClient';
 import type { Appointment } from '../../types/store.types';
@@ -77,7 +78,33 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             })) as Appointment[];
         },
         enabled: !!tenantId,
+        refetchOnWindowFocus: true,
+        refetchInterval: 8000,
     });
+
+    // Live realtime sync for appointments
+    useEffect(() => {
+        if (!tenantId) return;
+        const channelName = `appointments-live-${tenantId}-${Math.random().toString(36).substring(2, 7)}`;
+        const channel = supabase
+            .channel(channelName)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'appointments',
+            }, (payload) => {
+                const rec = (payload.new || payload.old) as any;
+                if (!rec || !rec.tenant_id || rec.tenant_id === tenantId) {
+                    queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                    queryClient.refetchQueries({ queryKey: ['appointments'] });
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [tenantId, queryClient]);
 
     // ADD Appointment
     const addMutation = useMutation({
@@ -183,7 +210,9 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: (data) => {
             if (data.id) setDeviceHasPending(data.id);
-            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.refetchQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
             showToast('Cita reservada con éxito', 'success');
         },
         onError: (err: any) => {
@@ -242,18 +271,21 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         onSuccess: ({ id, apt, serviceName, reason, skipped }) => {
             if (skipped) return;
             if (getDevicePendingId() === id) clearDevicePending();
-            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.refetchQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['cancellation_log'] });
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
             showToast('Cita cancelada', 'success');
             if (tenantId && apt) {
                 notifyAdmin(tenantId, 'cancel', {
                     id: id,
-                    client_name: `${apt.clientName}${reason ? ` (Motivo: ${reason})` : ''}`,
-                    client_phone: apt.clientPhone,
+                    client_name: `${apt.clientName || (apt as any).client_name}${reason ? ` (Motivo: ${reason})` : ''}`,
+                    client_phone: apt.clientPhone || (apt as any).client_phone,
                     service_name: serviceName,
                     date: apt.date,
                     time: apt.time,
-                    stylist_id: apt.stylistId,
-                    additional_services: apt.additionalServices ?? [],
+                    stylist_id: apt.stylistId || (apt as any).stylist_id,
+                    additional_services: apt.additionalServices || (apt as any).additional_services || [],
                 }, adminPhone, businessName);
             }
         },
@@ -273,7 +305,9 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: (id) => {
             if (getDevicePendingId() === id) clearDevicePending();
-            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.refetchQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
             showToast('Cita completada', 'success');
         },
         onError: (err: any) => showToast(`Error al completar: ${err.message}`, 'error'),
@@ -283,12 +317,27 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
     const updateTimeMutation = useMutation({
         mutationFn: async ({ id, newTime, newDate, serviceName }: { id: string; newTime: string; newDate?: string; serviceName: string }) => {
             if (!tenantId) throw new Error('No tenant info');
-            const apt = query.data?.find(a => a.id === id);
+
+            // Verificar estado actual directo en base de datos
+            const { data: currentAppt, error: checkErr } = await supabase
+                .from('appointments')
+                .select('id, status, client_name, client_phone, date, time, stylist_id, additional_services')
+                .eq('id', id)
+                .eq('tenant_id', tenantId)
+                .maybeSingle();
+
+            if (checkErr) throw checkErr;
+            if (!currentAppt) {
+                throw new Error('La cita no existe o ya fue eliminada');
+            }
+            if (currentAppt.status === 'cancelada') {
+                throw new Error('Esta cita ya fue cancelada y no se puede reagendar');
+            }
 
             const lockKey = `reschedule:${id}`;
             if (inFlightLocks.has(lockKey)) {
                 console.warn(`[useAppointments] Reagendamiento en curso para cita ${id}, ignorando llamada duplicada.`);
-                return { id, apt, newTime, newDate, serviceName, skipped: true };
+                return { id, apt: currentAppt, newTime, newDate, serviceName, skipped: true };
             }
             inFlightLocks.add(lockKey);
 
@@ -301,29 +350,34 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 });
                 if (error) throw error;
                 if (!data?.success) throw new Error(data?.error || 'Error al actualizar');
-                return { id, apt, newTime, newDate, serviceName, skipped: false };
+                return { id, apt: currentAppt, newTime, newDate, serviceName, skipped: false };
             } finally {
                 setTimeout(() => inFlightLocks.delete(lockKey), 3000);
             }
         },
         onSuccess: ({ id, apt, newTime, newDate, serviceName, skipped }) => {
             if (skipped) return;
-            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.refetchQueries({ queryKey: ['appointments'] });
             showToast('Hora actualizada', 'success');
-            if (tenantId && apt) {
+            if (tenantId && apt && apt.status !== 'cancelada') {
                 notifyAdmin(tenantId, 'reschedule', {
                     id: id,
-                    client_name: apt.clientName,
-                    client_phone: apt.clientPhone,
+                    client_name: apt.client_name || (apt as any).clientName,
+                    client_phone: apt.client_phone || (apt as any).clientPhone,
                     service_name: serviceName,
                     date: newDate ?? apt.date,
                     time: newTime,
-                    stylist_id: apt.stylistId,
-                    additional_services: apt.additionalServices ?? [],
+                    stylist_id: apt.stylist_id || (apt as any).stylistId,
+                    additional_services: apt.additional_services || (apt as any).additionalServices || [],
                 }, adminPhone, businessName);
             }
         },
-        onError: (err: any) => showToast(`Error al actualizar hora: ${err.message}`, 'error'),
+        onError: (err: any) => {
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.refetchQueries({ queryKey: ['appointments'] });
+            showToast(`Error al reagendar: ${err.message}`, 'error');
+        },
     });
 
     // MARK NO SHOW
@@ -340,9 +394,10 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
         },
         onSuccess: (id) => {
             if (getDevicePendingId() === id) clearDevicePending();
-            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
-            queryClient.invalidateQueries({ queryKey: ['clients', tenantId] });
-            queryClient.invalidateQueries({ queryKey: ['blocked_phones', tenantId] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.refetchQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
+            queryClient.invalidateQueries({ queryKey: ['blocked_phones'] });
             showToast('Cliente marcado como No Asistió y bloqueado 🚫', 'error');
         },
         onError: (err: any) => showToast(`Error al marcar: ${err.message}`, 'error'),

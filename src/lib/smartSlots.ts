@@ -19,6 +19,193 @@ export interface BlockedInterval {
 }
 
 /**
+ * Calculates total appointment duration in minutes (base service + all extra/addon services + quoter items).
+ */
+export function calculateAppointmentDuration(
+    apt: { serviceId?: number | string | null; service_id?: number | string | null; additionalServices?: string[] | null; additional_services?: string[] | null },
+    services: any[] = [],
+    nailQuoterConfig?: any[] | null
+): number {
+    const rawSvcId = apt.serviceId ?? apt.service_id;
+    const baseSvc = services.find(s => String(s.id) === String(rawSvcId));
+    let total = Number(baseSvc?.duration) || 30;
+
+    const addServices = apt.additionalServices || apt.additional_services || [];
+    if (!Array.isArray(addServices) || addServices.length === 0) return total;
+
+    // Pre-extract nail quoter items if config is provided
+    const allNailItems: any[] = [];
+    if (nailQuoterConfig && Array.isArray(nailQuoterConfig)) {
+        nailQuoterConfig.forEach(cat => {
+            if (cat.items && Array.isArray(cat.items)) {
+                allNailItems.push(...cat.items);
+            }
+        });
+    }
+
+    addServices.forEach((name: string) => {
+        if (!name || typeof name !== 'string') return;
+        if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) {
+            return;
+        }
+
+        // 1. Tag de duración explícita ej. "(+15 min)", "(+20min)", "20 min", "(+30 mins)"
+        const durMatch = name.match(/\(\+(\d+)\s*min/i) || name.match(/(\d+)\s*min/i) || name.match(/\+(\d+)\s*m\b/i);
+        if (durMatch && durMatch[1]) {
+            total += Number(durMatch[1]);
+            return;
+        }
+
+        // 2. Limpieza de prefijos comunes y sufijos de precio para buscar por nombre
+        const cleanName = name
+            .split('(+')[0]
+            .split('($')[0]
+            .replace(/^Extra:\s*/i, '')
+            .replace(/^Diseño:\s*/i, '')
+            .replace(/^Largo:\s*/i, '')
+            .replace(/^Diseño Catálogo:\s*/i, '')
+            .replace(/^Adicional:\s*/i, '')
+            .replace(/^Estilo:\s*/i, '')
+            .replace(/\s*\(.*?\)\s*/g, '')
+            .trim();
+
+        // 3. Buscar en el catálogo de servicios generales (is_addon o cualquier servicio)
+        const matchingService = services.find(s =>
+            s.name.toLowerCase() === cleanName.toLowerCase() ||
+            s.name.toLowerCase() === name.toLowerCase() ||
+            cleanName.toLowerCase().startsWith(s.name.toLowerCase()) ||
+            s.name.toLowerCase().startsWith(cleanName.toLowerCase())
+        );
+
+        if (matchingService && matchingService.duration) {
+            total += Number(matchingService.duration);
+            return;
+        }
+
+        // 4. Buscar en los items del cotizador de uñas (extras, largos, etc.)
+        if (allNailItems.length > 0) {
+            const matchingNail = allNailItems.find(item =>
+                item.name.toLowerCase() === cleanName.toLowerCase() ||
+                item.name.toLowerCase() === name.toLowerCase()
+            );
+            if (matchingNail && matchingNail.duration) {
+                total += Number(matchingNail.duration);
+                return;
+            }
+        }
+    });
+
+    return total;
+}
+
+/**
+ * Detects if an additional_services entry is a nail calculator / internal metadata item
+ * rather than a standalone additional service from the catalog.
+ */
+export function isQuoterOrMetaOption(s: string): boolean {
+    if (!s || typeof s !== 'string') return true;
+    const trimmed = s.trim();
+    return (
+        trimmed.startsWith('Referencia:') ||
+        trimmed.startsWith('Cotización') ||
+        trimmed.startsWith('Diseño:') ||
+        trimmed.startsWith('Diseño Catálogo:') ||
+        trimmed.startsWith('Catálogo:') ||
+        trimmed.startsWith('Largo:') ||
+        trimmed.startsWith('Forma:') ||
+        trimmed.startsWith('Grosor:') ||
+        trimmed.startsWith('Técnica:') ||
+        trimmed.startsWith('Color:') ||
+        trimmed.startsWith('Efecto:') ||
+        trimmed.startsWith('Decoración:') ||
+        trimmed.startsWith('Extra:') ||
+        trimmed.startsWith('Estilo:') ||
+        trimmed.startsWith('Tamaño:') ||
+        trimmed.startsWith('Nivel:')
+    );
+}
+
+/**
+ * Returns only the clean names of real additional services from the catalog
+ * (e.g. ['Facial Express', 'Mascarilla']) filtering out all calculator metadata.
+ */
+export function getRealAdditionalServices(additionalServices?: string[] | null, services: any[] = []): string[] {
+    if (!additionalServices || !Array.isArray(additionalServices) || additionalServices.length === 0) return [];
+    return additionalServices
+        .filter(s => !isQuoterOrMetaOption(s))
+        .map(s => {
+            const cleanName = s
+                .replace(/^Adicional:\s*/i, '')
+                .split('(+')[0]
+                .split('($')[0]
+                .trim();
+            const matchingSvc = services.find(serv =>
+                serv.name.toLowerCase() === cleanName.toLowerCase() ||
+                serv.name.toLowerCase() === s.toLowerCase()
+            );
+            return matchingSvc ? matchingSvc.name : cleanName;
+        })
+        .filter(Boolean);
+}
+
+/**
+ * Formats a single item from additionalServices for display in appointment details,
+ * ensuring duration tags e.g. "(+20 min)" are shown if the item or service has an assigned time.
+ */
+export function formatAddOnItemDisplay(
+    itemStr: string,
+    services: any[] = [],
+    nailQuoterConfig: any[] = []
+): string {
+    if (!itemStr) return '';
+    const trimmed = itemStr.trim();
+    if (trimmed.startsWith('Referencia:')) return trimmed;
+
+    // Si ya contiene especificación de duración explícita ej: "+20 min" o "20 min" o "(20 min)", retornarlo tal cual
+    if (/\d+\s*min/i.test(trimmed)) {
+        return trimmed;
+    }
+
+    // 1. Si es un servicio del catálogo
+    const cleanServiceName = trimmed
+        .replace(/^Adicional:\s*/i, '')
+        .split('(+')[0]
+        .split('($')[0]
+        .trim();
+
+    const matchingService = services.find(s =>
+        s.name.toLowerCase() === cleanServiceName.toLowerCase() ||
+        s.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (matchingService && matchingService.duration && matchingService.duration > 0) {
+        if (trimmed.includes('(+') || trimmed.includes('(+$')) {
+            return trimmed.replace(/\)$/, `, +${matchingService.duration} min)`);
+        }
+        return `${trimmed} (+${matchingService.duration} min)`;
+    }
+
+    // 2. Si es una opción del cotizador de uñas (Largo, Diseño, Extra, etc.)
+    if (nailQuoterConfig && Array.isArray(nailQuoterConfig)) {
+        for (const cat of nailQuoterConfig) {
+            if (!cat.items || !Array.isArray(cat.items)) continue;
+            for (const item of cat.items) {
+                if (!item.name) continue;
+                if (trimmed.toLowerCase().includes(item.name.toLowerCase())) {
+                    if (item.duration && item.duration > 0) {
+                        if (trimmed.includes('(+') || trimmed.includes('(+$')) {
+                            return trimmed.replace(/\)$/, `, +${item.duration} min)`);
+                        }
+                        return `${trimmed} (+${item.duration} min)`;
+                    }
+                }
+            }
+        }
+    }
+
+    return trimmed;
+}
+
+/**
  * Generates available time slots for a given day and stylist, 
  * filtering out slots that don't fit the service duration.
  */
