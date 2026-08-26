@@ -14,7 +14,7 @@ Esta skill optimiza al máximo el tiempo de despliegue a producción eliminando 
 
 ## ⚡ Estrategia de Ejecución en 1 Solo Paso
 
-En lugar de correr `npm run build` localmente (que en Windows tarda 2 minutos analizando tipos) y luego múltiples comandos y timers individuales, ejecuta el script consolidado o la secuencia encadenada:
+En lugar de correr `npm run build` localmente (que en Windows tarda analizando tipos) y luego múltiples comandos bloqueantes, el asistente lanza el pipeline automatizado en **segundo plano** (`run_command` con `WaitMsBeforeAsync`):
 
 ### Comando de Despliegue Directo:
 ```powershell
@@ -29,7 +29,8 @@ git add . ; git commit -m "<mensaje de commit>" ; git push origin main ; vercel 
 ---
 
 ## 🚀 Ventajas del Fast Deploy
-1. **Compilación en la Nube (3x más rápida)**: Vercel ejecuta `tsc -b && vite build` en servidores Linux de alto rendimiento en ~9 segundos.
-2. **Cero Esperas Redundantes**: No se hacen compilaciones dobles (local + nube).
-3. **Paso Único**: Un solo comando encadenado ejecuta Git add, Git commit, Git push y Vercel deploy.
-4. **Verificación Inmediata**: Vercel devuelve el estado `READY` y la URL pública `https://www.citalink.app`.
+1. **Ejecución en Segundo Plano**: Se ejecuta de forma asíncrona sin bloquear la conversación ni la computadora del usuario.
+2. **Compilación en la Nube (3x más rápida)**: Vercel ejecuta `tsc -b && vite build` en servidores Linux de alto rendimiento en ~9-18 segundos.
+3. **Cero Esperas Redundantes**: No se hacen compilaciones dobles (local + nube).
+4. **Paso Único**: Un solo comando encadenado ejecuta Git add, Git commit, Git push y Vercel deploy.
+5. **Verificación Inmediata**: Vercel devuelve el estado `READY` y la URL pública `https://www.citalink.app`. El asistente notifica proactivamente al usuario con el enlace activo en cuanto termina.
