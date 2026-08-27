@@ -25,7 +25,7 @@ interface Props {
     onClose: () => void;
 }
 
-type Step = 'datos' | 'barbero' | 'servicio' | 'fecha' | 'hora' | 'exito';
+type Step = 'datos' | 'barbero' | 'servicio' | 'adicionales' | 'fecha' | 'hora' | 'exito';
 
 export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { addAppointment, appointments, isAdding } = useAppointments();
@@ -407,17 +407,19 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             }
         }
 
-        // Agregar servicios adicionales generales seleccionados
-        services.filter(s => s.isAddon).forEach(addon => {
-            if (selectedAddons[addon.id]) {
-                const durText = addon.duration ? `, +${addon.duration} min` : '';
-                addOnNames.push(`Adicional: ${addon.name} (+$${addon.price || 0} MXN${durText})`);
-            }
+        // Agregar servicios adicionales generales seleccionados (solo nombre limpio sin precio ni tiempo)
+        const selectedAddonList = services.filter(s => s.isAddon && selectedAddons[s.id]);
+        selectedAddonList.forEach(addon => {
+            addOnNames.push(`Adicional: ${addon.name}`);
         });
 
         if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
             addOnNames.push(`Cotización Estimada: $${totalPrice} MXN`);
         }
+
+        const combinedServiceName = selectedAddonList.length > 0
+            ? `${selectedService.name} + ${selectedAddonList.map(a => a.name).join(', ')}`
+            : selectedService.name;
 
         try {
             const cleanPhone = normalizePhone(clientPhone);
@@ -463,11 +465,11 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                             id:                 (res as any)?.id,
                             client_name:        clientName.trim(),
                             client_phone:       cleanPhone,
-                            service_name:       selectedService.name,
+                            service_name:       combinedServiceName,
                             date:               selectedDate,
                             time:               selectedTime,
                             stylist_id:         stylistId ? Number(stylistId) : undefined,
-                            additional_services: addOnNames.length > 0 ? addOnNames : undefined,
+                            additional_services: undefined,
                         },
                     }),
                 }).catch(() => { /* fire-and-forget */ });
@@ -486,8 +488,11 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return `${hh}:${m}${ampm}`;
     };
 
-    const stepIndex: Record<Step, number> = { datos: 1, servicio: 2, barbero: 3, fecha: 4, hora: 5, exito: 6 };
-    const totalSteps = 5;
+    const hasAddons = useMemo(() => services.some(s => s.isAddon), [services]);
+    const addonServices = useMemo(() => services.filter(s => s.isAddon), [services]);
+
+    const stepIndex: Record<Step, number> = { datos: 1, barbero: 2, servicio: 3, adicionales: 4, fecha: 5, hora: 6, exito: 7 };
+    const totalSteps = hasAddons ? 6 : 5;
     const progress = Math.min((stepIndex[step] - 1) / totalSteps, 1);
 
     if (!isOpen) return null;
@@ -886,32 +891,6 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             </div>
                                         </div>
                                     )}
-                                    {/* Servicios Adicionales Generales */}
-                                    {services.filter(s => s.isAddon).length > 0 && (
-                                        <div className="space-y-2 pt-2 border-t border-white/5">
-                                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Servicios Adicionales (Opcionales)</label>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                {services.filter(s => s.isAddon).map(addon => {
-                                                    const isChecked = !!selectedAddons[addon.id];
-                                                    return (
-                                                        <button
-                                                            key={addon.id}
-                                                            type="button"
-                                                            onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: !prev[addon.id] }))}
-                                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all text-left ${isChecked ? 'bg-cyan-500/15 border-cyan-400 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
-                                                        >
-                                                            <div>
-                                                                <span className="block truncate">{addon.name}</span>
-                                                                <span className="text-[10px] text-slate-500 font-normal">{addon.duration} min</span>
-                                                            </div>
-                                                            <span className="text-xs text-cyan-400 font-bold shrink-0 ml-2">+${addon.price}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-
                                     {/* Total Price & Continue Button */}
                                     <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
                                         <div className="text-left">
@@ -919,10 +898,16 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             <span className="text-xl font-black text-emerald-400">${totalPrice} MXN</span>
                                         </div>
                                         <button
-                                            onClick={() => setStep('fecha')}
+                                            onClick={() => {
+                                                if (hasAddons) {
+                                                    setStep('adicionales');
+                                                } else {
+                                                    setStep('fecha');
+                                                }
+                                            }}
                                             className="px-6 py-3 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/20"
                                         >
-                                            Continuar a Fecha →
+                                            {hasAddons ? 'Continuar a Adicionales →' : 'Continuar a Fecha →'}
                                         </button>
                                     </div>
                                 </div>
@@ -936,6 +921,12 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                     setSelectedService(svc);
                                                     if (isNailCalculatorEnabled(businessConfig) && svc.enableQuoter) {
                                                         // Keep user in step to see customized quoter
+                                                    } else {
+                                                        if (hasAddons) {
+                                                            setStep('adicionales');
+                                                        } else {
+                                                            setStep('fecha');
+                                                        }
                                                     }
                                                 }}
                                                 className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
@@ -953,47 +944,6 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             </button>
                                         ))}
                                     </div>
-
-                                    {/* Servicios Adicionales en seleccion estándar */}
-                                    {selectedService && !selectedService.enableQuoter && services.filter(s => s.isAddon).length > 0 && (
-                                        <div className="space-y-2 pt-3 border-t border-white/5">
-                                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Servicios Adicionales (Opcionales)</label>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                {services.filter(s => s.isAddon).map(addon => {
-                                                    const isChecked = !!selectedAddons[addon.id];
-                                                    return (
-                                                        <button
-                                                            key={addon.id}
-                                                            type="button"
-                                                            onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: !prev[addon.id] }))}
-                                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all text-left ${isChecked ? 'bg-cyan-500/15 border-cyan-400 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
-                                                        >
-                                                            <div>
-                                                                <span className="block truncate">{addon.name}</span>
-                                                                <span className="text-[10px] text-slate-500 font-normal">{addon.duration} min</span>
-                                                            </div>
-                                                            <span className="text-xs text-cyan-400 font-bold shrink-0 ml-2">+${addon.price}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {selectedService && !selectedService.enableQuoter && (
-                                        <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
-                                            <div className="text-left">
-                                                <span className="text-[10px] text-slate-500 uppercase tracking-widest block">Total</span>
-                                                <span className="text-xl font-black text-emerald-400">${totalPrice} MXN</span>
-                                            </div>
-                                            <button
-                                                onClick={() => setStep('fecha')}
-                                                className="px-6 py-3 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/20"
-                                            >
-                                                Continuar a Fecha →
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
@@ -1012,10 +962,102 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                         </div>
                     )}
 
+                    {/* ══ STEP: Servicios Adicionales ══ */}
+                    {step === 'adicionales' && (
+                        <div className="animate-fade-in space-y-5">
+                            <div>
+                                <p className="text-xs font-bold text-accent uppercase tracking-widest mb-1">
+                                    Paso {hasAddons ? '4' : '3'}: Servicios Adicionales
+                                </p>
+                                <h3 className="text-base font-bold text-white mb-0.5">
+                                    ¿Deseas agregar algún servicio adicional?
+                                </h3>
+                                <p className="text-xs text-slate-400">
+                                    Selecciona los servicios complementarios o continúa directamente.
+                                </p>
+                            </div>
+
+                            {/* Resumen del Servicio Principal Seleccionado */}
+                            {selectedService && (
+                                <div className="flex items-center gap-3 p-3 rounded-2xl bg-accent/5 border border-accent/20 text-left">
+                                    <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                                        <Sparkles size={15} className="text-accent" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-white truncate">{selectedService.name}</p>
+                                        <p className="text-[11px] text-slate-400">{selectedService.duration} min • ${selectedService.price} MXN</p>
+                                    </div>
+                                    <span className="text-[10px] uppercase font-bold text-accent px-2 py-0.5 rounded-md bg-accent/10 border border-accent/20">
+                                        Principal
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Rejilla de Servicios Adicionales */}
+                            <div className="grid grid-cols-1 gap-2.5 max-h-[42vh] overflow-y-auto custom-scrollbar pr-1">
+                                {addonServices.map(addon => {
+                                    const isChecked = !!selectedAddons[addon.id];
+                                    return (
+                                        <button
+                                            key={addon.id}
+                                            type="button"
+                                            onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: !prev[addon.id] }))}
+                                            className={`p-4 rounded-2xl border transition-all text-left flex items-center justify-between gap-3.5 ${
+                                                isChecked
+                                                    ? 'bg-cyan-500/10 border-cyan-400 shadow-sm ring-1 ring-cyan-400/30'
+                                                    : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/5'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                                                <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                                                    isChecked ? 'bg-cyan-400 border-cyan-400 text-slate-950' : 'border-white/20 bg-slate-900'
+                                                }`}>
+                                                    {isChecked && <CheckCircle size={14} className="stroke-[3]" />}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-bold text-white leading-tight truncate">{addon.name}</p>
+                                                    <p className="text-xs text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                                                        <Clock size={12} className="text-slate-500" /> {addon.duration} min
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm font-black text-cyan-400 shrink-0 ml-2">
+                                                +${addon.price} MXN
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Total y Botón Continuar */}
+                            <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
+                                <div className="text-left">
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block">Total estimado</span>
+                                    <span className="text-xl font-black text-emerald-400">${totalPrice} MXN</span>
+                                </div>
+                                <button
+                                    onClick={() => setStep('fecha')}
+                                    className="px-6 py-3 bg-gradient-to-r from-accent to-cyan-500 text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/20 text-sm"
+                                >
+                                    Continuar a Fecha →
+                                </button>
+                            </div>
+
+                            <button 
+                                onClick={() => setStep('servicio')} 
+                                className="w-full mt-2 py-2 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2"
+                            >
+                                <ChevronLeft size={16} /> Regresar a Servicio
+                            </button>
+                        </div>
+                    )}
+
                     {/* ══ STEP: Fecha ══ */}
                     {step === 'fecha' && (
                         <div className="animate-fade-in">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Paso 4: Fecha</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">
+                                Paso {hasAddons ? '5' : '4'}: Fecha
+                            </p>
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                 {availableDates.slice(0, 28).map(d => {
                                     const daySchedule = getScheduleForDate(d.dateStr);
@@ -1035,7 +1077,16 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                     );
                                 })}
                             </div>
-                            <button onClick={() => setStep('servicio')} className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button 
+                                onClick={() => {
+                                    if (hasAddons) {
+                                        setStep('adicionales');
+                                    } else {
+                                        setStep('servicio');
+                                    }
+                                }} 
+                                className="w-full mt-4 py-2.5 text-sm text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2"
+                            >
                                 <ChevronLeft size={16} /> Regresar
                             </button>
                         </div>
@@ -1044,7 +1095,9 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     {/* ══ STEP: Hora ══ */}
                     {step === 'hora' && (
                         <div className="animate-fade-in">
-                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-1">Paso 5: Hora</p>
+                            <p className="text-xs font-bold text-accent uppercase tracking-widest mb-1">
+                                Paso {hasAddons ? '6' : '5'}: Hora
+                            </p>
                             <p className="text-xs text-slate-500 mb-4">
                                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                                 {' — '}{selectedService?.name}
@@ -1112,6 +1165,22 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                                         </span>
                                                     </div>
                                                 )}
+                                            </div>
+                                        )}
+
+                                        {/* Addons breakdown in admin summary card */}
+                                        {Object.keys(selectedAddons).some(id => selectedAddons[id]) && (
+                                            <div className="border-t border-white/5 pt-2.5 mt-2.5 space-y-1.5 text-xs text-slate-400">
+                                                <div className="flex justify-between items-start">
+                                                    <span>Adicionales:</span>
+                                                    <span className="text-cyan-300 font-bold text-right truncate max-w-[200px]">
+                                                        {Object.keys(selectedAddons)
+                                                            .filter(id => selectedAddons[id])
+                                                            .map(id => services.find(s => String(s.id) === String(id))?.name)
+                                                            .filter(Boolean)
+                                                            .join(', ')}
+                                                    </span>
+                                                </div>
                                             </div>
                                         )}
 
