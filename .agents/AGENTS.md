@@ -1,12 +1,12 @@
 # Reglas de CitaLink
 
 - **Idioma**: Responder y explicar siempre en español.
-- **Automatización de Deploy/Push (Fast Deploy en Segundo Plano)**: Cuando el usuario solicite un "git push", "deploy", "sube los cambios" o similar, el asistente debe ejecutar el pipeline consolidado en un solo paso en segundo plano:
+- **Automatización de Deploy (Fast Deploy en Segundo Plano)**: Cuando el usuario solicite un "git push", "deploy", "sube los cambios" o similar, el asistente debe ejecutar el pipeline consolidado en segundo plano:
   ```powershell
   powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1 -Message "<mensaje de commit adecuado>"
   ```
-  O la secuencia encadenada: `git add . ; git commit -m "<mensaje>" ; git push origin main ; vercel --prod --yes`.
   Vercel compila en la nube en ~9-18 segundos, ejecutándose de forma asíncrona en segundo plano y notificando al usuario inmediatamente cuando la URL de producción (`www.citalink.app`) esté lista y activa.
+  - **Sincronización con GitHub**: Siempre que termine el despliegue a Vercel, recordarle al usuario ejecutar `git push origin main` en su terminal para mantener el repositorio remoto de GitHub 100% al día.
 - **Imágenes — Optimización Safari/iOS**: Toda etiqueta `<img>` que se cree o modifique debe incluir siempre:
   - `decoding="async"` — Para que Safari no congele la pantalla mientras decodifica la imagen.
   - `loading="lazy"` — Para imágenes fuera de la vista inicial (below the fold). No aplicar en imágenes del hero/splash que necesitan cargarse inmediatamente.

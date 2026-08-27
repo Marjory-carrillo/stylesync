@@ -21,16 +21,11 @@ En lugar de correr `npm run build` localmente (que en Windows tarda analizando t
 powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1 -Message "<mensaje de commit claro y conciso>"
 ```
 
-O en una sola línea encadenada:
-```powershell
-git add . ; git commit -m "<mensaje de commit>" ; git push origin main ; vercel --prod --yes
-```
-
 ---
 
 ## 🚀 Ventajas del Fast Deploy
 1. **Ejecución en Segundo Plano**: Se ejecuta de forma asíncrona sin bloquear la conversación ni la computadora del usuario.
 2. **Compilación en la Nube (3x más rápida)**: Vercel ejecuta `tsc -b && vite build` en servidores Linux de alto rendimiento en ~9-18 segundos.
 3. **Cero Esperas Redundantes**: No se hacen compilaciones dobles (local + nube).
-4. **Paso Único**: Un solo comando encadenado ejecuta Git add, Git commit, Git push y Vercel deploy.
-5. **Verificación Inmediata**: Vercel devuelve el estado `READY` y la URL pública `https://www.citalink.app`. El asistente notifica proactivamente al usuario con el enlace activo en cuanto termina.
+4. **Verificación Inmediata**: Vercel devuelve el estado `READY` y la URL pública `https://www.citalink.app`. El asistente notifica proactivamente al usuario con el enlace activo en cuanto termina.
+5. **Recordatorio de GitHub**: Al finalizar cada despliegue a Vercel, el asistente recordará proactivamente al usuario correr `git push origin main` en su terminal para mantener GitHub al día.
