@@ -13,11 +13,6 @@ export default {
                 danger: 'var(--color-danger)',
                 success: 'var(--color-success)',
             },
-            borderRadius: {
-                'lg': 'var(--radius-lg)',
-                'xl': 'var(--radius-xl)',
-                '2xl': '1.5rem',
-            },
             boxShadow: {
                 'glow': 'var(--shadow-glow)',
             }

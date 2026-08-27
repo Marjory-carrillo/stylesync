@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { useServices } from '../../lib/store/queries/useServices';
+import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useCatalog, MAX_CATALOG_IMAGES_PER_SERVICE } from '../../lib/store/queries/useCatalog';
-import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon, Images, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon, Images, Loader2, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
 import ConfirmModal from '../../components/ConfirmModal';
 import PlaceholderSVG from '../../assets/placeholder-service.svg';
@@ -154,8 +156,11 @@ export default function Services() {
     const { t } = useTranslation();
     const { uploadServiceImage } = useImageUpload();
     const { services, addService, removeService, updateService, isLoading } = useServices();
+    const { stylists = [] } = useStylists();
     const { data: tenantConfig } = useTenantData();
     const businessConfig = tenantConfig || {} as any;
+
+    const hasMultipleStylists = (stylists?.length || 0) >= 2;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -262,6 +267,38 @@ export default function Services() {
                     <Plus size={20} /> <span className="hidden md:inline">{t('services.new_service')}</span>
                 </button>
             </div>
+
+            {hasMultipleStylists && (
+                <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-violet-500/10 border border-blue-500/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-fade-in">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                        <div className="p-2.5 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-400 shrink-0 mt-0.5 sm:mt-0">
+                            <Users size={20} />
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="text-sm font-bold text-white leading-tight">
+                                    Asignación de servicios por profesional
+                                </h4>
+                                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300">
+                                    {stylists.length} profesionales
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                                Recuerda asignar los servicios que realiza cada miembro de tu equipo en el módulo{' '}
+                                <strong className="text-white font-semibold">"Profesionales"</strong> presionando el botón{' '}
+                                <strong className="text-blue-300 font-semibold">Editar</strong> en su perfil. Si no marcas ningún servicio, el sistema asumirá que puede realizar todos.
+                            </p>
+                        </div>
+                    </div>
+                    <Link
+                        to="/admin/staff"
+                        className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-blue-600/25 hover:bg-blue-600/40 border border-blue-500/30 text-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <span>Ir a Profesionales</span>
+                        <span aria-hidden="true">→</span>
+                    </Link>
+                </div>
+            )}
 
             <div className="glass-card overflow-hidden rounded-xl">
                 <div className="overflow-x-auto">

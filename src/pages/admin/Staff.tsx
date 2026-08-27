@@ -77,6 +77,9 @@ export default function Staff() {
     const [formDepositClabe, setFormDepositClabe] = useState('');
     const [formDepositHolderName, setFormDepositHolderName] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
+    const isEssentialPlan = plan === 'lite';
+    const showMultiStaffTabs = !isEssentialPlan && stylists.length >= 2;
+
     const [formError, setFormError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'profile' | 'schedule' | 'services' | 'quoter'>('profile');
     const [formUseCustomSchedule, setFormUseCustomSchedule] = useState(false);
@@ -95,10 +98,12 @@ export default function Staff() {
     }, [businessConfig, formServiceIds, services]);
 
     useEffect(() => {
-        if (activeTab === 'quoter' && !hasNailServiceAssigned) {
+        if (!showMultiStaffTabs && activeTab !== 'profile') {
+            setActiveTab('profile');
+        } else if (activeTab === 'quoter' && !hasNailServiceAssigned) {
             setActiveTab('services');
         }
-    }, [hasNailServiceAssigned, activeTab]);
+    }, [showMultiStaffTabs, hasNailServiceAssigned, activeTab]);
 
     const openAdd = () => {
         const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid);
@@ -280,12 +285,20 @@ export default function Staff() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {stylists.map(person => (
                     <div key={person.id} className="glass-card p-6 relative group hover:bg-slate-800/50 transition-colors">
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-2 hover:bg-white/10 rounded-full text-muted hover:text-white transition-colors" onClick={() => openEdit(person.id)} title="Editar">
-                                <Edit2 size={16} />
+                        <div className="absolute top-3.5 right-3.5 flex items-center gap-2 z-10">
+                            <button
+                                className="p-2 bg-blue-500/15 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 hover:text-blue-200 rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center justify-center"
+                                onClick={() => openEdit(person.id)}
+                                title="Editar profesional"
+                            >
+                                <Edit2 size={15} />
                             </button>
-                            <button className="p-2 hover:bg-red-500/20 rounded-full text-muted hover:text-red-500 transition-colors" onClick={() => handleDelete(person.id)} title="Eliminar">
-                                <Trash2 size={16} />
+                            <button
+                                className="p-2 bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:text-red-200 rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center justify-center"
+                                onClick={() => handleDelete(person.id)}
+                                title="Eliminar profesional"
+                            >
+                                <Trash2 size={15} />
                             </button>
                         </div>
 
@@ -329,39 +342,41 @@ export default function Staff() {
                             <button className="text-muted hover:text-white" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
                         </div>
 
-                        {/* Tabs Navigation */}
-                        <div className="flex gap-4 border-b border-white/10 mb-6 overflow-x-auto custom-scrollbar pb-1">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('profile')}
-                                className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'profile' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
-                            >
-                                Perfil
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('schedule')}
-                                className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'schedule' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
-                            >
-                                Horario de Trabajo
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('services')}
-                                className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'services' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
-                            >
-                                Servicios Asignados
-                            </button>
-                            {hasNailServiceAssigned && (
+                        {/* Tabs Navigation (Solo si no es plan Esencial y hay 2 o más profesionales) */}
+                        {showMultiStaffTabs && (
+                            <div className="flex gap-4 border-b border-white/10 mb-6 overflow-x-auto custom-scrollbar pb-1">
                                 <button
                                     type="button"
-                                    onClick={() => setActiveTab('quoter')}
-                                    className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'quoter' ? 'border-pink-400 text-pink-300' : 'border-transparent text-slate-500'}`}
+                                    onClick={() => setActiveTab('profile')}
+                                    className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'profile' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
                                 >
-                                    <span>💅</span> Tabulador de Arte
+                                    Perfil
                                 </button>
-                            )}
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('schedule')}
+                                    className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'schedule' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                                >
+                                    Horario de Trabajo
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('services')}
+                                    className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'services' ? 'border-accent text-white' : 'border-transparent text-slate-500'}`}
+                                >
+                                    Servicios Asignados
+                                </button>
+                                {hasNailServiceAssigned && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('quoter')}
+                                        className={`pb-2 font-bold text-sm border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'quoter' ? 'border-pink-400 text-pink-300' : 'border-transparent text-slate-500'}`}
+                                    >
+                                        <span>💅</span> Tabulador de Arte
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
                         {formError && (
                             <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm animate-pulse-soft flex items-center gap-2">
@@ -505,7 +520,7 @@ export default function Staff() {
                             </div>
                         )}
 
-                        {activeTab === 'schedule' && (
+                        {showMultiStaffTabs && activeTab === 'schedule' && (
                             <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
                                 <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10 mb-2">
                                     <input
@@ -526,15 +541,28 @@ export default function Staff() {
                                         <p>Este profesional heredará automáticamente el horario general de apertura y descanso configurado para el salón.</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <div className="space-y-2.5">
                                         {DAYS.map(day => {
                                             const daySched = formSchedule[day] || { open: false, start: '09:00', end: '18:00' };
                                             return (
-                                                <div key={day} className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-3">
+                                                <div key={day} className={`p-3.5 rounded-2xl border transition-all ${
+                                                    daySched.open 
+                                                        ? 'bg-slate-900/80 border-white/10 shadow-sm' 
+                                                        : 'bg-slate-950/40 border-white/5 opacity-75'
+                                                } space-y-3`}>
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-sm font-bold text-white">{DAY_LABELS[day]}</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs text-slate-400">{daySched.open ? 'Laborable' : 'Descanso'}</span>
+                                                        <div className="flex items-center gap-2.5">
+                                                            <span className="w-2 h-2 rounded-full" style={{ background: daySched.open ? '#10b981' : '#64748b' }}></span>
+                                                            <span className="text-sm font-bold text-white">{DAY_LABELS[day]}</span>
+                                                        </div>
+                                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                                                                daySched.open 
+                                                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                                                    : 'bg-slate-800/50 border-white/10 text-slate-400'
+                                                            }`}>
+                                                                {daySched.open ? 'Laborable' : 'Descanso'}
+                                                            </span>
                                                             <input
                                                                 type="checkbox"
                                                                 checked={daySched.open}
@@ -547,14 +575,14 @@ export default function Staff() {
                                                                 }}
                                                                 className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
                                                             />
-                                                        </div>
+                                                        </label>
                                                     </div>
 
                                                     {daySched.open && (
-                                                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                                                        <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-white/5">
                                                             <div className="space-y-1">
-                                                                <span className="text-[10px] uppercase font-bold text-slate-500">Horario de Trabajo</span>
-                                                                <div className="flex items-center gap-1.5">
+                                                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Horario de Trabajo</span>
+                                                                <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-white/10">
                                                                     <input
                                                                         type="text"
                                                                         value={daySched.start}
@@ -566,9 +594,9 @@ export default function Staff() {
                                                                             }));
                                                                         }}
                                                                         placeholder="09:00"
-                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                        className="w-full text-center bg-transparent border-none py-1 text-xs font-bold text-white focus:outline-none"
                                                                     />
-                                                                    <span className="text-slate-500 text-xs">a</span>
+                                                                    <span className="text-slate-500 text-xs font-medium">a</span>
                                                                     <input
                                                                         type="text"
                                                                         value={daySched.end}
@@ -580,14 +608,14 @@ export default function Staff() {
                                                                             }));
                                                                         }}
                                                                         placeholder="18:00"
-                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                        className="w-full text-center bg-transparent border-none py-1 text-xs font-bold text-white focus:outline-none"
                                                                     />
                                                                 </div>
                                                             </div>
 
                                                             <div className="space-y-1">
-                                                                <span className="text-[10px] uppercase font-bold text-slate-500">Comida / Descanso</span>
-                                                                <div className="flex items-center gap-1.5">
+                                                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Comida / Descanso</span>
+                                                                <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-white/10">
                                                                     <input
                                                                         type="text"
                                                                         value={daySched.breakStart || ''}
@@ -599,9 +627,9 @@ export default function Staff() {
                                                                             }));
                                                                         }}
                                                                         placeholder="13:00"
-                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                        className="w-full text-center bg-transparent border-none py-1 text-xs font-bold text-white focus:outline-none"
                                                                     />
-                                                                    <span className="text-slate-500 text-xs">a</span>
+                                                                    <span className="text-slate-500 text-xs font-medium">a</span>
                                                                     <input
                                                                         type="text"
                                                                         value={daySched.breakEnd || ''}
@@ -613,7 +641,7 @@ export default function Staff() {
                                                                             }));
                                                                         }}
                                                                         placeholder="14:00"
-                                                                        className="w-full text-center bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                                                                        className="w-full text-center bg-transparent border-none py-1 text-xs font-bold text-white focus:outline-none"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -627,7 +655,7 @@ export default function Staff() {
                             </div>
                         )}
 
-                        {activeTab === 'services' && (
+                        {showMultiStaffTabs && activeTab === 'services' && (
                             <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
                                 <div className="p-4 bg-white/5 border border-dashed border-white/10 rounded-xl text-center text-slate-400 text-xs leading-relaxed">
                                     <p className="font-bold text-slate-300 mb-1">Especialización de Servicios</p>
@@ -640,7 +668,7 @@ export default function Staff() {
                                     {services.filter(s => !s.isAddon).length === 0 ? (
                                         <p className="text-xs text-slate-500 italic pl-1">No hay servicios principales creados.</p>
                                     ) : (
-                                        <div className="grid grid-cols-1 gap-2">
+                                        <div className="grid grid-cols-1 gap-2.5">
                                             {services.filter(s => !s.isAddon).map(service => {
                                                 const sId = Number(service.id);
                                                 const isChecked = formServiceIds.includes(sId);
@@ -648,8 +676,12 @@ export default function Staff() {
                                                 const customDuration = formCustomPrices[sId]?.duration;
 
                                                 return (
-                                                    <div key={service.id} className={`p-3 bg-white/5 border ${isChecked ? 'border-accent/40 bg-accent/5' : 'border-white/5'} rounded-xl transition-all`}>
-                                                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                                                    <div key={service.id} className={`p-4 rounded-2xl border transition-all ${
+                                                        isChecked 
+                                                            ? 'border-accent/40 bg-accent/5 shadow-sm ring-1 ring-accent/20' 
+                                                            : 'border-white/5 bg-slate-900/60 hover:border-white/10'
+                                                    }`}>
+                                                        <label className="flex items-center gap-3.5 cursor-pointer select-none">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isChecked}
@@ -662,16 +694,16 @@ export default function Staff() {
                                                                 }}
                                                                 className="w-4 h-4 rounded bg-slate-900 border-white/10 text-accent focus:ring-accent cursor-pointer"
                                                             />
-                                                            <div className="text-left flex-1">
-                                                                <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
-                                                                <p className="text-xs text-slate-400 font-medium">Base: ${service.price} MXN • {service.duration} min</p>
+                                                            <div className="text-left flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-white leading-tight truncate">{service.name}</p>
+                                                                <p className="text-xs text-slate-400 font-medium mt-0.5">Base: ${service.price} MXN • {service.duration} min</p>
                                                             </div>
                                                         </label>
 
                                                         {isChecked && (
                                                             <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-3 animate-fade-in">
                                                                 <div>
-                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Precio Personalizado ($)</label>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Precio Personalizado ($)</label>
                                                                     <input
                                                                         type="number"
                                                                         placeholder={`Base: $${service.price}`}
@@ -683,11 +715,11 @@ export default function Staff() {
                                                                                 [sId]: { ...prev[sId], price: val }
                                                                             }));
                                                                         }}
-                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent"
+                                                                        className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-accent"
                                                                     />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Duración (min)</label>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Duración (min)</label>
                                                                     <input
                                                                         type="number"
                                                                         placeholder={`Base: ${service.duration} min`}
@@ -699,7 +731,7 @@ export default function Staff() {
                                                                                 [sId]: { ...prev[sId], duration: val }
                                                                             }));
                                                                         }}
-                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent"
+                                                                        className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-accent"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -717,7 +749,7 @@ export default function Staff() {
                                     {services.filter(s => s.isAddon).length === 0 ? (
                                         <p className="text-xs text-slate-500 italic pl-1">No hay servicios adicionales creados.</p>
                                     ) : (
-                                        <div className="grid grid-cols-1 gap-2">
+                                        <div className="grid grid-cols-1 gap-2.5">
                                             {services.filter(s => s.isAddon).map(service => {
                                                 const sId = Number(service.id);
                                                 const isChecked = formServiceIds.includes(sId);
@@ -725,8 +757,12 @@ export default function Staff() {
                                                 const customDuration = formCustomPrices[sId]?.duration;
 
                                                 return (
-                                                    <div key={service.id} className={`p-3 bg-white/5 border ${isChecked ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-white/5'} rounded-xl transition-all`}>
-                                                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                                                    <div key={service.id} className={`p-4 rounded-2xl border transition-all ${
+                                                        isChecked 
+                                                            ? 'border-emerald-500/40 bg-emerald-500/5 shadow-sm ring-1 ring-emerald-500/20' 
+                                                            : 'border-white/5 bg-slate-900/60 hover:border-white/10'
+                                                    }`}>
+                                                        <label className="flex items-center gap-3.5 cursor-pointer select-none">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isChecked}
@@ -739,16 +775,16 @@ export default function Staff() {
                                                                 }}
                                                                 className="w-4 h-4 rounded bg-slate-900 border-white/10 text-emerald-400 focus:ring-emerald-400 cursor-pointer"
                                                             />
-                                                            <div className="text-left flex-1">
-                                                                <p className="text-sm font-semibold text-white leading-tight">{service.name}</p>
-                                                                <p className="text-xs text-slate-400 font-medium">Base: ${service.price} MXN • {service.duration} min</p>
+                                                            <div className="text-left flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-white leading-tight truncate">{service.name}</p>
+                                                                <p className="text-xs text-slate-400 font-medium mt-0.5">Base: ${service.price} MXN • {service.duration} min</p>
                                                             </div>
                                                         </label>
 
                                                         {isChecked && (
                                                             <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-3 animate-fade-in">
                                                                 <div>
-                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Precio Personalizado ($)</label>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Precio Personalizado ($)</label>
                                                                     <input
                                                                         type="number"
                                                                         placeholder={`Base: $${service.price}`}
@@ -760,11 +796,11 @@ export default function Staff() {
                                                                                 [sId]: { ...prev[sId], price: val }
                                                                             }));
                                                                         }}
-                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                                                                        className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
                                                                     />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Duración (min)</label>
+                                                                    <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Duración (min)</label>
                                                                     <input
                                                                         type="number"
                                                                         placeholder={`Base: ${service.duration} min`}
@@ -776,7 +812,7 @@ export default function Staff() {
                                                                                 [sId]: { ...prev[sId], duration: val }
                                                                             }));
                                                                         }}
-                                                                        className="w-full bg-slate-900/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+                                                                        className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -790,7 +826,7 @@ export default function Staff() {
                             </div>
                         )}
 
-                        {activeTab === 'quoter' && (
+                        {showMultiStaffTabs && activeTab === 'quoter' && (
                             <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
                                 <div className="p-4 bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-pink-500/10 border border-pink-500/20 rounded-xl text-xs leading-relaxed space-y-1">
                                     <p className="font-bold text-pink-300 flex items-center gap-1.5">
@@ -809,14 +845,14 @@ export default function Staff() {
                                             {activeNailConfig.find((c: QuotingCategory) => c.id === 'base_services')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 return (
-                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
+                                                    <div key={item.id} className="p-3.5 bg-slate-900/60 border border-white/10 rounded-2xl flex items-center justify-between gap-3 shadow-sm hover:border-white/20 transition-all">
                                                         <div className="text-left min-w-0 flex-1">
-                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
-                                                            <p className="text-[10px] text-slate-400 font-medium">Base: ${item.price} MXN</p>
+                                                            <p className="text-xs font-bold text-white truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">Base: ${item.price} MXN</p>
                                                         </div>
                                                         <div className="w-24 shrink-0">
                                                             <div className="relative">
-                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
                                                                 <input
                                                                     type="number"
                                                                     placeholder={`${item.price}`}
@@ -830,7 +866,7 @@ export default function Staff() {
                                                                             return copy;
                                                                         });
                                                                     }}
-                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                                                                    className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-7 pr-2.5 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                                                                 />
                                                             </div>
                                                         </div>
@@ -847,14 +883,14 @@ export default function Staff() {
                                             {activeNailConfig.find((c: QuotingCategory) => c.id === 'sizes')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 return (
-                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
+                                                    <div key={item.id} className="p-3.5 bg-slate-900/60 border border-white/10 rounded-2xl flex items-center justify-between gap-3 shadow-sm hover:border-white/20 transition-all">
                                                         <div className="text-left min-w-0 flex-1">
-                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
-                                                            <p className="text-[10px] text-slate-400 font-medium">Base: ${item.price} MXN</p>
+                                                            <p className="text-xs font-bold text-white truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">Base: ${item.price} MXN</p>
                                                         </div>
                                                         <div className="w-24 shrink-0">
                                                             <div className="relative">
-                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
                                                                 <input
                                                                     type="number"
                                                                     placeholder={`${item.price}`}
@@ -868,7 +904,7 @@ export default function Staff() {
                                                                             return copy;
                                                                         });
                                                                     }}
-                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                                                                    className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-7 pr-2.5 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
                                                                 />
                                                             </div>
                                                         </div>
@@ -885,16 +921,16 @@ export default function Staff() {
                                             {activeNailConfig.find((c: QuotingCategory) => c.id === 'styles')?.items.map((item: QuotingItem) => {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 return (
-                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3">
+                                                    <div key={item.id} className="p-3.5 bg-slate-900/60 border border-white/10 rounded-2xl flex items-center justify-between gap-3 shadow-sm hover:border-white/20 transition-all">
                                                         <div className="text-left min-w-0 flex-1">
-                                                            <p className="text-xs font-semibold text-white truncate">{item.name}</p>
-                                                            <p className="text-[10px] text-slate-400 font-medium">
+                                                            <p className="text-xs font-bold text-white truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                                                                 Base: ${item.price} MXN {item.unit ? `(${item.unit})` : ''}
                                                             </p>
                                                         </div>
                                                         <div className="w-24 shrink-0">
                                                             <div className="relative">
-                                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
                                                                 <input
                                                                     type="number"
                                                                     placeholder={`${item.price}`}
@@ -908,7 +944,7 @@ export default function Staff() {
                                                                             return copy;
                                                                         });
                                                                     }}
-                                                                    className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-pink-400"
+                                                                    className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-7 pr-2.5 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-pink-400"
                                                                 />
                                                             </div>
                                                         </div>
@@ -926,18 +962,18 @@ export default function Staff() {
                                                 const customVal = formCustomQuoterConfig[item.id];
                                                 const customDur = formCustomQuoterConfig[`${item.id}_dur`];
                                                 return (
-                                                    <div key={item.id} className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2.5">
+                                                    <div key={item.id} className="p-3.5 bg-slate-900/60 border border-white/10 rounded-2xl space-y-2.5 shadow-sm hover:border-white/20 transition-all">
                                                         <div className="flex items-center justify-between gap-2">
                                                             <p className="text-xs font-bold text-white leading-snug truncate" title={item.name}>{item.name}</p>
-                                                            <span className="text-[10px] text-slate-400 font-medium shrink-0 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                                            <span className="text-[10px] text-slate-400 font-medium shrink-0 bg-slate-950 px-2 py-0.5 rounded-md border border-white/5">
                                                                 Base: ${item.price} • {item.duration || 0} min
                                                             </span>
                                                         </div>
-                                                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
+                                                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-white/5">
                                                             <div>
                                                                 <label className="block text-[9px] uppercase font-bold text-purple-300/70 mb-1">Precio ($)</label>
                                                                 <div className="relative">
-                                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">$</span>
                                                                     <input
                                                                         type="number"
                                                                         placeholder={`${item.price}`}
@@ -951,7 +987,7 @@ export default function Staff() {
                                                                                 return copy;
                                                                             });
                                                                         }}
-                                                                        className="w-full bg-slate-900 border border-white/10 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                                                                        className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-7 pr-2 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -971,9 +1007,9 @@ export default function Staff() {
                                                                                 return copy;
                                                                             });
                                                                         }}
-                                                                        className="w-full bg-slate-900 border border-white/10 rounded-lg pl-2.5 pr-7 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 text-right"
+                                                                        className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-2.5 pr-7 py-1.5 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 text-right"
                                                                     />
-                                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">min</span>
+                                                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-bold">m</span>
                                                                 </div>
                                                             </div>
                                                         </div>
