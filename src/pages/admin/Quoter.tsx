@@ -4,7 +4,7 @@ import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useServices } from '../../lib/store/queries/useServices';
 import { useAuthStore } from '../../lib/store/authStore';
-import { Calculator, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, Eye, X, RotateCcw, Download, User } from 'lucide-react';
+import { Calculator, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, Eye, X, RotateCcw, Download, User, Clock, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 import html2canvas from 'html2canvas';
 
@@ -19,16 +19,19 @@ export default function Quoter() {
     
     const ticketRef = useRef<HTMLDivElement>(null);
 
-    // Filter stylists who can perform nail calculator services
-    const nailServices = useMemo(() => services.filter(s => s.enableQuoter), [services]);
+    // Main services from the business catalog enabled for quoting
+    const baseServices = useMemo(() => {
+        const quoterSvcs = services.filter(s => s.enableQuoter && !s.isAddon);
+        return quoterSvcs.length > 0 ? quoterSvcs : services.filter(s => !s.isAddon);
+    }, [services]);
 
     const qualifiedStylists = useMemo(() => {
-        if (nailServices.length === 0) return stylists;
+        if (baseServices.length === 0) return stylists;
         return stylists.filter(st => {
             if (!st.serviceIds || st.serviceIds.length === 0) return true; // Can do all
-            return nailServices.some(ns => st.serviceIds?.includes(Number(ns.id)));
+            return baseServices.some(ns => st.serviceIds?.includes(Number(ns.id)));
         });
-    }, [stylists, nailServices]);
+    }, [stylists, baseServices]);
 
     // Selection states
     const [selectedStylistId, setSelectedStylistId] = useState<string>('');
@@ -61,11 +64,18 @@ export default function Quoter() {
             setSelectedStylistId(String(qualifiedStylists[0].id));
         }
     }, [qualifiedStylists, userRole, userStylistId, user]);
-    const [selectedBaseId, setSelectedBaseId] = useState<string>('');
+    const [selectedBaseServiceId, setSelectedBaseServiceId] = useState<string>('');
     const [selectedSizeId, setSelectedSizeId] = useState<string>('');
     const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [selectedExtras, setSelectedExtras] = useState<Record<string, boolean>>({});
     const [cardTheme, setCardTheme] = useState<'pink' | 'dark' | 'gold'>('pink');
+
+    // Auto-select first base service
+    useEffect(() => {
+        if (baseServices.length > 0 && !selectedBaseServiceId) {
+            setSelectedBaseServiceId(String(baseServices[0].id));
+        }
+    }, [baseServices, selectedBaseServiceId]);
 
     // Reference photo state & lightbox modal
     const [referenceImage, setReferenceImage] = useState<string | null>(null);
@@ -107,7 +117,6 @@ export default function Quoter() {
     };
 
     // Categorized config items
-    const baseCategory = useMemo(() => config.find(c => c.id === 'base_services'), [config]);
     const sizeCategory = useMemo(() => config.find(c => c.id === 'sizes'), [config]);
     const styleCategory = useMemo(() => config.find(c => c.id === 'styles'), [config]);
     const extrasCategory = useMemo(() => config.find(c => c.id === 'extras'), [config]);
@@ -117,35 +126,52 @@ export default function Quoter() {
         return stylists.find(s => String(s.id) === selectedStylistId) || null;
     }, [selectedStylistId, stylists]);
 
-    // Calculate details and prices
-    const quoteBreakdown = useMemo(() => {
-        const items: { name: string; price: number; detail?: string }[] = [];
-        let total = 0;
+    const selectedBaseService = useMemo(() => {
+        return baseServices.find(s => String(s.id) === selectedBaseServiceId) || null;
+    }, [baseServices, selectedBaseServiceId]);
 
-        const baseItem = baseCategory?.items.find(i => i.id === selectedBaseId);
+    // Helper to format minutes into human-readable hours and mins
+    const formatDurationDisplay = (mins: number) => {
+        if (mins <= 0) return '0 min';
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        if (h > 0 && m > 0) return `${h}h ${m}m (${mins} min)`;
+        if (h > 0) return `${h}h (${mins} min)`;
+        return `${mins} min`;
+    };
+
+    // Calculate details, prices and durations
+    const quoteBreakdown = useMemo(() => {
+        const items: { name: string; price: number; duration?: number; detail?: string }[] = [];
+        let total = 0;
+        let totalMinutes = 0;
+
         const sizeItem = sizeCategory?.items.find(i => i.id === selectedSizeId);
 
-        let basePrice = baseItem ? (currentStylist?.customQuoterConfig?.[baseItem.id] ?? baseItem.price) : 0;
+        let basePrice = selectedBaseService ? (currentStylist?.customServicePrices?.[selectedBaseService.id]?.price ?? selectedBaseService.price) : 0;
+        let baseDuration = selectedBaseService ? (currentStylist?.customServicePrices?.[selectedBaseService.id]?.duration ?? selectedBaseService.duration ?? 0) : 0;
+        
         let sizePrice = sizeItem ? (currentStylist?.customQuoterConfig?.[sizeItem.id] ?? sizeItem.price) : 0;
+        let sizeDuration = sizeItem ? (currentStylist?.customQuoterConfig?.[`${sizeItem.id}_dur`] ?? (sizeItem as any).duration ?? 0) : 0;
 
-        // Combined Base service + Size into a single line item with summed price
-        if (baseItem) {
+        if (selectedBaseService) {
+            const combinedPrice = basePrice + sizePrice;
+            const combinedDuration = baseDuration + sizeDuration;
             if (sizeItem && sizePrice > 0) {
-                const combinedName = `${baseItem.name} (${sizeItem.name})`;
-                const combinedPrice = basePrice + sizePrice;
-                items.push({ name: combinedName, price: combinedPrice });
-                total += combinedPrice;
+                const combinedName = `${selectedBaseService.name} (${sizeItem.name})`;
+                items.push({ name: combinedName, price: combinedPrice, duration: combinedDuration });
             } else if (sizeItem) {
-                const combinedName = `${baseItem.name} (${sizeItem.name})`;
-                items.push({ name: combinedName, price: basePrice });
-                total += basePrice;
+                const combinedName = `${selectedBaseService.name} (${sizeItem.name})`;
+                items.push({ name: combinedName, price: basePrice, duration: combinedDuration });
             } else {
-                items.push({ name: baseItem.name, price: basePrice });
-                total += basePrice;
+                items.push({ name: selectedBaseService.name, price: basePrice, duration: baseDuration });
             }
+            total += combinedPrice;
+            totalMinutes += combinedDuration;
         } else if (sizeItem) {
-            items.push({ name: `Largo: ${sizeItem.name}`, price: sizePrice });
+            items.push({ name: `Largo: ${sizeItem.name}`, price: sizePrice, duration: sizeDuration });
             total += sizePrice;
+            totalMinutes += sizeDuration;
         }
 
         // Styles / Decor
@@ -155,9 +181,13 @@ export default function Quoter() {
                 if (selection?.checked) {
                     const customPrice = currentStylist?.customQuoterConfig?.[item.id];
                     const unitPrice = customPrice !== undefined ? customPrice : item.price;
+                    const customDur = currentStylist?.customQuoterConfig?.[`${item.id}_dur`];
+                    const unitDur = customDur !== undefined ? customDur : ((item as any).duration ?? 0);
                     const hasUnit = !!item.unit;
                     const qty = hasUnit ? selection.qty : 1;
                     const price = unitPrice * qty;
+                    const itemTotalDur = unitDur * qty;
+
                     let unitText = item.unit;
                     if (item.unit === 'por pieza') {
                         unitText = qty === 1 ? 'pieza' : 'piezas';
@@ -167,9 +197,11 @@ export default function Quoter() {
                     items.push({
                         name: item.name,
                         price,
+                        duration: itemTotalDur,
                         detail: hasUnit ? `(${qty} ${unitText})` : undefined
                     });
                     total += price;
+                    totalMinutes += itemTotalDur;
                 }
             });
         }
@@ -180,21 +212,24 @@ export default function Quoter() {
                 if (selectedExtras[item.id]) {
                     const customPrice = currentStylist?.customQuoterConfig?.[item.id];
                     const price = customPrice !== undefined ? customPrice : item.price;
-                    items.push({ name: item.name, price });
+                    const customDur = currentStylist?.customQuoterConfig?.[`${item.id}_dur`];
+                    const duration = customDur !== undefined ? customDur : ((item as any).duration ?? 0);
+                    items.push({ name: item.name, price, duration });
                     total += price;
+                    totalMinutes += duration;
                 }
             });
         }
 
-        return { items, total };
-    }, [config, selectedBaseId, selectedSizeId, selectedStyles, selectedExtras, baseCategory, sizeCategory, styleCategory, extrasCategory, currentStylist]);
+        return { items, total, totalMinutes };
+    }, [selectedBaseService, selectedSizeId, selectedStyles, selectedExtras, sizeCategory, styleCategory, extrasCategory, currentStylist]);
 
     // Reset all selections
     const handleReset = () => {
-        if (baseCategory && baseCategory.items.length > 0) {
-            setSelectedBaseId(baseCategory.items[0].id);
+        if (baseServices.length > 0) {
+            setSelectedBaseServiceId(String(baseServices[0].id));
         } else {
-            setSelectedBaseId('');
+            setSelectedBaseServiceId('');
         }
         if (sizeCategory && sizeCategory.items.length > 0) {
             setSelectedSizeId(sizeCategory.items[0].id);
@@ -203,6 +238,57 @@ export default function Quoter() {
         }
         setSelectedStyles({});
         setSelectedExtras({});
+    };
+
+    // Generate online booking link prefilled with quoted items
+    const generatedBookingUrl = useMemo(() => {
+        const slug = businessConfig?.slug || businessConfig?.brandSlug || '';
+        if (!slug || !selectedBaseService) return '';
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.citalink.app';
+        const params = new URLSearchParams();
+        params.set('svc', String(selectedBaseService.id));
+        if (selectedSizeId) params.set('size', selectedSizeId);
+        if (selectedStylistId) params.set('stylist', selectedStylistId);
+        
+        const activeExtras = Object.entries(selectedExtras)
+            .filter(([_, active]) => active)
+            .map(([id]) => id);
+        if (activeExtras.length > 0) {
+            params.set('extras', activeExtras.join(','));
+        }
+
+        return `${origin}/reserva/${slug}?${params.toString()}`;
+    }, [businessConfig, selectedBaseService, selectedSizeId, selectedStylistId, selectedExtras]);
+
+    const whatsappShareText = useMemo(() => {
+        if (!generatedBookingUrl) return '';
+        return `📅 Puedes agendar tu cita en el día y hora que prefieras desde este enlace:\n${generatedBookingUrl}`;
+    }, [generatedBookingUrl]);
+
+    const handleCopyWhatsAppText = async () => {
+        if (!whatsappShareText) {
+            showToast('Selecciona un servicio base para generar el enlace', 'error');
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(whatsappShareText);
+            showToast('¡Texto copiado para WhatsApp! 💬 Pégalo directamente a tu clienta.', 'success');
+        } catch (_) {
+            showToast('No se pudo copiar el texto automáticamente.', 'error');
+        }
+    };
+
+    const handleCopyBookingLinkOnly = async () => {
+        if (!generatedBookingUrl) {
+            showToast('Selecciona un servicio base para generar el enlace', 'error');
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(generatedBookingUrl);
+            showToast('¡Enlace de reserva copiado! 🔗', 'success');
+        } catch (_) {
+            showToast('No se pudo copiar el enlace automáticamente.', 'error');
+        }
     };
 
 
@@ -471,34 +557,49 @@ export default function Quoter() {
                         )}
                     </div>
 
-                    {/* Base Services */}
-                    {baseCategory && (
+                    {/* Base Services (Servicios Principales Reales del Catálogo) */}
+                    {baseServices.length > 0 && (
                         <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
-                            <h3 className="text-md font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
-                                <span className="w-2 h-2 rounded-full bg-accent"></span> {baseCategory.name}
-                            </h3>
+                            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                                <h3 className="text-md font-bold text-white flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-accent"></span> Servicio Principal (Base)
+                                </h3>
+                                <span className="text-xs text-slate-400 font-semibold">
+                                    {baseServices.length} disponibles
+                                </span>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {baseCategory.items.map(item => {
-                                    const isSelected = selectedBaseId === item.id;
-                                    const effectivePrice = currentStylist?.customQuoterConfig?.[item.id] ?? item.price;
+                                {baseServices.map(service => {
+                                    const isSelected = selectedBaseServiceId === String(service.id);
+                                    const customPrice = currentStylist?.customServicePrices?.[service.id]?.price;
+                                    const effectivePrice = customPrice !== undefined ? customPrice : service.price;
+                                    const customDuration = currentStylist?.customServicePrices?.[service.id]?.duration;
+                                    const effectiveDuration = customDuration !== undefined ? customDuration : service.duration;
+
                                     return (
                                         <button
-                                            key={item.id}
+                                            key={service.id}
                                             type="button"
-                                            onClick={() => setSelectedBaseId(prev => prev === item.id ? '' : item.id)}
+                                            onClick={() => setSelectedBaseServiceId(prev => prev === String(service.id) ? '' : String(service.id))}
                                             className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-300 text-left ${
                                                 isSelected
-                                                    ? 'bg-accent/10 border-accent text-white shadow-glow-sm'
+                                                    ? 'bg-accent/15 border-accent text-white shadow-glow-sm'
                                                     : 'bg-white/5 border-white/10 hover:border-white/20 text-slate-300'
                                             }`}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'border-accent bg-accent' : 'border-white/20 bg-slate-900'}`}>
+                                            <div className="flex items-center gap-3 min-w-0 pr-2">
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-accent bg-accent' : 'border-white/20 bg-slate-900'}`}>
                                                     {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
                                                 </div>
-                                                <span className="text-sm font-semibold">{item.name}</span>
+                                                <div className="min-w-0">
+                                                    <span className="text-sm font-bold block truncate">{service.name}</span>
+                                                    <span className="text-xs text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                                                        <Clock size={11} className="text-slate-400" />
+                                                        {effectiveDuration} min
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <span className="text-sm font-bold text-accent">${effectivePrice}</span>
+                                            <span className="text-sm font-black text-accent shrink-0">${effectivePrice}</span>
                                         </button>
                                     );
                                 })}
@@ -837,7 +938,7 @@ export default function Quoter() {
                                 )}
                             </div>
 
-                            {/* Total Box */}
+                            {/* Total & Duration Box */}
                             <div className={`mt-4 pt-3 border-t flex justify-between items-center ${
                                 cardTheme === 'pink' ? 'border-pink-200' : cardTheme === 'gold' ? 'border-amber-200' : 'border-white/10'
                             }`}>
@@ -850,8 +951,16 @@ export default function Quoter() {
                                     <p className="text-2xl font-black leading-none mt-0.5">
                                         ${quoteBreakdown.total} <span className="text-xs font-semibold">MXN</span>
                                     </p>
+                                    {quoteBreakdown.totalMinutes > 0 && (
+                                        <p className={`text-[11px] font-bold mt-1.5 flex items-center gap-1 ${
+                                            cardTheme === 'pink' ? 'text-pink-700' : cardTheme === 'gold' ? 'text-amber-800' : 'text-cyan-400'
+                                        }`}>
+                                            <Clock size={12} />
+                                            <span>Tiempo: {formatDurationDisplay(quoteBreakdown.totalMinutes)}</span>
+                                        </p>
+                                    )}
                                 </div>
-                                <div className={`flex items-center justify-center text-center px-3 py-1 rounded-full font-bold text-xs tracking-wide border leading-none shrink-0 ${
+                                <div className={`flex items-center justify-center text-center px-3 py-1.5 rounded-full font-bold text-xs tracking-wide border leading-none shrink-0 ${
                                     cardTheme === 'pink'
                                         ? 'bg-pink-50/90 border-pink-200 text-pink-700 shadow-sm'
                                         : cardTheme === 'gold'
@@ -892,6 +1001,42 @@ export default function Quoter() {
                             <ImageIcon size={16} className="text-cyan-400" />
                             <span>Copiar Imagen para Pegar en WhatsApp</span>
                         </button>
+
+                        {/* WhatsApp Booking Link Box */}
+                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2.5 text-left">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <MessageCircle size={14} /> Link de Reserva para WhatsApp
+                                </span>
+                                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                                    Listo para enviar
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+                                Envía este enlace a tu clienta junto con la foto de su cotización para que reserve cuando quiera:
+                            </p>
+                            <div className="p-2.5 rounded-xl bg-slate-950/80 border border-white/10 text-xs text-slate-200 font-mono break-all select-all">
+                                {whatsappShareText || 'Selecciona un servicio base para generar el enlace'}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={handleCopyWhatsAppText}
+                                    className="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                                >
+                                    <MessageCircle size={15} />
+                                    <span>Copiar Mensaje WhatsApp</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCopyBookingLinkOnly}
+                                    className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/10 active:scale-95 transition-all"
+                                >
+                                    <LinkIcon size={14} />
+                                    <span>Copiar Solo Enlace</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                 </div>

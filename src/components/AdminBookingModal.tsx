@@ -130,11 +130,18 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         });
     }, [clientPhone, appointments, services]);
 
+    const currentStylistObj = selectedStylist !== 'any' && selectedStylist ? selectedStylist : null;
+    const customServicePrices = currentStylistObj?.customServicePrices;
+    const customQuoterConfig = currentStylistObj?.customQuoterConfig;
+
     // Calculate smart nail total price
     const nailTotalPrice = useMemo(() => {
         if (!selectedService) return 0;
-        let sum = selectedService.price;
-        if (nailSize) sum += nailSize.price;
+        let sum = customServicePrices?.[selectedService.id]?.price ?? selectedService.price;
+        if (nailSize) {
+            const customSizePrice = customQuoterConfig?.[nailSize.id];
+            sum += customSizePrice !== undefined ? customSizePrice : nailSize.price;
+        }
 
         // Estilos / Técnicas reales del cotizador
         if (stylesCategory) {
@@ -142,20 +149,23 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                 const stState = selectedStyles[item.id];
                 if (stState?.checked) {
                     const hasUnit = !!item.unit;
+                    const customPrice = customQuoterConfig?.[item.id];
+                    const unitPrice = customPrice !== undefined ? customPrice : (item.price || 0);
                     if (hasUnit) {
-                        sum += (item.price || 0) * (stState.qty || 1);
+                        sum += unitPrice * (stState.qty || 1);
                     } else {
-                        sum += (item.price || 0);
+                        sum += unitPrice;
                     }
                 }
             });
         } else {
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
             if (designItem) {
-                sum += designItem.price;
+                const customDesignPrice = customQuoterConfig?.[designItem.id];
+                sum += customDesignPrice !== undefined ? customDesignPrice : designItem.price;
             } else {
-                if (designLevel === 'simple') sum += 50;
-                else if (designLevel === 'complex') sum += 150;
+                if (designLevel === 'simple') sum += customQuoterConfig?.['simple'] ?? 50;
+                else if (designLevel === 'complex') sum += customQuoterConfig?.['complex'] ?? 150;
             }
         }
 
@@ -163,54 +173,81 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         if (extrasCat) {
             extrasCat.items.forEach(item => {
                 if (nailExtras[item.id]) {
-                    sum += item.price;
+                    const customExtraPrice = customQuoterConfig?.[item.id];
+                    sum += customExtraPrice !== undefined ? customExtraPrice : item.price;
                 }
             });
         }
         return sum;
-    }, [nailQuoterConfig, stylesCategory, selectedStyles, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras]);
+    }, [nailQuoterConfig, stylesCategory, selectedStyles, simplifiedDesignsCategory, selectedService, nailSize, designLevel, nailExtras, customServicePrices, customQuoterConfig]);
 
     // Get final computed service price (including selected additional services)
     const totalPrice = useMemo(() => {
         let base = (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter)
             ? nailTotalPrice
-            : (selectedService?.price ?? 0);
+            : (selectedService ? (customServicePrices?.[selectedService.id]?.price ?? selectedService.price) : 0);
 
         // Sumar servicios adicionales elegidos
         services.filter(s => s.isAddon).forEach(addon => {
             if (selectedAddons[addon.id]) {
-                base += (addon.price || 0);
+                const addonPrice = customServicePrices?.[addon.id]?.price ?? (addon.price || 0);
+                base += addonPrice;
             }
         });
 
         return base;
-    }, [businessConfig, selectedService, nailTotalPrice, services, selectedAddons]);
+    }, [businessConfig, selectedService, nailTotalPrice, services, selectedAddons, customServicePrices]);
 
     // Get total duration (base service + selected additional services + nail quoter extras)
     const totalDuration = useMemo(() => {
-        let dur = selectedService?.duration ?? 30;
+        let dur = selectedService ? (customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration ?? 30) : 30;
 
         // Sumar servicios adicionales generales
         services.filter(s => s.isAddon).forEach(addon => {
             if (selectedAddons[addon.id]) {
-                dur += (addon.duration || 0);
+                const addonDur = customServicePrices?.[addon.id]?.duration ?? (addon.duration || 0);
+                dur += addonDur;
             }
         });
 
-        // Sumar extras del cotizador de uñas (si aplica)
+        // Sumar extras y detalles del cotizador de uñas (si aplica)
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
+            if (nailSize) {
+                const sizeDur = customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
+                dur += sizeDur;
+            }
+
+            if (stylesCategory) {
+                stylesCategory.items.forEach(item => {
+                    const stState = selectedStyles[item.id];
+                    if (stState?.checked) {
+                        const customDur = customQuoterConfig?.[`${item.id}_dur`];
+                        const unitDur = customDur !== undefined ? customDur : ((item as any).duration ?? 0);
+                        dur += unitDur * (item.unit ? (stState.qty || 1) : 1);
+                    }
+                });
+            } else if (simplifiedDesignsCategory) {
+                const designItem = simplifiedDesignsCategory.items.find(i => i.id === designLevel);
+                if (designItem) {
+                    const designDur = customQuoterConfig?.[`${designItem.id}_dur`] ?? (designItem as any).duration ?? 0;
+                    dur += designDur;
+                }
+            }
+
             const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
             if (extrasCat) {
                 extrasCat.items.forEach(item => {
                     if (nailExtras[item.id]) {
-                        dur += (item.duration || 0);
+                        const extraDur = customQuoterConfig?.[`${item.id}_dur`];
+                        const itemDur = extraDur !== undefined ? extraDur : ((item as any).duration ?? 0);
+                        dur += itemDur;
                     }
                 });
             }
         }
 
         return dur;
-    }, [selectedService, services, selectedAddons, businessConfig, nailQuoterConfig, nailExtras]);
+    }, [selectedService, services, selectedAddons, businessConfig, nailQuoterConfig, nailExtras, customServicePrices, customQuoterConfig, nailSize, stylesCategory, selectedStyles, simplifiedDesignsCategory, designLevel]);
 
     const filteredServices = useMemo(() => {
         let list = services.filter(s => !s.isAddon);
@@ -312,8 +349,10 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         let addOnNames: string[] = [];
         if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
             if (nailSize) {
-                const durText = (nailSize as any).duration ? `, +${(nailSize as any).duration} min` : '';
-                addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN${durText})`);
+                const sizePrice = customQuoterConfig?.[nailSize.id] ?? nailSize.price;
+                const sizeDur = customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
+                const durText = sizeDur > 0 ? `, +${sizeDur} min` : '';
+                addOnNames.push(`Largo: ${nailSize.name} (+$${sizePrice} MXN${durText})`);
             }
             
             if (stylesCategory) {
@@ -321,27 +360,35 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     const stState = selectedStyles[item.id];
                     if (stState?.checked) {
                         const hasUnit = !!item.unit;
-                        const durText = (item as any).duration ? `, +${(item as any).duration} min` : '';
+                        const customPrice = customQuoterConfig?.[item.id];
+                        const unitPrice = customPrice !== undefined ? customPrice : (item.price || 0);
+                        const customDur = customQuoterConfig?.[`${item.id}_dur`];
+                        const unitDur = customDur !== undefined ? customDur : ((item as any).duration ?? 0);
+                        const durText = unitDur > 0 ? `, +${unitDur * (hasUnit ? (stState.qty || 1) : 1)} min` : '';
                         if (hasUnit) {
-                            const sub = (item.price || 0) * (stState.qty || 1);
+                            const sub = unitPrice * (stState.qty || 1);
                             addOnNames.push(`Estilo: ${item.name} x${stState.qty || 1} (+$${sub} MXN${durText})`);
                         } else {
-                            addOnNames.push(`Estilo: ${item.name} (+$${item.price || 0} MXN${durText})`);
+                            addOnNames.push(`Estilo: ${item.name} (+$${unitPrice} MXN${durText})`);
                         }
                     }
                 });
             } else {
                 const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
                 if (designItem) {
-                    const durText = (designItem as any).duration ? `, +${(designItem as any).duration} min` : '';
-                    addOnNames.push(`Diseño: ${designItem.name} (+$${designItem.price} MXN${durText})`);
+                    const designPrice = customQuoterConfig?.[designItem.id] ?? designItem.price;
+                    const designDur = customQuoterConfig?.[`${designItem.id}_dur`] ?? (designItem as any).duration ?? 0;
+                    const durText = designDur > 0 ? `, +${designDur} min` : '';
+                    addOnNames.push(`Diseño: ${designItem.name} (+$${designPrice} MXN${durText})`);
                 } else {
                     if (designLevel === 'basic') {
                         addOnNames.push(`Diseño: Básico / 1 Tono (+$0 MXN)`);
                     } else if (designLevel === 'simple') {
-                        addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
+                        const simplePrice = customQuoterConfig?.['simple'] ?? 50;
+                        addOnNames.push(`Diseño: Sencillo (+$${simplePrice} MXN)`);
                     } else if (designLevel === 'complex') {
-                        addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
+                        const complexPrice = customQuoterConfig?.['complex'] ?? 150;
+                        addOnNames.push(`Diseño: Elaborado / Full Art (+$${complexPrice} MXN)`);
                     }
                 }
             }
@@ -350,8 +397,11 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             if (extrasCat) {
                 extrasCat.items.forEach(item => {
                     if (nailExtras[item.id]) {
-                        const durText = item.duration ? `, +${item.duration} min` : '';
-                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN${durText})`);
+                        const extraPrice = customQuoterConfig?.[item.id] ?? item.price;
+                        const extraDur = customQuoterConfig?.[`${item.id}_dur`];
+                        const itemDur = extraDur !== undefined ? extraDur : (item.duration || 0);
+                        const durText = itemDur > 0 ? `, +${itemDur} min` : '';
+                        addOnNames.push(`Extra: ${item.name} (+$${extraPrice} MXN${durText})`);
                     }
                 });
             }
@@ -815,16 +865,24 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         <div className="space-y-2">
                                             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Extras y Retiro</label>
                                             <div className="grid grid-cols-2 gap-2">
-                                                {extrasCategory.items.map(item => (
-                                                    <button
-                                                        key={item.id}
-                                                        onClick={() => setNailExtras(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-                                                        className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all text-left ${nailExtras[item.id] ? 'bg-accent/15 border-accent text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
-                                                    >
-                                                        <span>{item.name}</span>
-                                                        <span className="text-[10px] text-slate-500 font-normal">+${item.price}</span>
-                                                    </button>
-                                                ))}
+                                                {extrasCategory.items.map(item => {
+                                                    const customPrice = customQuoterConfig?.[item.id];
+                                                    const effectivePrice = customPrice !== undefined ? customPrice : item.price;
+                                                    const customDur = customQuoterConfig?.[`${item.id}_dur`];
+                                                    const effectiveDur = customDur !== undefined ? customDur : (item.duration || 0);
+                                                    return (
+                                                        <button
+                                                            key={item.id}
+                                                            onClick={() => setNailExtras(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all text-left ${nailExtras[item.id] ? 'bg-accent/15 border-accent text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'}`}
+                                                        >
+                                                            <span>{item.name}</span>
+                                                            <span className="text-[10px] text-slate-400 font-normal">
+                                                                +${effectivePrice} {effectiveDur > 0 ? `(${effectiveDur}m)` : ''}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}

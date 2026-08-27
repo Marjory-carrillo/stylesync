@@ -38,6 +38,10 @@ export default function Booking() {
     const [searchParams, setSearchParams] = useSearchParams();
     const urlPhone = searchParams.get('phone');
     const urlApptId = searchParams.get('appt');
+    const urlSvc = searchParams.get('svc');
+    const urlStylist = searchParams.get('stylist');
+    const urlSize = searchParams.get('size');
+    const urlExtras = searchParams.get('extras');
     const { tenantId, isLoading: tenantLoading } = useTenantBySlug(slug);
     const { services } = useServices();
     const { stylists } = useStylists();
@@ -284,6 +288,7 @@ export default function Booking() {
     const { uploadNailDesign } = useImageUpload();
     const [nailDesignUrl, setNailDesignUrl] = useState<string>('');
     const [uploadingDesign, setUploadingDesign] = useState(false);
+    const [photoRequiredError, setPhotoRequiredError] = useState(false);
 
     // ── Catalog Gallery State ──
     const { data: catalogItems = [] } = useAllCatalog(tenantId ?? null);
@@ -292,12 +297,43 @@ export default function Booking() {
     const [expandedPhoto, setExpandedPhoto] = useState<CatalogItem | null>(null);
     const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItem | null>(null);
 
+    const [isQuoterPrefilled, setIsQuoterPrefilled] = useState(false);
+
     useEffect(() => {
         const sizeCat = nailQuoterConfig?.find(c => c.id === 'sizes');
         if (sizeCat && sizeCat.items.length > 0 && !nailSize) {
             setNailSize({ id: sizeCat.items[0].id, name: sizeCat.items[0].name, price: sizeCat.items[0].price });
         }
     }, [nailQuoterConfig, nailSize]);
+
+    // Pre-seleccionar automáticamente el servicio, especialista, largo y extras si vienen desde el enlace de cotización
+    useEffect(() => {
+        if (!urlSvc || services.length === 0) return;
+        const matchedSvc = services.find(s => String(s.id) === urlSvc || s.name.toLowerCase() === urlSvc.toLowerCase());
+        if (matchedSvc) {
+            setSelectedService(matchedSvc);
+            setIsQuoterPrefilled(true);
+
+            if (urlStylist && stylists.length > 0) {
+                const matchedStylist = stylists.find(st => String(st.id) === urlStylist);
+                if (matchedStylist) setSelectedStylist(matchedStylist);
+            }
+
+            if (urlSize && sizeCategory) {
+                const matchedSize = sizeCategory.items.find(i => i.id === urlSize);
+                if (matchedSize) {
+                    setNailSize({ id: matchedSize.id, name: matchedSize.name, price: matchedSize.price });
+                }
+            }
+
+            if (urlExtras) {
+                const extraIds = urlExtras.split(',').filter(Boolean);
+                const extrasMap: Record<string, boolean> = {};
+                extraIds.forEach(id => { extrasMap[id] = true; });
+                setNailExtras(extrasMap);
+            }
+        }
+    }, [urlSvc, urlStylist, urlSize, urlExtras, services, stylists, sizeCategory]);
 
     // Add-ons & Nail Extras computed values: duration adds up, price adds up
     const totalDuration = useMemo(() => {
@@ -324,7 +360,12 @@ export default function Booking() {
                 }
             });
         }
-        // 2. Niveles de Diseño
+        // 2. Largo / Size
+        if (nailSize) {
+            const sizeDur = customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
+            nailExtrasDuration += sizeDur;
+        }
+        // 3. Niveles de Diseño
         if (simplifiedDesignsCategory && simplifiedDesignsCategory.items && designLevel) {
             const selectedDesignItem = simplifiedDesignsCategory.items.find(i => i.id === designLevel);
             if (selectedDesignItem) {
@@ -334,27 +375,34 @@ export default function Booking() {
         }
 
         return baseDuration + extras + nailExtrasDuration;
-    }, [selectedService, selectedStylist, selectedAddOns, services, extrasCategory, nailExtras]);
+    }, [selectedService, selectedStylist, selectedAddOns, services, extrasCategory, nailExtras, nailSize, simplifiedDesignsCategory, designLevel]);
 
     const nailTotalPrice = useMemo(() => {
         if (!selectedService) return 0;
         const customServicePrices = selectedStylist?.customServicePrices;
+        const customQuoterConfig = selectedStylist?.customQuoterConfig;
+
         let sum = customServicePrices?.[selectedService.id]?.price ?? selectedService.price;
-        if (nailSize) sum += nailSize.price;
+        if (nailSize) {
+            const customSizePrice = customQuoterConfig?.[nailSize.id];
+            sum += customSizePrice !== undefined ? customSizePrice : nailSize.price;
+        }
 
         const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
         if (designItem) {
-            sum += designItem.price;
+            const customDesignPrice = customQuoterConfig?.[designItem.id];
+            sum += customDesignPrice !== undefined ? customDesignPrice : designItem.price;
         } else {
-            if (designLevel === 'simple') sum += 50;
-            else if (designLevel === 'complex') sum += 150;
+            if (designLevel === 'simple') sum += customQuoterConfig?.['simple'] ?? 50;
+            else if (designLevel === 'complex') sum += customQuoterConfig?.['complex'] ?? 150;
         }
 
         const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
         if (extrasCat) {
             extrasCat.items.forEach(item => {
                 if (nailExtras[item.id]) {
-                    sum += item.price;
+                    const customExtraPrice = customQuoterConfig?.[item.id];
+                    sum += customExtraPrice !== undefined ? customExtraPrice : item.price;
                 }
             });
         }
@@ -384,6 +432,15 @@ export default function Booking() {
         }
         return businessConfig.depositAmount;
     }, [businessConfig, totalPrice]);
+
+    // Helper to get formatted additional services text (e.g. "Facial + Masaje")
+    const selectedAddonsText = useMemo(() => {
+        if (!selectedAddOns || selectedAddOns.length === 0) return '';
+        const names = selectedAddOns
+            .map(id => services.find(s => Number(s.id) === Number(id))?.name)
+            .filter(Boolean);
+        return names.length > 0 ? names.join(' + ') : '';
+    }, [selectedAddOns, services]);
 
     const [payFullService, setPayFullService] = useState(false);
 
@@ -853,7 +910,11 @@ export default function Booking() {
         try {
             // Solo validamos — el OTP se manda después de elegir hora
             setSmsProvider('demo');
-            setStep(2);
+            if (isQuoterPrefilled && selectedService) {
+                setStep(25); // Ir directamente a elegir fecha y luego horario
+            } else {
+                setStep(2);
+            }
         } finally {
             setIsSendingSms(false);
         }
@@ -891,32 +952,37 @@ export default function Booking() {
         // 2. Incluir detalles de diseño de la calculadora si el servicio la tiene activa
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
             if (nailSize) {
+                const sizePrice = selectedStylist?.customQuoterConfig?.[nailSize.id] ?? nailSize.price;
                 const sizeDur = selectedStylist?.customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
                 const durText = sizeDur > 0 ? `, +${sizeDur} min` : '';
-                addOnNames.push(`Largo: ${nailSize.name} (+$${nailSize.price} MXN${durText})`);
+                addOnNames.push(`Largo: ${nailSize.name} (+$${sizePrice} MXN${durText})`);
             }
             const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
             if (designItem) {
+                const designPrice = selectedStylist?.customQuoterConfig?.[designItem.id] ?? designItem.price;
                 const designDur = selectedStylist?.customQuoterConfig?.[`${designItem.id}_dur`] ?? (designItem as any).duration ?? 0;
                 const durText = designDur > 0 ? `, +${designDur} min` : '';
-                const priceText = designItem.price > 0 ? ` (+$${designItem.price} MXN${durText})` : (durText ? ` (Sin costo${durText})` : ' (Sin costo)');
+                const priceText = designPrice > 0 ? ` (+$${designPrice} MXN${durText})` : (durText ? ` (Sin costo${durText})` : ' (Sin costo)');
                 addOnNames.push(`Diseño: ${designItem.name}${priceText}`);
             } else {
                 if (designLevel === 'basic') {
                     addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
                 } else if (designLevel === 'simple') {
-                    addOnNames.push(`Diseño: Sencillo (+$50 MXN)`);
+                    const simplePrice = selectedStylist?.customQuoterConfig?.['simple'] ?? 50;
+                    addOnNames.push(`Diseño: Sencillo (+$${simplePrice} MXN)`);
                 } else if (designLevel === 'complex') {
-                    addOnNames.push(`Diseño: Elaborado / Full Art (+$150 MXN)`);
+                    const complexPrice = selectedStylist?.customQuoterConfig?.['complex'] ?? 150;
+                    addOnNames.push(`Diseño: Elaborado / Full Art (+$${complexPrice} MXN)`);
                 }
             }
             const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
             if (extrasCat) {
                 extrasCat.items.forEach(item => {
                     if (nailExtras[item.id]) {
+                        const extraPrice = selectedStylist?.customQuoterConfig?.[item.id] ?? item.price;
                         const itemDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`] ?? (item as any).duration ?? 0;
                         const durText = itemDur > 0 ? `, +${itemDur} min` : '';
-                        addOnNames.push(`Extra: ${item.name} (+$${item.price} MXN${durText})`);
+                        addOnNames.push(`Extra: ${item.name} (+$${extraPrice} MXN${durText})`);
                     }
                 });
             }
@@ -1467,7 +1533,7 @@ export default function Booking() {
                 {/* ══ STEP 1: Client Data ══ */}
                 {step === 1 && (
                     <div className="animate-fade-in">
-                        <div className="text-center mb-8">
+                        <div className="text-center mb-6">
                             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-orange-500/20 border border-accent/20 mb-4">
                                 <User size={28} className="text-accent" />
                             </div>
@@ -1478,6 +1544,26 @@ export default function Booking() {
                                 Ingresa tus datos para comenzar.
                             </p>
                         </div>
+
+                        {/* Banner de Cotización Pre-cargada */}
+                        {isQuoterPrefilled && selectedService && (
+                            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-violet-500/15 border border-pink-500/30 text-left space-y-1 shadow-lg">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-black text-pink-300 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Sparkles size={13} className="text-pink-400" /> Cotización Pre-cargada
+                                    </span>
+                                    <span className="text-[10px] bg-pink-500/20 text-pink-200 font-bold px-2 py-0.5 rounded-full border border-pink-500/30">
+                                        Paso Rápido ⚡
+                                    </span>
+                                </div>
+                                <p className="text-white text-sm font-black pt-1">
+                                    {selectedService.name} {nailSize ? `• ${nailSize.name}` : ''}
+                                </p>
+                                <p className="text-xs text-slate-300 font-medium">
+                                    Ingresa tu nombre y WhatsApp para pasar directamente a elegir tu horario 📅
+                                </p>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <div className="relative">
@@ -2126,29 +2212,38 @@ export default function Booking() {
                                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> {sizeCategory.name}
                                         </h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                            {sizeCategory.items.map((item: any) => (
-                                                <button
-                                                    key={item.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (nailSize?.id === item.id) {
-                                                            setNailSize(null);
-                                                        } else {
-                                                            setNailSize({ id: item.id, name: item.name, price: item.price });
-                                                        }
-                                                    }}
-                                                    className={`py-3 px-2 rounded-xl text-xs font-bold border transition-all duration-300 ${
-                                                        nailSize?.id === item.id
-                                                            ? 'bg-cyan-400/10 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
-                                                            : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
-                                                    }`}
-                                                >
-                                                    <p>{item.name}</p>
-                                                    <span className="text-[10px] text-cyan-400/70 font-semibold block mt-0.5">
-                                                        {item.price === 0 ? 'Sin costo' : `+$${item.price}`}
-                                                    </span>
-                                                </button>
-                                            ))}
+                                            {sizeCategory.items.map((item: any) => {
+                                                const effectivePrice = selectedStylist?.customQuoterConfig?.[item.id] ?? item.price;
+                                                const effectiveDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`] ?? (item as any).duration ?? 0;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (nailSize?.id === item.id) {
+                                                                setNailSize(null);
+                                                            } else {
+                                                                setNailSize({ id: item.id, name: item.name, price: effectivePrice });
+                                                            }
+                                                        }}
+                                                        className={`py-3 px-2 rounded-xl text-xs font-bold border transition-all duration-300 ${
+                                                            nailSize?.id === item.id
+                                                                ? 'bg-cyan-400/10 border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                                                                : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
+                                                        }`}
+                                                    >
+                                                        <p>{item.name}</p>
+                                                        <span className="text-[10px] text-cyan-400/70 font-semibold block mt-0.5">
+                                                            {effectivePrice === 0 ? 'Sin costo' : `+$${effectivePrice}`}
+                                                        </span>
+                                                        {effectiveDur > 0 && (
+                                                            <span className="text-[9px] text-slate-400 font-medium block mt-0.5">
+                                                                +{effectiveDur} min
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -2168,7 +2263,11 @@ export default function Booking() {
                                                 ];
                                                 return options.map((opt: any) => {
                                                     const isSelected = designLevel === opt.id;
-                                                    const formattedPrice = opt.price === 0 ? 'Sin costo extra' : `+$${opt.price} MXN (Aproximado)`;
+                                                    const customPrice = selectedStylist?.customQuoterConfig?.[opt.id];
+                                                    const effectivePrice = customPrice !== undefined ? customPrice : opt.price;
+                                                    const customDur = selectedStylist?.customQuoterConfig?.[`${opt.id}_dur`];
+                                                    const effectiveDur = customDur !== undefined ? customDur : ((opt as any).duration ?? 0);
+                                                    const formattedPrice = effectivePrice === 0 ? 'Sin costo extra' : `+$${effectivePrice} MXN (Aproximado)`;
                                                     return (
                                                         <button
                                                             key={opt.id}
@@ -2188,7 +2287,9 @@ export default function Booking() {
                                                         >
                                                             <div className="flex items-center justify-between w-full">
                                                                 <span className="text-xs font-black uppercase tracking-wider">{opt.name}</span>
-                                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`}>{formattedPrice}</span>
+                                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                                    {formattedPrice} {effectiveDur > 0 ? `• +${effectiveDur} min` : ''}
+                                                                </span>
                                                             </div>
                                                             {opt.desc && (
                                                                 <p className="text-[10px] text-slate-400 leading-relaxed font-normal mt-0.5">{opt.desc}</p>
@@ -2211,6 +2312,10 @@ export default function Booking() {
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                             {extrasCategory.items.map((item: any) => {
                                                 const isChecked = !!nailExtras[item.id];
+                                                const customPrice = selectedStylist?.customQuoterConfig?.[item.id];
+                                                const effectivePrice = customPrice !== undefined ? customPrice : item.price;
+                                                const customDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`];
+                                                const effectiveDur = customDur !== undefined ? customDur : ((item as any).duration ?? 0);
                                                 return (
                                                     <label
                                                         key={item.id}
@@ -2234,7 +2339,9 @@ export default function Booking() {
                                                         />
                                                         <div className="text-left flex-1 min-w-0">
                                                             <p className="text-xs font-semibold truncate">{item.name}</p>
-                                                            <p className="text-[10px] text-violet-400 font-bold mt-0.5">${item.price}</p>
+                                                            <p className="text-[10px] text-violet-400 font-bold mt-0.5">
+                                                                ${effectivePrice} {effectiveDur > 0 ? `• +${effectiveDur} min` : ''}
+                                                            </p>
                                                         </div>
                                                     </label>
                                                 );
@@ -2243,12 +2350,24 @@ export default function Booking() {
                                     </div>
                                 )}
 
-                                {/* Reference Photo Upload */}
-                                <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
-                                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Foto de Referencia (Opcional)
-                                    </h4>
-                                    <p className="text-[11px] text-slate-400">Sube una foto del diseño que te gustaría para tu manicura.</p>
+                                {/* Reference Photo Upload (Obligatoria) */}
+                                <div className={`glass-panel p-5 rounded-2xl border transition-all space-y-3.5 ${
+                                    photoRequiredError && !nailDesignUrl
+                                        ? 'border-pink-500/80 bg-pink-500/5 ring-1 ring-pink-500/40 shadow-glow-sm'
+                                        : 'border-white/5'
+                                }`}>
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span> Foto de Referencia (Obligatoria)
+                                        </h4>
+                                        <span className="text-[10px] bg-pink-500/20 text-pink-300 font-bold px-2.5 py-0.5 rounded-full border border-pink-500/30">
+                                            Requerido *
+                                        </span>
+                                    </div>
+                                    
+                                    <p className="text-xs text-slate-300 leading-relaxed font-medium text-left">
+                                        Sube una foto o captura del diseño de uñas que te gustaría 👇
+                                    </p>
                                     
                                     <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
                                         <div className="w-28 h-28 rounded-xl bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
@@ -2258,11 +2377,11 @@ export default function Booking() {
                                                 <ImageIcon className="text-slate-600" size={24} />
                                             )}
                                         </div>
-                                        <div className="flex-1">
+                                        <div className="flex-1 space-y-2">
                                             <div className="flex gap-2">
                                                 <label className="btn btn-secondary py-2 px-3 text-xs cursor-pointer flex items-center gap-2 rounded-xl">
                                                     <Upload size={14} />
-                                                    {uploadingDesign ? 'Subiendo...' : 'Subir Foto'}
+                                                    {uploadingDesign ? 'Subiendo...' : nailDesignUrl ? 'Cambiar Foto' : 'Subir Foto'}
                                                     <input
                                                         type="file"
                                                         className="hidden"
@@ -2271,6 +2390,7 @@ export default function Booking() {
                                                             const file = e.target.files?.[0];
                                                             if (!file) return;
                                                             setUploadingDesign(true);
+                                                            setPhotoRequiredError(false);
                                                             try {
                                                                 const url = await uploadNailDesign(file, tenantId);
                                                                 if (url) {
@@ -2294,6 +2414,11 @@ export default function Booking() {
                                                     </button>
                                                 )}
                                             </div>
+                                            {photoRequiredError && !nailDesignUrl && (
+                                                <p className="text-xs text-rose-400 font-bold flex items-center gap-1 animate-fade-in">
+                                                    ⚠️ Debes subir una foto de referencia para continuar.
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -2335,6 +2460,11 @@ export default function Booking() {
                                         <button
                                             type="button"
                                             onClick={() => {
+                                                if (!nailDesignUrl) {
+                                                    setPhotoRequiredError(true);
+                                                    return;
+                                                }
+                                                setPhotoRequiredError(false);
                                                 setShowNailQuoterFlow(false);
                                                 const hasAddons = services.some(s => s.isAddon);
                                                 if (hasAddons) {
@@ -2757,9 +2887,10 @@ export default function Booking() {
                         <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-xs)' }}>
                             {isUpdating ? 'Nueva Fecha' : 'Selecciona Fecha'}
                         </h3>
-                        <p className="text-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-md)' }}>
-                            {selectedService.name}
+                        <p className="text-sm font-semibold text-accent" style={{ marginBottom: 'var(--space-md)' }}>
+                            {selectedService.name}{selectedAddonsText ? ` + ${selectedAddonsText}` : ''}
                         </p>
+
                         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-sm)' }}>
                             {availableDates.map(d => {
                                 const dayDate = new Date(d.dateStr.replace(/-/g, '/') + ' 00:00:00');
@@ -2788,7 +2919,34 @@ export default function Booking() {
                                 );
                             })}
                         </div>
-                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-md)' }} onClick={() => { setIsUpdating(false); setStep(isUpdating ? 10 : 2); }}>← Atrás</button>
+                        <button
+                            className="btn btn-ghost"
+                            style={{ width: '100%', marginTop: 'var(--space-md)' }}
+                            onClick={() => {
+                                setIsUpdating(false);
+                                if (isUpdating) {
+                                    setStep(10);
+                                    return;
+                                }
+                                if (isQuoterPrefilled) {
+                                    setStep(1);
+                                    return;
+                                }
+                                const hasAddons = services.some(s => s.isAddon);
+                                if (hasAddons) {
+                                    setStep(23); // Regresa a Servicios Adicionales
+                                    return;
+                                }
+                                if (showNailQuoterFlow || (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter)) {
+                                    setShowNailQuoterFlow(true);
+                                    setStep(22); // Regresa a Personalizador de Uñas
+                                    return;
+                                }
+                                setStep(22); // Regresa a Servicios
+                            }}
+                        >
+                            ← Atrás
+                        </button>
                     </div>
                 )}
 
@@ -2797,7 +2955,10 @@ export default function Booking() {
                     <div className="animate-slide-up">
                         <div className="text-center mb-6">
                             <p className="text-xs text-accent font-bold uppercase tracking-wider mb-2">Paso 3 de 4</p>
-                            <h3 className="text-2xl font-bold text-white mb-2">Selecciona Hora</h3>
+                            <h3 className="text-2xl font-bold text-white mb-1">Selecciona Hora</h3>
+                            <p className="text-sm font-semibold text-accent mb-2">
+                                {selectedService.name}{selectedAddonsText ? ` + ${selectedAddonsText}` : ''}
+                            </p>
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
                                 <Calendar size={14} className="text-accent" />
                                 {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMMM', { locale: es })}
