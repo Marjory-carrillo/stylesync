@@ -911,7 +911,12 @@ export default function Booking() {
             // Solo validamos — el OTP se manda después de elegir hora
             setSmsProvider('demo');
             if (isQuoterPrefilled && selectedService) {
-                setStep(25); // Ir directamente a elegir fecha y luego horario
+                const hasAddons = services.some(s => s.isAddon);
+                if (hasAddons) {
+                    setStep(23); // Enviar primero a servicios adicionales si aplica
+                } else {
+                    setStep(25); // Ir directamente a fecha si no hay adicionales
+                }
             } else {
                 setStep(2);
             }
@@ -1560,7 +1565,7 @@ export default function Booking() {
                                     {selectedService.name} {nailSize ? `• ${nailSize.name}` : ''}
                                 </p>
                                 <p className="text-xs text-slate-300 font-medium">
-                                    Ingresa tu nombre y WhatsApp para pasar directamente a elegir tu horario 📅
+                                    Ingresa tu nombre y WhatsApp para continuar con tu reserva 📅
                                 </p>
                             </div>
                         )}
@@ -1670,8 +1675,8 @@ export default function Booking() {
                                 </div>
                             )}
 
-                            {/* Acceso Rápido / Re-agendar última visita */}
-                            {activeProfile && activeProfile.lastServiceId && (
+                            {/* Acceso Rápido / Re-agendar última visita (No mostrar si viene de cotización pre-cargada) */}
+                            {activeProfile && activeProfile.lastServiceId && !isQuoterPrefilled && (
                                 <div className="p-4 bg-gradient-to-br from-accent/15 via-white/[0.02] to-white/[0.02] border border-accent/20 rounded-2xl animate-fade-in relative overflow-hidden mt-4">
                                     <div className="flex items-center justify-between gap-3 relative z-10">
                                         <div className="space-y-0.5">
@@ -2877,7 +2882,18 @@ export default function Booking() {
                                 </button>
                             )}
                         </div>
-                        <button className="btn btn-ghost w-full mt-2 text-sm" onClick={() => setStep(22)}>← Cambiar de servicio principal</button>
+                        <button
+                            className="btn btn-ghost w-full mt-2 text-sm"
+                            onClick={() => {
+                                if (isQuoterPrefilled) {
+                                    setStep(1);
+                                } else {
+                                    setStep(22);
+                                }
+                            }}
+                        >
+                            ← {isQuoterPrefilled ? 'Volver a mis datos' : 'Cambiar de servicio principal'}
+                        </button>
                     </div>
                 )}
 
@@ -2929,7 +2945,12 @@ export default function Booking() {
                                     return;
                                 }
                                 if (isQuoterPrefilled) {
-                                    setStep(1);
+                                    const hasAddons = services.some(s => s.isAddon);
+                                    if (hasAddons) {
+                                        setStep(23); // Regresa a adicionales
+                                    } else {
+                                        setStep(1); // Regresa a datos
+                                    }
                                     return;
                                 }
                                 const hasAddons = services.some(s => s.isAddon);
