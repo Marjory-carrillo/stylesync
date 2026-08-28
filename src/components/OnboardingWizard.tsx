@@ -86,7 +86,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     const { data: tenant, updateTenantData } = useTenantData();
     const storeTenantId = useAuthStore((state) => state.tenantId);
     const { services, updateService, addService, removeService } = useServices();
-    const { stylists, updateStylist, addStylist } = useStylists();
+    const { stylists, updateStylist, addStylist, removeStylist } = useStylists();
     const { uploadLogo } = useImageUpload();
     const { showToast } = useUIStore();
 
@@ -113,7 +113,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
     const [primarySpecialistName, setPrimarySpecialistName] = useState('');
     const [weeklySchedule, setWeeklySchedule] = useState<Record<string, { open: boolean; start: string; end: string }>>(DEFAULT_SCHEDULE);
     const [showAddStylistForm, setShowAddStylistForm] = useState(false);
-    const [newStylistData, setNewStylistData] = useState({ name: '', phone: '' });
+    const [newStylistData, setNewStylistData] = useState({ name: '', phone: '', role: '' });
     const [showLimitBanner, setShowLimitBanner] = useState(false);
 
     // ── Paso Final: Enlace & Ubicación ──
@@ -372,23 +372,24 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
         e.preventDefault();
         if (!newStylistData.name.trim()) return;
 
-        // Límite de 2 profesionales en período de prueba
-        if (stylists && stylists.length >= 2) {
-            setShowLimitBanner(true);
-            return;
-        }
+        const defaultRole = isNailsCategory
+            ? 'Master Nail Artist'
+            : tenant?.category === 'barbershop'
+                ? 'Barbero'
+                : 'Especialista';
 
         try {
             await addStylist({
                 name: newStylistData.name.trim(),
-                phone: newStylistData.phone.trim(),
-                role: isNailsCategory ? 'Nail Artist' : 'Especialista',
+                phone: newStylistData.phone.trim() || '',
+                role: newStylistData.role?.trim() || defaultRole,
                 active: true,
+                serviceIds: services.map(s => s.id),
             } as any);
 
-            setNewStylistData({ name: '', phone: '' });
+            setNewStylistData({ name: '', phone: '', role: '' });
             setShowAddStylistForm(false);
-            showToast('¡Colaborador agregado!', 'success');
+            showToast('¡Profesional agregado al equipo!', 'success');
         } catch (err) {
             console.error('Error agregando colaborador:', err);
             showToast('Error al agregar colaborador', 'error');
@@ -954,29 +955,140 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                 </p>
                             </div>
 
-                            {/* Especialista Principal Editable */}
-                            <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Especialista Principal</span>
-                                    <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                                        <UserCheck size={11} /> Citas Activas
-                                    </span>
+                            {/* ── Equipo de Profesionales ── */}
+                            <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                                    <div>
+                                        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                                            Equipo y Profesionales
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">
+                                            {stylists.length} {stylists.length === 1 ? 'profesional registrado' : 'profesionales registrados'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddStylistForm(!showAddStylistForm)}
+                                        className="px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
+                                    >
+                                        <Plus size={14} />
+                                        <span>Agregar Profesional</span>
+                                    </button>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent/20 to-purple-500/20 border border-white/10 flex items-center justify-center font-bold text-white shrink-0">
-                                        <Users size={18} className="text-accent" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <input
-                                            type="text"
-                                            placeholder="Tu Nombre Comercial"
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold focus:outline-none focus:border-accent"
-                                            value={primarySpecialistName}
-                                            onChange={e => setPrimarySpecialistName(e.target.value)}
-                                            onBlur={handleSavePrimarySpecialistName}
-                                        />
-                                    </div>
+                                {/* Formulario para nuevo profesional */}
+                                {showAddStylistForm && (
+                                    <form onSubmit={handleAddCollaborator} className="p-4 rounded-2xl bg-black/60 border border-accent/30 space-y-3 animate-fade-in">
+                                        <div className="text-xs font-black text-white uppercase flex items-center gap-2">
+                                            <Users size={14} className="text-accent" />
+                                            <span>Nuevo Miembro del Equipo</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-400 mb-1 block">Nombre Completo *</label>
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    placeholder="Ej: Valeria Gómez"
+                                                    className="w-full bg-[#040814] border border-slate-700 rounded-xl px-3 py-2 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-accent"
+                                                    value={newStylistData.name}
+                                                    onChange={e => setNewStylistData({ ...newStylistData, name: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-400 mb-1 block">Especialidad o Cargo</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder={isNailsCategory ? 'Master Nail Artist' : tenant?.category === 'barbershop' ? 'Barbero Principal' : 'Especialista'}
+                                                    className="w-full bg-[#040814] border border-slate-700 rounded-xl px-3 py-2 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-accent"
+                                                    value={newStylistData.role}
+                                                    onChange={e => setNewStylistData({ ...newStylistData, role: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="sm:col-span-2">
+                                                <label className="text-[10px] font-bold text-slate-400 mb-1 block">Teléfono WhatsApp (Opcional, para alertas de citas)</label>
+                                                <input
+                                                    type="tel"
+                                                    placeholder="Ej: 8681234567"
+                                                    className="w-full bg-[#040814] border border-slate-700 rounded-xl px-3 py-2 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-accent"
+                                                    value={newStylistData.phone}
+                                                    onChange={e => setNewStylistData({ ...newStylistData, phone: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-2 pt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddStylistForm(false)}
+                                                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-1.5 rounded-xl bg-accent text-slate-950 font-black text-xs uppercase shadow hover:brightness-110 active:scale-95 transition-all"
+                                            >
+                                                Guardar Profesional
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {/* Lista de Profesionales Actuales */}
+                                <div className="space-y-2.5">
+                                    {stylists.map((st, index) => (
+                                        <div
+                                            key={st.id}
+                                            className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-3"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent/20 to-purple-500/20 border border-white/10 flex items-center justify-center font-bold text-white shrink-0">
+                                                    <Users size={16} className="text-accent" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        {index === 0 ? (
+                                                            <input
+                                                                type="text"
+                                                                className="bg-transparent border-b border-transparent hover:border-white/20 focus:border-accent font-bold text-xs text-white focus:outline-none w-full max-w-[200px]"
+                                                                value={primarySpecialistName}
+                                                                onChange={e => setPrimarySpecialistName(e.target.value)}
+                                                                onBlur={handleSavePrimarySpecialistName}
+                                                                placeholder="Nombre del profesional"
+                                                            />
+                                                        ) : (
+                                                            <span className="font-bold text-xs text-white truncate">{st.name}</span>
+                                                        )}
+                                                        {index === 0 && (
+                                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 shrink-0">
+                                                                Principal
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5 truncate">
+                                                        <span className="text-accent/80 font-medium">{st.role || 'Especialista'}</span>
+                                                        {st.phone && <span>• 📱 {st.phone}</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 hidden sm:flex">
+                                                    <UserCheck size={11} /> Citas Activas
+                                                </span>
+                                                {stylists.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeStylist(st.id)}
+                                                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                                                        title="Eliminar profesional"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 

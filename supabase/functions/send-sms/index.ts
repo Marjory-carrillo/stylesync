@@ -10,7 +10,7 @@ const TWILIO_WA_FROM = Deno.env.get('TWILIO_WA_FROM') ?? 'whatsapp:+15706349708'
 // 🔐 Código CitaLink para {{1}}: {{2}} ⏱ Este código es válido por 10 minutos.
 const OTP_TEMPLATE_SID = 'HXd40f3d2ff477c580f15009ad07c89cb9';
 // ── Plantilla Alerta de Nuevo Negocio para SuperAdmin aprobada por Meta ──────
-const TEMPLATE_SUPERADMIN_NUEVO_NEGOCIO = 'HX878dcd19ec5a3f0a439395330923ec8d';
+const TEMPLATE_SUPERADMIN_NUEVO_NEGOCIO = 'HXe57fdea8c7ab7bd6311190fd5737c638';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
