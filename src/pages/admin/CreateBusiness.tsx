@@ -182,12 +182,15 @@ export default function CreateBusiness() {
 
                         {/* Name Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">Nombre del Negocio</label>
+                            <label className="text-sm font-medium text-slate-300 ml-1" htmlFor="cb-business-name">Nombre del Negocio</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
                                     <Building2 size={18} />
                                 </div>
                                 <input
+                                    id="cb-business-name"
+                                    name="organization"
+                                    autoComplete="organization"
                                     type="text"
                                     value={name}
                                     onChange={handleNameChange}
@@ -275,7 +278,7 @@ export default function CreateBusiness() {
 
                         {/* Owner Email Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">
+                            <label className="text-sm font-medium text-slate-300 ml-1" htmlFor="cb-owner-email">
                                 Email del Dueño
                                 <span className="ml-2 text-xs text-blue-400 font-normal">← Recibirá el Magic Link de acceso</span>
                             </label>
@@ -284,6 +287,10 @@ export default function CreateBusiness() {
                                     <Mail size={18} />
                                 </div>
                                 <input
+                                    id="cb-owner-email"
+                                    name="email"
+                                    autoComplete="email"
+                                    inputMode="email"
                                     type="email"
                                     value={ownerEmail}
                                     onChange={(e) => setOwnerEmail(e.target.value)}
@@ -297,7 +304,7 @@ export default function CreateBusiness() {
 
                         {/* Owner Password Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">
+                            <label className="text-sm font-medium text-slate-300 ml-1" htmlFor="cb-owner-password">
                                 Contraseña del Dueño
                                 <span className="ml-2 text-xs text-emerald-400 font-normal">← Con esta entrará a su panel</span>
                             </label>
@@ -306,6 +313,9 @@ export default function CreateBusiness() {
                                     <Lock size={18} />
                                 </div>
                                 <input
+                                    id="cb-owner-password"
+                                    name="new-password"
+                                    autoComplete="new-password"
                                     type={showPassword ? 'text' : 'password'}
                                     value={ownerPassword}
                                     onChange={(e) => setOwnerPassword(e.target.value)}
@@ -327,12 +337,15 @@ export default function CreateBusiness() {
 
                         {/* Address Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">Dirección (Opcional)</label>
+                            <label className="text-sm font-medium text-slate-300 ml-1" htmlFor="cb-address">Dirección (Opcional)</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
                                     <MapPin size={18} />
                                 </div>
                                 <input
+                                    id="cb-address"
+                                    name="street-address"
+                                    autoComplete="street-address"
                                     type="text"
                                     value={address}
                                     onChange={(e) => setAddress(e.target.value)}

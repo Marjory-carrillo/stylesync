@@ -8,6 +8,7 @@ import { z } from 'zod';
 const globalConfigSchema = z.object({
     basic_plan_price: z.number().min(0, 'El precio no puede ser negativo').max(100000, 'El precio parece excesivo'),
     premium_plan_price: z.number().min(0, 'El precio no puede ser negativo').max(100000, 'El precio parece excesivo'),
+    business_plan_price: z.number().min(0, 'El precio no puede ser negativo').max(100000, 'El precio parece excesivo').optional(),
     trial_days: z.number().int().min(0, 'Los días de prueba no pueden ser negativos').max(365, 'El período de prueba no puede exceder 1 año'),
     maintenance_mode: z.boolean(),
     system_email: z.string().email('Debe ser un correo electrónico válido').min(1, 'El correo es requerido'),
@@ -18,11 +19,13 @@ type GlobalConfigValidation = z.infer<typeof globalConfigSchema>;
 
 interface GlobalConfig extends GlobalConfigValidation {
     id: string;
+    business_plan_price?: number;
 }
 
 interface ValidationErrors {
     basic_plan_price?: string;
     premium_plan_price?: string;
+    business_plan_price?: string;
     trial_days?: string;
     system_email?: string;
 }
@@ -52,9 +55,10 @@ export default function GlobalSettings() {
                 if (error.code === 'PGRST116') {
                     const defaultConf = {
                         id: 'main',
-                        basic_plan_price: 499.00,
-                        premium_plan_price: 999.00,
-                        trial_days: 21,
+                        basic_plan_price: 349.00,
+                        premium_plan_price: 649.00,
+                        business_plan_price: 1249.00,
+                        trial_days: 30,
                         maintenance_mode: false,
                         system_email: 'soporte@citalink.app',
                         superadmin_phone: ''
@@ -74,7 +78,12 @@ export default function GlobalSettings() {
                     throw error;
                 }
             } else {
-                setConfig(data);
+                setConfig({
+                    ...data,
+                    basic_plan_price: data.basic_plan_price ?? 349.00,
+                    premium_plan_price: data.premium_plan_price ?? 649.00,
+                    business_plan_price: data.business_plan_price ?? 1249.00,
+                });
             }
         } catch (error: any) {
             showToast('Error al cargar configuración', 'error');
@@ -114,6 +123,7 @@ export default function GlobalSettings() {
                 .update({
                     basic_plan_price: config.basic_plan_price,
                     premium_plan_price: config.premium_plan_price,
+                    business_plan_price: config.business_plan_price ?? 1249.00,
                     trial_days: config.trial_days,
                     maintenance_mode: config.maintenance_mode,
                     system_email: config.system_email,
@@ -232,7 +242,7 @@ export default function GlobalSettings() {
                             <div className="group/input space-y-3">
                                 <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                                    Plan Básico (Mensual)
+                                    Plan Esencial (Mensual)
                                 </label>
                                 <div className="relative group/field">
                                     <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-500 font-black text-xl group-focus-within/field:text-emerald-400 transition-colors">
@@ -252,7 +262,7 @@ export default function GlobalSettings() {
                             <div className="group/input space-y-3">
                                 <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                                    Plan Premium (Mensual)
+                                    Plan Pro (Mensual)
                                 </label>
                                 <div className="relative group/field">
                                     <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-500 font-black text-xl group-focus-within/field:text-emerald-400 transition-colors">
@@ -264,6 +274,26 @@ export default function GlobalSettings() {
                                         className={`w-full bg-white/5 border rounded-2xl pl-10 pr-6 py-5 text-2xl text-white font-black focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all ${errors.premium_plan_price ? 'border-red-500/50 ring-red-500/5' : 'border-white/10 group-hover/field:border-white/20 focus:border-emerald-500/40'}`}
                                         value={config.premium_plan_price}
                                         onChange={(e) => setConfig({ ...config, premium_plan_price: parseFloat(e.target.value) })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="group/input space-y-3">
+                                <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                    Plan Business (Mensual)
+                                </label>
+                                <div className="relative group/field">
+                                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-500 font-black text-xl group-focus-within/field:text-emerald-400 transition-colors">
+                                        <span className="mt-0.5">$</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className={`w-full bg-white/5 border rounded-2xl pl-10 pr-6 py-5 text-2xl text-white font-black focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all ${errors.business_plan_price ? 'border-red-500/50 ring-red-500/5' : 'border-white/10 group-hover/field:border-white/20 focus:border-emerald-500/40'}`}
+                                        value={config.business_plan_price ?? 1249.00}
+                                        onChange={(e) => setConfig({ ...config, business_plan_price: parseFloat(e.target.value) })}
                                         required
                                     />
                                 </div>

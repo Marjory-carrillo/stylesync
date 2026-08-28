@@ -102,7 +102,7 @@ export default function Landing() {
     } | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [formData, setFormData] = useState({
-        businessName: '', businessType: 'nail_bar', employeeCount: '1',
+        businessName: '', businessType: '', employeeCount: '1',
         contactName: '', email: '', password: '', phone: '', address: ''
     });
     const [showPassword, setShowPassword] = useState(false);
@@ -123,6 +123,12 @@ export default function Landing() {
         e.preventDefault();
         setSubmitting(true);
         setErrorMsg(null);
+
+        if (!formData.businessType) {
+            setErrorMsg('Por favor selecciona el giro o rubro de tu negocio.');
+            setSubmitting(false);
+            return;
+        }
 
         // Validación estricta de teléfono (entre 10 y 12 dígitos)
         const rawDigits = formData.phone.replace(/\D/g, '');
@@ -157,7 +163,7 @@ export default function Landing() {
 
             const createRes = await createSelfServeTenant({
                 businessName: formData.businessName,
-                category: formData.businessType || 'nail_bar',
+                category: formData.businessType || 'other',
                 slug: autoSlug,
                 contactName: formData.contactName,
                 email: formData.email,
@@ -332,21 +338,21 @@ export default function Landing() {
                             ) : (
                                 <>
                                     <Link to="/login" className="text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-colors px-3 py-2 rounded-full hover:bg-white/5">Iniciar Sesión</Link>
-                                    <button onClick={() => setIsModalOpen(true)} className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-violet-500/20">
+                                    <Link to="/register" className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-violet-500/20">
                                         Prueba Gratis
-                                    </button>
+                                    </Link>
                                 </>
                             )}
                         </div>
 
                         {/* Mobile Hamburger Toggle */}
                         <div className="flex md:hidden items-center gap-2">
-                            <button
-                                onClick={() => setIsModalOpen(true)}
+                            <Link
+                                to="/register"
                                 className="px-3 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md shadow-violet-600/20"
                             >
                                 Probar Gratis
-                            </button>
+                            </Link>
                             <button
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                                 aria-label="Abrir menú"
@@ -410,12 +416,13 @@ export default function Landing() {
                                 </Link>
                             ) : (
                                 <>
-                                    <button
-                                        onClick={() => { setMobileMenuOpen(false); setIsModalOpen(true); }}
-                                        className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-violet-600/30"
+                                    <Link
+                                        to="/register"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-violet-600/30 flex items-center justify-center"
                                     >
                                         Crear Cuenta Gratis (30 días)
-                                    </button>
+                                    </Link>
                                     <Link
                                         to="/login"
                                         onClick={() => setMobileMenuOpen(false)}
@@ -465,10 +472,10 @@ export default function Landing() {
                             </Link>
                         ) : (
                             <>
-                                <button onClick={() => setIsModalOpen(true)} className="group w-full sm:w-auto px-8 py-4.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 text-white font-bold text-lg hover:brightness-110 transition-all shadow-[0_0_50px_-5px_rgba(124,58,237,0.6)] flex items-center justify-center gap-3">
-                                    Solicitar Demo Gratis
+                                <Link to="/register" className="group w-full sm:w-auto px-8 py-4.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 text-white font-bold text-lg hover:brightness-110 transition-all shadow-[0_0_50px_-5px_rgba(124,58,237,0.6)] flex items-center justify-center gap-3">
+                                    Crear mi Cuenta Gratis (30 Días)
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </button>
+                                </Link>
                                 <Link to="/login" className="w-full sm:w-auto px-8 py-4.5 rounded-2xl bg-white/5 border border-white/10 text-white font-semibold text-lg hover:bg-white/10 transition-all backdrop-blur-md">
                                     Iniciar Sesión
                                 </Link>
@@ -959,13 +966,13 @@ export default function Landing() {
                             </div>
 
                             <div className="pt-2">
-                                <button
-                                    onClick={() => setIsModalOpen(true)}
+                                <Link
+                                    to="/register"
                                     className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold text-sm sm:text-base transition-all shadow-xl shadow-pink-950/50 hover:scale-105 flex items-center justify-center gap-3"
                                 >
                                     <span>Pruébalo Gratis para tu Salón de Uñas</span>
                                     <ArrowRight className="w-5 h-5" />
-                                </button>
+                                </Link>
                             </div>
                         </div>
 
@@ -1184,9 +1191,9 @@ export default function Landing() {
                                     </div>
                                     <p className="text-slate-400 text-sm mt-2">Para profesionales independientes y dueños que trabajan solos.</p>
                                 </div>
-                                <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-300 font-bold text-sm hover:bg-teal-500/20 transition-all mb-6">
+                                <Link to="/register" className="w-full py-3 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-300 font-bold text-sm hover:bg-teal-500/20 transition-all mb-6 flex items-center justify-center">
                                     Empezar con Esencial
-                                </button>
+                                </Link>
                                 <ul className="space-y-2.5 text-xs">
                                     {[
                                         '1 sucursal incluida',
@@ -1232,9 +1239,9 @@ export default function Landing() {
                                     </div>
                                     <p className="text-slate-400 text-sm mt-2">Para salones, nail bars y barberías con equipo de trabajo.</p>
                                 </div>
-                                <button onClick={() => setIsModalOpen(true)} className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-500/30 mb-6">
+                                <Link to="/register" className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-500/30 mb-6 flex items-center justify-center">
                                     Empezar con Pro →
-                                </button>
+                                </Link>
                                 <ul className="space-y-2.5 text-xs">
                                     {[
                                         '1 sucursal incluida',
@@ -1270,9 +1277,9 @@ export default function Landing() {
                                     </div>
                                     <p className="text-slate-400 text-sm mt-2">Para cadenas con múltiples sucursales y franquicias.</p>
                                 </div>
-                                <button onClick={() => setIsModalOpen(true)} className="w-full py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-sm hover:bg-amber-500/20 transition-all mb-6">
-                                    Hablar con Ventas
-                                </button>
+                                <Link to="/register" className="w-full py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-sm hover:bg-amber-500/20 transition-all mb-6 flex items-center justify-center">
+                                    Empezar con Business
+                                </Link>
                                 <ul className="space-y-2.5 text-xs">
                                     {[
                                         '🏢 2 sucursales incluidas',
@@ -1336,9 +1343,9 @@ export default function Landing() {
                                 Ir a mi Panel <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         ) : (
-                            <button onClick={() => setIsModalOpen(true)} className="group px-10 py-5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xl hover:from-violet-500 hover:to-indigo-500 transition-all shadow-[0_0_60px_-10px_rgba(124,58,237,0.6)] flex items-center gap-3">
+                            <Link to="/register" className="group px-10 py-5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xl hover:from-violet-500 hover:to-indigo-500 transition-all shadow-[0_0_60px_-10px_rgba(124,58,237,0.6)] flex items-center gap-3">
                                 Empezar Gratis Ahora <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                            </button>
+                            </Link>
                         )}
                     </div>
                     <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-500">
@@ -1489,9 +1496,12 @@ export default function Landing() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Tu Nombre</label>
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg-contact-name">Tu Nombre</label>
                                         <input
                                             required
+                                            id="reg-contact-name"
+                                            name="name"
+                                            autoComplete="name"
                                             type="text"
                                             placeholder="Juan Pérez"
                                             className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -1501,7 +1511,7 @@ export default function Landing() {
                                     </div>
                                     <div>
                                         <div className="flex items-center justify-between mb-1.5">
-                                            <label className="text-xs font-bold text-slate-300 block">Nombre del Negocio</label>
+                                            <label className="text-xs font-bold text-slate-300 block" htmlFor="reg-business-name">Nombre del Negocio</label>
                                             {formData.businessName.trim().length > 0 && (
                                                 <span className="text-[10px] font-mono text-emerald-400 truncate max-w-[140px]">
                                                     ✓ citalink.app/{generateSlug(formData.businessName)}
@@ -1510,6 +1520,9 @@ export default function Landing() {
                                         </div>
                                         <input
                                             required
+                                            id="reg-business-name"
+                                            name="organization"
+                                            autoComplete="organization"
                                             type="text"
                                             placeholder="Ej: Estudio Glow / Barbershop"
                                             className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -1532,7 +1545,7 @@ export default function Landing() {
                                             value={formData.businessType}
                                             onChange={val => setFormData({ ...formData, businessType: val })}
                                             options={businessTypeOptions}
-                                            placeholder="Selecciona..."
+                                            placeholder="Selecciona el giro de tu negocio..."
                                         />
                                     </div>
                                     <div>
@@ -1548,9 +1561,13 @@ export default function Landing() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">Correo Electrónico</label>
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg-email">Correo Electrónico</label>
                                     <input
                                         required
+                                        id="reg-email"
+                                        name="email"
+                                        autoComplete="email"
+                                        inputMode="email"
                                         type="email"
                                         placeholder="correo@ejemplo.com"
                                         className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -1562,7 +1579,7 @@ export default function Landing() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                     <div>
                                         <div className="flex items-center justify-between mb-1.5">
-                                            <label className="text-xs font-bold text-slate-300 block">WhatsApp de Contacto</label>
+                                            <label className="text-xs font-bold text-slate-300 block" htmlFor="reg-phone">WhatsApp de Contacto</label>
                                             {formData.phone.trim().length > 0 && (
                                                 <span className={`text-[10px] font-bold ${
                                                     formData.phone.replace(/\D/g, '').length < 10 
@@ -1579,6 +1596,10 @@ export default function Landing() {
                                         </div>
                                         <input
                                             required
+                                            id="reg-phone"
+                                            name="tel"
+                                            autoComplete="tel"
+                                            inputMode="tel"
                                             type="tel"
                                             placeholder="+52 81 0000 0000"
                                             className={`w-full bg-[#040814]/90 border rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
@@ -1594,9 +1615,12 @@ export default function Landing() {
                                         </span>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block">Dirección / Ciudad</label>
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg-address">Dirección / Ciudad</label>
                                         <input
                                             required
+                                            id="reg-address"
+                                            name="street-address"
+                                            autoComplete="street-address"
                                             type="text"
                                             placeholder="Ej: Av. Juárez 123, Mty"
                                             className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -1610,10 +1634,13 @@ export default function Landing() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">Crea una Contraseña</label>
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg-password">Crea una Contraseña</label>
                                     <div className="relative">
                                         <input
                                             required
+                                            id="reg-password"
+                                            name="new-password"
+                                            autoComplete="new-password"
                                             type={showPassword ? 'text' : 'password'}
                                             placeholder="Mínimo 6 caracteres"
                                             className="w-full bg-[#040814]/90 border border-slate-700/60 rounded-xl pl-4 pr-11 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"

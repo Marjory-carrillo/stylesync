@@ -175,7 +175,7 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
                     other: 'Otro Giro',
                 };
                 const catLabel = bizLabels[category] || category;
-                const trialDays = globalConfig.trial_days || 30;
+                const trialDays = globalConfig?.trial_days || 30;
                 const trialEndDate = new Date();
                 trialEndDate.setDate(trialEndDate.getDate() + trialDays);
                 const dateStr = trialEndDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
@@ -198,21 +198,43 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
                 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
                 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-                void fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${ANON_KEY}`,
-                        apikey: ANON_KEY,
-                    },
-                    body: JSON.stringify({
-                        to: globalConfig.superadmin_phone,
-                        provider: 'whatsapp',
-                        template_sid: templateSid,
-                        template_variables: templateVariables,
-                        message: messageText,
-                    }),
-                });
+                // 1. Enviar vía endpoint oficial de Vercel (/api/send-sms) que procesa ContentSid de Meta
+                try {
+                    void fetch('/api/send-sms', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: globalConfig.superadmin_phone,
+                            provider: 'whatsapp',
+                            template_sid: templateSid,
+                            template_variables: templateVariables,
+                            message: messageText,
+                        }),
+                    });
+                } catch (e) {
+                    console.warn('[tenantOnboarding] Error llamando /api/send-sms:', e);
+                }
+
+                // 2. Fallback a Supabase Edge Function
+                try {
+                    void fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${ANON_KEY}`,
+                            apikey: ANON_KEY,
+                        },
+                        body: JSON.stringify({
+                            to: globalConfig.superadmin_phone,
+                            provider: 'whatsapp',
+                            template_sid: templateSid,
+                            template_variables: templateVariables,
+                            message: messageText,
+                        }),
+                    });
+                } catch (e2) {
+                    console.warn('[tenantOnboarding] Error llamando Supabase send-sms:', e2);
+                }
             }
         } catch (alertErr) {
             console.warn('Error enviando alerta de auto-registro a superadmin:', alertErr);

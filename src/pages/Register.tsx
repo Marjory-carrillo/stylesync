@@ -22,7 +22,7 @@ const CATEGORIES = [
 
 export default function Register() {
     const [businessName, setBusinessName] = useState('');
-    const [category, setCategory] = useState('nail_bar');
+    const [category, setCategory] = useState('');
     const [slug, setSlug] = useState('');
     const [isSlugManual, setIsSlugManual] = useState(false);
     const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
@@ -38,13 +38,31 @@ export default function Register() {
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    // Auto-generar slug cuando cambia el nombre del negocio (si el usuario no lo editó manualmente)
-    useEffect(() => {
-        if (!isSlugManual && businessName.trim().length > 0) {
-            const autoSlug = generateSlug(businessName);
-            setSlug(autoSlug);
+    // Auto-generar slug de forma inteligente y reactiva
+    const handleBusinessNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setBusinessName(val);
+        if (!isSlugManual || !slug || slug === generateSlug(businessName)) {
+            setSlug(generateSlug(val));
         }
-    }, [businessName, isSlugManual]);
+    };
+
+    const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value;
+        if (!raw) {
+            setSlug('');
+            setIsSlugManual(false);
+            return;
+        }
+        setIsSlugManual(true);
+        const cleaned = raw
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9-]/g, '-')
+            .replace(/-+/g, '-');
+        setSlug(cleaned);
+    };
 
     // Verificar disponibilidad del slug con debounce
     useEffect(() => {
@@ -71,6 +89,10 @@ export default function Register() {
         setErrorMsg(null);
 
         // Validaciones
+        if (!category) {
+            setErrorMsg('Por favor selecciona el giro de tu negocio.');
+            return;
+        }
         if (!businessName.trim()) {
             setErrorMsg('Por favor ingresa el nombre de tu negocio.');
             return;
@@ -190,16 +212,19 @@ export default function Register() {
                         {/* 2. Datos del Negocio */}
                         <div className="pt-2 border-t border-white/5 space-y-4">
                             <div>
-                                <label className="text-xs font-bold text-slate-300 mb-1.5 block">Nombre del Negocio</label>
+                                <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-business">Nombre del Negocio</label>
                                 <div className="relative">
                                     <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                                     <input
                                         required
+                                        id="reg2-business"
+                                        name="organization"
+                                        autoComplete="organization"
                                         type="text"
                                         placeholder="Ej: Estudio Glamour o Barbería Imperial"
                                         className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
                                         value={businessName}
-                                        onChange={e => setBusinessName(e.target.value)}
+                                        onChange={handleBusinessNameChange}
                                     />
                                 </div>
                             </div>
@@ -207,43 +232,59 @@ export default function Register() {
                             {/* Link Público / Slug */}
                             <div>
                                 <div className="flex items-center justify-between mb-1.5">
-                                    <label className="text-xs font-bold text-slate-300 block">Tu Link Exclusivo</label>
-                                    {slug.length > 1 && (
-                                        <span className={`text-[10px] font-bold ${
-                                            checkingSlug
-                                                ? 'text-slate-400'
-                                                : isSlugAvailable
-                                                    ? 'text-emerald-400'
-                                                    : 'text-rose-400'
-                                        }`}>
-                                            {checkingSlug && 'Verificando...'}
-                                            {!checkingSlug && isSlugAvailable && '✓ Link Disponible'}
-                                            {!checkingSlug && isSlugAvailable === false && '✕ Link en uso'}
-                                        </span>
-                                    )}
+                                    <label className="text-xs font-bold text-slate-300 block" htmlFor="reg2-slug">Tu Link Exclusivo</label>
+                                    <div className="flex items-center gap-2">
+                                        {isSlugManual && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsSlugManual(false);
+                                                    setSlug(generateSlug(businessName));
+                                                }}
+                                                className="text-[10px] text-violet-400 hover:text-violet-300 font-semibold underline"
+                                            >
+                                                ↺ Auto-generar
+                                            </button>
+                                        )}
+                                        {slug.length > 1 && (
+                                            <span className={`text-[10px] font-bold ${
+                                                checkingSlug
+                                                    ? 'text-slate-400'
+                                                    : isSlugAvailable
+                                                        ? 'text-emerald-400'
+                                                        : 'text-rose-400'
+                                            }`}>
+                                                {checkingSlug && 'Verificando...'}
+                                                {!checkingSlug && isSlugAvailable && '✓ Link Disponible'}
+                                                {!checkingSlug && isSlugAvailable === false && '✕ Link en uso'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex items-center bg-[#040814]/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20">
                                     <span className="text-xs text-slate-500 font-mono shrink-0">citalink.app/</span>
                                     <input
                                         required
+                                        id="reg2-slug"
                                         type="text"
                                         className="bg-transparent border-none text-xs sm:text-sm font-mono text-violet-300 focus:outline-none w-full pl-1"
                                         value={slug}
-                                        onChange={e => {
-                                            setIsSlugManual(true);
-                                            setSlug(generateSlug(e.target.value));
-                                        }}
+                                        onChange={handleSlugChange}
+                                        placeholder="mi-negocio"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">Nombre del Dueño / Admin</label>
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-name">Nombre del Dueño / Admin</label>
                                     <div className="relative">
                                         <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                                         <input
                                             required
+                                            id="reg2-name"
+                                            name="name"
+                                            autoComplete="name"
                                             type="text"
                                             placeholder="Tu nombre completo"
                                             className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -255,7 +296,7 @@ export default function Register() {
 
                                 <div>
                                     <div className="flex items-center justify-between mb-1.5">
-                                        <label className="text-xs font-bold text-slate-300 block">WhatsApp de Contacto</label>
+                                        <label className="text-xs font-bold text-slate-300 block" htmlFor="reg2-phone">WhatsApp de Contacto</label>
                                         {phone.trim().length > 0 && (
                                             <span className={`text-[10px] font-bold ${
                                                 phoneDigits.length < 10 
@@ -274,6 +315,10 @@ export default function Register() {
                                         <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                                         <input
                                             required
+                                            id="reg2-phone"
+                                            name="tel"
+                                            autoComplete="tel"
+                                            inputMode="tel"
                                             type="tel"
                                             placeholder="+52 81 0000 0000"
                                             className={`w-full bg-[#040814]/90 border rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
@@ -289,11 +334,14 @@ export default function Register() {
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-slate-300 mb-1.5 block">Dirección / Ubicación</label>
+                                <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-address">Dirección / Ubicación</label>
                                 <div className="relative">
                                     <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                                     <input
                                         required
+                                        id="reg2-address"
+                                        name="street-address"
+                                        autoComplete="street-address"
                                         type="text"
                                         placeholder="Ej: Av. Constitución 450, Centro, Monterrey"
                                         className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -308,11 +356,15 @@ export default function Register() {
                         <div className="pt-2 border-t border-white/5 space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">Correo Electrónico</label>
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-email">Correo Electrónico</label>
                                     <div className="relative">
                                         <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                                         <input
                                             required
+                                            id="reg2-email"
+                                            name="email"
+                                            autoComplete="email"
+                                            inputMode="email"
                                             type="email"
                                             placeholder="tu@correo.com"
                                             className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -323,11 +375,14 @@ export default function Register() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block">Contraseña</label>
+                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-password">Contraseña</label>
                                     <div className="relative">
                                         <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                                         <input
                                             required
+                                            id="reg2-password"
+                                            name="new-password"
+                                            autoComplete="new-password"
                                             type={showPassword ? 'text' : 'password'}
                                             placeholder="Mínimo 6 caracteres"
                                             className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -364,6 +419,18 @@ export default function Register() {
                                 </>
                             )}
                         </button>
+
+                        {/* Legal Terms & Privacy */}
+                        <p className="text-[11px] text-slate-400 text-center leading-relaxed px-2 pt-1">
+                            Al crear tu cuenta, aceptas nuestros{' '}
+                            <Link to="/terms" target="_blank" className="text-violet-400 hover:text-violet-300 font-semibold underline underline-offset-2">
+                                Términos de Servicio
+                            </Link>{' '}
+                            y nuestro{' '}
+                            <Link to="/privacy" target="_blank" className="text-violet-400 hover:text-violet-300 font-semibold underline underline-offset-2">
+                                Aviso de Privacidad
+                            </Link>.
+                        </p>
 
                         <div className="text-center pt-2">
                             <p className="text-xs text-slate-400">
