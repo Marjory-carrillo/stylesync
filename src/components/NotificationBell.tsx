@@ -246,11 +246,11 @@ export default function NotificationBell({ notifications, unreadCount, onMarkAll
                                                 <p className="text-sm font-semibold text-white truncate mt-0.5">
                                                     {notif.clientName}
                                                 </p>
-                                                {/* Phone number */}
+                                                {/* Phone number (solo texto sin link) */}
                                                 {notif.clientPhone && (
-                                                    <a href={`tel:${notif.clientPhone}`} className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-accent transition-colors mt-0.5 w-fit">
-                                                        <Phone size={10} /> {notif.clientPhone}
-                                                    </a>
+                                                    <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400 mt-0.5 w-fit select-text">
+                                                        <Phone size={10} className="text-slate-500" /> {notif.clientPhone}
+                                                    </span>
                                                 )}
                                                 <p className="text-xs text-slate-500 mt-0.5">
                                                     📆 {formatDate(notif.date, notif.time)}

@@ -36,7 +36,8 @@ function saveToStorage(tenantId: string, notifs: AdminNotification[]) {
 }
 
 export function useRealtimeNotifications() {
-    const { tenantId } = useAuthStore();
+    const { tenantId: storeTenantId } = useAuthStore();
+    const tenantId = storeTenantId || (typeof window !== 'undefined' ? localStorage.getItem('citalink_tenant_id') : null);
     const [notifications, setNotifications] = useState<AdminNotification[]>([]);
 
     // Load from localStorage on mount
@@ -121,7 +122,7 @@ export function useRealtimeNotifications() {
             });
     }, [tenantId]);
 
-    // Sondeo de respaldo cada 6s: SOLO alerta si llega un ID nuevo después de la carga inicial
+    // Sondeo de respaldo cada 5s: SOLO alerta si llega un ID nuevo después de la carga inicial
     useEffect(() => {
         if (!tenantId) return;
 
@@ -132,9 +133,7 @@ export function useRealtimeNotifications() {
                 const { data } = await supabase
                     .from('appointments')
                     .select('id, client_name, client_phone, date, time')
-                    .eq('tenant_id', tenantId)
-                    .order('id', { ascending: false })
-                    .limit(5);
+                    .eq('tenant_id', tenantId);
 
                 if (data && data.length > 0) {
                     data.forEach(a => {
@@ -156,7 +155,7 @@ export function useRealtimeNotifications() {
             } catch (err) {
                 // Silencioso
             }
-        }, 6000);
+        }, 5000);
 
         return () => clearInterval(interval);
     }, [tenantId, addNotification, queryClient]);
