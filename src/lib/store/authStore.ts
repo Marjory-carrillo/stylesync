@@ -43,7 +43,17 @@ interface AuthState {
     switchActiveTenant: (tenantId: string) => void;
 
     setLoadingAuth: (loading: boolean) => void;
+    setLoadingTenant: (loading: boolean) => void;
+    resetForSignOut: () => void;
 }
+
+export const isUserSuperAdmin = (user: User | null | undefined): boolean => {
+    if (!user) return false;
+    if (user.user_metadata?.is_super_admin === true || user.user_metadata?.is_super_admin === 'true') return true;
+    const email = (user.email || '').toLowerCase().trim();
+    if (email === 'infinitummisael@gmail.com') return true;
+    return false;
+};
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
@@ -58,7 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     setAuth: ({ user, session, loadingAuth }) => set({
         user, session, loadingAuth,
-        isSuperAdmin: user?.user_metadata?.is_super_admin === true
+        isSuperAdmin: isUserSuperAdmin(user)
     }),
     setTenantData: ({ tenantId, userRole, userStylistId }) => set({ tenantId, userRole, userStylistId, loadingTenant: false }),
     setUserTenants: (tenants) => set({ userTenants: tenants }),
@@ -66,5 +76,20 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.setItem('citalink_tenant_id', tenantId);
         set({ tenantId });
     },
-    setLoadingAuth: (loadingAuth) => set({ loadingAuth })
+    setLoadingAuth: (loadingAuth) => set({ loadingAuth }),
+    setLoadingTenant: (loadingTenant) => set({ loadingTenant }),
+    resetForSignOut: () => {
+        localStorage.removeItem('citalink_tenant_id');
+        set({
+            user: null,
+            session: null,
+            tenantId: null,
+            userRole: null,
+            userStylistId: null,
+            loadingAuth: false,
+            loadingTenant: false,
+            isSuperAdmin: false,
+            userTenants: []
+        });
+    }
 }));

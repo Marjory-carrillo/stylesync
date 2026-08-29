@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabaseClient';
-import { useAuthStore } from '../authStore';
+import { useAuthStore, isUserSuperAdmin } from '../authStore';
 
 export interface TopSearchTerm {
     term: string;
@@ -191,7 +191,9 @@ function calculateTotalConfirmedPrice(a: any, baseServicePrice: number, allServi
 }
 
 export function useMarketplaceAnalytics() {
-    const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin);
+    const user = useAuthStore((s) => s.user);
+    const storeIsSuperAdmin = useAuthStore((s) => s.isSuperAdmin);
+    const isSuperAdmin = storeIsSuperAdmin || isUserSuperAdmin(user);
 
     return useQuery<MarketplaceAnalyticsSummary>({
         queryKey: ['marketplace_analytics'],

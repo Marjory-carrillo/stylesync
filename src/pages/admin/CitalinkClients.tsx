@@ -10,9 +10,12 @@ import {
     RefreshCw, Globe, MapPin, Mail, Phone, Calendar,
     AlertTriangle, ChevronDown,
     Eye, Scissors, Flower2, Dog, Briefcase, Store,
-    Sliders
+    Sliders, Zap, Loader2, X, MoreHorizontal, CheckCircle2
 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+import { COUNTRY_PRESETS, getCountryPreset } from '../../lib/pricingConfig';
+import type { PlanType } from '../../lib/planLimits';
+import { supabase } from '../../lib/supabaseClient';
 
 interface TenantWithUsers {
     id: string;
@@ -47,9 +50,110 @@ const CATEGORY_MAP: Record<string, { label: string; icon: any; color: string }> 
 import { Sparkles } from 'lucide-react';
 
 export default function CitalinkClients() {
-    const { allTenants, isLoading, fetchAllTenants, setTrialEndDate, updateTenant, deleteTenant, switchTenant } = useSuperAdmin();
+    const { allTenants, isLoading, fetchAllTenants, createTenant, setTrialEndDate, updateTenant, deleteTenant, switchTenant } = useSuperAdmin();
     const { showToast } = useUIStore();
     const navigate = useNavigate();
+
+    // ── Create New Business Modal State ──
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newBusiness, setNewBusiness] = useState({
+        name: '',
+        slug: '',
+        category: 'barbershop',
+        ownerEmail: '',
+        ownerPassword: '',
+        monthlyPrice: '349',
+        timezone: 'America/Mexico_City',
+        countryCode: 'MX',
+        brandSlug: '',
+        plan: 'lite' as PlanType,
+        noTrial: false
+    });
+    const [isExistingOwner, setIsExistingOwner] = useState(false);
+    const [selectedOwnerId, setSelectedOwnerId] = useState('');
+    const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
+    const [isSlugManual, setIsSlugManual] = useState(false);
+
+    // Lista única de dueños existentes para vincular sucursales
+    const uniqueOwners = useMemo(() => {
+        const ownerMap = new Map<string, { id: string; name: string; email: string; slug: string; category?: string; brandSlug?: string }>();
+        allTenants.forEach((t: any) => {
+            const ownerEmail = t.tenant_users?.find((u: any) => u.role === 'owner')?.email || t.owner_email;
+            if (t.owner_id && !ownerMap.has(t.owner_id)) {
+                ownerMap.set(t.owner_id, {
+                    id: t.owner_id,
+                    name: t.name,
+                    email: ownerEmail || '',
+                    slug: t.slug,
+                    category: t.category,
+                    brandSlug: t.brand_slug
+                });
+            }
+        });
+        return Array.from(ownerMap.values());
+    }, [allTenants]);
+
+    const filteredOwners = useMemo(() => {
+        if (!ownerSearchQuery.trim()) return uniqueOwners;
+        const q = ownerSearchQuery.toLowerCase();
+        return uniqueOwners.filter(o => o.name.toLowerCase().includes(q) || o.email.toLowerCase().includes(q) || o.slug.toLowerCase().includes(q));
+    }, [uniqueOwners, ownerSearchQuery]);
+
+    const updateNewBusinessSlug = (businessName: string, _catId?: string) => {
+        if (isSlugManual) return;
+        const base = businessName.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+        setNewBusiness(prev => ({ ...prev, slug: base }));
+    };
+
+    const handleCreateBusiness = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsCreating(true);
+        const preset = getCountryPreset(newBusiness.countryCode || 'MX');
+        const res = await createTenant(
+            newBusiness.name,
+            newBusiness.slug,
+            '',
+            newBusiness.category,
+            newBusiness.ownerEmail.trim().toLowerCase(),
+            newBusiness.ownerPassword,
+            newBusiness.timezone || preset.timezone,
+            isExistingOwner && selectedOwnerId ? selectedOwnerId : undefined,
+            isExistingOwner && newBusiness.brandSlug ? newBusiness.brandSlug : undefined,
+            newBusiness.noTrial,
+            preset.code,
+            preset.currency,
+            preset.currencySymbol,
+            preset.phonePrefix
+        );
+        setIsCreating(false);
+        if (res.success) {
+            if (res.data?.id && newBusiness.plan !== 'lite') {
+                await supabase.from('tenants').update({ plan: newBusiness.plan }).eq('id', res.data.id);
+            }
+            setIsCreateModalOpen(false);
+            setIsSlugManual(false);
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '349', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite', noTrial: false });
+            setIsExistingOwner(false);
+            setSelectedOwnerId('');
+            if (fetchAllTenants) fetchAllTenants();
+            showToast(
+                isExistingOwner
+                    ? `Sucursal creada y asignada al dueño existente.`
+                    : res.accountCreated
+                        ? `Negocio creado. Cuenta creada para ${newBusiness.ownerEmail}`
+                        : 'Negocio creado con éxito.',
+                'success'
+            );
+        } else {
+            showToast(res.error || 'Error al crear el negocio', 'error');
+        }
+    };
 
     // Recargar lista al montar
     useEffect(() => {
@@ -405,7 +509,7 @@ export default function CitalinkClients() {
                         <RefreshCw size={16} className={isLoading ? 'animate-spin text-cyan-400' : ''} />
                     </button>
                     <button
-                        onClick={() => navigate('/super-admin/crear-negocio')}
+                        onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
                     >
                         <Plus size={16} />
@@ -1052,17 +1156,16 @@ export default function CitalinkClients() {
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                                 Selecciona el Plan:
                             </label>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-3 gap-2">
                                 {[
-                                    { id: 'free', name: 'Free / Prueba' },
-                                    { id: 'lite', name: 'Plan Lite' },
-                                    { id: 'pro', name: 'Plan Pro (Recomendado)' },
-                                    { id: 'business', name: 'Plan Business' },
+                                    { id: 'lite', name: 'Esencial ($349/m)' },
+                                    { id: 'pro', name: 'Pro ($649/m)' },
+                                    { id: 'business', name: 'Business ($1,249/m)' },
                                 ].map(p => (
                                     <button
                                         key={p.id}
                                         onClick={() => setNewPlan(p.id)}
-                                        className={`p-3 rounded-xl text-left border transition-all text-xs font-bold ${
+                                        className={`p-3 rounded-xl text-center border transition-all text-xs font-bold ${
                                             newPlan === p.id
                                                 ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 ring-1 ring-cyan-500/40'
                                                 : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
@@ -1089,6 +1192,306 @@ export default function CitalinkClients() {
                                 {isSavingPlan ? 'Guardando...' : 'Guardar Plan'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══ MODAL: ALTA PRESENCIAL / MANUAL DE NUEVO NEGOCIO ══ */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                    <div className="bg-[#0b101b] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl relative custom-scrollbar">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-2xl text-slate-950 shadow-lg shadow-cyan-500/20">
+                                    <Plus size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-white tracking-tight uppercase">Alta Presencial / Nuevo Negocio</h3>
+                                    <p className="text-slate-500 text-xs">Configuración instantánea de instancia SaaS para el cliente</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="text-slate-500 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-all"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateBusiness} className="space-y-5">
+                            {/* Datos Básicos */}
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">Nombre Comercial del Negocio *</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/30 transition-all outline-none text-sm"
+                                        placeholder="Ej. Barbería El Corte / Studio Glamour"
+                                        value={newBusiness.name}
+                                        onChange={e => {
+                                            const name = e.target.value;
+                                            setNewBusiness({ ...newBusiness, name });
+                                            updateNewBusinessSlug(name, newBusiness.category);
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Slug */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">URL Personalizada de Reservas</label>
+                                    <div className="flex">
+                                        <div className="bg-white/[0.03] border border-white/[0.08] border-r-0 rounded-l-xl px-3.5 py-3 text-slate-500 text-xs font-medium shrink-0 flex items-center">citalink.app/</div>
+                                        <input
+                                            required
+                                            type="text"
+                                            className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-r-xl px-3 py-3 text-cyan-300 font-mono text-sm focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/30 transition-all outline-none"
+                                            placeholder="mi-negocio"
+                                            value={newBusiness.slug}
+                                            onChange={e => {
+                                                const manualSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                                                setNewBusiness({ ...newBusiness, slug: manualSlug });
+                                                setIsSlugManual(true);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* País y Divisa */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">País del Negocio y Divisa</label>
+                                        <select
+                                            value={newBusiness.countryCode}
+                                            onChange={e => {
+                                                const code = e.target.value;
+                                                const preset = getCountryPreset(code);
+                                                setNewBusiness({ ...newBusiness, countryCode: code, timezone: preset.timezone });
+                                            }}
+                                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/30 transition-all outline-none text-sm appearance-none cursor-pointer"
+                                        >
+                                            {Object.values(COUNTRY_PRESETS).map(country => (
+                                                <option key={country.code} value={country.code} className="bg-slate-900 text-white">
+                                                    {country.flag} {country.name} ({country.currencySymbol} · {country.phonePrefix})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-400 ml-1">Zona Horaria</label>
+                                        <select
+                                            value={newBusiness.timezone}
+                                            onChange={e => setNewBusiness({ ...newBusiness, timezone: e.target.value })}
+                                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/30 transition-all outline-none text-sm appearance-none cursor-pointer"
+                                        >
+                                            <option value="America/Mexico_City" className="bg-slate-900">🇲🇽 México Central (CDMX, GDL, MTY)</option>
+                                            <option value="America/Tijuana" className="bg-slate-900">🇲🇽 México Pacífico (Tijuana, Mexicali)</option>
+                                            <option value="America/Cancun" className="bg-slate-900">🇲🇽 México Este (Cancún)</option>
+                                            <option value="America/New_York" className="bg-slate-900">🇺🇸 EE.UU. Este (New York, Miami)</option>
+                                            <option value="America/Chicago" className="bg-slate-900">🇺🇸 EE.UU. Central (Chicago, Houston)</option>
+                                            <option value="America/Los_Angeles" className="bg-slate-900">🇺🇸 EE.UU. Pacífico (Los Angeles)</option>
+                                            <option value="Europe/Madrid" className="bg-slate-900">🇪🇸 España (Madrid, Barcelona)</option>
+                                            <option value="America/Bogota" className="bg-slate-900">🇨🇴/🇪🇨 Colombia / Perú / Ecuador</option>
+                                            <option value="America/Santiago" className="bg-slate-900">🇨🇱 Chile</option>
+                                            <option value="America/Argentina/Buenos_Aires" className="bg-slate-900">🇦🇷 Argentina</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Categoría */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-400 ml-1">Categoría / Rubro</label>
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                                        {[
+                                            { id: 'barbershop', label: 'Barbería', icon: <Scissors size={15} /> },
+                                            { id: 'beauty_salon', label: 'Salón', icon: <Sparkles size={15} /> },
+                                            { id: 'nail_bar', label: "Nails", icon: <Sparkles size={15} /> },
+                                            { id: 'lashes', label: 'Lashes', icon: <Eye size={15} /> },
+                                            { id: 'spa', label: 'Spa', icon: <Flower2 size={15} /> },
+                                            { id: 'pet_grooming', label: 'Mascotas', icon: <Dog size={15} /> },
+                                            { id: 'consulting', label: 'Clínica', icon: <Briefcase size={15} /> },
+                                            { id: 'other', label: 'Otro', icon: <MoreHorizontal size={15} /> },
+                                        ].map(cat => {
+                                            const isSelected = newBusiness.category === cat.id;
+                                            return (
+                                                <button
+                                                    key={cat.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setNewBusiness({ ...newBusiness, category: cat.id });
+                                                        updateNewBusinessSlug(newBusiness.name, cat.id);
+                                                    }}
+                                                    className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border transition-all cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                                                            : 'bg-white/[0.02] border-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {cat.icon}
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider leading-none">{cat.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Acceso del Dueño */}
+                            <div className="space-y-3 pt-3 border-t border-white/5">
+                                <div className="flex items-center gap-2">
+                                    <Users size={14} className="text-emerald-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Modalidad de Registro y Acceso</span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 border border-white/10 rounded-2xl">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setIsExistingOwner(false); setSelectedOwnerId(''); setOwnerSearchQuery(''); }}
+                                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${
+                                            !isExistingOwner ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <Plus size={14} /> Dueño Nuevo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsExistingOwner(true)}
+                                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-bold text-xs transition-all ${
+                                            isExistingOwner ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <Building2 size={14} /> Sucursal de Dueño Existente
+                                    </button>
+                                </div>
+
+                                {!isExistingOwner ? (
+                                    <div className="space-y-3 p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl animate-fade-in">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-bold text-slate-300 ml-1">Correo Electrónico del Dueño *</label>
+                                                <input
+                                                    required
+                                                    type="email"
+                                                    className="w-full bg-slate-900/90 border border-emerald-500/30 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 outline-none text-sm"
+                                                    placeholder="dueno@correo.com"
+                                                    value={newBusiness.ownerEmail}
+                                                    onChange={e => setNewBusiness({ ...newBusiness, ownerEmail: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-bold text-slate-300 ml-1">Contraseña de Acceso *</label>
+                                                <input
+                                                    required
+                                                    type="password"
+                                                    minLength={6}
+                                                    className="w-full bg-slate-900/90 border border-emerald-500/30 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500/40 outline-none text-sm"
+                                                    placeholder="Mín. 6 caracteres"
+                                                    value={newBusiness.ownerPassword}
+                                                    onChange={e => setNewBusiness({ ...newBusiness, ownerPassword: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-emerald-400/80 ml-1">El cliente utilizará estas credenciales para acceder inmediatamente a su panel.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 p-4 bg-violet-950/20 border border-violet-500/20 rounded-2xl animate-fade-in">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar dueño por nombre o email..."
+                                                value={ownerSearchQuery}
+                                                onChange={e => setOwnerSearchQuery(e.target.value)}
+                                                className="w-full bg-slate-900/90 border border-violet-500/30 rounded-xl pl-9 pr-4 py-2.5 text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-violet-500/40 outline-none"
+                                            />
+                                        </div>
+                                        <div className="max-h-40 overflow-y-auto space-y-1.5 custom-scrollbar">
+                                            {filteredOwners.map(owner => (
+                                                <button
+                                                    key={owner.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedOwnerId(owner.id);
+                                                        if (owner.brandSlug) setNewBusiness({ ...newBusiness, brandSlug: owner.brandSlug });
+                                                    }}
+                                                    className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between text-xs ${
+                                                        selectedOwnerId === owner.id
+                                                            ? 'bg-violet-600/30 border-violet-500 text-white'
+                                                            : 'bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/10'
+                                                    }`}
+                                                >
+                                                    <span className="font-bold truncate">{owner.name} ({owner.email})</span>
+                                                    {selectedOwnerId === owner.id && <Check size={14} className="text-violet-400" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Plan Asignado */}
+                            <div className="space-y-3 pt-3 border-t border-white/5">
+                                <div className="flex items-center gap-2">
+                                    <Zap size={14} className="text-amber-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Plan Asignado (30 Días de Prueba Incluidos)</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2.5">
+                                    {[
+                                        { key: 'lite' as PlanType, label: 'Esencial', sub: '1 Profesional', price: '$349' },
+                                        { key: 'pro' as PlanType, label: 'Pro', sub: 'Multi-Staff', price: '$649' },
+                                        { key: 'business' as PlanType, label: 'Business', sub: 'Sucursales', price: '$1,249' },
+                                    ].map(p => {
+                                        const isActive = newBusiness.plan === p.key;
+                                        return (
+                                            <button
+                                                key={p.key}
+                                                type="button"
+                                                onClick={() => setNewBusiness({ ...newBusiness, plan: p.key, monthlyPrice: p.price.replace(/[$,]/g, '') })}
+                                                className={`p-3 rounded-xl border text-center transition-all ${
+                                                    isActive
+                                                        ? 'border-cyan-400 bg-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.15)] text-white'
+                                                        : 'border-white/5 bg-white/[0.02] text-slate-400 hover:text-white'
+                                                }`}
+                                            >
+                                                <div className={`text-xs font-black uppercase tracking-wider ${isActive ? 'text-cyan-300' : 'text-slate-300'}`}>{p.label}</div>
+                                                <div className="text-[10px] mt-0.5 font-bold text-cyan-400">{p.price}/mes</div>
+                                                <div className="text-[9px] text-slate-500 mt-0.5">{p.sub}</div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Botones de Acción */}
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCreateModalOpen(false)}
+                                    className="px-5 py-3 rounded-2xl text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isCreating}
+                                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                                >
+                                    {isCreating ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Creando Instancia...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 size={16} />
+                                            Crear Instancia SaaS
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

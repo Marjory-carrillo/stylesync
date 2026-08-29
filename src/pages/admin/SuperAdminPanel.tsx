@@ -305,7 +305,7 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave, onSwitchTenant, on
     const [googleMapsUrl, setGoogleMapsUrl] = useState(tenant.google_maps_url || '');
     const [countryCode, setCountryCode] = useState(tenant.countryCode || tenant.country_code || 'MX');
     const [timezone, setTimezone] = useState(tenant.timezone || 'America/Mexico_City');
-    const [plan, setPlan] = useState<PlanType>((tenant.plan || 'free') as PlanType);
+    const [plan, setPlan] = useState<PlanType>((tenant.plan || 'lite') as PlanType);
     const [trialEndsAt, setTrialEndsAt] = useState(formatDateForInput(tenant.trial_ends_at));
     const [subscriptionType, setSubscriptionType] = useState(tenant.subscription_type || 'manual');
     const isTrialExpired = !!(tenant.trial_ends_at && new Date(tenant.trial_ends_at) < new Date());
@@ -651,9 +651,8 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave, onSwitchTenant, on
                             {/* Selector de Plan */}
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Plan de Suscripción</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="grid grid-cols-3 gap-2.5">
                                     {[
-                                        { key: 'free' as PlanType, name: 'Free', price: '$0', desc: 'Básico' },
                                         { key: 'lite' as PlanType, name: 'Esencial', price: '$349', desc: '1 Staff' },
                                         { key: 'pro' as PlanType, name: 'Pro', price: '$649', desc: 'Multi-Staff' },
                                         { key: 'business' as PlanType, name: 'Business', price: '$1,249', desc: 'Sucursales' },
@@ -974,7 +973,7 @@ export default function SuperAdminPanel() {
     const [pendingPlanChange, setPendingPlanChange] = useState<{ tenantId: string; tenantName: string; from: PlanType; to: PlanType } | null>(null);
     const [pendingSmsChange, setPendingSmsChange] = useState<{ tenantId: string; tenantName: string; from: 'demo' | 'whatsapp'; to: 'demo' | 'whatsapp' } | null>(null);
     const [tenantToEdit, setTenantToEdit] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'free' as PlanType, noTrial: false });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '349', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite' as PlanType, noTrial: false });
     const [isCreating, setIsCreating] = useState(false);
     const [isExistingOwner, setIsExistingOwner] = useState(false);
     const [selectedOwnerId, setSelectedOwnerId] = useState('');
@@ -1474,7 +1473,7 @@ export default function SuperAdminPanel() {
             }
             setIsCreateModalOpen(false);
             setIsSlugManual(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '29.99', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'free', noTrial: false });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '349', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite', noTrial: false });
             setIsExistingOwner(false);
             setSelectedOwnerId('');
             showToast(
@@ -1974,7 +1973,6 @@ export default function SuperAdminPanel() {
                             <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">Plan:</span>
                             {([
                                 { key: 'all', label: 'Todos' },
-                                { key: 'free', label: 'Free' },
                                 { key: 'lite', label: 'Esencial' },
                                 { key: 'pro', label: 'Pro' },
                                 { key: 'business', label: 'Business' },
@@ -2633,9 +2631,8 @@ export default function SuperAdminPanel() {
                                     <Zap size={14} className="text-amber-400" />
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Plan Asignado</span>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="grid grid-cols-3 gap-2.5">
                                     {([
-                                        { key: 'free' as PlanType, label: 'Free', sub: '30 citas/mes (2 prof.)', price: '$0', color: 'slate' },
                                         { key: 'lite' as PlanType, label: 'Esencial', sub: 'Ilimitado (1 prof.)', price: '$349', color: 'teal' },
                                         { key: 'pro' as PlanType, label: 'Pro', sub: 'Ilimitado (2 prof.)', price: '$649', color: 'amber' },
                                         { key: 'business' as PlanType, label: 'Business', price: '$1,249', sub: 'Multi-sucursal', color: 'violet' },
@@ -2649,16 +2646,14 @@ export default function SuperAdminPanel() {
                                                 className={`p-2.5 rounded-xl border text-center transition-all ${isActive
                                                     ? p.color === 'teal' ? 'border-teal-500/50 bg-teal-500/10 shadow-[0_0_20px_rgba(20,184,166,0.15)]'
                                                     : p.color === 'amber' ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
-                                                    : p.color === 'violet' ? 'border-violet-500/50 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
-                                                    : 'border-slate-500/50 bg-slate-500/10'
+                                                    : 'border-violet-500/50 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
                                                     : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
                                                 }`}
                                             >
                                                 <div className={`text-xs font-black uppercase tracking-wider ${isActive
                                                     ? p.color === 'teal' ? 'text-teal-400'
                                                     : p.color === 'amber' ? 'text-amber-400'
-                                                    : p.color === 'violet' ? 'text-violet-400'
-                                                    : 'text-slate-300'
+                                                    : 'text-violet-400'
                                                     : 'text-slate-500'
                                                 }`}>{p.label}</div>
                                                 <div className={`text-[10px] mt-0.5 font-bold ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>{p.price}/mes</div>

@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabaseClient';
-import { useAuthStore } from '../authStore';
+import { useAuthStore, isUserSuperAdmin } from '../authStore';
 import { useUIStore } from '../uiStore';
 import type { Lead } from '../../types/store.types';
 
 export function useLeads() {
     const queryClient = useQueryClient();
-    const isSuperAdmin = useAuthStore(s => s.isSuperAdmin);
+    const user = useAuthStore(s => s.user);
+    const storeIsSuperAdmin = useAuthStore(s => s.isSuperAdmin);
+    const isSuperAdmin = storeIsSuperAdmin || isUserSuperAdmin(user);
     const { showToast } = useUIStore();
 
     const queryKey = ['superadmin_leads'];

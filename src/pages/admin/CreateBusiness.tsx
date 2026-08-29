@@ -66,7 +66,10 @@ export default function CreateBusiness() {
 
         if (res.success) {
             // Optional: Add a small delay for "success" animation
-            setTimeout(() => navigate('/admin'), 1000);
+            setTimeout(() => {
+                const isSuper = user?.user_metadata?.is_super_admin === true;
+                navigate(isSuper ? '/super-admin/clientes' : '/admin');
+            }, 800);
         } else {
             setError(res.error || 'Error al crear el negocio.');
             setLoading(false);

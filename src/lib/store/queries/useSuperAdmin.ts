@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabaseClient';
-import { useAuthStore } from '../authStore';
+import { useAuthStore, isUserSuperAdmin } from '../authStore';
 import { CATEGORY_DEFAULTS } from '../../categoryDefaults';
 
 export function useSuperAdmin() {
     const queryClient = useQueryClient();
     const user = useAuthStore(s => s.user);
-    const isSuperAdmin = useAuthStore(s => s.isSuperAdmin);
+    const storeIsSuperAdmin = useAuthStore(s => s.isSuperAdmin);
+    const isSuperAdmin = storeIsSuperAdmin || isUserSuperAdmin(user);
 
     const queryKey = ['superadmin_tenants'];
 

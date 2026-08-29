@@ -142,17 +142,24 @@ export default function Login() {
                     </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-6 relative z-10">
+                <form onSubmit={handleLogin} method="post" autoComplete="on" className="space-y-6 relative z-10">
 
                         {/* Email Input */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">Email</label>
+                            <label htmlFor="email" className="text-sm font-medium text-slate-300 ml-1">Email</label>
                             <div className="relative group/input">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within/input:text-amber-400 transition-colors">
                                     <Mail size={18} />
                                 </div>
                                 <input
+                                    id="email"
+                                    name="username"
                                     type="email"
+                                    inputMode="email"
+                                    autoComplete="username email"
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck={false}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
@@ -167,7 +174,7 @@ export default function Login() {
                         {!isResetting && (
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center ml-1">
-                                    <label className="text-sm font-medium text-slate-300">Contraseña</label>
+                                    <label htmlFor="password" className="text-sm font-medium text-slate-300">Contraseña</label>
                                     {!isSignUp && (
                                         <button
                                             type="button"
@@ -183,10 +190,16 @@ export default function Login() {
                                         <Lock size={18} />
                                     </div>
                                     <input
+                                        id="password"
+                                        name="password"
                                         type="password"
+                                        autoComplete={isSignUp ? "new-password" : "current-password"}
+                                        autoCapitalize="none"
+                                        autoCorrect="off"
+                                        spellCheck={false}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all font-mono"
                                         placeholder="••••••••"
                                         required={!isResetting}
                                     />

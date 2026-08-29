@@ -1,7 +1,7 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 
-import { useAuthStore } from './lib/store/authStore';
+import { useAuthStore, isUserSuperAdmin } from './lib/store/authStore';
 import { supabase } from './lib/supabaseClient';
 import { applyZoom } from './lib/useAppZoom';
 import AdminLayout from './layouts/AdminLayout';
@@ -38,7 +38,7 @@ const Reschedule = lazy(() => import('./pages/client/Reschedule'));
 const PublicReview = lazy(() => import('./pages/PublicReview'));
 
 import { useGlobalStore } from './lib/store/useGlobalStore';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Settings as SettingsIcon, RefreshCw, Loader2 } from 'lucide-react';
 import SuperAdminLayout from './layouts/SuperAdminLayout';
 import BrandingManager from './components/BrandingManager';
 import ToastContainer from './components/Toast';
@@ -64,11 +64,66 @@ const MaintenancePage = () => (
   </div>
 );
 
+const PendingAccessScreen = ({ email, message }: { email?: string; message?: string }) => {
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.location.reload();
+      }
+    } catch {
+      window.location.reload();
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('citalink_tenant_id');
+    window.location.href = '/login';
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'radial-gradient(ellipse at 20% 50%, #0f1921 0%, #050c11 100%)' }}>
+      <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-3xl p-10 text-center backdrop-blur-sm shadow-2xl">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-4xl">
+          ⏳
+        </div>
+        <h2 className="text-2xl font-black text-white mb-3">Acceso Pendiente</h2>
+        <p className="text-slate-400 mb-6 leading-relaxed">
+          Tu cuenta (<span className="text-white font-semibold">{email}</span>) está registrada pero aún no ha sido asignada a un negocio.
+        </p>
+        <p className="text-sm text-slate-500 mb-8">
+          {message || 'Si eres dueño de un negocio, contacta al administrador de CitaLink. Si eres especialista o colaborador, pide al dueño que te agregue desde Equipo y Permisos.'}
+        </p>
+        <div className="space-y-3">
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="w-full py-3 px-6 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2"
+          >
+            {retrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            <span>{retrying ? 'Reintentando...' : 'Reintentar Conexión'}</span>
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="w-full py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold transition-all cursor-pointer shadow-lg"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminRoute = () => {
   const { user, loadingAuth, loadingTenant, tenantId, userRole, userTenants } = useAuthStore();
   const config = useGlobalStore(s => s.config);
   const loadingConfig = useGlobalStore(s => s.loadingConfig);
-  const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
+  const isSuperAdmin = isUserSuperAdmin(user);
 
   if (loadingAuth || loadingTenant || loadingConfig) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
@@ -84,31 +139,10 @@ const AdminRoute = () => {
   // Empleado cuyo correo no está registrado como invitado
   if (!isSuperAdmin && !tenantId && (userRole as any) === 'no_tenant') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'radial-gradient(ellipse at 20% 50%, #0f1921 0%, #050c11 100%)' }}>
-        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-3xl p-10 text-center backdrop-blur-sm shadow-2xl">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-4xl">
-            ⏳
-          </div>
-          <h2 className="text-2xl font-black text-white mb-3">Acceso Pendiente</h2>
-          <p className="text-slate-400 mb-6 leading-relaxed">
-            Tu cuenta (<span className="text-white font-semibold">{user.email}</span>) está registrada pero aún no ha sido asignada a un negocio.
-          </p>
-          <p className="text-sm text-slate-500 mb-8">
-            Pide al dueño del negocio que te agregue desde la sección <strong className="text-slate-300">Equipo y Permisos</strong> usando este mismo correo.
-          </p>
-          <button
-            onClick={async () => {
-              const { supabase } = await import('./lib/supabaseClient');
-              await supabase.auth.signOut();
-              localStorage.removeItem('citalink_tenant_id');
-              window.location.href = '/login';
-            }}
-            className="w-full py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold transition-all cursor-pointer shadow-lg"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      </div>
+      <PendingAccessScreen
+        email={user.email}
+        message="Pide al dueño del negocio que te agregue desde la sección Equipo y Permisos usando este mismo correo."
+      />
     );
   }
 
@@ -117,34 +151,12 @@ const AdminRoute = () => {
     return <Navigate to="/select-business" replace />;
   }
 
-  // Usuario normal sin tenant → mostrar pantalla de espera (solo SuperAdmin crea negocios)
+  // Usuario normal sin tenant → mostrar pantalla de espera
   if (!isSuperAdmin && !tenantId) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'radial-gradient(ellipse at 20% 50%, #0f1921 0%, #050c11 100%)' }}>
-        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-3xl p-10 text-center backdrop-blur-sm shadow-2xl">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-4xl">
-            ⏳
-          </div>
-          <h2 className="text-2xl font-black text-white mb-3">Acceso Pendiente</h2>
-          <p className="text-slate-400 mb-6 leading-relaxed">
-            Tu cuenta (<span className="text-white font-semibold">{user?.email}</span>) está registrada pero aún no ha sido asignada a un negocio.
-          </p>
-          <p className="text-sm text-slate-500 mb-8">
-            Si eres dueño de un negocio, contacta al administrador de CitaLink. Si eres empleado, pide al dueño que te agregue desde <strong className="text-slate-300">Equipo y Permisos</strong>.
-          </p>
-          <button
-            onClick={async () => {
-              const { supabase } = await import('./lib/supabaseClient');
-              await supabase.auth.signOut();
-              localStorage.removeItem('citalink_tenant_id');
-              window.location.href = '/login';
-            }}
-            className="w-full py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold transition-all cursor-pointer shadow-lg"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      </div>
+      <PendingAccessScreen
+        email={user.email}
+      />
     );
   }
 
@@ -153,7 +165,7 @@ const AdminRoute = () => {
 
 const SuperAdminRoute = () => {
   const { user, loadingAuth } = useAuthStore();
-  const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
+  const isSuperAdmin = isUserSuperAdmin(user);
 
   if (loadingAuth) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
@@ -174,7 +186,7 @@ const OnboardingRoute = () => {
   const { user, loadingAuth, tenantId } = useAuthStore();
   const config = useGlobalStore(s => s.config);
   const loadingConfig = useGlobalStore(s => s.loadingConfig);
-  const isSuperAdmin = user?.user_metadata?.is_super_admin === true;
+  const isSuperAdmin = isUserSuperAdmin(user);
 
   if (loadingAuth || loadingConfig) return <SplashScreen />;
   if (!user) return <Navigate to="/login" replace />;
@@ -208,35 +220,53 @@ function App() {
   useEffect(() => {
     applyZoom(85);
     let mounted = true;
+    let isFetchingContext = false;
 
-    const loadUserContext = async (session: any) => {
+    const loadUserContext = async (session: any, event?: string) => {
+      // Si no hay sesión ni usuario: si es un evento explícito de SIGNED_OUT o inicio sin sesión
       if (!session?.user) {
         if (mounted) {
-          localStorage.removeItem('citalink_tenant_id');
-          setAuth({ user: null, session: null, loadingAuth: false });
-          setTenantData({ tenantId: null, userRole: null, userStylistId: null });
+          useAuthStore.getState().resetForSignOut();
         }
         return;
       }
 
       const user = session.user;
-      const isSuperAdmin = user.user_metadata?.is_super_admin === true;
+      const isSuperAdmin = isUserSuperAdmin(user);
+      const currentAuthState = useAuthStore.getState();
 
-      if (mounted) setUserTenants([]);
-
-      if (isSuperAdmin) {
+      // Si es un simple refresco de token y el usuario ya está autenticado con su tenant activo,
+      // solo actualizamos las credenciales de sesión sin re-consultar destructivamente la base de datos
+      if (
+        (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') &&
+        currentAuthState.user?.id === user.id &&
+        (currentAuthState.tenantId || isSuperAdmin)
+      ) {
         if (mounted) {
-          setAuth({ user, session, loadingAuth: false });
-          setTenantData({ tenantId: null, userRole: 'admin', userStylistId: null });
+          useAuthStore.getState().setAuth({ user, session, loadingAuth: false });
+          useAuthStore.getState().setLoadingTenant(false);
         }
         return;
       }
 
+      if (isSuperAdmin) {
+        if (mounted) {
+          useAuthStore.getState().setAuth({ user, session, loadingAuth: false });
+          useAuthStore.getState().setTenantData({ tenantId: null, userRole: 'admin', userStylistId: null });
+          useAuthStore.getState().setUserTenants([]);
+        }
+        return;
+      }
+
+      // Prevenir ejecuciones concurrentes / race conditions
+      if (isFetchingContext) return;
+      isFetchingContext = true;
+
       try {
         const userEmail = (user.email || '').toLowerCase().trim();
 
-        // Ejecutar consultas de dueño y empleado en paralelo para reducir latencia de red en móviles
-        const [ownerRes, employeeRes] = await Promise.all([
+        // Consultas en paralelo para dueño y empleado
+        const [ownerRes, employeeRes] = await Promise.allSettled([
           supabase
             .from('tenants')
             .select('id, name, slug, logo_url, category')
@@ -248,10 +278,10 @@ function App() {
             .maybeSingle()
         ]);
 
-        const ownerTenants = ownerRes.data;
-        const userData = employeeRes.data;
+        const ownerTenants = ownerRes.status === 'fulfilled' ? ownerRes.value.data || [] : [];
+        const userData = employeeRes.status === 'fulfilled' ? employeeRes.value.data : null;
 
-        if (ownerTenants && ownerTenants.length > 0) {
+        if (ownerTenants.length > 0) {
           const tenantSummaries = ownerTenants.map(t => ({
             id: t.id,
             name: t.name,
@@ -261,22 +291,28 @@ function App() {
           }));
 
           if (ownerTenants.length === 1) {
+            const singleTenantId = ownerTenants[0].id;
+            localStorage.setItem('citalink_tenant_id', singleTenantId);
             if (mounted) {
-              setAuth({ user, session, loadingAuth: false });
-              setTenantData({ tenantId: ownerTenants[0].id, userRole: 'owner', userStylistId: null });
-              setUserTenants(tenantSummaries);
+              useAuthStore.getState().setAuth({ user, session, loadingAuth: false });
+              useAuthStore.getState().setUserTenants(tenantSummaries);
+              useAuthStore.getState().setTenantData({ tenantId: singleTenantId, userRole: 'owner', userStylistId: null });
             }
             return;
           }
 
+          // Dueño con múltiples sucursales
           const savedTenantId = localStorage.getItem('citalink_tenant_id');
           const validSaved = savedTenantId && ownerTenants.some(t => t.id === savedTenantId);
+          // Si no hay sucursal guardada válida, usar la primera por defecto para no dejar al usuario en blanco
+          const resolvedTenantId = validSaved ? savedTenantId : ownerTenants[0].id;
+          localStorage.setItem('citalink_tenant_id', resolvedTenantId);
 
           if (mounted) {
-            setAuth({ user, session, loadingAuth: false });
-            setUserTenants(tenantSummaries);
-            setTenantData({
-              tenantId: validSaved ? savedTenantId : null,
+            useAuthStore.getState().setAuth({ user, session, loadingAuth: false });
+            useAuthStore.getState().setUserTenants(tenantSummaries);
+            useAuthStore.getState().setTenantData({
+              tenantId: resolvedTenantId,
               userRole: 'owner',
               userStylistId: null
             });
@@ -284,57 +320,73 @@ function App() {
           return;
         }
 
-        // Si no es dueño pero es empleado
+        // Si no es dueño pero es empleado asignado a un negocio
+        if (userData?.tenant_id) {
+          localStorage.setItem('citalink_tenant_id', userData.tenant_id);
+          if (mounted) {
+            useAuthStore.getState().setAuth({ user, session, loadingAuth: false });
+            useAuthStore.getState().setUserTenants([]);
+            useAuthStore.getState().setTenantData({
+              tenantId: userData.tenant_id,
+              userRole: userData.role || 'employee',
+              userStylistId: userData.stylist_id || null
+            });
+          }
+          return;
+        }
+
+        // Si la consulta fue exitosa pero el usuario legítimamente no tiene negocio asignado
         if (mounted) {
-          setAuth({ user, session, loadingAuth: false });
-          setTenantData({
-            tenantId: userData?.tenant_id || null,
-            userRole: userData?.role || null,
-            userStylistId: userData?.stylist_id || null
+          useAuthStore.getState().setAuth({ user, session, loadingAuth: false });
+          useAuthStore.getState().setUserTenants([]);
+          useAuthStore.getState().setTenantData({
+            tenantId: null,
+            userRole: 'no_tenant',
+            userStylistId: null
           });
         }
       } catch (err) {
         console.error("Error in loadUserContext:", err);
+        // En caso de fallo transitorio de red, preservar el tenant actual si ya existía
+        if (mounted) {
+          const authState = useAuthStore.getState();
+          useAuthStore.getState().setAuth({ user, session, loadingAuth: false });
+          if (!authState.tenantId) {
+            const cachedTenantId = localStorage.getItem('citalink_tenant_id');
+            if (cachedTenantId) {
+              useAuthStore.getState().setTenantData({
+                tenantId: cachedTenantId,
+                userRole: authState.userRole || 'owner',
+                userStylistId: authState.userStylistId
+              });
+            }
+          }
+        }
       } finally {
+        isFetchingContext = false;
         if (mounted) {
           useAuthStore.getState().setLoadingAuth(false);
-          // Siempre limpiar loadingTenant en finally para evitar SplashScreen infinito
-          if (useAuthStore.getState().loadingTenant) {
-            setTenantData({ tenantId: null, userRole: null, userStylistId: null });
-          }
+          useAuthStore.getState().setLoadingTenant(false);
         }
       }
     };
 
-    // Safety fallback timer to prevent infinite splash loading on slow mobile networks
+    // Safety fallback timer extendido a 12s para redes móviles sin ser destructivo
     const safetyTimer = setTimeout(() => {
       const authState = useAuthStore.getState();
       if (mounted && (authState.loadingAuth || authState.loadingTenant)) {
-        console.warn("Safety timer triggered: forcing loading states to false");
-        authState.setLoadingAuth(false);
-        // También limpiar loadingTenant para evitar SplashScreen infinito
-        if (authState.loadingTenant) {
-          setTenantData({ tenantId: null, userRole: null, userStylistId: null });
-        }
+        console.warn("Safety timer: releasing loading locks without destroying session");
+        useAuthStore.getState().setLoadingAuth(false);
+        useAuthStore.getState().setLoadingTenant(false);
       }
       if (mounted && useGlobalStore.getState().loadingConfig) {
         useGlobalStore.setState({ loadingConfig: false });
       }
-    }, 5000);
+    }, 12000);
 
-    const init = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        await loadUserContext(session);
-      } catch (err) {
-        console.error("Error initializing auth:", err);
-        if (mounted) useAuthStore.getState().setLoadingAuth(false);
-      }
-    };
-    init();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      loadUserContext(session);
+    // Suscripción reactiva única a Supabase Auth (emite INITIAL_SESSION automáticamente)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      loadUserContext(session, event);
     });
 
     return () => {

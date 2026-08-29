@@ -3,12 +3,12 @@ import {
     Users, Plus, Trash2, Search, Copy, Check, ExternalLink, 
     BookOpen, MessageCircle, AlertCircle, RefreshCw, MapPin, ChevronDown, ChevronUp,
     Navigation, Calendar, Clock, Sparkles, Camera, CheckCircle2, User, Send, Eye,
-    Phone, X, Edit, TrendingUp, XCircle
+    Phone, X, Edit, TrendingUp, XCircle, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useSuperAdmin } from '../../lib/store/queries/useSuperAdmin';
-import { format, isToday, parseISO, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, isToday, isYesterday, parseISO, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ConfirmModal from '../../components/ConfirmModal';
 import PhotoZoomViewer from '../../components/PhotoZoomViewer';
@@ -101,7 +101,7 @@ export default function SalesTracker() {
         ownerPassword: '',
         countryCode: 'MX',
         timezone: 'America/Mexico_City',
-        plan: 'free' as PlanType,
+        plan: 'lite' as PlanType,
         noTrial: false
     });
     const [isConverting, setIsConverting] = useState(false);
@@ -539,6 +539,98 @@ export default function SalesTracker() {
         });
     }, [prospects, search, statusFilter, categoryFilter, dateRangeFilter, customStartDate, customEndDate, onlyTodayVisits]);
 
+    // Helper de normalización para detección de nombres duplicados
+    const normalizeBusinessName = (str?: string | null) => {
+        if (!str) return '';
+        return str
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "") // remover tildes
+            .replace(/[^a-z0-9]/g, "") // solo alfanumérico
+            .trim();
+    };
+
+    // Detección en tiempo real en el modal al escribir el nombre del negocio
+    const duplicateMatchesInForm = useMemo(() => {
+        const raw = formData.name.trim();
+        if (!raw || raw.length < 3) return [];
+        const norm = normalizeBusinessName(raw);
+        return prospects.filter(p => p.id !== editingId && (
+            normalizeBusinessName(p.name).includes(norm) || norm.includes(normalizeBusinessName(p.name))
+        ));
+    }, [formData.name, editingId, prospects]);
+
+    // Mapa de conteo de nombres idénticos o similares en la base de datos
+    const duplicateNamesCountMap = useMemo(() => {
+        const counts: Record<string, number> = {};
+        prospects.forEach(p => {
+            const norm = normalizeBusinessName(p.name);
+            if (norm) {
+                counts[norm] = (counts[norm] || 0) + 1;
+            }
+        });
+        return counts;
+    }, [prospects]);
+
+    // Agrupar prospectos filtrados por día y ordenar por fecha más cercana / reciente
+    const groupedProspects = useMemo(() => {
+        // Ordenar por fecha más reciente primero (created_at descendente)
+        const sorted = [...filteredProspects].sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+        });
+
+        const groups: { dateKey: string; title: string; isTodayGroup: boolean; isYesterdayGroup: boolean; items: Prospect[] }[] = [];
+        const map = new Map<string, Prospect[]>();
+
+        for (const p of sorted) {
+            let key = 'sin-fecha';
+            if (p.created_at) {
+                try {
+                    key = format(parseISO(p.created_at), 'yyyy-MM-dd');
+                } catch {
+                    key = 'sin-fecha';
+                }
+            }
+            if (!map.has(key)) {
+                map.set(key, []);
+            }
+            map.get(key)!.push(p);
+        }
+
+        for (const [key, items] of map.entries()) {
+            let title = '📅 Sin Fecha Especificada';
+            let isTodayGroup = false;
+            let isYesterdayGroup = false;
+            if (key !== 'sin-fecha') {
+                try {
+                    const d = parseISO(key);
+                    if (isToday(d)) {
+                        title = `🔴 Hoy · ${format(d, "EEEE, d 'de' MMMM", { locale: es })}`;
+                        isTodayGroup = true;
+                    } else if (isYesterday(d)) {
+                        title = `🟡 Ayer · ${format(d, "EEEE, d 'de' MMMM", { locale: es })}`;
+                        isYesterdayGroup = true;
+                    } else {
+                        title = `📅 ${format(d, "EEEE, d 'de' MMMM yyyy", { locale: es })}`;
+                    }
+                } catch {
+                    title = key;
+                }
+            }
+            groups.push({
+                dateKey: key,
+                title,
+                isTodayGroup,
+                isYesterdayGroup,
+                items
+            });
+        }
+
+        return groups;
+    }, [filteredProspects]);
+
     // Plantillas de WhatsApp dinámicas
     const getWhatsAppTemplates = (p: Prospect) => {
         const ownerName = p.contact_name ? p.contact_name : '';
@@ -862,7 +954,7 @@ export default function SalesTracker() {
                         </div>
                     )}
 
-                    {/* Prospects List (TARJETAS LIMPIAS Y ULTRA-ESCANABLES) */}
+                    {/* Prospects List (DIVIDIDO POR DÍA Y FECHA MÁS CERCANA) */}
                     {loading ? (
                         <div className="py-24 text-center text-slate-500">
                             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-violet-400 opacity-60" />
@@ -877,129 +969,159 @@ export default function SalesTracker() {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredProspects.map(p => {
-                                const statusInfo = STATUS_CONFIG[p.status] || {
-                                    badge: p.status,
-                                    bg: 'bg-white/5',
-                                    border: 'border-white/10',
-                                    text: 'text-slate-300'
-                                };
-                                const catInfo = CATEGORIES.find(c => c.id === p.category) || { icon: '✨', label: 'Servicios' };
-                                const isNextVisitToday = p.next_visit_at && isToday(parseISO(p.next_visit_at));
-
-                                return (
-                                    <div 
-                                        key={p.id} 
-                                        className="glass-panel p-5 border border-white/10 bg-[#161b2c]/95 rounded-3xl flex flex-col justify-between hover:border-violet-500/40 transition-all shadow-xl relative overflow-hidden group"
-                                    >
-                                        <div>
-                                            {/* Cabecera Tarjeta: Icono, Nombre y Badge Estado */}
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="flex items-center gap-2.5 min-w-0">
-                                                    <span className="text-xl p-2 rounded-2xl bg-white/5 border border-white/10 shrink-0">{catInfo.icon}</span>
-                                                    <div className="min-w-0">
-                                                        <h3 className="font-black text-white text-base tracking-tight uppercase truncate">
-                                                            {p.name}
-                                                        </h3>
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block truncate">
-                                                            {catInfo.label}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <span className={`px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-wider shrink-0 ${statusInfo.bg} ${statusInfo.border} ${statusInfo.text}`}>
-                                                    {statusInfo.badge}
-                                                </span>
-                                            </div>
-
-                                            {/* Badge del Dueño (Destacado y Limpio) */}
-                                            <div className="mt-3 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <div className="p-1 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
-                                                        <User size={13} />
-                                                    </div>
-                                                    <p className="text-xs font-black text-white truncate">
-                                                        {p.contact_name ? p.contact_name : <span className="text-slate-500 italic font-normal text-[11px]">Dueño no registrado</span>}
-                                                    </p>
-                                                </div>
-
-                                                {p.next_visit_at && (
-                                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border ${isNextVisitToday ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pulse' : 'bg-white/5 border-white/10 text-slate-300'}`}>
-                                                        {isNextVisitToday ? 'Hoy' : format(parseISO(p.next_visit_at), "dd MMM", { locale: es })}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Dirección compacta con botón GPS */}
-                                            {p.address && (
-                                                <p className="text-slate-400 text-xs mt-2.5 flex items-center gap-1.5 truncate">
-                                                    <MapPin size={13} className="text-rose-400 shrink-0" />
-                                                    <span className="truncate">{p.address}</span>
-                                                </p>
-                                            )}
+                        <div className="space-y-8">
+                            {groupedProspects.map(group => (
+                                <div key={group.dateKey} className="space-y-3">
+                                    {/* Cabecera del Día */}
+                                    <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-slate-900/60 border border-white/10 backdrop-blur-md sticky top-16 z-20 shadow-lg">
+                                        <div className="flex items-center gap-2.5">
+                                            <Calendar size={15} className={group.isTodayGroup ? 'text-rose-400' : 'text-violet-400'} />
+                                            <h3 className={`text-xs font-black uppercase tracking-wider ${group.isTodayGroup ? 'text-rose-300' : group.isYesterdayGroup ? 'text-amber-300' : 'text-slate-200'}`}>
+                                                {group.title}
+                                            </h3>
                                         </div>
-
-                                        {/* Barra Inferior Limpia de Acciones */}
-                                        <div className="mt-4 pt-3 border-t border-white/10 flex flex-col gap-2">
-                                            {/* Botón Principal: Ver Detalle Completo */}
-                                            <button
-                                                onClick={() => setDetailProspect(p)}
-                                                className="w-full py-2.5 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all group-hover:border-violet-500/40"
-                                            >
-                                                <Eye size={14} className="text-violet-400" />
-                                                <span>Ver Detalle del Negocio</span>
-                                            </button>
-
-                                            <div className="flex items-center justify-between gap-1.5">
-                                                {/* Acciones Rápidas */}
-                                                <div className="flex items-center gap-1.5">
-                                                    {p.phone && (
-                                                        <button
-                                                            onClick={() => setWhatsAppModalProspect(p)}
-                                                            className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors"
-                                                            title="WhatsApp"
-                                                        >
-                                                            <MessageCircle size={15} />
-                                                        </button>
-                                                    )}
-                                                    {p.address && (
-                                                        <button
-                                                            onClick={() => openGoogleMaps(p)}
-                                                            className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-colors"
-                                                            title="Cómo llegar (Maps / Waze)"
-                                                        >
-                                                            <Navigation size={15} />
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() => startEdit(p)}
-                                                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors"
-                                                        title="Editar Negocio / Registrar Visita"
-                                                    >
-                                                        <Edit size={15} />
-                                                    </button>
-                                                </div>
-
-                                                {/* Botón Convertir si aún no es cerrado */}
-                                                {p.status !== 'cerrado' ? (
-                                                    <button
-                                                        onClick={() => openConvertModal(p)}
-                                                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md hover:scale-105 transition-all flex items-center gap-1"
-                                                    >
-                                                        <Sparkles size={12} />
-                                                        <span>Activar 30 Días</span>
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-[10px] font-black text-emerald-400 uppercase flex items-center gap-1">
-                                                        <CheckCircle2 size={12} /> Cliente Activo
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10">
+                                            {group.items.length} {group.items.length === 1 ? 'negocio' : 'negocios'}
+                                        </span>
                                     </div>
-                                );
-                            })}
+
+                                    {/* Grid de Tarjetas del Día */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {group.items.map(p => {
+                                            const statusInfo = STATUS_CONFIG[p.status] || {
+                                                badge: p.status,
+                                                bg: 'bg-white/5',
+                                                border: 'border-white/10',
+                                                text: 'text-slate-300'
+                                            };
+                                            const catInfo = CATEGORIES.find(c => c.id === p.category) || { icon: '✨', label: 'Servicios' };
+                                            const isNextVisitToday = p.next_visit_at && isToday(parseISO(p.next_visit_at));
+                                            const normalizedName = normalizeBusinessName(p.name);
+                                            const duplicateCount = duplicateNamesCountMap[normalizedName] || 0;
+
+                                            return (
+                                                <div 
+                                                    key={p.id} 
+                                                    className="glass-panel p-5 border border-white/10 bg-[#161b2c]/95 rounded-3xl flex flex-col justify-between hover:border-violet-500/40 transition-all shadow-xl relative overflow-hidden group"
+                                                >
+                                                    <div>
+                                                        {/* Cabecera Tarjeta: Icono, Nombre y Badge Estado */}
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                                <span className="text-xl p-2 rounded-2xl bg-white/5 border border-white/10 shrink-0">{catInfo.icon}</span>
+                                                                <div className="min-w-0">
+                                                                    <h3 className="font-black text-white text-base tracking-tight uppercase truncate">
+                                                                        {p.name}
+                                                                    </h3>
+                                                                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block truncate">
+                                                                            {catInfo.label}
+                                                                        </span>
+                                                                        {duplicateCount > 1 && (
+                                                                            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shrink-0" title={`Hay ${duplicateCount} registros con este nombre`}>
+                                                                                <AlertTriangle size={9} />
+                                                                                <span>Mismo Nombre ({duplicateCount})</span>
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <span className={`px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-wider shrink-0 ${statusInfo.bg} ${statusInfo.border} ${statusInfo.text}`}>
+                                                                {statusInfo.badge}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Badge del Dueño (Destacado y Limpio) */}
+                                                        <div className="mt-3 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <div className="p-1 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+                                                                    <User size={13} />
+                                                                </div>
+                                                                <p className="text-xs font-black text-white truncate">
+                                                                    {p.contact_name ? p.contact_name : <span className="text-slate-500 italic font-normal text-[11px]">Dueño no registrado</span>}
+                                                                </p>
+                                                            </div>
+
+                                                            {p.next_visit_at && (
+                                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border ${isNextVisitToday ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pulse' : 'bg-white/5 border-white/10 text-slate-300'}`}>
+                                                                    {isNextVisitToday ? 'Hoy' : format(parseISO(p.next_visit_at), "dd MMM", { locale: es })}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Dirección compacta con botón GPS */}
+                                                        {p.address && (
+                                                            <p className="text-slate-400 text-xs mt-2.5 flex items-center gap-1.5 truncate">
+                                                                <MapPin size={13} className="text-rose-400 shrink-0" />
+                                                                <span className="truncate">{p.address}</span>
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Barra Inferior Limpia de Acciones */}
+                                                    <div className="mt-4 pt-3 border-t border-white/10 flex flex-col gap-2">
+                                                        {/* Botón Principal: Ver Detalle Completo */}
+                                                        <button
+                                                            onClick={() => setDetailProspect(p)}
+                                                            className="w-full py-2.5 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all group-hover:border-violet-500/40"
+                                                        >
+                                                            <Eye size={14} className="text-violet-400" />
+                                                            <span>Ver Detalle del Negocio</span>
+                                                        </button>
+
+                                                        <div className="flex items-center justify-between gap-1.5">
+                                                            {/* Acciones Rápidas */}
+                                                            <div className="flex items-center gap-1.5">
+                                                                {p.phone && (
+                                                                    <button
+                                                                        onClick={() => setWhatsAppModalProspect(p)}
+                                                                        className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors"
+                                                                        title="WhatsApp"
+                                                                    >
+                                                                        <MessageCircle size={15} />
+                                                                    </button>
+                                                                )}
+                                                                {p.address && (
+                                                                    <button
+                                                                        onClick={() => openGoogleMaps(p)}
+                                                                        className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-colors"
+                                                                        title="Cómo llegar (Maps / Waze)"
+                                                                    >
+                                                                        <Navigation size={15} />
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => startEdit(p)}
+                                                                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                                                                    title="Editar Negocio / Registrar Visita"
+                                                                >
+                                                                    <Edit size={15} />
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Botón Convertir si aún no es cerrado */}
+                                                            {p.status !== 'cerrado' ? (
+                                                                <button
+                                                                    onClick={() => openConvertModal(p)}
+                                                                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md hover:scale-105 transition-all flex items-center gap-1"
+                                                                >
+                                                                    <Sparkles size={12} />
+                                                                    <span>Activar 30 Días</span>
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-[10px] font-black text-emerald-400 uppercase flex items-center gap-1">
+                                                                    <CheckCircle2 size={12} /> Cliente Activo
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -1330,17 +1452,54 @@ export default function SalesTracker() {
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    Nombre del Negocio *
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                                    <span>Nombre del Negocio *</span>
+                                    {duplicateMatchesInForm.length > 0 && (
+                                        <span className="text-[9px] text-amber-400 font-bold flex items-center gap-1">
+                                            <AlertTriangle size={10} /> {duplicateMatchesInForm.length} similar(es) en base de datos
+                                        </span>
+                                    )}
                                 </label>
                                 <input
                                     type="text"
                                     required
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40"
+                                    className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-sm text-white focus:outline-none transition-all ${
+                                        duplicateMatchesInForm.length > 0 
+                                            ? 'border-amber-500/50 focus:border-amber-400' 
+                                            : 'border-white/10 focus:border-violet-500/40'
+                                    }`}
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     placeholder="Ej. Barbería Deluxe / Studio Nails"
                                 />
+
+                                {/* Alerta de Negocio Ya Registrado / Duplicado */}
+                                {duplicateMatchesInForm.length > 0 && (
+                                    <div className="mt-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2 animate-slide-down">
+                                        <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                                            <AlertTriangle size={14} className="shrink-0 text-amber-400" />
+                                            <span>¡Atención! Ya existe un negocio registrado con este nombre:</span>
+                                        </div>
+                                        <div className="space-y-1 pl-1">
+                                            {duplicateMatchesInForm.slice(0, 3).map(dup => {
+                                                const sCfg = STATUS_CONFIG[dup.status] || { badge: dup.status };
+                                                return (
+                                                    <div key={dup.id} className="text-[11px] bg-black/40 p-2 rounded-xl border border-white/5 flex flex-col gap-0.5">
+                                                        <div className="flex items-center justify-between gap-1">
+                                                            <strong className="text-white uppercase truncate">{dup.name}</strong>
+                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-amber-300 font-bold">{sCfg.badge}</span>
+                                                        </div>
+                                                        {dup.address && <p className="text-slate-400 text-[10px] truncate">📍 {dup.address}</p>}
+                                                        {dup.contact_name && <p className="text-amber-400/90 text-[10px] truncate">👤 Dueño: {dup.contact_name}</p>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <p className="text-[10px] text-amber-300/80 italic pt-0.5">
+                                            💡 Si es una nueva sucursal o segunda visita, puedes registrarla indicando la sucursal (ej. "{formData.name} - Sucursal 2").
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Nombre del Dueño / Encargado */}
@@ -1742,9 +1901,8 @@ export default function SalesTracker() {
                                     <span>Plan de Suscripción Inicial</span>
                                     <span className="text-emerald-400 font-black text-[9px] uppercase">30 Días de Prueba Incluidos</span>
                                 </label>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="grid grid-cols-3 gap-2.5">
                                     {[
-                                        { key: 'free' as PlanType, name: 'Free', price: '$0', desc: 'Básico' },
                                         { key: 'lite' as PlanType, name: 'Esencial', price: '$349', desc: '1 Staff' },
                                         { key: 'pro' as PlanType, name: 'Pro', price: '$649', desc: 'Multi-Staff' },
                                         { key: 'business' as PlanType, name: 'Business', price: '$1,249', desc: 'Sucursales' },
