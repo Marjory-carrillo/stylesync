@@ -6,9 +6,9 @@ import { useAuthStore } from '../lib/store/authStore';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useStylists } from '../lib/store/queries/useStylists';
 import { useServices } from '../lib/store/queries/useServices';
-import { useRealtimeNotifications } from '../lib/store/useRealtimeNotifications';
+import { useRealtimeNotifications, type AdminNotification } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Sparkles, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, Sparkles, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing } from 'lucide-react';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
@@ -31,8 +31,26 @@ export default function AdminLayout() {
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+    const [activeToast, setActiveToast] = useState<AdminNotification | null>(null);
     const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
     const { getMonthlyCancellations } = useCancellationLog();
+
+    // Escuchar notificaciones en tiempo real para desplegar Toast flotante
+    useEffect(() => {
+        const handleRealtimeNotif = (e: Event) => {
+            const notif = (e as CustomEvent).detail as AdminNotification;
+            if (notif) {
+                setActiveToast(notif);
+                const timer = setTimeout(() => {
+                    setActiveToast(null);
+                }, 7000);
+                return () => clearTimeout(timer);
+            }
+        };
+
+        window.addEventListener('citalink:realtime-notification', handleRealtimeNotif);
+        return () => window.removeEventListener('citalink:realtime-notification', handleRealtimeNotif);
+    }, []);
 
     // Detectar si el usuario debe ver el Asistente de Bienvenida (solo una vez por tenant)
     useEffect(() => {
@@ -418,6 +436,50 @@ export default function AdminLayout() {
                     setIsOnboardingOpen(false);
                 }}
             />
+
+            {/* Floating Realtime Alert Toast */}
+            {activeToast && (
+                <div className="fixed top-5 right-5 z-[300] max-w-sm w-full bg-[#0d1829]/95 backdrop-blur-md border border-accent/40 rounded-2xl p-4 shadow-2xl shadow-accent/20 animate-slide-down">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center text-accent shrink-0 mt-0.5">
+                                <BellRing size={20} className="animate-bounce-subtle" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">
+                                        {activeToast.type === 'new' ? '✨ Nueva Cita' : activeToast.type === 'cancel' ? '⚠️ Cancelación' : '🔄 Reprogramada'}
+                                    </span>
+                                </div>
+                                <h4 className="text-sm font-bold text-white mt-1 truncate">
+                                    {activeToast.clientName}
+                                </h4>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    📆 {activeToast.date} {activeToast.time ? `· ${activeToast.time}` : ''}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setActiveToast(null)}
+                            className="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-end gap-2">
+                        <button
+                            onClick={() => {
+                                setActiveToast(null);
+                                navigate('/admin/appointments');
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-accent text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition-all"
+                        >
+                            <span>Ver en Agenda</span>
+                            <ArrowRight size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

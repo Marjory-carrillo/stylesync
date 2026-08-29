@@ -214,6 +214,24 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             queryClient.refetchQueries({ queryKey: ['appointments'] });
             queryClient.invalidateQueries({ queryKey: ['clients'] });
             showToast('Cita reservada con éxito', 'success');
+
+            // ⚡ Broadcast instantáneo al canal de admin
+            if (tenantId && data.id) {
+                try {
+                    const bcChannel = supabase.channel(`admin-notifications-${tenantId}`);
+                    bcChannel.send({
+                        type: 'broadcast',
+                        event: 'new_appointment',
+                        payload: {
+                            id: data.id,
+                            clientName: data._appt?.clientName || 'Cliente',
+                            clientPhone: data._appt?.clientPhone || '',
+                            date: data._appt?.date || '',
+                            time: data._appt?.time || '',
+                        }
+                    }).catch(() => {});
+                } catch (_) {}
+            }
         },
         onError: (err: any) => {
             if (err.message === 'MONTHLY_LIMIT_REACHED') {

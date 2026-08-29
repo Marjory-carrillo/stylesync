@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Calendar, RotateCcw, XCircle, CheckCircle, Trash2, BellOff, Phone, AlertTriangle, Users } from 'lucide-react';
+import { Bell, X, Calendar, RotateCcw, XCircle, CheckCircle, Trash2, BellOff, Phone, AlertTriangle, Users, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { AdminNotification, NotifType } from '../lib/store/useRealtimeNotifications';
+import { isSoundEnabled, setSoundEnabled, playChimeSound, requestNotificationPermission, getNotificationPermissionStatus } from '../lib/soundNotification';
 
 interface Props {
     notifications: AdminNotification[];
@@ -43,7 +44,35 @@ function formatDate(date: string, time: string): string {
 
 export default function NotificationBell({ notifications, unreadCount, onMarkAllRead, onDismiss, onClearAll, direction = 'down', getMonthlyCancellations }: Props) {
     const [open, setOpen] = useState(false);
+    const [soundActive, setSoundActive] = useState(isSoundEnabled());
+    const [notifPermission, setNotifPermission] = useState<string>('default');
     const panelRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setSoundActive(isSoundEnabled());
+        setNotifPermission(getNotificationPermissionStatus());
+    }, [open]);
+
+    const handleToggleSound = () => {
+        const next = !soundActive;
+        setSoundActive(next);
+        setSoundEnabled(next);
+        if (next) {
+            playChimeSound('test');
+        }
+    };
+
+    const handleTestSound = () => {
+        playChimeSound('test');
+    };
+
+    const handleEnablePush = async () => {
+        const res = await requestNotificationPermission();
+        setNotifPermission(res);
+        if (res === 'granted') {
+            playChimeSound('test');
+        }
+    };
 
     // Auto-mark as read when panel opens
     useEffect(() => {
@@ -97,7 +126,7 @@ export default function NotificationBell({ notifications, unreadCount, onMarkAll
                         ${direction === 'up'
                             ? 'bottom-full mb-3 left-0 right-auto'
                             : 'top-full mt-3 right-0 left-auto'}`}
-                    style={{ maxHeight: '520px' }}
+                    style={{ maxHeight: '540px' }}
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3
@@ -128,6 +157,45 @@ export default function NotificationBell({ notifications, unreadCount, onMarkAll
                                 <X size={14} />
                             </button>
                         </div>
+                    </div>
+
+                    {/* Audio & Alert Settings Bar */}
+                    <div className="px-4 py-2 bg-black/40 border-b border-white/5 flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleToggleSound}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                                    soundActive 
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                                        : 'bg-white/5 text-slate-400 hover:text-white border border-white/10'
+                                }`}
+                                title={soundActive ? 'Sonido activado' : 'Sonido desactivado'}
+                            >
+                                {soundActive ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                                <span>{soundActive ? 'Sonido On' : 'Silenciado'}</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleTestSound}
+                                className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-[11px] transition-all border border-white/10 flex items-center gap-1"
+                                title="Probar sonido de campana"
+                            >
+                                <Sparkles size={11} className="text-accent" />
+                                <span>Probar</span>
+                            </button>
+                        </div>
+
+                        {notifPermission !== 'granted' && (
+                            <button
+                                type="button"
+                                onClick={handleEnablePush}
+                                className="px-2 py-1 rounded-lg bg-accent/20 hover:bg-accent/30 text-accent font-bold text-[10px] uppercase tracking-wider transition-all border border-accent/30"
+                            >
+                                🔔 Activar Push
+                            </button>
+                        )}
                     </div>
 
                     {/* List */}

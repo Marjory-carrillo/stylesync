@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabaseClient';
 import { useAuthStore } from './authStore';
+import { playChimeSound, showDesktopNotification } from '../soundNotification';
 
 export type NotifType = 'new' | 'reschedule' | 'cancel' | 'complete' | 'waiting_list';
 
@@ -58,6 +59,36 @@ export function useRealtimeNotifications() {
             createdAt: new Date(),
         };
         setNotifications(prev => [newNotif, ...prev]);
+
+        // 🔊 1. Reproducir sonido de campana / chime
+        try {
+            playChimeSound(notif.type);
+        } catch (e) {
+            console.warn('Audio play error:', e);
+        }
+
+        // 📱 2. Lanzar notificación push nativa del navegador si está minimizado
+        const titles: Record<NotifType, string> = {
+            new: 'CitaLink · ✨ ¡Nueva Cita Agendada!',
+            reschedule: 'CitaLink · 🔄 Cita Reprogramada',
+            cancel: 'CitaLink · ⚠️ Cita Cancelada',
+            complete: 'CitaLink · ✅ Cita Completada',
+            waiting_list: 'CitaLink · 📋 Nuevo en Lista de Espera',
+        };
+        const title = titles[notif.type] || 'CitaLink';
+        const bodyText = `${notif.clientName} · ${notif.date} ${notif.time ? `a las ${notif.time}` : ''}`;
+        try {
+            showDesktopNotification(title, bodyText);
+        } catch (e) {
+            console.warn('Desktop notif error:', e);
+        }
+
+        // 🔔 3. Disparar evento para Banner Flotante en pantalla
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('citalink:realtime-notification', {
+                detail: newNotif
+            }));
+        }
     }, []);
 
     const markAllRead = useCallback(() => {
@@ -71,13 +102,86 @@ export function useRealtimeNotifications() {
     const clearAll = useCallback(() => setNotifications([]), []);
 
     const queryClient = useQueryClient();
+    const knownAppointmentIds = useRef<Set<string>>(new Set());
+    const isInitialLoadDone = useRef<boolean>(false);
 
-    // Subscribe to Supabase Realtime
+    // Inicializar IDs conocidos al montar la sesión para NUNCA alertar sobre citas viejas
+    useEffect(() => {
+        if (!tenantId) return;
+
+        supabase
+            .from('appointments')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .then(({ data }) => {
+                if (data) {
+                    data.forEach(a => knownAppointmentIds.current.add(a.id));
+                }
+                isInitialLoadDone.current = true;
+            });
+    }, [tenantId]);
+
+    // Sondeo de respaldo cada 6s: SOLO alerta si llega un ID nuevo después de la carga inicial
+    useEffect(() => {
+        if (!tenantId) return;
+
+        const interval = setInterval(async () => {
+            if (!isInitialLoadDone.current) return;
+
+            try {
+                const { data } = await supabase
+                    .from('appointments')
+                    .select('id, client_name, client_phone, date, time')
+                    .eq('tenant_id', tenantId)
+                    .order('id', { ascending: false })
+                    .limit(5);
+
+                if (data && data.length > 0) {
+                    data.forEach(a => {
+                        if (!knownAppointmentIds.current.has(a.id)) {
+                            knownAppointmentIds.current.add(a.id);
+                            // Es una cita nueva en tiempo real
+                            addNotification({
+                                type: 'new',
+                                clientName: a.client_name || 'Cliente',
+                                clientPhone: a.client_phone || '',
+                                date: a.date || '',
+                                time: a.time ? a.time.slice(0, 5) : '',
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                            queryClient.refetchQueries({ queryKey: ['appointments'] });
+                        }
+                    });
+                }
+            } catch (err) {
+                // Silencioso
+            }
+        }, 6000);
+
+        return () => clearInterval(interval);
+    }, [tenantId, addNotification, queryClient]);
+
+    // Subscribe to Supabase Realtime (Websocket & Broadcast)
     useEffect(() => {
         if (!tenantId) return;
 
         const channel = supabase
             .channel(`admin-notifications-${tenantId}`)
+            .on('broadcast', { event: 'new_appointment' }, (payload) => {
+                const a = payload.payload as any;
+                if (a && a.id && isInitialLoadDone.current && !knownAppointmentIds.current.has(a.id)) {
+                    knownAppointmentIds.current.add(a.id);
+                    addNotification({
+                        type: 'new',
+                        clientName: a?.clientName || a?.client_name || 'Cliente',
+                        clientPhone: a?.clientPhone || a?.client_phone || '',
+                        date: a?.date || '',
+                        time: a?.time ? a.time.slice(0, 5) : '',
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                    queryClient.refetchQueries({ queryKey: ['appointments'] });
+                }
+            })
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
@@ -85,16 +189,20 @@ export function useRealtimeNotifications() {
             }, (payload) => {
                 const a = payload.new as any;
                 if (a && a.tenant_id && a.tenant_id !== tenantId) return;
-                addNotification({
-                    type: 'new',
-                    clientName: a?.client_name || 'Cliente',
-                    clientPhone: a?.client_phone || '',
-                    date: a?.date || '',
-                    time: a?.time || '',
-                });
-                queryClient.invalidateQueries({ queryKey: ['appointments'] });
-                queryClient.refetchQueries({ queryKey: ['appointments'] });
-                queryClient.invalidateQueries({ queryKey: ['clients'] });
+
+                if (a && a.id && isInitialLoadDone.current && !knownAppointmentIds.current.has(a.id)) {
+                    knownAppointmentIds.current.add(a.id);
+                    addNotification({
+                        type: 'new',
+                        clientName: a?.client_name || 'Cliente',
+                        clientPhone: a?.client_phone || '',
+                        date: a?.date || '',
+                        time: a?.time ? a.time.slice(0, 5) : '',
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                    queryClient.refetchQueries({ queryKey: ['appointments'] });
+                    queryClient.invalidateQueries({ queryKey: ['clients'] });
+                }
             })
             .on('postgres_changes', {
                 event: 'UPDATE',
