@@ -14,6 +14,8 @@ export interface Service {
     priceType?: 'fixed' | 'no_price' | 'range';
     minPrice?: number;
     maxPrice?: number;
+    isPackage?: boolean;
+    includedServiceNames?: string[];
 }
 
 export interface CatalogItem {
@@ -24,6 +26,7 @@ export interface CatalogItem {
     title?: string;
     description?: string;
     price?: number | null;
+    duration?: number | null; // duración estimada en minutos
     imageUrl: string;
     sortOrder?: number;
     createdAt: string;

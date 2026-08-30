@@ -257,6 +257,9 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return list.filter(s => selectedStylist.serviceIds!.map(Number).includes(Number(s.id)));
     }, [services, selectedStylist]);
 
+    const packageServices = useMemo(() => filteredServices.filter(s => s.isPackage), [filteredServices]);
+    const standardServices = useMemo(() => filteredServices.filter(s => !s.isPackage), [filteredServices]);
+
     // Compute available time slots for selected date + service + stylist
     const availableSlots = useMemo(() => {
         if (!selectedService) return [];
@@ -488,8 +491,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         return `${hh}:${m}${ampm}`;
     };
 
-    const hasAddons = useMemo(() => services.some(s => s.isAddon), [services]);
-    const addonServices = useMemo(() => services.filter(s => s.isAddon), [services]);
+    const hasAddons = useMemo(() => services.some(s => s.isAddon && !s.isPackage), [services]);
+    const addonServices = useMemo(() => services.filter(s => s.isAddon && !s.isPackage), [services]);
 
     const stepIndex: Record<Step, number> = { datos: 1, barbero: 2, servicio: 3, adicionales: 4, fecha: 5, hora: 6, exito: 7 };
     const totalSteps = hasAddons ? 6 : 5;
@@ -913,37 +916,99 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        {filteredServices.map(svc => (
-                                            <button
-                                                key={svc.id}
-                                                onClick={() => {
-                                                    setSelectedService(svc);
-                                                    if (isNailCalculatorEnabled(businessConfig) && svc.enableQuoter) {
-                                                        // Keep user in step to see customized quoter
-                                                    } else {
-                                                        if (hasAddons) {
-                                                            setStep('adicionales');
-                                                        } else {
-                                                            setStep('fecha');
-                                                        }
-                                                    }
-                                                }}
-                                                className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'}`}
-                                            >
-                                                <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-                                                    <Sparkles size={18} className="text-accent" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-white text-sm">{svc.name}</p>
-                                                    <p className="text-xs text-slate-500">{svc.duration} min</p>
-                                                </div>
-                                                <span className="text-accent font-black text-sm shrink-0">
-                                                    {svc.priceType === 'no_price' ? 'A cotizar' : svc.priceType === 'range' ? `$${svc.minPrice} - $${svc.maxPrice}` : `$${svc.price}`}
+                                    {/* ── SECCIÓN PAQUETES ── */}
+                                    {packageServices.length > 0 && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                                    <Sparkles size={11} className="text-purple-300" /> Paquetes
                                                 </span>
-                                            </button>
-                                        ))}
-                                    </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {packageServices.map(svc => (
+                                                    <button
+                                                        key={svc.id}
+                                                        onClick={() => {
+                                                            setSelectedService(svc);
+                                                            setSelectedAddons({});
+                                                            setStep('fecha');
+                                                        }}
+                                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left border-purple-500/30 bg-purple-500/[0.04] hover:border-purple-400/50 hover:bg-purple-500/[0.08] ${
+                                                            selectedService?.id === svc.id ? 'ring-2 ring-purple-400 bg-purple-500/20 border-purple-400/60' : ''
+                                                        }`}
+                                                    >
+                                                        <div className="w-11 h-11 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0 text-purple-300">
+                                                            <Sparkles size={18} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="mb-0.5">
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider bg-purple-500/25 text-purple-200 border border-purple-500/35">
+                                                                    <Sparkles size={9} className="text-purple-300 shrink-0" />
+                                                                    <span>Paquete</span>
+                                                                </span>
+                                                            </div>
+                                                            <p className="font-bold text-white text-sm leading-snug">{svc.name}</p>
+                                                            {svc.includedServiceNames && svc.includedServiceNames.length > 0 && (
+                                                                <p className="text-[11px] text-purple-200/90 font-medium mt-0.5">
+                                                                    Incluye: {svc.includedServiceNames.join(' • ')}
+                                                                </p>
+                                                            )}
+                                                            <p className="text-xs text-slate-400 mt-0.5">{svc.duration} min</p>
+                                                        </div>
+                                                        <span className="text-purple-300 font-black text-sm shrink-0">
+                                                            {svc.priceType === 'no_price' ? 'A cotizar' : svc.priceType === 'range' ? `$${svc.minPrice} - $${svc.maxPrice}` : `$${svc.price}`}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ── SECCIÓN SERVICIOS INDIVIDUALES ── */}
+                                    {standardServices.length > 0 && (
+                                        <div className="space-y-2">
+                                            {packageServices.length > 0 && (
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/5 text-slate-300 border border-white/10">
+                                                        Servicios Individuales
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="space-y-2">
+                                                {standardServices.map(svc => (
+                                                    <button
+                                                        key={svc.id}
+                                                        onClick={() => {
+                                                            setSelectedService(svc);
+                                                            if (isNailCalculatorEnabled(businessConfig) && svc.enableQuoter) {
+                                                                // Keep user in step to see customized quoter
+                                                            } else {
+                                                                if (hasAddons) {
+                                                                    setStep('adicionales');
+                                                                } else {
+                                                                    setStep('fecha');
+                                                                }
+                                                            }
+                                                        }}
+                                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${
+                                                            selectedService?.id === svc.id ? 'bg-accent/10 border-accent/30' : 'bg-white/[0.03] border-white/5 hover:border-accent/20 hover:bg-white/5'
+                                                        }`}
+                                                    >
+                                                        <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                                                            <Sparkles size={18} className="text-accent" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-bold text-white text-sm">{svc.name}</p>
+                                                            <p className="text-xs text-slate-500">{svc.duration} min</p>
+                                                        </div>
+                                                        <span className="text-accent font-black text-sm shrink-0">
+                                                            {svc.priceType === 'no_price' ? 'A cotizar' : svc.priceType === 'range' ? `$${svc.minPrice} - $${svc.maxPrice}` : `$${svc.price}`}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -1079,7 +1144,9 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                             </div>
                             <button 
                                 onClick={() => {
-                                    if (hasAddons) {
+                                    if (selectedService?.isPackage) {
+                                        setStep('servicio');
+                                    } else if (hasAddons) {
                                         setStep('adicionales');
                                     } else {
                                         setStep('servicio');

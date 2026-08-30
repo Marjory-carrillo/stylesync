@@ -6,7 +6,7 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useCatalog, MAX_CATALOG_IMAGES_PER_SERVICE } from '../../lib/store/queries/useCatalog';
-import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon, Images, Loader2, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon, Images, Loader2, ChevronDown, ChevronUp, Users, Sparkles } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
 import ConfirmModal from '../../components/ConfirmModal';
 import PlaceholderSVG from '../../assets/placeholder-service.svg';
@@ -14,7 +14,7 @@ import { serviceSchema } from '../../lib/schemas';
 import { isNailCalculatorEnabled } from '../../lib/planLimits';
 
 // ── Sub-componente: Galería de un servicio ────────────────────────────────
-function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
+function ServiceCatalogGallery({ serviceId, defaultDuration }: { serviceId: number; defaultDuration?: number }) {
     const { uploadCatalogImage } = useImageUpload();
     const { items, addItem, removeItem, updateItem, isAdding } = useCatalog(serviceId);
     const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
@@ -30,7 +30,7 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
         for (const file of toUpload) {
             const url = await uploadCatalogImage(file);
             if (url) {
-                await addItem({ imageUrl: url, serviceId });
+                await addItem({ imageUrl: url, serviceId, duration: defaultDuration ?? null });
             }
         }
         setUploadingIdx(false);
@@ -78,57 +78,81 @@ function ServiceCatalogGallery({ serviceId }: { serviceId: number }) {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {items.map(item => (
-                        <div key={item.id} className="flex gap-3 p-3 bg-white/[0.02] border border-white/10 rounded-xl items-center">
-                            {/* Imagen */}
-                            <div className="w-16 h-16 rounded-lg overflow-hidden border border-white/5 shrink-0 bg-slate-900">
-                                <img decoding="async" loading="lazy" src={item.imageUrl} alt="Diseño" className="w-full h-full object-cover" />
+                        <div key={item.id} className="p-3 bg-white/[0.03] border border-white/10 rounded-xl flex flex-col gap-2.5">
+                            <div className="flex gap-3 items-center">
+                                {/* Imagen */}
+                                <div className="w-16 h-16 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-slate-900 shadow-md">
+                                    <img decoding="async" loading="lazy" src={item.imageUrl} alt="Diseño" className="w-full h-full object-cover" />
+                                </div>
+
+                                {/* Inputs Precio y Duración */}
+                                <div className="flex-1 grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Precio ($ MXN)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="any"
+                                            defaultValue={item.price ? String(item.price) : ''}
+                                            id={`price-${item.id}`}
+                                            onWheel={e => e.currentTarget.blur()}
+                                            placeholder="Ej: 350"
+                                            className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-accent"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Duración (min)</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            defaultValue={item.duration ? String(item.duration) : (defaultDuration ? String(defaultDuration) : '')}
+                                            id={`dur-${item.id}`}
+                                            onWheel={e => e.currentTarget.blur()}
+                                            placeholder={defaultDuration ? `${defaultDuration} min` : '60'}
+                                            className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-accent"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Inputs Modificables Inline */}
-                            <div className="flex-1 space-y-1.5 min-w-0">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="any"
-                                        defaultValue={item.price ? String(item.price) : ''}
-                                        id={`price-${item.id}`}
-                                        onWheel={e => e.currentTarget.blur()}
-                                        placeholder="Precio ($)"
-                                        className="w-20 bg-slate-900/50 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-accent"
-                                    />
-                                    <input
-                                        type="text"
-                                        defaultValue={item.description || ''}
-                                        id={`desc-${item.id}`}
-                                        placeholder="Descripción / Notas..."
-                                        className="flex-1 bg-slate-900/50 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-accent"
-                                    />
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={async () => {
-                                            const priceVal = (document.getElementById(`price-${item.id}`) as HTMLInputElement)?.value;
-                                            const descVal = (document.getElementById(`desc-${item.id}`) as HTMLInputElement)?.value;
-                                            await updateItem({
-                                                id: item.id,
-                                                description: descVal ?? '',
-                                                price: priceVal ? Number(priceVal) : null
-                                            });
-                                        }}
-                                        className="px-2.5 py-1 bg-violet-500/20 border border-violet-500/30 hover:bg-violet-500/30 text-violet-300 font-bold rounded-lg text-[9px] transition-colors"
-                                    >
-                                        Guardar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setConfirmRemove(item.id)}
-                                        className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-bold rounded-lg text-[9px] transition-colors"
-                                    >
-                                        Eliminar
-                                    </button>
-                                </div>
+                            {/* Descripción / Notas */}
+                            <div>
+                                <input
+                                    type="text"
+                                    defaultValue={item.description || ''}
+                                    id={`desc-${item.id}`}
+                                    placeholder="Descripción / Notas (Ej: Uñas con foil)..."
+                                    className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-accent placeholder:text-slate-500"
+                                />
+                            </div>
+
+                            {/* Botones */}
+                            <div className="flex justify-end gap-2 pt-1 border-t border-white/5">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        const priceVal = (document.getElementById(`price-${item.id}`) as HTMLInputElement)?.value;
+                                        const durVal = (document.getElementById(`dur-${item.id}`) as HTMLInputElement)?.value;
+                                        const descVal = (document.getElementById(`desc-${item.id}`) as HTMLInputElement)?.value;
+                                        await updateItem({
+                                            id: item.id,
+                                            description: descVal ?? '',
+                                            price: priceVal ? Number(priceVal) : null,
+                                            duration: durVal ? Number(durVal) : null,
+                                        });
+                                    }}
+                                    className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 hover:bg-violet-500/30 text-violet-300 font-bold rounded-lg text-xs transition-colors flex items-center gap-1"
+                                >
+                                    Guardar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirmRemove(item.id)}
+                                    className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 font-bold rounded-lg text-xs transition-colors"
+                                >
+                                    Eliminar
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -173,6 +197,8 @@ export default function Services() {
     const [formMaxPrice, setFormMaxPrice] = useState('');
     const [formImage, setFormImage] = useState('');
     const [formIsAddon, setFormIsAddon] = useState(false);
+    const [formIsPackage, setFormIsPackage] = useState(false);
+    const [formIncludedInput, setFormIncludedInput] = useState('');
     const [formEnableQuoter, setFormEnableQuoter] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
@@ -191,6 +217,26 @@ export default function Services() {
         setFormMaxPrice('');
         setFormImage('');
         setFormIsAddon(false);
+        setFormIsPackage(false);
+        setFormIncludedInput('');
+        setFormEnableQuoter(false);
+        setIsModalOpen(true);
+    };
+
+    const openAddPackage = () => {
+        setFormError(null);
+        setEditingId(null);
+        setFormName('');
+        setFormDescription('');
+        setFormDuration('');
+        setFormPrice('');
+        setFormPriceType('fixed');
+        setFormMinPrice('');
+        setFormMaxPrice('');
+        setFormImage('');
+        setFormIsAddon(false);
+        setFormIsPackage(true);
+        setFormIncludedInput('');
         setFormEnableQuoter(false);
         setIsModalOpen(true);
     };
@@ -209,12 +255,18 @@ export default function Services() {
         setFormMaxPrice(svc.maxPrice !== undefined ? String(svc.maxPrice) : '');
         setFormImage(svc.image || '');
         setFormIsAddon(svc.isAddon ?? false);
+        setFormIsPackage(svc.isPackage ?? false);
+        setFormIncludedInput(svc.includedServiceNames ? svc.includedServiceNames.join(', ') : '');
         setFormEnableQuoter(svc.enableQuoter ?? false);
         setIsModalOpen(true);
     };
 
     const handleSave = async () => {
         const calculatedPrice = formPriceType === 'no_price' ? 0 : (formPriceType === 'range' ? (Number(formMinPrice) || 0) : (Number(formPrice) || 0));
+
+        const includedNames = formIsPackage
+            ? formIncludedInput.split(',').map(s => s.trim()).filter(Boolean)
+            : undefined;
 
         const result = serviceSchema.safeParse({
             name: formName,
@@ -226,6 +278,8 @@ export default function Services() {
             maxPrice: formPriceType === 'range' ? (Number(formMaxPrice) || 0) : undefined,
             image: formImage || '',
             isAddon: formIsAddon,
+            isPackage: formIsPackage,
+            includedServiceNames: includedNames,
             enableQuoter: formEnableQuoter,
         });
 
@@ -256,16 +310,25 @@ export default function Services() {
 
     return (
         <div className="animate-fade-in space-y-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         {t('services.title')}
                     </h2>
-                    <p className="text-sm text-muted">Administra el catálogo de servicios ofrecidos.</p>
+                    <p className="text-sm text-muted">Administra el catálogo de servicios y paquetes ofrecidos.</p>
                 </div>
-                <button className="btn btn-primary" onClick={openAdd}>
-                    <Plus size={20} /> <span className="hidden md:inline">{t('services.new_service')}</span>
-                </button>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                        className="btn bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 border border-purple-500/40 hover:border-purple-500/60 shadow-sm flex items-center gap-2 px-3.5 py-2 transition-all active:scale-[0.98]"
+                        onClick={openAddPackage}
+                    >
+                        <Sparkles size={16} className="text-purple-300" />
+                        <span className="text-sm font-semibold">Nuevo Paquete</span>
+                    </button>
+                    <button className="btn btn-primary flex items-center gap-2" onClick={openAdd}>
+                        <Plus size={20} /> <span className="hidden md:inline">{t('services.new_service')}</span>
+                    </button>
+                </div>
             </div>
 
             {hasMultipleStylists && (
@@ -332,8 +395,9 @@ export default function Services() {
                                     </td>
                                 </tr>
                             ) : (() => {
-                                const mainServices = services.filter(s => !s.isAddon);
-                                const addonServices = services.filter(s => s.isAddon);
+                                const packageServices = services.filter(s => s.isPackage);
+                                const mainServices = services.filter(s => !s.isAddon && !s.isPackage);
+                                const addonServices = services.filter(s => s.isAddon && !s.isPackage);
 
                                 const renderServiceRow = (service: typeof services[0]) => (
                                     <>
@@ -350,7 +414,20 @@ export default function Services() {
                                                 </div>
                                             </td>
                                             <td className="p-4">
-                                                <div className="font-bold text-white mb-0.5">{service.name}</div>
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <div className="font-bold text-white">{service.name}</div>
+                                                    {service.isPackage && (
+                                                        <span className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                                            <Sparkles size={11} className="text-purple-300" />
+                                                            <span>Paquete</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {service.includedServiceNames && service.includedServiceNames.length > 0 && (
+                                                    <p className="text-xs text-purple-300/80 font-medium mb-1">
+                                                        Incluye: {service.includedServiceNames.join(' • ')}
+                                                    </p>
+                                                )}
                                                 {service.description && (
                                                     <p className="text-xs text-slate-400 font-normal line-clamp-2 max-w-xs mb-1">
                                                         {service.description}
@@ -424,7 +501,7 @@ export default function Services() {
                                                                 Estas fotos son visibles para las clientas en la app de reservas
                                                             </span>
                                                         </div>
-                                                        <ServiceCatalogGallery serviceId={service.id} />
+                                                        <ServiceCatalogGallery serviceId={service.id} defaultDuration={service.duration} />
                                                     </div>
                                                 </td>
                                             </tr>
@@ -448,6 +525,23 @@ export default function Services() {
                                                     </td>
                                                 </tr>
                                                 {mainServices.map(service => renderServiceRow(service))}
+                                            </>
+                                        )}
+
+                                        {/* ── Paquetes ── */}
+                                        {packageServices.length > 0 && (
+                                            <>
+                                                <tr>
+                                                    <td colSpan={6} className="px-4 pt-6 pb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                                                <Sparkles size={12} className="text-purple-300" /> Paquetes
+                                                            </span>
+                                                            <span className="text-[11px] text-slate-500">{packageServices.length} paquete{packageServices.length !== 1 ? 's' : ''}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {packageServices.map(service => renderServiceRow(service))}
                                             </>
                                         )}
 
@@ -480,7 +574,10 @@ export default function Services() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md overflow-y-auto" onClick={() => setIsModalOpen(false)}>
                     <div className="glass-panel w-full max-w-lg p-6 rounded-2xl animate-fade-in max-h-[90vh] overflow-y-auto custom-scrollbar border border-white/10 bg-[#0d1322] shadow-2xl my-auto" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-white">{editingId ? 'Editar' : 'Nuevo'} Servicio</h3>
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                {formIsPackage && <Sparkles size={18} className="text-purple-400" />}
+                                <span>{editingId ? 'Editar' : 'Nuevo'} {formIsPackage ? 'Paquete' : 'Servicio'}</span>
+                            </h3>
                             <button className="text-muted hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
                         </div>
 
@@ -493,29 +590,52 @@ export default function Services() {
 
                         <div className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Nombre</label>
+                                <label className="text-sm font-medium text-muted mb-1 block">
+                                    {formIsPackage ? 'Nombre del Paquete' : 'Nombre del Servicio'}
+                                </label>
                                 <input
                                     type="text"
                                     value={formName}
                                     onChange={e => setFormName(e.target.value)}
-                                    placeholder="Ej: Corte de Cabello"
+                                    placeholder={formIsPackage ? 'Ej: Paquete VIP, Corte & Barba Express' : 'Ej: Corte de Cabello'}
                                     className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent transition-colors"
                                 />
                             </div>
 
-                            <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Descripción (Opcional)</label>
-                                <textarea
-                                    value={formDescription}
-                                    onChange={e => setFormDescription(e.target.value)}
-                                    placeholder="Ej: Incluye lavado, corte con tijera o máquina y peinado final..."
-                                    rows={2}
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-accent transition-colors resize-none"
-                                />
-                            </div>
+                            {formIsPackage ? (
+                                <div>
+                                    <label className="text-sm font-medium text-purple-300 mb-1 flex items-center gap-1.5">
+                                        <Sparkles size={14} className="text-purple-400" />
+                                        <span>¿Qué servicios incluye este paquete?</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formIncludedInput}
+                                        onChange={e => setFormIncludedInput(e.target.value)}
+                                        placeholder="Ej: Corte con tijera, Arreglo de barba, Mascarilla negra"
+                                        className="w-full bg-slate-900/50 border border-purple-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
+                                    />
+                                    <p className="text-[11px] text-slate-400 mt-1">
+                                        Separa cada servicio con comas (,). Se mostrarán como etiquetas ordenadas al cliente.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="text-sm font-medium text-muted mb-1 block">Descripción (Opcional)</label>
+                                    <textarea
+                                        value={formDescription}
+                                        onChange={e => setFormDescription(e.target.value)}
+                                        placeholder="Ej: Incluye lavado, corte con tijera o máquina y peinado final..."
+                                        rows={2}
+                                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-accent transition-colors resize-none"
+                                    />
+                                </div>
+                            )}
 
                             <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Duración (minutos)</label>
+                                <label className="text-sm font-medium text-muted mb-1 block">
+                                    {formIsPackage ? 'Duración Total del Paquete (minutos)' : 'Duración (minutos)'}
+                                </label>
                                 <input
                                     type="number"
                                     min="1"
@@ -558,7 +678,9 @@ export default function Services() {
 
                             {formPriceType === 'fixed' && (
                                 <div>
-                                    <label className="text-sm font-medium text-muted mb-1 block">Precio ($ MXN)</label>
+                                    <label className="text-sm font-medium text-muted mb-1 block">
+                                        {formIsPackage ? 'Precio del Paquete ($ MXN)' : 'Precio ($ MXN)'}
+                                    </label>
                                     <input
                                         type="number"
                                         min="0"
@@ -610,7 +732,9 @@ export default function Services() {
                             )}
 
                             <div>
-                                <label className="text-sm font-medium text-muted mb-1 block">Imagen del Servicio</label>
+                                <label className="text-sm font-medium text-muted mb-1 block">
+                                    {formIsPackage ? 'Imagen del Paquete (Opcional)' : 'Imagen del Servicio (Opcional)'}
+                                </label>
                                 <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
                                     <div className="w-16 h-16 rounded-xl bg-black/20 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                         {formImage ? (
@@ -653,29 +777,68 @@ export default function Services() {
                                 </div>
                             </div>
 
-                            {/* isAddon Toggle */}
+                            {/* isPackage Toggle */}
                             <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                                 <label className="flex items-start justify-between cursor-pointer group">
                                     <div>
-                                        <div className="font-medium text-white group-hover:text-accent transition-colors text-sm">Servicio Adicional (Extra)</div>
+                                        <div className="font-medium text-white group-hover:text-purple-400 transition-colors text-sm flex items-center gap-1.5">
+                                            <Sparkles size={14} className="text-purple-400" />
+                                            <span>Paquete</span>
+                                        </div>
                                         <div className="text-xs text-muted mt-1 w-5/6">
-                                            Actívalo si este servicio no se puede agendar solo, sino que se ofrece como un "extra" a otro servicio principal.
+                                            Actívalo si este servicio es un paquete de varios servicios con precio especial. El cliente saltará directo a elegir fecha sin paso de adicionales.
                                         </div>
                                     </div>
-                                    <div className="relative inline-flex items-center h-6 w-11 rounded-full flex-shrink-0 transition-colors duration-200 mt-1" style={{ backgroundColor: formIsAddon ? 'var(--color-accent)' : '#334155' }}>
+                                    <div className="relative inline-flex items-center h-6 w-11 rounded-full flex-shrink-0 transition-colors duration-200 mt-1" style={{ backgroundColor: formIsPackage ? '#a855f7' : '#334155' }}>
                                         <input
                                             type="checkbox"
                                             className="sr-only"
-                                            checked={formIsAddon}
-                                            onChange={(e) => setFormIsAddon(e.target.checked)}
+                                            checked={formIsPackage}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setFormIsPackage(checked);
+                                                if (checked) {
+                                                    setFormIsAddon(false);
+                                                    setFormEnableQuoter(false);
+                                                }
+                                            }}
                                         />
-                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${formIsAddon ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${formIsPackage ? 'translate-x-6' : 'translate-x-1'}`} />
                                     </div>
                                 </label>
                             </div>
 
+                            {/* isAddon Toggle */}
+                            {!formIsPackage && (
+                                <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                    <label className="flex items-start justify-between cursor-pointer group">
+                                        <div>
+                                            <div className="font-medium text-white group-hover:text-accent transition-colors text-sm">Servicio Adicional (Extra)</div>
+                                            <div className="text-xs text-muted mt-1 w-5/6">
+                                                Actívalo si este servicio no se puede agendar solo, sino que se ofrece como un "extra" a otro servicio principal.
+                                            </div>
+                                        </div>
+                                        <div className="relative inline-flex items-center h-6 w-11 rounded-full flex-shrink-0 transition-colors duration-200 mt-1" style={{ backgroundColor: formIsAddon ? 'var(--color-accent)' : '#334155' }}>
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only"
+                                                checked={formIsAddon}
+                                                onChange={(e) => {
+                                                    const checked = e.target.checked;
+                                                    setFormIsAddon(checked);
+                                                    if (checked) {
+                                                        setFormIsPackage(false);
+                                                    }
+                                                }}
+                                            />
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${formIsAddon ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </div>
+                                    </label>
+                                </div>
+                            )}
+
                             {/* enableQuoter Toggle (For Nail Bars and Beauty Salons when enabled) */}
-                            {isNailCalculatorEnabled(businessConfig) && !formIsAddon && (
+                            {isNailCalculatorEnabled(businessConfig) && !formIsAddon && !formIsPackage && (
                                 <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                                     <label className="flex items-start justify-between cursor-pointer group">
                                         <div>

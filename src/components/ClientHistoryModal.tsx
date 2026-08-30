@@ -53,15 +53,21 @@ export const ClientHistoryModal: React.FC<ClientHistoryModalProps> = ({ isOpen, 
             if (priceMatch) return Number(priceMatch[1]);
         }
 
-        let total = service?.price || 0;
+        let basePrice = service?.price || 0;
+        const catalogItem = addServices.find((s: string) => s.startsWith('Diseño Catálogo:'));
+        if (catalogItem) {
+            const priceMatch = catalogItem.match(/\$(\d+)/);
+            if (priceMatch) {
+                basePrice = Number(priceMatch[1]);
+            }
+        }
+
+        let total = basePrice;
         addServices.forEach((name: string) => {
-            if (name.startsWith('Referencia:')) return;
-            const extraMatch = name.match(/\(\+\$(\d+)/);
+            if (name.startsWith('Referencia:') || name.startsWith('Diseño Catálogo:')) return;
+            const extraMatch = name.match(/\(\+\$(\d+(\.\d+)?)/i) || name.match(/\+\$(\d+(\.\d+)?)/i);
             if (extraMatch) {
-                total += Number(extraMatch[1]);
-            } else if (name.startsWith('Diseño Catálogo:')) {
-                const priceMatch = name.match(/\$(\d+)/);
-                if (priceMatch) total += Number(priceMatch[1]);
+                total += parseFloat(extraMatch[1]);
             } else {
                 const matchingService = services.find(s => s.name.toLowerCase() === name.toLowerCase());
                 if (matchingService) {

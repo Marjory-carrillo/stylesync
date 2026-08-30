@@ -210,24 +210,30 @@ export default function Dashboard() {
             }
         }
 
-        let total = service?.price || 0;
+        let basePrice = service?.price || 0;
+        const catalogItem = addServices.find((s: string) => s.startsWith('Diseño Catálogo:'));
+        if (catalogItem) {
+            const priceMatch = catalogItem.match(/\$(\d+(\.\d+)?)/);
+            if (priceMatch) {
+                basePrice = parseFloat(priceMatch[1]);
+            }
+        }
+
+        let total = basePrice;
         addServices.forEach((extra: string) => {
-            if (extra.startsWith('Cotización Confirmada:') || extra.startsWith('Cotización Estimada:') || extra.startsWith('Referencia:')) {
+            if (
+                extra.startsWith('Cotización Confirmada:') || 
+                extra.startsWith('Cotización Estimada:') || 
+                extra.startsWith('Referencia:') ||
+                extra.startsWith('Diseño Catálogo:')
+            ) {
                 return;
             }
 
-            const extraMatch = extra.match(/\(\+\$(\d+(\.\d+)?)\s*MXN\)/i) || extra.match(/\(\+\$(\d+(\.\d+)?)\)/i);
+            const extraMatch = extra.match(/\(\+\$(\d+(\.\d+)?)/i) || extra.match(/\+\$(\d+(\.\d+)?)/i);
             if (extraMatch) {
                 total += parseFloat(extraMatch[1]);
                 return;
-            }
-
-            if (extra.startsWith('Diseño Catálogo:')) {
-                const priceMatch = extra.match(/\$(\d+(\.\d+)?)/);
-                if (priceMatch) {
-                    total += parseFloat(priceMatch[1]);
-                    return;
-                }
             }
 
             const cleanName = extra
@@ -235,7 +241,6 @@ export default function Dashboard() {
                 .replace(/^Extra:\s*/i, '')
                 .replace(/^Diseño:\s*/i, '')
                 .replace(/^Largo:\s*/i, '')
-                .replace(/^Diseño Catálogo:\s*/i, '')
                 .replace(/^Adicional:\s*/i, '')
                 .replace(/^Estilo:\s*/i, '')
                 .trim();

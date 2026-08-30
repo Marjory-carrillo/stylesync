@@ -84,6 +84,8 @@ export const serviceSchema = z.object({
     priceType: z.enum(['fixed', 'no_price', 'range']).optional().default('fixed'),
     minPrice: z.number().min(0).optional(),
     maxPrice: z.number().min(0).optional(),
+    isPackage: z.boolean().optional().default(false),
+    includedServiceNames: z.array(z.string()).optional(),
 });
 
 export type ServiceInput = z.infer<typeof serviceSchema>;

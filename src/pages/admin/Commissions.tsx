@@ -128,16 +128,18 @@ export default function Commissions() {
             if (priceMatch) return Number(priceMatch[1]);
         }
         
-        // 2. Si no hay cotización, calculamos base + diseño de catálogo + adicionales
-        let total = service?.price || 0;
+        // 2. Si no hay cotización, calculamos base (o diseño de catálogo) + adicionales
+        let basePrice = service?.price || 0;
         
         const catalogItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Diseño Catálogo:'));
         if (catalogItem) {
             const priceMatch = catalogItem.match(/\$(\d+)/);
             if (priceMatch) {
-                total += Number(priceMatch[1]);
+                basePrice = Number(priceMatch[1]);
             }
         }
+        
+        let total = basePrice;
         
         // Sumar adicionales normales
         const addOnNames = apt.additionalServices || [];
@@ -151,7 +153,21 @@ export default function Commissions() {
                 return;
             }
             
-            const matchingService = services.find(s => s.name === name);
+            const extraMatch = name.match(/\(\+\$(\d+(\.\d+)?)/i) || name.match(/\+\$(\d+(\.\d+)?)/i);
+            if (extraMatch) {
+                total += parseFloat(extraMatch[1]);
+                return;
+            }
+            
+            const cleanName = name
+                .split('(+')[0]
+                .replace(/^Extra:\s*/i, '')
+                .replace(/^Diseño:\s*/i, '')
+                .replace(/^Largo:\s*/i, '')
+                .replace(/^Adicional:\s*/i, '')
+                .replace(/^Estilo:\s*/i, '')
+                .trim();
+            const matchingService = services.find(s => s.name.toLowerCase() === cleanName.toLowerCase() || s.name.toLowerCase() === name.toLowerCase());
             if (matchingService) {
                 total += matchingService.price;
             }

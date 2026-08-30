@@ -155,16 +155,18 @@ function calculateTotalConfirmedPrice(a: any, baseServicePrice: number, allServi
         return Number(a.confirmed_price);
     }
 
-    // 4. Base service price + Diseño Catálogo + Servicios adicionales
-    let total = baseServicePrice || Number(a.price || 0);
+    // 4. Base service price or Diseño Catálogo + Servicios adicionales
+    let basePrice = baseServicePrice || Number(a.price || 0);
 
     const catalogItem = addOns.find((s: string) => s.startsWith('Diseño Catálogo:'));
     if (catalogItem) {
         const match = catalogItem.match(/\$(\d+(\.\d+)?)/);
         if (match) {
-            total += Number(match[1]);
+            basePrice = Number(match[1]);
         }
     }
+
+    let total = basePrice;
 
     // Sumar servicios adicionales normales
     addOns.forEach((name: string) => {
@@ -175,13 +177,23 @@ function calculateTotalConfirmedPrice(a: any, baseServicePrice: number, allServi
             name.startsWith('Referencia:') ||
             name.startsWith('Largo:') ||
             name.startsWith('Diseño:') ||
-            name.startsWith('Extra:') ||
             name.startsWith('Estilo:')
         ) {
             return;
         }
 
-        const matchSvc = allServices.find(s => s.name === name);
+        const extraMatch = name.match(/\(\+\$(\d+(\.\d+)?)/i) || name.match(/\+\$(\d+(\.\d+)?)/i);
+        if (extraMatch) {
+            total += parseFloat(extraMatch[1]);
+            return;
+        }
+
+        const cleanName = name
+            .split('(+')[0]
+            .replace(/^Extra:\s*/i, '')
+            .replace(/^Adicional:\s*/i, '')
+            .trim();
+        const matchSvc = allServices.find(s => s.name.toLowerCase() === cleanName.toLowerCase() || s.name.toLowerCase() === name.toLowerCase());
         if (matchSvc) {
             total += Number(matchSvc.price || 0);
         }

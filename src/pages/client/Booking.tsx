@@ -94,19 +94,29 @@ export default function Booking() {
             const priceMatch = customPriceItem.match(/\$(\d+)/);
             if (priceMatch) return Number(priceMatch[1]);
         }
+        let basePrice = service?.price || 0;
         const catalogItem = (appt.additionalServices || []).find((s: string) => s.startsWith('Diseño Catálogo:'));
         if (catalogItem) {
             const priceMatch = catalogItem.match(/\$(\d+)/);
             if (priceMatch) {
-                const basePrice = service?.price || 0;
-                const catalogPrice = Number(priceMatch[1]);
-                return basePrice + catalogPrice;
+                basePrice = Number(priceMatch[1]);
             }
         }
-        let total = service?.price || 0;
+        let total = basePrice;
         const addOnNames = appt.additionalServices || [];
         addOnNames.forEach((name: string) => {
-            const matchingService = services.find(s => s.name === name);
+            if (name.startsWith('Cotización') || name.startsWith('Referencia:') || name.startsWith('Diseño Catálogo:')) return;
+            const extraMatch = name.match(/\(\+\$(\d+(\.\d+)?)/i) || name.match(/\+\$(\d+(\.\d+)?)/i);
+            if (extraMatch) {
+                total += parseFloat(extraMatch[1]);
+                return;
+            }
+            const cleanName = name
+                .split('(+')[0]
+                .replace(/^Extra:\s*/i, '')
+                .replace(/^Adicional:\s*/i, '')
+                .trim();
+            const matchingService = services.find(s => s.name.toLowerCase() === cleanName.toLowerCase() || s.name.toLowerCase() === name.toLowerCase());
             if (matchingService) {
                 total += matchingService.price;
             }
@@ -339,7 +349,12 @@ export default function Booking() {
     const totalDuration = useMemo(() => {
         if (!selectedService) return 0;
         const customServicePrices = selectedStylist?.customServicePrices;
-        const baseDuration = customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration;
+        let baseDuration = customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration;
+
+        // Si se seleccionó un diseño del catálogo con duración propia especificada
+        if (selectedCatalogItem?.duration && selectedCatalogItem.duration > 0) {
+            baseDuration = selectedCatalogItem.duration;
+        }
 
         const extras = selectedAddOns.reduce((sum, id) => {
             const svc = services.find(s => Number(s.id) === Number(id));
@@ -365,8 +380,8 @@ export default function Booking() {
             const sizeDur = customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
             nailExtrasDuration += sizeDur;
         }
-        // 3. Niveles de Diseño
-        if (simplifiedDesignsCategory && simplifiedDesignsCategory.items && designLevel) {
+        // 3. Niveles de Diseño (solo si no viene del catálogo específico)
+        if (simplifiedDesignsCategory && simplifiedDesignsCategory.items && designLevel && !selectedCatalogItem) {
             const selectedDesignItem = simplifiedDesignsCategory.items.find(i => i.id === designLevel);
             if (selectedDesignItem) {
                 const designDur = customQuoterConfig?.[`${selectedDesignItem.id}_dur`] ?? selectedDesignItem.duration ?? 0;
@@ -375,7 +390,7 @@ export default function Booking() {
         }
 
         return baseDuration + extras + nailExtrasDuration;
-    }, [selectedService, selectedStylist, selectedAddOns, services, extrasCategory, nailExtras, nailSize, simplifiedDesignsCategory, designLevel]);
+    }, [selectedService, selectedStylist, selectedCatalogItem, selectedAddOns, services, extrasCategory, nailExtras, nailSize, simplifiedDesignsCategory, designLevel]);
 
     const nailTotalPrice = useMemo(() => {
         if (!selectedService) return 0;
@@ -418,12 +433,31 @@ export default function Booking() {
             return sum + customAddonPrice;
         }, 0);
 
-        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
+        // Si se eligió un diseño del catálogo
+        if (selectedCatalogItem) {
+            const designBasePrice = (selectedCatalogItem.price && selectedCatalogItem.price > 0)
+                ? selectedCatalogItem.price
+                : (customServicePrices?.[selectedService?.id ?? 0]?.price ?? (selectedService?.price || 0));
+            
+            let extrasSum = 0;
+            const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+            if (extrasCat && nailExtras) {
+                extrasCat.items.forEach(item => {
+                    if (nailExtras[item.id]) {
+                        const customExtraPrice = selectedStylist?.customQuoterConfig?.[item.id];
+                        extrasSum += customExtraPrice !== undefined ? customExtraPrice : (item.price || 0);
+                    }
+                });
+            }
+            return designBasePrice + addOnsPrice + extrasSum;
+        }
+
+        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
             return nailTotalPrice + addOnsPrice;
         }
         const base = (selectedService ? (customServicePrices?.[selectedService.id]?.price ?? selectedService.price) : 0);
         return base + addOnsPrice;
-    }, [businessConfig, nailTotalPrice, selectedService, selectedStylist, selectedAddOns, services]);
+    }, [businessConfig, nailTotalPrice, selectedService, selectedStylist, selectedCatalogItem, selectedAddOns, services, nailQuoterConfig, nailExtras]);
 
     const calculatedDeposit = useMemo(() => {
         if (!businessConfig?.depositEnabled || !businessConfig?.depositAmount) return 0;
@@ -705,6 +739,9 @@ export default function Booking() {
         }
         return base;
     }, [services, selectedStylist]);
+
+    const packageServices = useMemo(() => filteredServices.filter(s => s.isPackage), [filteredServices]);
+    const standardServices = useMemo(() => filteredServices.filter(s => !s.isPackage), [filteredServices]);
 
     // ── Multi-Stylist Logic: Availability Map ──
     // Maps each time slot to a list of available stylist IDs. 
@@ -1006,10 +1043,24 @@ export default function Booking() {
         } else {
             if (selectedCatalogItem) {
                 addOnNames.push(`Referencia: ${selectedCatalogItem.imageUrl}`);
+                const effDur = selectedCatalogItem.duration || selectedService.duration;
+                const durTag = effDur ? ` (${effDur} min)` : '';
                 if (selectedCatalogItem.price) {
-                    addOnNames.push(`Diseño Catálogo: ${selectedCatalogItem.description || 'Diseño'} ($${selectedCatalogItem.price} MXN)`);
+                    addOnNames.push(`Diseño Catálogo: ${selectedCatalogItem.description || 'Diseño'}${durTag} ($${selectedCatalogItem.price} MXN)`);
                 } else {
-                    addOnNames.push(`Diseño Catálogo: ${selectedCatalogItem.description || 'Diseño'}`);
+                    addOnNames.push(`Diseño Catálogo: ${selectedCatalogItem.description || 'Diseño'}${durTag}`);
+                }
+
+                const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+                if (extrasCat && nailExtras) {
+                    extrasCat.items.forEach(item => {
+                        if (nailExtras[item.id]) {
+                            const extraPrice = selectedStylist?.customQuoterConfig?.[item.id] ?? item.price;
+                            const itemDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`] ?? (item as any).duration ?? 0;
+                            const durText = itemDur > 0 ? `, +${itemDur} min` : '';
+                            addOnNames.push(`Extra: ${item.name} (+$${extraPrice} MXN${durText})`);
+                        }
+                    });
                 }
             }
         }
@@ -2202,16 +2253,33 @@ export default function Booking() {
                         {showNailQuoterFlow && selectedService ? (
                             // ── NAIL CUSTOMIZATION WIZARD ──
                             <div className="space-y-6">
-                                <div className="text-center mb-6">
-                                    <p className="text-sm text-accent font-medium mb-1">Personaliza tu diseño</p>
-                                    <h3 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-                                        <Sparkles className="text-accent text-yellow-500" size={20} /> {selectedService.name}
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-1">Precio base: ${selectedService.price} MXN</p>
-                                </div>
+                                {selectedCatalogItem ? (
+                                    <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-violet-500/10 border border-violet-500/30 text-left animate-fade-in">
+                                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-900 border border-white/10 shrink-0 shadow-md">
+                                            <img decoding="async" loading="lazy" src={selectedCatalogItem.imageUrl} alt="Diseño" className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-violet-300 bg-violet-500/20 px-2.5 py-0.5 rounded-full border border-violet-500/30">
+                                                Diseño Seleccionado
+                                            </span>
+                                            <h4 className="text-white font-bold text-sm truncate mt-1">{selectedCatalogItem.description || selectedService.name}</h4>
+                                            <p className="text-xs text-violet-300 font-bold mt-0.5">
+                                                {selectedCatalogItem.price ? `$${selectedCatalogItem.price} MXN` : `$${selectedService.price} MXN`} • ⏱ {selectedCatalogItem.duration || selectedService.duration} min
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center mb-6">
+                                        <p className="text-sm text-accent font-medium mb-1">Personaliza tu diseño</p>
+                                        <h3 className="text-xl font-bold text-white flex items-center justify-center gap-2">
+                                            <Sparkles className="text-accent text-yellow-500" size={20} /> {selectedService.name}
+                                        </h3>
+                                        <p className="text-xs text-slate-400 mt-1">Precio base: ${selectedService.price} MXN</p>
+                                    </div>
+                                )}
 
-                                {/* Sizes Category */}
-                                {sizeCategory && (
+                                {/* Sizes Category (Solo si no viene de diseño de catálogo) */}
+                                {!selectedCatalogItem && sizeCategory && (
                                     <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
                                         <h4 className="text-sm font-bold text-white flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> {sizeCategory.name}
@@ -2253,8 +2321,8 @@ export default function Booking() {
                                     </div>
                                 )}
 
-                                {/* Styles Category - Simplified Choice */}
-                                {styleCategory && (
+                                {/* Styles Category - Simplified Choice (Solo si no viene de diseño de catálogo) */}
+                                {!selectedCatalogItem && styleCategory && (
                                     <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
                                         <h4 className="text-sm font-bold text-white flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Nivel de Diseño / Estilo
@@ -2308,13 +2376,25 @@ export default function Booking() {
                                 )}
 
 
-                                {/* Extras Category */}
+                                {/* Extras Category (Retiros y Extras) */}
                                 {extrasCategory && (
                                     <div className="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
-                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span> {extrasCategory.name}
-                                        </h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span> {extrasCategory.name}
+                                            </h4>
+                                            {selectedCatalogItem && (
+                                                <span className="text-[10px] text-slate-400 font-medium bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10">
+                                                    Opcional
+                                                </span>
+                                            )}
+                                        </div>
+                                        {selectedCatalogItem && (
+                                            <p className="text-xs text-slate-300 text-left">
+                                                ¿Necesitas retiro de uñas de otro salón o algún servicio extra para este diseño?
+                                            </p>
+                                        )}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {extrasCategory.items.map((item: any) => {
                                                 const isChecked = !!nailExtras[item.id];
                                                 const customPrice = selectedStylist?.customQuoterConfig?.[item.id];
@@ -2324,9 +2404,9 @@ export default function Booking() {
                                                 return (
                                                     <label
                                                         key={item.id}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all duration-300 ${
+                                                        className={`flex items-start gap-3.5 p-3.5 rounded-2xl border cursor-pointer select-none transition-all duration-300 ${
                                                             isChecked
-                                                                ? 'bg-violet-500/10 border-violet-500/30 text-white'
+                                                                ? 'bg-violet-500/15 border-violet-500/40 text-white shadow-[0_0_15px_rgba(139,92,246,0.1)]'
                                                                 : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-slate-400'
                                                         }`}
                                                     >
@@ -2340,12 +2420,12 @@ export default function Booking() {
                                                                     [item.id]: val
                                                                 }));
                                                             }}
-                                                            className="w-4 h-4 rounded text-violet-500 border-white/10 focus:ring-violet-500 bg-slate-900 cursor-pointer"
+                                                            className="w-4 h-4 rounded text-violet-500 border-white/10 focus:ring-violet-500 bg-slate-900 cursor-pointer mt-0.5 shrink-0"
                                                         />
                                                         <div className="text-left flex-1 min-w-0">
-                                                            <p className="text-xs font-semibold truncate">{item.name}</p>
-                                                            <p className="text-[10px] text-violet-400 font-bold mt-0.5">
-                                                                ${effectivePrice} {effectiveDur > 0 ? `• +${effectiveDur} min` : ''}
+                                                            <p className="text-xs sm:text-sm font-semibold text-white leading-snug break-words">{item.name}</p>
+                                                            <p className="text-[11px] text-violet-300 font-bold mt-1">
+                                                                {effectivePrice > 0 ? `+$${effectivePrice} MXN` : 'Sin costo'} {effectiveDur > 0 ? `• +${effectiveDur} min` : ''}
                                                             </p>
                                                         </div>
                                                     </label>
@@ -2355,109 +2435,104 @@ export default function Booking() {
                                     </div>
                                 )}
 
-                                {/* Reference Photo Upload (Obligatoria) */}
-                                <div className={`glass-panel p-5 rounded-2xl border transition-all space-y-3.5 ${
-                                    photoRequiredError && !nailDesignUrl
-                                        ? 'border-pink-500/80 bg-pink-500/5 ring-1 ring-pink-500/40 shadow-glow-sm'
-                                        : 'border-white/5'
-                                }`}>
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span> Foto de Referencia (Obligatoria)
-                                        </h4>
-                                        <span className="text-[10px] bg-pink-500/20 text-pink-300 font-bold px-2.5 py-0.5 rounded-full border border-pink-500/30">
-                                            Requerido *
-                                        </span>
-                                    </div>
-                                    
-                                    <p className="text-xs text-slate-300 leading-relaxed font-medium text-left">
-                                        Sube una foto o captura del diseño de uñas que te gustaría 👇
-                                    </p>
-                                    
-                                    <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
-                                        <div className="w-28 h-28 rounded-xl bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
-                                            {nailDesignUrl ? (
-                                                <img decoding="async" loading="lazy" src={nailDesignUrl} alt="Referencia" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <ImageIcon className="text-slate-600" size={24} />
-                                            )}
+                                {/* Reference Photo Upload (Obligatoria solo si no viene de catálogo) */}
+                                {!selectedCatalogItem && (
+                                    <div className={`glass-panel p-5 rounded-2xl border transition-all space-y-3.5 ${
+                                        photoRequiredError && !nailDesignUrl
+                                            ? 'border-pink-500/80 bg-pink-500/5 ring-1 ring-pink-500/40 shadow-glow-sm'
+                                            : 'border-white/5'
+                                    }`}>
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span> Foto de Referencia (Obligatoria)
+                                            </h4>
+                                            <span className="text-[10px] bg-pink-500/20 text-pink-300 font-bold px-2.5 py-0.5 rounded-full border border-pink-500/30">
+                                                Requerido *
+                                            </span>
                                         </div>
-                                        <div className="flex-1 space-y-2">
-                                            <div className="flex gap-2">
-                                                <label className="btn btn-secondary py-2 px-3 text-xs cursor-pointer flex items-center gap-2 rounded-xl">
-                                                    <Upload size={14} />
-                                                    {uploadingDesign ? 'Subiendo...' : nailDesignUrl ? 'Cambiar Foto' : 'Subir Foto'}
-                                                    <input
-                                                        type="file"
-                                                        className="hidden"
-                                                        accept="image/*"
-                                                        onChange={async (e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (!file) return;
-                                                            setUploadingDesign(true);
-                                                            setPhotoRequiredError(false);
-                                                            try {
-                                                                const url = await uploadNailDesign(file, tenantId);
-                                                                if (url) {
-                                                                    setNailDesignUrl(url);
-                                                                }
-                                                            } catch (err) {
-                                                                console.error(err);
-                                                            }
-                                                            setUploadingDesign(false);
-                                                        }}
-                                                        disabled={uploadingDesign}
-                                                    />
-                                                </label>
-                                                {nailDesignUrl && (
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 p-2 rounded-xl border border-white/10"
-                                                        onClick={() => setNailDesignUrl('')}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                        
+                                        <p className="text-xs text-slate-300 leading-relaxed font-medium text-left">
+                                            Sube una foto o captura del diseño de uñas que te gustaría 👇
+                                        </p>
+                                        
+                                        <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                                            <div className="w-28 h-28 rounded-xl bg-slate-950/50 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                                {nailDesignUrl ? (
+                                                    <img decoding="async" loading="lazy" src={nailDesignUrl} alt="Referencia" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <ImageIcon className="text-slate-600" size={24} />
                                                 )}
                                             </div>
-                                            {photoRequiredError && !nailDesignUrl && (
-                                                <p className="text-xs text-rose-400 font-bold flex items-center gap-1 animate-fade-in">
-                                                    ⚠️ Debes subir una foto de referencia para continuar.
-                                                </p>
-                                            )}
+                                            <div className="flex-1 space-y-2">
+                                                <div className="flex gap-2">
+                                                    <label className="btn btn-secondary py-2 px-3 text-xs cursor-pointer flex items-center gap-2 rounded-xl">
+                                                        <Upload size={14} />
+                                                        {uploadingDesign ? 'Subiendo...' : nailDesignUrl ? 'Cambiar Foto' : 'Subir Foto'}
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept="image/*"
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (!file) return;
+                                                                setUploadingDesign(true);
+                                                                setPhotoRequiredError(false);
+                                                                try {
+                                                                    const url = await uploadNailDesign(file, tenantId);
+                                                                    if (url) {
+                                                                        setNailDesignUrl(url);
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error(err);
+                                                                }
+                                                                setUploadingDesign(false);
+                                                            }}
+                                                            disabled={uploadingDesign}
+                                                        />
+                                                    </label>
+                                                    {nailDesignUrl && (
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-ghost hover:bg-red-500/10 hover:text-red-500 p-2 rounded-xl border border-white/10"
+                                                            onClick={() => setNailDesignUrl('')}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {photoRequiredError && !nailDesignUrl && (
+                                                    <p className="text-xs text-rose-400 font-bold flex items-center gap-1 animate-fade-in">
+                                                        ⚠️ Debes subir una foto de referencia para continuar.
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {/* Total and Action Footer */}
                                 <div className="p-5 bg-slate-950/40 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div className="text-left max-w-sm">
-                                        {(() => {
-                                            const options = simplifiedDesignsCategory?.items || [];
-                                            const basicOpt = options.find((o: any) => o.id === 'basic');
-                                            const basicPrice = basicOpt ? (basicOpt.price || 0) : 0;
-                                            const currentOpt = options.find((o: any) => o.id === designLevel);
-                                            const currentPrice = currentOpt ? (currentOpt.price || 0) : (designLevel === 'simple' ? 50 : designLevel === 'complex' ? 150 : 0);
-                                            const isEstimated = currentPrice > 0 || basicPrice > 0 || designLevel !== 'basic';
-
-                                            return (
-                                                <>
-                                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">
-                                                        {isEstimated ? 'Total estimado' : 'Total'}
-                                                    </span>
-                                                    <p className="text-2xl font-black text-white">${totalPrice} <span className="text-xs font-semibold text-slate-400">MXN</span></p>
-                                                    {isEstimated && (
-                                                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                                                            * Este total es aproximado. Tu profesional validará tu diseño y te enviará un mensaje con el monto exacto en cuanto esté disponible.
-                                                        </p>
-                                                    )}
-                                                </>
-                                            );
-                                        })()}
+                                        <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">
+                                            {selectedCatalogItem ? 'Total' : 'Total estimado'}
+                                        </span>
+                                        <p className="text-2xl font-black text-white">${totalPrice} <span className="text-xs font-semibold text-slate-400">MXN</span></p>
+                                        {!selectedCatalogItem && (
+                                            <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                                                * Este total es aproximado. Tu profesional validará tu diseño y te enviará un mensaje con el monto exacto en cuanto esté disponible.
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => setShowNailQuoterFlow(false)}
+                                            onClick={() => {
+                                                setShowNailQuoterFlow(false);
+                                                if (selectedCatalogItem) {
+                                                    setSelectedCatalogItem(null);
+                                                    setShowCatalogModal(true);
+                                                }
+                                            }}
                                             className="btn btn-ghost border border-white/10 text-white px-5"
                                         >
                                             Volver
@@ -2465,22 +2540,27 @@ export default function Booking() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (!nailDesignUrl) {
+                                                if (!selectedCatalogItem && !nailDesignUrl) {
                                                     setPhotoRequiredError(true);
                                                     return;
                                                 }
                                                 setPhotoRequiredError(false);
                                                 setShowNailQuoterFlow(false);
-                                                const hasAddons = services.some(s => s.isAddon);
-                                                if (hasAddons) {
-                                                    setStep(23);
-                                                } else {
+                                                if (selectedService?.isPackage) {
+                                                    setSelectedAddOns([]);
                                                     setStep(25);
+                                                } else {
+                                                    const hasAddons = services.some(s => s.isAddon && !s.isPackage);
+                                                    if (hasAddons) {
+                                                        setStep(23);
+                                                    } else {
+                                                        setStep(25);
+                                                    }
                                                 }
                                             }}
                                             className="btn btn-primary shadow-glow px-6 flex items-center gap-2"
                                         >
-                                            <span>Siguiente</span>
+                                            <span>{services.some(s => s.isAddon && !s.isPackage) ? 'Siguiente' : 'Continuar a Fecha'}</span>
                                             <ChevronRight size={16} />
                                         </button>
                                     </div>
@@ -2516,273 +2596,191 @@ export default function Booking() {
                                     </button>
                                 )}
 
-                                <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
-                                    {filteredServices.map((service: Service) => (
-                                        <div
-                                            key={service.id}
-                                            className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border border-white/5 hover:border-cyan-500/30 active:scale-[0.98] ${selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''}`}
-                                            onClick={() => {
-                                                setSelectedService(service);
-                                                setSelectedCatalogItem(null);
-                                                if (isNailCalculatorEnabled(businessConfig) && service.enableQuoter) {
-                                                    setShowNailQuoterFlow(true);
-                                                } else {
-                                                    const hasAddons = services.some(s => s.isAddon);
-                                                    if (hasAddons) {
-                                                        setStep(23);
-                                                    } else {
-                                                        setStep(25);
-                                                    }
-                                                }
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-3 p-3">
-                                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
-                                                    {service.image ? (
-                                                        <img decoding="async" loading="lazy" src={service.image} alt={service.name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                            <Sparkles size={24} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 text-left">
-                                                    <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
-                                                        {service.name}
-                                                    </h4>
-                                                    {service.description && (
-                                                        <p className="text-xs text-slate-400 font-normal line-clamp-2 mt-0.5 leading-snug">
-                                                            {service.description}
-                                                        </p>
-                                                    )}
-                                                    <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
-                                                        {!businessConfig?.hideServicePrices && (
-                                                            service.priceType === 'no_price' ? (
-                                                                <span className="text-cyan-300 font-bold">A cotizar</span>
-                                                            ) : service.priceType === 'range' ? (
-                                                                <span className="text-purple-300 font-bold">${service.minPrice} - ${service.maxPrice}</span>
-                                                            ) : (
-                                                                <span className="text-cyan-400 font-bold">
-                                                                    ${selectedStylist?.customServicePrices?.[service.id]?.price ?? service.price}
-                                                                </span>
-                                                            )
-                                                        )}
-                                                        <span className="text-muted flex items-center gap-1">
-                                                            <Clock size={12} /> {selectedStylist?.customServicePrices?.[service.id]?.duration ?? service.duration} min
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                {selectedService?.id === service.id && (
-                                                    <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
-                                                        <CheckCircle size={14} className="text-slate-900" />
-                                                    </div>
-                                                )}
-                                            </div>
+                                {/* ── SECCIÓN DE PAQUETES ── */}
+                                {packageServices.length > 0 && (
+                                    <div className="mb-6">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                                <Sparkles size={12} className="text-purple-300" /> Paquetes
+                                            </span>
+                                            <span className="text-xs text-slate-400 font-medium">Servicios completos</span>
                                         </div>
-                                    ))}
-                                </div>
+
+                                        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
+                                            {packageServices.map((service: Service) => (
+                                                <div
+                                                    key={service.id}
+                                                    className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border active:scale-[0.98] border-purple-500/30 bg-purple-500/[0.04] hover:border-purple-400/60 hover:bg-purple-500/[0.08] ${
+                                                        selectedService?.id === service.id
+                                                            ? 'ring-2 ring-purple-400 bg-purple-500/20 border-purple-400/60 shadow-lg shadow-purple-500/10'
+                                                            : ''
+                                                    }`}
+                                                    onClick={() => {
+                                                        setSelectedService(service);
+                                                        setSelectedCatalogItem(null);
+                                                        setSelectedAddOns([]);
+                                                        setStep(25);
+                                                    }}
+                                                >
+                                                    <div className="p-3.5 flex flex-col justify-between h-full">
+                                                        <div>
+                                                            <div className="flex items-start gap-3">
+                                                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-purple-500/20 group-hover:scale-105 transition-transform duration-300">
+                                                                    {service.image ? (
+                                                                        <img decoding="async" loading="lazy" src={service.image} alt={service.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center text-purple-400 bg-gradient-to-br from-purple-500/15 to-indigo-500/15">
+                                                                            <Sparkles size={24} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0 text-left">
+                                                                    <div className="mb-1">
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/25 text-purple-200 border border-purple-500/35">
+                                                                            <Sparkles size={10} className="text-purple-300 shrink-0" />
+                                                                            <span>Paquete</span>
+                                                                        </span>
+                                                                    </div>
+                                                                    <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-purple-300 transition-colors">
+                                                                        {service.name}
+                                                                    </h4>
+
+                                                                    {service.description && (
+                                                                        <p className="text-xs text-slate-300 font-normal mt-1 leading-relaxed">
+                                                                            {service.description}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+
+                                                                {selectedService?.id === service.id && (
+                                                                    <div className="w-5 h-5 rounded-full bg-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+                                                                        <CheckCircle size={14} className="text-slate-900" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {service.includedServiceNames && service.includedServiceNames.length > 0 && (
+                                                                <div className="mt-2.5 pt-2 border-t border-purple-500/20 text-left">
+                                                                    <div className="text-[11px] text-purple-200 font-medium flex flex-wrap items-center gap-1.5">
+                                                                        <span className="text-purple-300 font-bold">Incluye:</span>
+                                                                        {service.includedServiceNames.map((item, idx) => (
+                                                                            <span key={idx} className="inline-flex items-center bg-purple-500/25 text-purple-100 border border-purple-500/30 px-2 py-0.5 rounded-md text-[11px] font-semibold">
+                                                                                ✓ {item}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/5 text-xs sm:text-sm">
+                                                            {!businessConfig?.hideServicePrices && (
+                                                                service.priceType === 'no_price' ? (
+                                                                    <span className="text-cyan-300 font-bold">A cotizar</span>
+                                                                ) : service.priceType === 'range' ? (
+                                                                    <span className="text-purple-300 font-bold">${service.minPrice} - ${service.maxPrice}</span>
+                                                                ) : (
+                                                                    <span className="font-extrabold text-purple-300 text-base">
+                                                                        ${selectedStylist?.customServicePrices?.[service.id]?.price ?? service.price}
+                                                                    </span>
+                                                                )
+                                                            )}
+                                                            <span className="text-muted flex items-center gap-1 font-medium">
+                                                                <Clock size={13} className="text-purple-400" /> {selectedStylist?.customServicePrices?.[service.id]?.duration ?? service.duration} min
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── SECCIÓN DE SERVICIOS INDIVIDUALES ── */}
+                                {standardServices.length > 0 && (
+                                    <div>
+                                        {packageServices.length > 0 && (
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/5 text-slate-300 border border-white/10">
+                                                    Servicios Individuales
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
+                                            {standardServices.map((service: Service) => (
+                                                <div
+                                                    key={service.id}
+                                                    className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border active:scale-[0.98] border-white/5 hover:border-cyan-500/30 ${
+                                                        selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''
+                                                    }`}
+                                                    onClick={() => {
+                                                        setSelectedService(service);
+                                                        setSelectedCatalogItem(null);
+                                                        if (isNailCalculatorEnabled(businessConfig) && service.enableQuoter) {
+                                                            setShowNailQuoterFlow(true);
+                                                        } else {
+                                                            const hasAddons = services.some(s => s.isAddon);
+                                                            if (hasAddons) {
+                                                                setStep(23);
+                                                            } else {
+                                                                setStep(25);
+                                                            }
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className="flex items-center gap-3 p-3">
+                                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
+                                                            {service.image ? (
+                                                                <img decoding="async" loading="lazy" src={service.image} alt={service.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                                    <Sparkles size={24} />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 text-left min-w-0">
+                                                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
+                                                                {service.name}
+                                                            </h4>
+                                                            {service.description && (
+                                                                <p className="text-xs text-slate-300 font-normal mt-0.5 leading-relaxed">
+                                                                    {service.description}
+                                                                </p>
+                                                            )}
+                                                            <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
+                                                                {!businessConfig?.hideServicePrices && (
+                                                                    service.priceType === 'no_price' ? (
+                                                                        <span className="text-cyan-300 font-bold">A cotizar</span>
+                                                                    ) : service.priceType === 'range' ? (
+                                                                        <span className="text-purple-300 font-bold">${service.minPrice} - ${service.maxPrice}</span>
+                                                                    ) : (
+                                                                        <span className="text-cyan-400 font-bold">
+                                                                            ${selectedStylist?.customServicePrices?.[service.id]?.price ?? service.price}
+                                                                        </span>
+                                                                    )
+                                                                )}
+                                                                <span className="text-muted flex items-center gap-1">
+                                                                    <Clock size={12} /> {selectedStylist?.customServicePrices?.[service.id]?.duration ?? service.duration} min
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {selectedService?.id === service.id && (
+                                                            <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
+                                                                <CheckCircle size={14} className="text-slate-900" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 {stylists.length > 1 && (
                                     <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro profesional</button>
                                 )}
                             </>
                         )}
-
-                        {/* ══ CATALOG GALLERY MODAL ══ */}
-                        {showCatalogModal && (() => {
-                            const mainServices = services.filter(s => !s.isAddon);
-                            const servicesWithPhotos = mainServices.filter(s =>
-                                catalogItems.some(c => c.serviceId === s.id)
-                            );
-                            const allVisible = catalogTab === null
-                                ? catalogItems
-                                : catalogItems.filter(c => c.serviceId === catalogTab);
-
-                            return (
-                                <>
-                                    <div
-                                        className="fixed inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-md"
-                                        style={{ overscrollBehavior: 'contain' }}
-                                    >
-                                        {/* Header */}
-                                        <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-white/10 shrink-0">
-                                            <div>
-                                                <h3 className="text-lg font-black text-white">Galería de Diseños</h3>
-                                                <p className="text-xs text-slate-400">{allVisible.length} fotos disponibles</p>
-                                            </div>
-                                            <button
-                                                onClick={() => setShowCatalogModal(false)}
-                                                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-                                            >
-                                                <X size={20} className="text-white" />
-                                            </button>
-                                        </div>
-
-                                        {/* Tabs por servicio */}
-                                        {servicesWithPhotos.length > 1 && (
-                                            <div className="flex gap-2 px-4 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-white/5">
-                                                <button
-                                                    onClick={() => setCatalogTab(null)}
-                                                    className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                                                        catalogTab === null
-                                                            ? 'bg-violet-500 border-violet-400 text-white'
-                                                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                                                    }`}
-                                                >
-                                                    Todos
-                                                </button>
-                                                {servicesWithPhotos.map(s => (
-                                                    <button
-                                                        key={s.id}
-                                                        onClick={() => setCatalogTab(s.id)}
-                                                        className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                                                            catalogTab === s.id
-                                                                ? 'bg-violet-500 border-violet-400 text-white'
-                                                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                                                        }`}
-                                                    >
-                                                        {s.name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Photo Grid */}
-                                        <div className="flex-1 overflow-y-auto p-3">
-                                            {allVisible.length === 0 ? (
-                                                <div className="flex flex-col items-center justify-center h-48 text-slate-500">
-                                                    <Images size={36} className="mb-2 opacity-30" />
-                                                    <p className="text-sm">No hay fotos en esta categoría</p>
-                                                </div>
-                                            ) : (
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                    {allVisible.map(item => {
-                                                        const svc = services.find(s => s.id === item.serviceId);
-                                                        return (
-                                                            <div
-                                                                key={item.id}
-                                                                className="flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:border-violet-400/50 transition-all group"
-                                                                onClick={() => {
-                                                                    setExpandedPhoto(item);
-                                                                }}
-                                                            >
-                                                                <div className="relative aspect-square overflow-hidden bg-slate-800">
-                                                                    <img
-                                                                        decoding="async" loading="lazy"
-                                                                        src={item.imageUrl}
-                                                                        alt={item.title || svc?.name || 'Diseño'}
-                                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                                    />
-                                                                    {svc && (
-                                                                        <span className="absolute top-2 left-2 text-[9px] font-bold text-white bg-violet-600/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-md">
-                                                                            {svc.name}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="p-2 text-left flex flex-col justify-between flex-1 min-h-[4.5rem] bg-slate-950/40">
-                                                                    <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
-                                                                        {item.description || 'Diseño de catálogo'}
-                                                                    </p>
-                                                                    <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/5">
-                                                                        <span className="text-xs font-bold text-violet-300">
-                                                                            {item.price ? `$${item.price} MXN` : 'Costo base'}
-                                                                        </span>
-                                                                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Ver más →</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Footer CTA */}
-                                        <div className="px-4 py-4 border-t border-white/10 shrink-0">
-                                            <button
-                                                onClick={() => setShowCatalogModal(false)}
-                                                className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-sm font-bold transition-colors"
-                                            >
-                                                Volver a los servicios
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* ── LIGHTBOX / FOTO EXPANDIDA ── */}
-                                    {expandedPhoto && (() => {
-                                        const svc = services.find(s => s.id === expandedPhoto.serviceId);
-                                        return (
-                                            <div
-                                                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
-                                                onClick={() => setExpandedPhoto(null)}
-                                            >
-                                                <div
-                                                    className="relative w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl overflow-hidden animate-zoom-in"
-                                                    onClick={e => e.stopPropagation()}
-                                                >
-                                                    {/* Botón Cerrar (Tachita) */}
-                                                    <button
-                                                        onClick={() => setExpandedPhoto(null)}
-                                                        className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
-                                                        aria-label="Cerrar vista"
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
-
-                                                    {/* Imagen Principal */}
-                                                    <div className="w-full aspect-square bg-slate-950 flex items-center justify-center">
-                                                        <img
-                                                            decoding="async" loading="lazy"
-                                                            src={expandedPhoto.imageUrl}
-                                                            alt="Diseño expandido"
-                                                            className="w-full h-full object-contain"
-                                                        />
-                                                    </div>
-
-                                                    {/* Detalles y CTA */}
-                                                    <div className="p-5 space-y-4">
-                                                        <div>
-                                                            {svc && (
-                                                                <span className="text-[10px] font-bold text-white bg-violet-600 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                                                    {svc.name}
-                                                                </span>
-                                                            )}
-                                                            <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                                                                {expandedPhoto.description || 'Diseño exclusivo de nuestro catálogo.'}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                                                            <div className="text-left">
-                                                                <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold">Precio</span>
-                                                                <span className="text-base font-black text-violet-400">
-                                                                    {expandedPhoto.price ? `$${expandedPhoto.price} MXN` : 'Costo base'}
-                                                                </span>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    if (svc) {
-                                                                        setSelectedService(svc);
-                                                                        setSelectedCatalogItem(expandedPhoto);
-                                                                        setExpandedPhoto(null);
-                                                                        setShowCatalogModal(false);
-                                                                        setStep(25); // Mandar directamente a elegir fecha
-                                                                    }
-                                                                }}
-                                                                className="btn btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 shadow-glow"
-                                                            >
-                                                                Elegir este diseño
-                                                                <ChevronRight size={14} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
-                                </>
-                            );
-                        })()}
                     </div>
                 )}
 
@@ -2799,7 +2797,7 @@ export default function Booking() {
                         <div className="flex flex-col gap-2">
                             {services
                                 .filter(s => {
-                                    if (!s.isAddon || s.id === selectedService.id) return false;
+                                    if (!s.isAddon || s.isPackage || s.id === selectedService.id) return false;
                                     if (selectedStylist) {
                                         if (!selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) return true;
                                         return selectedStylist.serviceIds.map(Number).includes(Number(s.id));
@@ -2865,21 +2863,34 @@ export default function Booking() {
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-3 mt-5">
-                            <button
-                                className="flex-1 btn btn-ghost text-sm py-3"
-                                onClick={() => { setSelectedAddOns([]); setStep(25); }}
-                            >
-                                Omitir
-                            </button>
-                            {selectedAddOns.length > 0 && (
+                        <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                            {selectedAddOns.length === 0 ? (
                                 <button
-                                    className="flex-1 btn text-sm py-3 font-bold"
-                                    style={{ background: 'var(--color-accent)', color: '#fff' }}
-                                    onClick={() => setStep(25)}
+                                    type="button"
+                                    className="w-full btn btn-primary shadow-glow text-sm sm:text-base py-3.5 px-6 rounded-2xl font-bold flex items-center justify-center gap-2"
+                                    onClick={() => { setSelectedAddOns([]); setStep(25); }}
                                 >
-                                    Confirmar selección →
+                                    <span>Continuar sin adicionales</span>
+                                    <ChevronRight size={18} />
                                 </button>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="flex-1 py-3.5 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-bold transition-all"
+                                        onClick={() => { setSelectedAddOns([]); setStep(25); }}
+                                    >
+                                        Omitir adicionales
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="flex-1 btn btn-primary shadow-glow text-sm py-3.5 px-6 rounded-2xl font-bold flex items-center justify-center gap-2"
+                                        onClick={() => setStep(25)}
+                                    >
+                                        <span>Confirmar selección</span>
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </>
                             )}
                         </div>
                         <button
@@ -2887,12 +2898,24 @@ export default function Booking() {
                             onClick={() => {
                                 if (isQuoterPrefilled) {
                                     setStep(1);
+                                } else if (selectedCatalogItem) {
+                                    const hasExtras = isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter && extrasCategory && extrasCategory.items && extrasCategory.items.length > 0;
+                                    if (hasExtras) {
+                                        setStep(22);
+                                        setShowNailQuoterFlow(true);
+                                    } else {
+                                        setStep(22);
+                                        setShowCatalogModal(true);
+                                    }
+                                } else if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
+                                    setStep(22);
+                                    setShowNailQuoterFlow(true);
                                 } else {
                                     setStep(22);
                                 }
                             }}
                         >
-                            ← {isQuoterPrefilled ? 'Volver a mis datos' : 'Cambiar de servicio principal'}
+                            ← {selectedCatalogItem ? 'Volver al diseño' : isQuoterPrefilled ? 'Volver a mis datos' : 'Cambiar de servicio principal'}
                         </button>
                     </div>
                 )}
@@ -4025,6 +4048,257 @@ export default function Booking() {
                     </div>
                 </div>
             )}
+
+            {/* ══ CATALOG GALLERY MODAL (ROOT LEVEL) ══ */}
+            {showCatalogModal && (() => {
+                const mainServices = services.filter(s => !s.isAddon);
+                const servicesWithPhotos = mainServices.filter(s =>
+                    catalogItems.some(c => c.serviceId === s.id)
+                );
+                const allVisible = catalogTab === null
+                    ? catalogItems
+                    : catalogItems.filter(c => c.serviceId === catalogTab);
+
+                return (
+                    <div
+                        className="fixed inset-0 z-[80] flex justify-center bg-black/85 backdrop-blur-md animate-fade-in"
+                        onClick={() => setShowCatalogModal(false)}
+                    >
+                        <div
+                            className="relative w-full max-w-[500px] h-full flex flex-col bg-[#07090e] border-x border-white/10 shadow-2xl animate-fade-in text-left overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-5 pt-5 pb-3.5 border-b border-white/10 shrink-0 bg-[#0c1017]">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center text-white shadow-md shadow-violet-500/25 shrink-0">
+                                        <Sparkles size={18} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black text-white tracking-tight">Galería de Diseños</h3>
+                                        <p className="text-[11px] text-slate-400 font-medium">
+                                            {allVisible.length === 1 ? '1 diseño disponible' : `${allVisible.length} diseños disponibles`}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowCatalogModal(false)}
+                                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all border border-white/10"
+                                    aria-label="Cerrar galería"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Tabs por servicio */}
+                            {servicesWithPhotos.length > 1 && (
+                                <div className="flex gap-2 px-4 py-2.5 overflow-x-auto shrink-0 scrollbar-none border-b border-white/5 bg-[#090d14]">
+                                    <button
+                                        onClick={() => setCatalogTab(null)}
+                                        className={`shrink-0 px-3.5 py-1 rounded-full text-xs font-bold transition-all ${
+                                            catalogTab === null
+                                                ? 'bg-violet-600 text-white shadow-md shadow-violet-500/30'
+                                                : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        Todos ({catalogItems.length})
+                                    </button>
+                                    {servicesWithPhotos.map(s => {
+                                        const count = catalogItems.filter(c => c.serviceId === s.id).length;
+                                        return (
+                                            <button
+                                                key={s.id}
+                                                onClick={() => setCatalogTab(s.id)}
+                                                className={`shrink-0 px-3.5 py-1 rounded-full text-xs font-bold transition-all ${
+                                                    catalogTab === s.id
+                                                        ? 'bg-violet-600 text-white shadow-md shadow-violet-500/30'
+                                                        : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white'
+                                                }`}
+                                            >
+                                                {s.name} ({count})
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Photo Grid */}
+                            <div className="flex-1 overflow-y-auto p-4 bg-[#07090e]">
+                                {allVisible.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-48 text-slate-500">
+                                        <Images size={36} className="mb-2 opacity-30 text-violet-400" />
+                                        <p className="text-xs font-medium">No hay fotos en esta categoría</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {allVisible.map(item => {
+                                            const svc = services.find(s => s.id === item.serviceId);
+                                            return (
+                                                <div
+                                                    key={item.id}
+                                                    className="group relative flex flex-col bg-slate-900/90 border border-white/10 hover:border-violet-500/50 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_4px_20px_rgba(139,92,246,0.15)] shadow-md"
+                                                    onClick={() => {
+                                                        setExpandedPhoto(item);
+                                                    }}
+                                                >
+                                                    {/* Image Container */}
+                                                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-950">
+                                                        <img
+                                                            decoding="async" loading="lazy"
+                                                            src={item.imageUrl}
+                                                            alt={item.title || svc?.name || 'Diseño'}
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 opacity-70 group-hover:opacity-40 transition-opacity" />
+
+                                                        {/* Service Badge */}
+                                                        {svc && (
+                                                            <span className="absolute top-1.5 left-1.5 text-[8px] font-black text-white bg-violet-600/90 backdrop-blur-md px-1.5 py-0.5 rounded-full shadow-md uppercase tracking-wider border border-violet-400/30">
+                                                                {svc.name}
+                                                            </span>
+                                                        )}
+
+                                                        {/* Duration Badge */}
+                                                        <span className="absolute top-1.5 right-1.5 text-[8px] font-bold text-slate-200 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border border-white/10">
+                                                            <Clock size={8} className="text-violet-400" />
+                                                            {item.duration || svc?.duration || 60}m
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Card Content */}
+                                                    <div className="p-2.5 flex flex-col justify-between flex-1 bg-slate-900/95 border-t border-white/5 text-left">
+                                                        <p className="text-[11px] font-bold text-white line-clamp-1 leading-snug group-hover:text-violet-300 transition-colors">
+                                                            {item.description || item.title || 'Diseño de catálogo'}
+                                                        </p>
+
+                                                        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/5">
+                                                            <span className="text-xs font-black text-violet-400">
+                                                                {item.price ? `$${item.price} MXN` : 'Costo base'}
+                                                            </span>
+                                                            <span className="text-[9px] font-black text-violet-300 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20 group-hover:bg-violet-600 group-hover:text-white transition-all flex items-center gap-0.5">
+                                                                Ver
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer CTA */}
+                            <div className="px-5 py-4 border-t border-white/10 shrink-0 bg-[#0c1017]">
+                                <button
+                                    onClick={() => setShowCatalogModal(false)}
+                                    className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs sm:text-sm font-bold transition-all shadow-sm"
+                                >
+                                    Volver a los servicios
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* ── LIGHTBOX / FOTO EXPANDIDA (ROOT LEVEL) ── */}
+            {expandedPhoto && (() => {
+                const svc = services.find(s => s.id === expandedPhoto.serviceId);
+                return (
+                    <div
+                        className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in"
+                        onClick={() => setExpandedPhoto(null)}
+                    >
+                        <div
+                            className="relative w-full max-w-sm bg-slate-900 border border-white/15 rounded-[2rem] overflow-hidden shadow-2xl animate-zoom-in"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Botón Cerrar (Tachita) */}
+                            <button
+                                onClick={() => setExpandedPhoto(null)}
+                                className="absolute top-3.5 right-3.5 z-10 w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center transition-colors border border-white/10"
+                                aria-label="Cerrar vista"
+                            >
+                                <X size={18} />
+                            </button>
+
+                            {/* Imagen Principal */}
+                            <div className="relative w-full aspect-square bg-slate-950 flex items-center justify-center">
+                                <img
+                                    decoding="async" loading="lazy"
+                                    src={expandedPhoto.imageUrl}
+                                    alt="Diseño expandido"
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80" />
+                                {svc && (
+                                    <span className="absolute bottom-3 left-3 text-[10px] font-black text-white bg-violet-600 px-3 py-1 rounded-full uppercase tracking-wider shadow-lg border border-violet-400/30">
+                                        {svc.name}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Detalles y CTA */}
+                            <div className="p-5 space-y-4 bg-slate-900 text-left">
+                                <div>
+                                    <h4 className="text-base font-bold text-white">
+                                        {expandedPhoto.description || 'Diseño Exclusivo'}
+                                    </h4>
+                                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                        Al elegir este diseño, se apartará automáticamente su duración estimada y precio base para tu cita.
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
+                                    <div>
+                                        <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold">Precio Total</span>
+                                        <span className="text-lg font-black text-violet-400">
+                                            {expandedPhoto.price ? `$${expandedPhoto.price} MXN` : 'Costo base'}
+                                        </span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold">Duración</span>
+                                        <span className="text-xs font-bold text-slate-200 flex items-center gap-1 mt-0.5">
+                                            <Clock size={12} className="text-violet-400" />
+                                            {expandedPhoto.duration || svc?.duration || 60} min
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (svc) {
+                                            setSelectedService(svc);
+                                            setSelectedCatalogItem(expandedPhoto);
+                                            setSelectedAddOns([]);
+                                            setExpandedPhoto(null);
+                                            setShowCatalogModal(false);
+
+                                            // Si el servicio tiene calculadora de uñas activa y extras configurados
+                                            const hasExtras = isNailCalculatorEnabled(businessConfig) && svc.enableQuoter && extrasCategory && extrasCategory.items && extrasCategory.items.length > 0;
+                                            if (hasExtras) {
+                                                setShowNailQuoterFlow(true);
+                                            } else {
+                                                const hasAddons = services.some(s => s.isAddon && !s.isPackage);
+                                                if (hasAddons) {
+                                                    setStep(23);
+                                                } else {
+                                                    setStep(25); // Mandar directamente a elegir fecha
+                                                }
+                                            }
+                                        }
+                                    }}
+                                    className="w-full btn btn-primary shadow-glow py-3.5 text-sm font-bold flex items-center justify-center gap-2 rounded-2xl"
+                                >
+                                    <span>Elegir este diseño</span>
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ══ PWA INSTALL BANNER ══ */}
             <PWAInstallBanner businessName={businessConfig?.name || undefined} />

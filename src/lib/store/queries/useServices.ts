@@ -12,14 +12,18 @@ function toDbService(s: Partial<Service> & Record<string, any>) {
         priceType,
         minPrice,
         maxPrice,
+        isPackage,
+        includedServiceNames,
         ...rest
     } = s;
     const db: Record<string, any> = { ...rest };
-    if (isAddon !== undefined)       db.is_addon      = isAddon;
-    if (enableQuoter !== undefined)  db.enable_quoter  = enableQuoter;
-    if (priceType !== undefined)     db.price_type     = priceType;
-    if (minPrice !== undefined)      db.min_price      = minPrice;
-    if (maxPrice !== undefined)      db.max_price      = maxPrice;
+    if (isAddon !== undefined)              db.is_addon                = isAddon;
+    if (enableQuoter !== undefined)         db.enable_quoter           = enableQuoter;
+    if (priceType !== undefined)            db.price_type              = priceType;
+    if (minPrice !== undefined)             db.min_price               = minPrice;
+    if (maxPrice !== undefined)             db.max_price               = maxPrice;
+    if (isPackage !== undefined)            db.is_package              = isPackage;
+    if (includedServiceNames !== undefined) db.included_service_names  = includedServiceNames;
     return db;
 }
 
@@ -27,11 +31,13 @@ function toDbService(s: Partial<Service> & Record<string, any>) {
 function fromDbService(d: Record<string, any>): Service {
     return {
         ...d,
-        isAddon:      d.is_addon,
-        enableQuoter: d.enable_quoter,
-        priceType:    d.price_type,
-        minPrice:     d.min_price,
-        maxPrice:     d.max_price,
+        isAddon:              d.is_addon,
+        enableQuoter:         d.enable_quoter,
+        priceType:            d.price_type,
+        minPrice:             d.min_price,
+        maxPrice:             d.max_price,
+        isPackage:            d.is_package,
+        includedServiceNames: d.included_service_names,
     } as Service;
 }
 

@@ -14,6 +14,7 @@ const mapRow = (row: any): CatalogItem => ({
     title: row.title ?? '',
     description: row.description ?? '',
     price: row.price ?? null,
+    duration: row.duration ?? null,
     imageUrl: row.image_url,
     sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
@@ -55,6 +56,7 @@ export const useCatalog = (serviceId?: number | null) => {
             title?: string;
             description?: string;
             price?: number | null;
+            duration?: number | null;
             serviceId?: number | null;
         }) => {
             if (!tenantId) throw new Error('No tenant');
@@ -66,6 +68,7 @@ export const useCatalog = (serviceId?: number | null) => {
                     title: item.title ?? null,
                     description: item.description ?? null,
                     price: item.price ?? null,
+                    duration: item.duration ?? null,
                     service_id: item.serviceId ?? null,
                     stylist_id: null,
                 }])
@@ -83,14 +86,15 @@ export const useCatalog = (serviceId?: number | null) => {
 
     // UPDATE item
     const updateMutation = useMutation({
-        mutationFn: async ({ id, title, description, price }: { id: string; title?: string; description?: string; price?: number | null }) => {
+        mutationFn: async ({ id, title, description, price, duration }: { id: string; title?: string; description?: string; price?: number | null; duration?: number | null }) => {
             if (!tenantId) throw new Error('No tenant');
             const { error } = await supabase
                 .from('catalog_items')
                 .update({ 
                     title: title ?? null, 
-                    description: description ?? null,
-                    price: price ?? null
+                    description: description ?? null, 
+                    price: price ?? null,
+                    duration: duration ?? null,
                 })
                 .eq('id', id)
                 .eq('tenant_id', tenantId);

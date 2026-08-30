@@ -28,10 +28,21 @@ export function calculateAppointmentDuration(
 ): number {
     const rawSvcId = apt.serviceId ?? apt.service_id;
     const baseSvc = services.find(s => String(s.id) === String(rawSvcId));
-    let total = Number(baseSvc?.duration) || 30;
+    let baseDuration = Number(baseSvc?.duration) || 30;
 
     const addServices = apt.additionalServices || apt.additional_services || [];
-    if (!Array.isArray(addServices) || addServices.length === 0) return total;
+    if (!Array.isArray(addServices) || addServices.length === 0) return baseDuration;
+
+    // Si se seleccionó un diseño del catálogo, su duración es la duración base del servicio
+    const catalogItem = addServices.find((s: string) => typeof s === 'string' && s.startsWith('Diseño Catálogo:'));
+    if (catalogItem) {
+        const catDurMatch = catalogItem.match(/\(?\+?(\d+)\s*min/i);
+        if (catDurMatch && catDurMatch[1]) {
+            baseDuration = Number(catDurMatch[1]);
+        }
+    }
+
+    let total = baseDuration;
 
     // Pre-extract nail quoter items if config is provided
     const allNailItems: any[] = [];
@@ -45,7 +56,12 @@ export function calculateAppointmentDuration(
 
     addServices.forEach((name: string) => {
         if (!name || typeof name !== 'string') return;
-        if (name.startsWith('Referencia:') || name.startsWith('Cotización Confirmada:') || name.startsWith('Cotización Estimada:')) {
+        if (
+            name.startsWith('Referencia:') || 
+            name.startsWith('Cotización Confirmada:') || 
+            name.startsWith('Cotización Estimada:') ||
+            name.startsWith('Diseño Catálogo:')
+        ) {
             return;
         }
 
