@@ -90,22 +90,16 @@ export default function Appointments() {
         const service = getServiceById(apt.serviceId);
         const addServices = apt.additionalServices || [];
 
-        const customPriceItem = addServices.find((s: string) => s.startsWith('Cotización Confirmada:'));
+        const customPriceItem = addServices.find((s: string) => s.startsWith('Cotización'));
         if (customPriceItem) {
-            const priceMatch = customPriceItem.match(/\$(\d+)/);
-            if (priceMatch) return Number(priceMatch[1]);
-        }
-
-        const quoteItem = addServices.find((s: string) => s.startsWith('Cotización Estimada:'));
-        if (quoteItem) {
-            const priceMatch = quoteItem.match(/\$(\d+)/);
+            const priceMatch = customPriceItem.match(/\$(\d+(\.\d+)?)/);
             if (priceMatch) return Number(priceMatch[1]);
         }
 
         let basePrice = service?.price || 0;
         const catalogItem = addServices.find((s: string) => s.startsWith('Diseño Catálogo:'));
         if (catalogItem) {
-            const priceMatch = catalogItem.match(/\$(\d+)/);
+            const priceMatch = catalogItem.match(/\$(\d+(\.\d+)?)/);
             if (priceMatch) {
                 basePrice = Number(priceMatch[1]);
             }
@@ -115,8 +109,7 @@ export default function Appointments() {
         addServices.forEach((name: string) => {
             if (
                 name.startsWith('Referencia:') || 
-                name.startsWith('Cotización Confirmada:') || 
-                name.startsWith('Cotización Estimada:') ||
+                name.startsWith('Cotización') || 
                 name.startsWith('Diseño Catálogo:')
             ) return;
             const extraMatch = name.match(/\(\+\$(\d+(\.\d+)?)/i) || name.match(/\+\$(\d+(\.\d+)?)/i);

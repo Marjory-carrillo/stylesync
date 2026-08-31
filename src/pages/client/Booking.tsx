@@ -33,11 +33,14 @@ import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
+import { usePublicQuote, markQuoteAsBooked } from '../../lib/store/queries/useQuotes';
 export default function Booking() {
     const { slug } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
     const urlPhone = searchParams.get('phone');
     const urlApptId = searchParams.get('appt');
+    const urlQuoteId = searchParams.get('quote');
+    const urlRef = searchParams.get('ref');
     const urlSvc = searchParams.get('svc');
     const urlStylist = searchParams.get('stylist');
     const urlSize = searchParams.get('size');
@@ -316,9 +319,46 @@ export default function Booking() {
         }
     }, [nailQuoterConfig, nailSize]);
 
-    // Pre-seleccionar automáticamente el servicio, especialista, largo y extras si vienen desde el enlace de cotización
+    const { data: publicQuote, isLoading: quoteLoading } = usePublicQuote(urlQuoteId);
+
+    // Pre-seleccionar automáticamente cuando viene desde un enlace de cotización único (?quote=...)
     useEffect(() => {
-        if (!urlSvc || services.length === 0) return;
+        if (!publicQuote || services.length === 0) return;
+
+        const matchedSvc = services.find(s => Number(s.id) === Number(publicQuote.serviceId));
+        if (matchedSvc) {
+            setSelectedService(matchedSvc);
+            setIsQuoterPrefilled(true);
+
+            if (publicQuote.stylistId && stylists.length > 0) {
+                const matchedStylist = stylists.find(st => Number(st.id) === Number(publicQuote.stylistId));
+                if (matchedStylist) setSelectedStylist(matchedStylist);
+            }
+
+            if (publicQuote.sizeId && sizeCategory) {
+                const matchedSize = sizeCategory.items.find(i => i.id === publicQuote.sizeId);
+                if (matchedSize) {
+                    setNailSize({ id: matchedSize.id, name: matchedSize.name, price: matchedSize.price });
+                }
+            } else if (publicQuote.sizeName) {
+                setNailSize({ id: publicQuote.sizeId || 'custom', name: publicQuote.sizeName, price: 0 });
+            }
+
+            if (publicQuote.extras && publicQuote.extras.length > 0) {
+                const extrasMap: Record<string, boolean> = {};
+                publicQuote.extras.forEach(ex => { extrasMap[ex.id] = true; });
+                setNailExtras(extrasMap);
+            }
+
+            if (publicQuote.referenceImageUrl) {
+                setNailDesignUrl(publicQuote.referenceImageUrl);
+            }
+        }
+    }, [publicQuote, services, stylists, sizeCategory]);
+
+    // Pre-seleccionar automáticamente si vienen parámetros tradicionales (?svc=...&ref=...)
+    useEffect(() => {
+        if (urlQuoteId || !urlSvc || services.length === 0) return;
         const matchedSvc = services.find(s => String(s.id) === urlSvc || s.name.toLowerCase() === urlSvc.toLowerCase());
         if (matchedSvc) {
             setSelectedService(matchedSvc);
@@ -342,12 +382,22 @@ export default function Booking() {
                 extraIds.forEach(id => { extrasMap[id] = true; });
                 setNailExtras(extrasMap);
             }
+
+            if (urlRef) {
+                setNailDesignUrl(urlRef);
+            }
         }
-    }, [urlSvc, urlStylist, urlSize, urlExtras, services, stylists, sizeCategory]);
+    }, [urlQuoteId, urlSvc, urlStylist, urlSize, urlExtras, urlRef, services, stylists, sizeCategory]);
 
     // Add-ons & Nail Extras computed values: duration adds up, price adds up
     const totalDuration = useMemo(() => {
         if (!selectedService) return 0;
+
+        // Si proviene de cotización directa personalizada
+        if (urlQuoteId && publicQuote && publicQuote.totalDuration > 0) {
+            return publicQuote.totalDuration;
+        }
+
         const customServicePrices = selectedStylist?.customServicePrices;
         let baseDuration = customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration;
 
@@ -390,10 +440,16 @@ export default function Booking() {
         }
 
         return baseDuration + extras + nailExtrasDuration;
-    }, [selectedService, selectedStylist, selectedCatalogItem, selectedAddOns, services, extrasCategory, nailExtras, nailSize, simplifiedDesignsCategory, designLevel]);
+    }, [selectedService, selectedStylist, selectedCatalogItem, selectedAddOns, services, extrasCategory, nailExtras, nailSize, simplifiedDesignsCategory, designLevel, urlQuoteId, publicQuote]);
 
     const nailTotalPrice = useMemo(() => {
         if (!selectedService) return 0;
+
+        // Si proviene de cotización directa personalizada
+        if (urlQuoteId && publicQuote && publicQuote.totalPrice > 0) {
+            return publicQuote.totalPrice;
+        }
+
         const customServicePrices = selectedStylist?.customServicePrices;
         const customQuoterConfig = selectedStylist?.customQuoterConfig;
 
@@ -423,7 +479,7 @@ export default function Booking() {
         }
 
         return sum;
-    }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, selectedStylist, nailSize, designLevel, nailExtras]);
+    }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, selectedStylist, nailSize, designLevel, nailExtras, urlQuoteId, publicQuote]);
 
     const totalPrice = useMemo(() => {
         const customServicePrices = selectedStylist?.customServicePrices;
@@ -993,53 +1049,74 @@ export default function Booking() {
 
         // 2. Incluir detalles de diseño de la calculadora si el servicio la tiene activa
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
-            if (nailSize) {
-                const sizePrice = selectedStylist?.customQuoterConfig?.[nailSize.id] ?? nailSize.price;
-                const sizeDur = selectedStylist?.customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
-                const durText = sizeDur > 0 ? `, +${sizeDur} min` : '';
-                addOnNames.push(`Largo: ${nailSize.name} (+$${sizePrice} MXN${durText})`);
-            }
-            const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
-            if (designItem) {
-                const designPrice = selectedStylist?.customQuoterConfig?.[designItem.id] ?? designItem.price;
-                const designDur = selectedStylist?.customQuoterConfig?.[`${designItem.id}_dur`] ?? (designItem as any).duration ?? 0;
-                const durText = designDur > 0 ? `, +${designDur} min` : '';
-                const priceText = designPrice > 0 ? ` (+$${designPrice} MXN${durText})` : (durText ? ` (Sin costo${durText})` : ' (Sin costo)');
-                addOnNames.push(`Diseño: ${designItem.name}${priceText}`);
-            } else {
-                if (designLevel === 'basic') {
-                    addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
-                } else if (designLevel === 'simple') {
-                    const simplePrice = selectedStylist?.customQuoterConfig?.['simple'] ?? 50;
-                    addOnNames.push(`Diseño: Sencillo (+$${simplePrice} MXN)`);
-                } else if (designLevel === 'complex') {
-                    const complexPrice = selectedStylist?.customQuoterConfig?.['complex'] ?? 150;
-                    addOnNames.push(`Diseño: Elaborado / Full Art (+$${complexPrice} MXN)`);
+            // Si proviene de cotización directa personalizada
+            if (urlQuoteId && publicQuote) {
+                if (publicQuote.sizeName) {
+                    addOnNames.push(`Largo: ${publicQuote.sizeName}`);
                 }
-            }
-            const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
-            if (extrasCat) {
-                extrasCat.items.forEach(item => {
-                    if (nailExtras[item.id]) {
-                        const extraPrice = selectedStylist?.customQuoterConfig?.[item.id] ?? item.price;
-                        const itemDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`] ?? (item as any).duration ?? 0;
-                        const durText = itemDur > 0 ? `, +${itemDur} min` : '';
-                        addOnNames.push(`Extra: ${item.name} (+$${extraPrice} MXN${durText})`);
+                if (publicQuote.styles && publicQuote.styles.length > 0) {
+                    const stylesFormatted = publicQuote.styles
+                        .map(st => `${st.name}${st.qty > 1 ? ` (x${st.qty})` : (st.unit ? ` (${st.qty} ${st.unit})` : '')}`)
+                        .join(', ');
+                    addOnNames.push(`Diseño / Estilo: ${stylesFormatted}`);
+                }
+                if (publicQuote.extras && publicQuote.extras.length > 0) {
+                    const extrasFormatted = publicQuote.extras.map(e => e.name).join(', ');
+                    addOnNames.push(`Extras: ${extrasFormatted}`);
+                }
+                if (publicQuote.referenceImageUrl || nailDesignUrl) {
+                    addOnNames.push(`Referencia: ${publicQuote.referenceImageUrl || nailDesignUrl}`);
+                }
+                addOnNames.push(`Cotización Confirmada: $${publicQuote.totalPrice} MXN`);
+            } else {
+                if (nailSize) {
+                    const sizePrice = selectedStylist?.customQuoterConfig?.[nailSize.id] ?? nailSize.price;
+                    const sizeDur = selectedStylist?.customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
+                    const durText = sizeDur > 0 ? `, +${sizeDur} min` : '';
+                    addOnNames.push(`Largo: ${nailSize.name} (+$${sizePrice} MXN${durText})`);
+                }
+                const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
+                if (designItem) {
+                    const designPrice = selectedStylist?.customQuoterConfig?.[designItem.id] ?? designItem.price;
+                    const designDur = selectedStylist?.customQuoterConfig?.[`${designItem.id}_dur`] ?? (designItem as any).duration ?? 0;
+                    const durText = designDur > 0 ? `, +${designDur} min` : '';
+                    const priceText = designPrice > 0 ? ` (+$${designPrice} MXN${durText})` : (durText ? ` (Sin costo${durText})` : ' (Sin costo)');
+                    addOnNames.push(`Diseño: ${designItem.name}${priceText}`);
+                } else {
+                    if (designLevel === 'basic') {
+                        addOnNames.push(`Diseño: Básico / 1 Tono (Sin costo)`);
+                    } else if (designLevel === 'simple') {
+                        const simplePrice = selectedStylist?.customQuoterConfig?.['simple'] ?? 50;
+                        addOnNames.push(`Diseño: Sencillo (+$${simplePrice} MXN)`);
+                    } else if (designLevel === 'complex') {
+                        const complexPrice = selectedStylist?.customQuoterConfig?.['complex'] ?? 150;
+                        addOnNames.push(`Diseño: Elaborado / Full Art (+$${complexPrice} MXN)`);
                     }
-                });
-            }
-            if (nailDesignUrl) {
-                addOnNames.push(`Referencia: ${nailDesignUrl}`);
-            }
+                }
+                const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+                if (extrasCat) {
+                    extrasCat.items.forEach(item => {
+                        if (nailExtras[item.id]) {
+                            const extraPrice = selectedStylist?.customQuoterConfig?.[item.id] ?? item.price;
+                            const itemDur = selectedStylist?.customQuoterConfig?.[`${item.id}_dur`] ?? (item as any).duration ?? 0;
+                            const durText = itemDur > 0 ? `, +${itemDur} min` : '';
+                            addOnNames.push(`Extra: ${item.name} (+$${extraPrice} MXN${durText})`);
+                        }
+                    });
+                }
+                if (nailDesignUrl) {
+                    addOnNames.push(`Referencia: ${nailDesignUrl}`);
+                }
 
-            // Calcular total acumulado incluyendo los servicios adicionales reales
-            const realAddOnsTotalPrice = selectedAddOns.reduce((sum, id) => {
-                const svc = services.find(s => Number(s.id) === Number(id));
-                return sum + (svc?.price || 0);
-            }, 0);
-            const totalWithAddOns = nailTotalPrice + realAddOnsTotalPrice;
+                // Calcular total acumulado incluyendo los servicios adicionales reales
+                const realAddOnsTotalPrice = selectedAddOns.reduce((sum, id) => {
+                    const svc = services.find(s => Number(s.id) === Number(id));
+                    return sum + (svc?.price || 0);
+                }, 0);
+                const totalWithAddOns = nailTotalPrice + realAddOnsTotalPrice;
 
-            addOnNames.push(`Cotización Estimada: $${totalWithAddOns} MXN`);
+                addOnNames.push(`Cotización Estimada: $${totalWithAddOns} MXN`);
+            }
         } else {
             if (selectedCatalogItem) {
                 addOnNames.push(`Referencia: ${selectedCatalogItem.imageUrl}`);
@@ -1065,7 +1142,8 @@ export default function Booking() {
             }
         }
 
-        const combinedServiceName = selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.filter(n => !n.startsWith('Cotización') && !n.startsWith('Referencia:')).join(' + ') : '');
+        const realAddons = getRealAdditionalServices(addOnNames, services);
+        const combinedServiceName = selectedService.name + (realAddons.length > 0 ? ' + ' + realAddons.join(' + ') : '');
         const commRate = (businessConfig as any)?.marketplaceCommissionRate ?? 15.0;
         const commAmount = isMarketplaceSession ? (selectedService.price * (commRate / 100)) : 0;
 
@@ -1088,6 +1166,9 @@ export default function Booking() {
         setBookingResult(result);
         if (result.success) {
             setStep(5);
+            if (urlQuoteId && (result as any)?.id) {
+                markQuoteAsBooked(urlQuoteId, (result as any).id);
+            }
             // Guardar perfil en localStorage para agendar rápido después
             try {
                 const name = clientName.trim();
@@ -1117,9 +1198,11 @@ export default function Booking() {
                 const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
                 const hasDesignPrice = designItem ? designItem.price > 0 : (designLevel === 'simple' || designLevel === 'complex');
 
-                const isVariablePrice = selectedService.priceType === 'no_price' || 
-                    selectedService.priceType === 'range' || 
-                    (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice));
+                const isVariablePrice = urlQuoteId
+                    ? false
+                    : (selectedService.priceType === 'no_price' || 
+                       selectedService.priceType === 'range' || 
+                       (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice)));
 
                 fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
                     method: 'POST',
@@ -1601,8 +1684,64 @@ export default function Booking() {
                             </p>
                         </div>
 
-                        {/* Banner de Cotización Pre-cargada */}
-                        {isQuoterPrefilled && selectedService && (
+                        {/* Alerta de Cotización Ya Agendada */}
+                        {urlQuoteId && !quoteLoading && publicQuote && publicQuote.status === 'agendada' && (
+                            <div className="mb-6 p-4 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-left space-y-1 shadow-lg">
+                                <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs">
+                                    <CheckCircle2 size={15} />
+                                    <span>Cotización ya agendada previamente</span>
+                                </div>
+                                <p className="text-xs text-slate-300">
+                                    Esta cotización ya fue utilizada para reservar una cita. Si deseas realizar otra reserva con estos mismos datos, puedes continuar abajo.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Alerta de Cotización Inexistente o Eliminada */}
+                        {urlQuoteId && !quoteLoading && !publicQuote && (
+                            <div className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-left space-y-1 shadow-lg">
+                                <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                                    <AlertTriangle size={15} />
+                                    <span>Cotización no disponible o eliminada</span>
+                                </div>
+                                <p className="text-xs text-slate-300">
+                                    El enlace de cotización no se encuentra disponible. Por favor ingresa tus datos y selecciona tu servicio a continuación.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Banner de Cotización Pre-cargada con foto y precio */}
+                        {publicQuote && publicQuote.status === 'pendiente' && selectedService ? (
+                            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-violet-500/20 border border-pink-500/35 text-left space-y-2 shadow-lg">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-black text-pink-300 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Sparkles size={13} className="text-pink-400" /> Cotización Personalizada Aplicada
+                                    </span>
+                                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                                        Presupuesto Guardado ✨
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3 pt-1">
+                                    {publicQuote.referenceImageUrl && (
+                                        <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/20 bg-black shrink-0">
+                                            <img src={publicQuote.referenceImageUrl} alt="Diseño" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white text-sm font-black truncate">
+                                            {selectedService.name} {publicQuote.sizeName ? `• ${publicQuote.sizeName}` : ''}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-xs mt-0.5">
+                                            <span className="font-extrabold text-emerald-400">${publicQuote.totalPrice} MXN</span>
+                                            <span className="text-slate-400">• {publicQuote.totalDuration} min</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-slate-300 font-medium pt-0.5">
+                                    Ingresa tu nombre y WhatsApp para confirmar tu fecha y hora 📅
+                                </p>
+                            </div>
+                        ) : isQuoterPrefilled && selectedService && (
                             <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-violet-500/15 border border-pink-500/30 text-left space-y-1 shadow-lg">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[11px] font-black text-pink-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -3672,39 +3811,65 @@ export default function Booking() {
 
                                     {/* Breakdown of customization details (Nails) */}
                                     {isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && (
-                                        <div className="border-t border-white/5 pt-3 mt-3 space-y-1.5 text-xs text-slate-300">
-                                            {nailSize && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-500">Largo:</span>
-                                                    <span className="font-bold text-white">{nailSize.name}</span>
+                                        <div className="border-t border-white/10 pt-3.5 mt-3.5 space-y-2.5 text-xs text-slate-300">
+                                            {(nailSize || publicQuote?.sizeName) && (
+                                                <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+                                                    <span className="text-slate-400 text-xs font-medium">Largo:</span>
+                                                    <span className="font-bold text-white text-xs">{nailSize?.name || publicQuote?.sizeName}</span>
                                                 </div>
                                             )}
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-500">Diseño:</span>
-                                                <span className="font-bold text-white font-medium">
-                                                    {designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo' : 'Elaborado / Full Art'}
-                                                </span>
-                                            </div>
-                                            {Object.keys(nailExtras).some(id => nailExtras[id]) && (
-                                                <div className="flex justify-between items-start">
-                                                    <span className="text-slate-500 shrink-0">Extras:</span>
-                                                    <span className="font-bold text-white text-right">
-                                                        {Object.keys(nailExtras)
-                                                            .filter(id => nailExtras[id])
-                                                            .map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name)
-                                                            .join(', ')}
+                                            
+                                            {/* Si viene de una cotización directa con estilos */}
+                                            {urlQuoteId && publicQuote?.styles && publicQuote.styles.length > 0 ? (
+                                                <div className="bg-white/5 p-3 rounded-xl border border-white/5 space-y-2 text-left">
+                                                    <span className="text-slate-400 text-[11px] font-semibold block">Diseño / Arte personalizado:</span>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {publicQuote.styles.map((s, idx) => (
+                                                            <span
+                                                                key={idx}
+                                                                className="inline-flex items-center gap-1.5 bg-pink-500/15 text-pink-200 border border-pink-500/30 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-xs"
+                                                            >
+                                                                <span>{s.name}</span>
+                                                                {s.qty > 1 && (
+                                                                    <span className="text-pink-300 font-black text-[10px] bg-pink-500/30 px-1.5 py-0.5 rounded-md">
+                                                                        x{s.qty}
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+                                                    <span className="text-slate-400 text-xs font-medium">Diseño:</span>
+                                                    <span className="font-bold text-white text-xs">
+                                                        {designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo' : 'Elaborado / Full Art'}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {(Object.keys(nailExtras).some(id => nailExtras[id]) || (urlQuoteId && publicQuote?.extras && publicQuote.extras.length > 0)) && (
+                                                <div className="bg-white/5 px-3 py-2 rounded-xl border border-white/5 flex justify-between items-center">
+                                                    <span className="text-slate-400 text-xs font-medium shrink-0">Extras:</span>
+                                                    <span className="font-bold text-white text-xs text-right">
+                                                        {urlQuoteId && publicQuote?.extras && publicQuote.extras.length > 0
+                                                            ? publicQuote.extras.map(e => e.name).join(', ')
+                                                            : Object.keys(nailExtras)
+                                                                .filter(id => nailExtras[id])
+                                                                .map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name || id)
+                                                                .join(', ')}
                                                     </span>
                                                 </div>
                                             )}
                                             {selectedCatalogItem && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-500">Diseño Catálogo:</span>
+                                                <div className="flex justify-between items-center bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+                                                    <span className="text-slate-400 text-xs font-medium">Diseño Catálogo:</span>
                                                     <span className="font-bold text-white truncate max-w-[150px]">{selectedCatalogItem.description || 'Diseño'}</span>
                                                 </div>
                                             )}
-                                            {(nailDesignUrl || selectedCatalogItem?.imageUrl) && (
-                                                <div className="flex items-center gap-1.5 text-[10px] text-cyan-400 font-bold mt-2 pt-2 border-t border-white/5">
-                                                    <span>📸 Referencia de diseño adjunta</span>
+                                            {(nailDesignUrl || publicQuote?.referenceImageUrl || selectedCatalogItem?.imageUrl) && (
+                                                <div className="flex items-center gap-2 text-[11px] text-cyan-300 font-bold bg-cyan-500/10 border border-cyan-500/25 px-3 py-2 rounded-xl">
+                                                    <span>📸 Referencia de diseño adjunta a la cita</span>
                                                 </div>
                                             )}
                                         </div>
@@ -3736,13 +3901,21 @@ export default function Booking() {
                             {selectedService && selectedTime && selectedDate && (() => {
                                 const details: string[] = [`Servicio: ${selectedService.name}`];
                                 if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
-                                    if (nailSize) details.push(`Largo: ${nailSize.name}`);
-                                    if (designLevel) details.push(`Diseño: ${designLevel}`);
-                                    const activeExtraIds = Object.keys(nailExtras).filter(id => nailExtras[id]);
-                                    if (activeExtraIds.length > 0) {
-                                        const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
-                                        const extraNames = activeExtraIds.map(id => extrasCat?.items.find(i => i.id === id)?.name || id);
-                                        details.push(`Extras: ${extraNames.join(', ')}`);
+                                    if (nailSize || publicQuote?.sizeName) details.push(`Largo: ${nailSize?.name || publicQuote?.sizeName}`);
+                                    if (urlQuoteId && publicQuote?.styles && publicQuote.styles.length > 0) {
+                                        details.push(`Diseño/Arte: ${publicQuote.styles.map(s => `${s.name}${s.qty > 1 ? ` (x${s.qty})` : ''}`).join(', ')}`);
+                                    } else if (designLevel) {
+                                        details.push(`Diseño: ${designLevel === 'basic' ? 'Básico' : designLevel === 'simple' ? 'Sencillo' : 'Elaborado'}`);
+                                    }
+                                    if (urlQuoteId && publicQuote?.extras && publicQuote.extras.length > 0) {
+                                        details.push(`Extras: ${publicQuote.extras.map(e => e.name).join(', ')}`);
+                                    } else {
+                                        const activeExtraIds = Object.keys(nailExtras).filter(id => nailExtras[id]);
+                                        if (activeExtraIds.length > 0) {
+                                            const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+                                            const extraNames = activeExtraIds.map(id => extrasCat?.items.find(i => i.id === id)?.name || id);
+                                            details.push(`Extras: ${extraNames.join(', ')}`);
+                                        }
                                     }
                                 }
                                 if (selectedAddOns.length > 0) {

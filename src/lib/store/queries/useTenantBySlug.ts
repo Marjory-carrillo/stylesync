@@ -34,9 +34,13 @@ export const useTenantBySlug = (slug?: string) => {
 
     useEffect(() => {
         if (query.data && query.data !== currentTenantId) {
-            // Configure the public tenant ID in the global store
-            // We set role to null/no_tenant so it doesn't grant admin permissions
-            setTenantData({ tenantId: query.data, userRole: null, userStylistId: null });
+            const currentRole = useAuthStore.getState().userRole;
+            const currentStylist = useAuthStore.getState().userStylistId;
+            setTenantData({ 
+                tenantId: query.data, 
+                userRole: currentRole ?? null, 
+                userStylistId: currentStylist ?? null 
+            });
             
             // Persist for smart routing if needed
             localStorage.setItem('citalink_last_slug', slug!);

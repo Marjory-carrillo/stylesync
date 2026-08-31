@@ -200,7 +200,7 @@ export default function Dashboard() {
         const addServices = apt.additionalServices || [];
 
         const customPriceItem = addServices.find((s: string) =>
-            s.startsWith('Cotización Confirmada:') || s.startsWith('Cotización Estimada:')
+            s.startsWith('Cotización')
         );
 
         if (customPriceItem) {
@@ -222,8 +222,7 @@ export default function Dashboard() {
         let total = basePrice;
         addServices.forEach((extra: string) => {
             if (
-                extra.startsWith('Cotización Confirmada:') || 
-                extra.startsWith('Cotización Estimada:') || 
+                extra.startsWith('Cotización') || 
                 extra.startsWith('Referencia:') ||
                 extra.startsWith('Diseño Catálogo:')
             ) {
@@ -429,7 +428,11 @@ export default function Dashboard() {
             const svc = services.find(s => s.id === a.serviceId);
             if (!svc) return false;
             
-            const isConfirmed = (a.additionalServices || []).some((s: string) => s.startsWith('Cotización Confirmada:'));
+            const isConfirmed = (a.additionalServices || []).some((s: string) => 
+                s.startsWith('Cotización Confirmada:') || 
+                s.startsWith('Cotización:') || 
+                s.startsWith('Cotización Personalizada:')
+            );
             if (isConfirmed) return false;
 
             const isVar = svc.priceType === 'no_price' || svc.priceType === 'range';

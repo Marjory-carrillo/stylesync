@@ -32,6 +32,26 @@ export interface CatalogItem {
     createdAt: string;
 }
 
+export interface Quote {
+    id: string; // UUID
+    tenantId: number;
+    serviceId?: number | null;
+    stylistId?: number | null;
+    clientName?: string | null;
+    clientPhone?: string | null;
+    sizeId?: string | null;
+    sizeName?: string | null;
+    styles?: Array<{ id: string; name: string; qty: number; price: number; duration?: number; unit?: string }>;
+    extras?: Array<{ id: string; name: string; price: number; duration?: number }>;
+    referenceImageUrl?: string | null;
+    totalPrice: number;
+    totalDuration: number;
+    status: 'pendiente' | 'agendada' | 'cancelada';
+    appointmentId?: string | null;
+    createdAt: string;
+    updatedAt?: string;
+}
+
 export interface Stylist {
     id: number;
     name: string;

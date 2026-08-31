@@ -122,22 +122,21 @@ export function isQuoterOrMetaOption(s: string): boolean {
     if (!s || typeof s !== 'string') return true;
     const trimmed = s.trim();
     return (
-        trimmed.startsWith('Referencia:') ||
+        trimmed.startsWith('Referencia') ||
         trimmed.startsWith('Cotización') ||
-        trimmed.startsWith('Diseño:') ||
-        trimmed.startsWith('Diseño Catálogo:') ||
-        trimmed.startsWith('Catálogo:') ||
-        trimmed.startsWith('Largo:') ||
-        trimmed.startsWith('Forma:') ||
-        trimmed.startsWith('Grosor:') ||
-        trimmed.startsWith('Técnica:') ||
-        trimmed.startsWith('Color:') ||
-        trimmed.startsWith('Efecto:') ||
-        trimmed.startsWith('Decoración:') ||
-        trimmed.startsWith('Extra:') ||
-        trimmed.startsWith('Estilo:') ||
-        trimmed.startsWith('Tamaño:') ||
-        trimmed.startsWith('Nivel:')
+        trimmed.startsWith('Diseño') ||
+        trimmed.startsWith('Catálogo') ||
+        trimmed.startsWith('Largo') ||
+        trimmed.startsWith('Forma') ||
+        trimmed.startsWith('Grosor') ||
+        trimmed.startsWith('Técnica') ||
+        trimmed.startsWith('Color') ||
+        trimmed.startsWith('Efecto') ||
+        trimmed.startsWith('Decoración') ||
+        trimmed.startsWith('Extra') ||
+        trimmed.startsWith('Estilo') ||
+        trimmed.startsWith('Tamaño') ||
+        trimmed.startsWith('Nivel')
     );
 }
 
@@ -174,10 +173,17 @@ export function formatAddOnItemDisplay(
     nailQuoterConfig: any[] = []
 ): string {
     if (!itemStr) return '';
-    const trimmed = itemStr.trim();
+    let trimmed = itemStr.trim();
     if (trimmed.startsWith('Referencia:')) return trimmed;
 
-    // Si ya contiene especificación de duración explícita ej: "+20 min" o "20 min" o "(20 min)", retornarlo tal cual
+    // Limpiar duraciones en cero como ", +0 min", "+0 min", "(+0 min)"
+    trimmed = trimmed
+        .replace(/,\s*\+0\s*min/gi, '')
+        .replace(/\(\+0\s*min\)/gi, '')
+        .replace(/\+0\s*min/gi, '')
+        .trim();
+
+    // Si ya contiene especificación de duración explícita positiva ej: "+20 min" o "(20 min)", retornarlo tal cual
     if (/\d+\s*min/i.test(trimmed)) {
         return trimmed;
     }

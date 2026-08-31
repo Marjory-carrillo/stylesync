@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, addDays, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, User, Phone, Sparkles, Calendar, Clock, ChevronLeft, CheckCircle, AlertTriangle, Loader2, UserCheck, Plus, Minus } from 'lucide-react';
+import { X, User, Phone, Sparkles, Calendar, Clock, ChevronLeft, CheckCircle, AlertTriangle, Loader2, UserCheck, Plus, Minus, Image as ImageIcon, Upload, Trash2, Maximize2 } from 'lucide-react';
 import { useAppointments } from '../lib/store/queries/useAppointments';
 import { useServices } from '../lib/store/queries/useServices';
 import { useStylists } from '../lib/store/queries/useStylists';
@@ -10,10 +10,13 @@ import { useBlockedPhones } from '../lib/store/queries/useBlockedPhones';
 import { useSchedule } from '../lib/store/queries/useSchedule';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { useNailCalculator } from '../lib/store/queries/useNailCalculator';
+import { useImageUpload } from '../lib/store/queries/useImageUpload';
+import { useUIStore } from '../lib/store/uiStore';
 import { getSmartSlots, calculateAppointmentDuration, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 import { isNailCalculatorEnabled, isAppointmentActive } from '../lib/planLimits';
 import { useAuthStore } from '../lib/store/authStore';
 import { normalizePhone, formatPhoneDisplay } from '../lib/schemas';
+import { sendManualBookingClientNotification } from '../lib/whatsappService';
 
 export const DAY_NAMES: Record<string, string> = {
     monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles',
@@ -35,6 +38,20 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const { unblockPhone, isPhoneBlocked } = useBlockedPhones();
     const { schedule } = useSchedule();
     const { data: businessConfig } = useTenantData();
+    const { uploadNailDesign } = useImageUpload();
+    const { showToast } = useUIStore();
+
+    // Form state
+    const [step, setStep] = useState<Step>('datos');
+    const [clientName, setClientName] = useState('');
+    const [clientPhone, setClientPhone] = useState('');
+    const [selectedService, setSelectedService] = useState<any | null>(null);
+    const [selectedStylist, setSelectedStylist] = useState<any | 'any'>('any');
+    const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+    const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
+    const [formError, setFormError] = useState<string | null>(null);
+    const [lastCreated, setLastCreated] = useState<{ clientName: string; date: string; time: string } | null>(null);
 
     // Nail Calculator config & states
     const { config: nailQuoterConfig } = useNailCalculator();
@@ -47,6 +64,9 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     const [selectedStyles, setSelectedStyles] = useState<Record<string, { checked: boolean; qty: number }>>({});
     const [nailExtras, setNailExtras] = useState<Record<string, boolean>>({});
     const [designLevel, setDesignLevel] = useState<'basic' | 'simple' | 'complex'>('basic');
+    const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
+    const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState<boolean>(false);
     
     // Set default nail size once config is loaded
     useEffect(() => {
@@ -56,6 +76,41 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
     }, [nailQuoterConfig, nailSize]);
 
+    const processAndUploadFile = async (file: File | Blob) => {
+        try {
+            setIsUploadingPhoto(true);
+            const publicUrl = await uploadNailDesign(file);
+            if (publicUrl) {
+                setUploadedImageUrl(publicUrl);
+                showToast('📸 Foto de referencia lista para la cita', 'success');
+            }
+        } catch (err) {
+            console.error('Error subiendo foto de referencia:', err);
+            showToast('Error al subir la imagen', 'error');
+        } finally {
+            setIsUploadingPhoto(false);
+        }
+    };
+
+    // Listener for Ctrl + V image paste when modal is open and on step servicio
+    useEffect(() => {
+        if (!isOpen || step !== 'servicio') return;
+        const handlePaste = (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    if (blob) {
+                        processAndUploadFile(blob);
+                    }
+                }
+            }
+        };
+        window.addEventListener('paste', handlePaste);
+        return () => window.removeEventListener('paste', handlePaste);
+    }, [isOpen, step, uploadNailDesign]);
+
     // Auxiliary schedule retriever
     const getScheduleForDate = (dateStr: string) => {
         const d = new Date(dateStr + 'T00:00:00');
@@ -64,18 +119,6 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
     };
 
     const bufferMinutes = businessConfig?.breakBetweenAppointments ?? 0;
-
-    // Form state
-    const [step, setStep] = useState<Step>('datos');
-    const [clientName, setClientName] = useState('');
-    const [clientPhone, setClientPhone] = useState('');
-    const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
-    const [selectedStylist, setSelectedStylist] = useState<typeof stylists[0] | null | 'any'>('any');
-    const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-    const [selectedTime, setSelectedTime] = useState<string | null>(null);
-    const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
-    const [formError, setFormError] = useState<string | null>(null);
-    const [lastCreated, setLastCreated] = useState<{ clientName: string; date: string; time: string } | null>(null);
 
     // Reset all state
     const reset = () => {
@@ -92,6 +135,8 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         setSelectedStyles({});
         setSelectedAddons({});
         setDesignLevel('basic');
+        setUploadedImageUrl(null);
+        setIsUploadingPhoto(false);
     };
 
     const handleClose = () => {
@@ -351,6 +396,9 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         // Build additionalServices/addOnNames
         let addOnNames: string[] = [];
         if (isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter) {
+            if (uploadedImageUrl) {
+                addOnNames.push(`Referencia: ${uploadedImageUrl}`);
+            }
             if (nailSize) {
                 const sizePrice = customQuoterConfig?.[nailSize.id] ?? nailSize.price;
                 const sizeDur = customQuoterConfig?.[`${nailSize.id}_dur`] ?? (nailSize as any).duration ?? 0;
@@ -450,32 +498,17 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             setLastCreated({ clientName: clientName.trim(), date: selectedDate, time: selectedTime });
             setStep('exito');
 
-            // Notificar al cliente con la plantilla limpia de cita manual y notificar al Admin
-            if (businessConfig) {
-                const tenantId = useAuthStore.getState().tenantId;
-                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-                const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-                fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
-                    body: JSON.stringify({
-                        tenant_id:     tenantId,
-                        event_type:    'manual',
-                        admin_phone:   businessConfig.phone ?? undefined,
-                        business_name: businessConfig.name  ?? undefined,
-                        appointment: {
-                            id:                 (res as any)?.id,
-                            client_name:        clientName.trim(),
-                            client_phone:       cleanPhone,
-                            service_name:       combinedServiceName,
-                            date:               selectedDate,
-                            time:               selectedTime,
-                            stylist_id:         stylistId ? Number(stylistId) : undefined,
-                            additional_services: undefined,
-                        },
-                    }),
-                }).catch(() => { /* fire-and-forget */ });
+            // Notificar exclusivamente al cliente con su plantilla oficial de cita manual
+            if (businessConfig && cleanPhone) {
+                sendManualBookingClientNotification({
+                    clientPhone: cleanPhone,
+                    clientName: clientName.trim(),
+                    businessName: businessConfig.name || 'CitaLink',
+                    businessSlug: businessConfig.slug || undefined,
+                    date: selectedDate,
+                    time: selectedTime,
+                    serviceName: combinedServiceName,
+                });
             }
         } catch {
             // Error toast is handled by useAppointments
@@ -704,6 +737,84 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         >
                                             Cambiar
                                         </button>
+                                    </div>
+
+                                    {/* Reference Design Photo Uploader */}
+                                    <div className="p-3.5 rounded-2xl border border-white/10 space-y-2.5 bg-slate-900/60 shadow-xl">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                                <ImageIcon size={15} className="text-pink-400" /> Foto de Referencia
+                                                {isUploadingPhoto && (
+                                                    <span className="text-[10px] text-cyan-400 flex items-center gap-1 font-normal lowercase">
+                                                        <Loader2 size={11} className="animate-spin" /> subiendo...
+                                                    </span>
+                                                )}
+                                            </h4>
+                                            {uploadedImageUrl && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setUploadedImageUrl(null)}
+                                                    className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold transition-colors bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-500/20"
+                                                >
+                                                    <Trash2 size={11} /> Quitar Foto
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {!uploadedImageUrl ? (
+                                            <label className="border-2 border-dashed border-pink-400/30 hover:border-pink-400 rounded-xl p-3 flex items-center justify-center gap-3 cursor-pointer bg-slate-950/40 hover:bg-pink-500/5 transition-all text-left group">
+                                                <div className="w-8 h-8 rounded-xl bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
+                                                    <Upload size={15} />
+                                                </div>
+                                                <div className="space-y-0.5 min-w-0 flex-1">
+                                                    <p className="text-xs font-bold text-slate-200 truncate">
+                                                        Subir foto o <kbd className="px-1 py-0.5 rounded bg-white/10 border border-white/20 text-[9px] text-pink-300 font-mono">Ctrl + V</kbd> para pegar
+                                                    </p>
+                                                    <p className="text-[10px] text-pink-300/70 truncate">
+                                                        Se adjuntará a la cita para que la especialista la vea en la agenda.
+                                                    </p>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) processAndUploadFile(file);
+                                                    }}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        ) : (
+                                            <div className="flex items-center gap-3 bg-slate-950/70 p-2.5 rounded-xl border border-white/10">
+                                                <div
+                                                    onClick={() => setIsPhotoLightboxOpen(true)}
+                                                    className="relative w-14 h-14 rounded-lg overflow-hidden border border-white/20 shrink-0 bg-slate-900 shadow-md cursor-pointer group"
+                                                    title="Haz clic para ver foto en pantalla completa"
+                                                >
+                                                    <img
+                                                        decoding="async" loading="lazy"
+                                                        src={uploadedImageUrl}
+                                                        alt="Diseño de referencia"
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                        <Maximize2 size={14} />
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 min-w-0 space-y-0.5 text-left">
+                                                    <p className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                                                        ✓ Foto adjunta a la cita
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsPhotoLightboxOpen(true)}
+                                                        className="text-[11px] text-pink-300 hover:text-pink-200 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                                                    >
+                                                        <Maximize2 size={12} className="text-pink-400" /> Ver foto completa / Zoom
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Nail Size Selector */}
@@ -1224,22 +1335,49 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                         {/* Nails Customization details breakdown in admin summary card */}
                                         {isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && (
                                             <div className="border-t border-white/5 pt-2.5 mt-2.5 space-y-1.5 text-xs text-slate-400">
+                                                {uploadedImageUrl && (
+                                                    <div className="flex items-center justify-between pb-1 border-b border-white/5">
+                                                        <span>Foto de Referencia:</span>
+                                                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/20 shrink-0 bg-slate-900 shadow-sm">
+                                                            <img decoding="async" loading="lazy" src={uploadedImageUrl} alt="Ref" className="w-full h-full object-cover" />
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {nailSize && (
                                                     <div className="flex justify-between">
                                                         <span>Largo:</span>
                                                         <span className="text-slate-200 font-bold">{nailSize.name}</span>
                                                     </div>
                                                 )}
-                                                <div className="flex justify-between">
-                                                    <span>Diseño:</span>
-                                                    <span className="text-slate-200 font-bold">
-                                                        {designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo' : 'Elaborado / Full Art'}
-                                                    </span>
-                                                </div>
+                                                {stylesCategory ? (
+                                                    Object.keys(selectedStyles).some(id => selectedStyles[id]?.checked) && (
+                                                        <div className="flex justify-between items-start">
+                                                            <span>Diseños / Estilos:</span>
+                                                            <span className="text-slate-200 font-bold text-right truncate max-w-[180px]">
+                                                                {Object.keys(selectedStyles)
+                                                                    .filter(id => selectedStyles[id]?.checked)
+                                                                    .map(id => {
+                                                                        const it = stylesCategory.items.find(i => i.id === id);
+                                                                        const qty = selectedStyles[id].qty;
+                                                                        return it ? `${it.name}${qty > 1 ? ` (x${qty})` : ''}` : '';
+                                                                    })
+                                                                    .filter(Boolean)
+                                                                    .join(', ')}
+                                                            </span>
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <div className="flex justify-between">
+                                                        <span>Diseño:</span>
+                                                        <span className="text-slate-200 font-bold">
+                                                            {designLevel === 'basic' ? 'Básico / 1 Tono' : designLevel === 'simple' ? 'Sencillo' : 'Elaborado / Full Art'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 {Object.keys(nailExtras).some(id => nailExtras[id]) && (
                                                     <div className="flex justify-between items-start">
                                                         <span>Extras:</span>
-                                                        <span className="text-slate-200 font-bold text-right truncate max-w-[150px]">
+                                                        <span className="text-slate-200 font-bold text-right truncate max-w-[180px]">
                                                             {Object.keys(nailExtras)
                                                                 .filter(id => nailExtras[id])
                                                                 .map(id => nailQuoterConfig?.find(c => c.id === 'extras')?.items.find(i => i.id === id)?.name)
@@ -1331,6 +1469,40 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                     )}
                 </div>
             </div>
+
+            {/* Lightbox Modal: Zoom Foto de Referencia a Pantalla Completa */}
+            {isPhotoLightboxOpen && uploadedImageUrl && (
+                <div
+                    className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+                    onClick={() => setIsPhotoLightboxOpen(false)}
+                >
+                    <div
+                        className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-white/20 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-950/90 text-left">
+                            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                <ImageIcon size={16} className="text-pink-400" /> Foto de Referencia a Detalle
+                            </h4>
+                            <button
+                                type="button"
+                                onClick={() => setIsPhotoLightboxOpen(false)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-3 overflow-auto flex items-center justify-center bg-slate-950/90">
+                            <img
+                                decoding="async" loading="lazy"
+                                src={uploadedImageUrl}
+                                alt="Diseño de referencia a detalle"
+                                className="max-h-[78vh] w-auto object-contain rounded-lg shadow-xl"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

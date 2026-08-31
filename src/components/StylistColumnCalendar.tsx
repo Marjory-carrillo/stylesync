@@ -126,9 +126,9 @@ export default function StylistColumnCalendar({
         const service = services.find(s => Number(s.id) === Number(apt.serviceId));
         const addServices = apt.additionalServices || [];
 
-        // 1. Check for custom quote (Cotización Confirmada / Cotización Estimada)
+        // 1. Check for custom quote (Cotización Confirmada / Cotización Estimada / Cotización)
         const customPriceItem = addServices.find((s: string) =>
-            s.startsWith('Cotización Confirmada:') || s.startsWith('Cotización Estimada:')
+            s.startsWith('Cotización')
         );
 
         if (customPriceItem) {
@@ -151,8 +151,7 @@ export default function StylistColumnCalendar({
         let total = basePrice;
         addServices.forEach((extra: string) => {
             if (
-                extra.startsWith('Cotización Confirmada:') || 
-                extra.startsWith('Cotización Estimada:') || 
+                extra.startsWith('Cotización') || 
                 extra.startsWith('Referencia:') ||
                 extra.startsWith('Diseño Catálogo:')
             ) {

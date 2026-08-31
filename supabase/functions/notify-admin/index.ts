@@ -256,21 +256,23 @@ serve(async (req: Request) => {
             }
         }
 
-        // Construir lista de teléfonos destino sin duplicados
+        // Construir lista de teléfonos destino sin duplicados (solo si no es cita manual)
         const targetPhones: Array<{ phone: string; role: 'stylist' | 'admin' }> = [];
         const addedNormalized = new Set<string>();
 
-        if (stylistPhone) {
-            const stylistWA = normalizeToWA(stylistPhone);
-            targetPhones.push({ phone: stylistPhone, role: 'stylist' });
-            addedNormalized.add(stylistWA);
-        }
+        if (event_type !== 'manual') {
+            if (stylistPhone) {
+                const stylistWA = normalizeToWA(stylistPhone);
+                targetPhones.push({ phone: stylistPhone, role: 'stylist' });
+                addedNormalized.add(stylistWA);
+            }
 
-        if (adminPhone) {
-            const adminWA = normalizeToWA(adminPhone);
-            if (!addedNormalized.has(adminWA)) {
-                targetPhones.push({ phone: adminPhone, role: 'admin' });
-                addedNormalized.add(adminWA);
+            if (adminPhone) {
+                const adminWA = normalizeToWA(adminPhone);
+                if (!addedNormalized.has(adminWA)) {
+                    targetPhones.push({ phone: adminPhone, role: 'admin' });
+                    addedNormalized.add(adminWA);
+                }
             }
         }
 
@@ -289,24 +291,37 @@ serve(async (req: Request) => {
 
         const fechaAdmin = formatDateTime(appointment.date, appointment.time, tZone);
 
-        // Formatear nombre de servicio principal (limpiando detalles técnicos de la calculadora y links de referencia)
+        // Formatear nombre de servicio principal (limpiando detalles técnicos de la calculadora, paréntesis y links de referencia)
         let mainServiceOnly = (appointment.service_name ?? 'Servicio')
-            .split(' + Largo:')[0]
-            .split(' + Diseño:')[0]
-            .split(' + Extra:')[0]
-            .split(' + Referencia:')[0]
+            .replace(/\s*\([^)]*(?:diseño|extra|estilo|largo|cotización|referencia)[^)]*\)/gi, '')
+            .split(' + Largo')[0]
+            .split(' + Diseño')[0]
+            .split(' + Extra')[0]
+            .split(' + Estilo')[0]
+            .split(' + Referencia')[0]
             .split(' + Cotización')[0]
             .trim();
+
+        if (!mainServiceOnly) mainServiceOnly = 'Servicio';
 
         // Filtrar y limpiar adicionales reales de la lista (quitando prefijo 'Adicional:' y etiquetas de precio aisladas)
         const realAddOns = additionalServices
             .filter(s => 
-                !s.startsWith('Largo:') && 
-                !s.startsWith('Diseño:') && 
-                !s.startsWith('Extra:') && 
-                !s.startsWith('Estilo:') && 
+                !s.startsWith('Largo') && 
+                !s.startsWith('Diseño') && 
+                !s.startsWith('Extra') && 
+                !s.startsWith('Estilo') && 
                 !s.startsWith('Cotización') && 
-                !s.startsWith('Referencia:')
+                !s.startsWith('Referencia') &&
+                !s.startsWith('Catálogo') &&
+                !s.startsWith('Forma') &&
+                !s.startsWith('Grosor') &&
+                !s.startsWith('Técnica') &&
+                !s.startsWith('Color') &&
+                !s.startsWith('Efecto') &&
+                !s.startsWith('Decoración') &&
+                !s.startsWith('Tamaño') &&
+                !s.startsWith('Nivel')
             )
             .map(s => s.replace(/^Adicional:\s*/i, '').replace(/\s*\(\+\$\d+.*?\)/i, '').trim())
             .filter(Boolean);
@@ -321,58 +336,59 @@ serve(async (req: Request) => {
 
         const adminTemplateMap: Record<string, string> = {
             new:        TEMPLATE_ADMIN_NUEVA_CITA,
+            manual:     TEMPLATE_ADMIN_NUEVA_CITA,
             reschedule: TEMPLATE_ADMIN_REPROGRAMACION,
             cancel:     TEMPLATE_ADMIN_CANCELACION,
         };
 
-        let anyNotified = false;
+        // Enviar notificación al profesional y/o admin (se omite en citas manuales ya que el admin la crea directamente)
+        if (event_type !== 'manual') {
+            for (const target of targetPhones) {
+                const targetWA = normalizeToWA(target.phone);
+                console.log(`[notify-admin] sending to ${target.role} WA:`, targetWA);
 
-        // Enviar notificación a cada destinatario (profesional y/o admin)
-        for (const target of targetPhones) {
-            const targetWA = normalizeToWA(target.phone);
-            console.log(`[notify-admin] sending to ${target.role} WA:`, targetWA);
-
-            // Plantilla admin: {{1}}=negocio, {{2}}=cliente, {{3}}=servicio, {{4}}=fecha, {{5}}=tel
-            let sent = await sendTemplate(targetWA, adminTemplateMap[event_type], {
-                '1': businessName,
-                '2': appointment.client_name,
-                '3': formattedService,
-                '4': fechaAdmin,
-                '5': appointment.client_phone,
-            });
-
-            // Fallback: template genérico si el específico falla
-            if (!sent) {
-                sent = await sendTemplate(targetWA, TEMPLATE_FALLBACK, {
-                    '1': appointment.client_name,
-                    '2': businessName,
-                    '3': fechaAdmin,
-                    '4': formattedService,
+                // Plantilla admin: {{1}}=negocio, {{2}}=cliente, {{3}}=servicio, {{4}}=fecha, {{5}}=tel
+                let sent = await sendTemplate(targetWA, adminTemplateMap[event_type], {
+                    '1': businessName,
+                    '2': appointment.client_name,
+                    '3': formattedService,
+                    '4': fechaAdmin,
                     '5': appointment.client_phone,
                 });
-            }
 
-            // Fallback final: texto libre
-            if (!sent) {
-                const icons: Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
-                const lbls:  Record<string, string> = { new: 'NUEVA CITA', reschedule: 'REPROGRAMADA', cancel: 'CANCELADA' };
-                const profInfo = stylistName ? `\n💈 Atiende: ${stylistName}` : '';
-                sent = await sendWA(targetWA,
-                    `${icons[event_type] ?? '📅'} *${lbls[event_type] ?? 'CITA'}* — ${businessName}
+                // Fallback: template genérico si el específico falla
+                if (!sent) {
+                    sent = await sendTemplate(targetWA, TEMPLATE_FALLBACK, {
+                        '1': appointment.client_name,
+                        '2': businessName,
+                        '3': fechaAdmin,
+                        '4': formattedService,
+                        '5': appointment.client_phone,
+                    });
+                }
+
+                // Fallback final: texto libre
+                if (!sent) {
+                    const icons: Record<string, string> = { new: '🆕', reschedule: '🔄', cancel: '❌' };
+                    const lbls:  Record<string, string> = { new: 'NUEVA CITA', reschedule: 'REPROGRAMADA', cancel: 'CANCELADA' };
+                    const profInfo = stylistName ? `\n💈 Atiende: ${stylistName}` : '';
+                    sent = await sendWA(targetWA,
+                        `${icons[event_type] ?? '📅'} *${lbls[event_type] ?? 'CITA'}* — ${businessName}
 👤 ${appointment.client_name}  ✂️ ${appointment.service_name ?? 'Servicio'}${profInfo}
 📆 ${fechaAdmin}  📱 ${appointment.client_phone}`);
-            }
+                }
 
-            // Registrar en sms_logs
-            if (sent && tenant_id) {
-                anyNotified = true;
-                await supabaseLog.from('sms_logs').insert({
-                    tenant_id,
-                    phone_to: target.phone,
-                    message_type: appointment?.id ? `${target.role}_${event_type}#${appointment.id}` : `${target.role}_${event_type}`,
-                    provider: 'whatsapp',
-                    status: 'sent',
-                }).then(r => { if (r.error) console.warn(`[notify-admin] sms_logs insert error (${target.role}):`, r.error.message); });
+                // Registrar en sms_logs
+                if (sent && tenant_id) {
+                    anyNotified = true;
+                    await supabaseLog.from('sms_logs').insert({
+                        tenant_id,
+                        phone_to: target.phone,
+                        message_type: appointment?.id ? `${target.role}_${event_type}#${appointment.id}` : `${target.role}_${event_type}`,
+                        provider: 'whatsapp',
+                        status: 'sent',
+                    }).then(r => { if (r.error) console.warn(`[notify-admin] sms_logs insert error (${target.role}):`, r.error.message); });
+                }
             }
         }
 

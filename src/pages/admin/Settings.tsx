@@ -1890,7 +1890,7 @@ export default function Settings() {
                                                         </div>
 
                                                         {/* Duration Input (Solo para Extras / Retiros y Niveles de Diseño) */}
-                                                        {(category.id === 'extras' || category.id === 'simplified_designs' || category.id === 'styles') && (
+                                                        {(category.id === 'extras' || category.id === 'simplified_designs') && (
                                                             <div className="relative w-24 flex-1 sm:flex-initial">
                                                                 <input
                                                                     type="number"

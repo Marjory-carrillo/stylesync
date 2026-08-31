@@ -5,6 +5,49 @@ import type { Appointment } from '../../types/store.types';
 import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
 
+// Helper: Limpiar nombre de servicio de cualquier bloque técnico o de calculadora
+function cleanServiceText(name: string = 'Servicio'): string {
+    return name
+        .replace(/\s*\([^)]*(?:diseño|extra|estilo|largo|cotización|referencia|adicional)[^)]*\)/gi, '')
+        .replace(/\s*\(\+\s*adicional:[^)]*\)/gi, '')
+        .split(' + Largo')[0]
+        .split(' + Diseño')[0]
+        .split(' + Extra')[0]
+        .split(' + Estilo')[0]
+        .split(' + Referencia')[0]
+        .split(' + Cotización')[0]
+        .trim() || 'Servicio';
+}
+
+// Helper: Filtrar metadatos técnicos de cotizador para dejar solo servicios adicionales reales
+function cleanAddOnsList(addOns?: string[]): string[] {
+    if (!Array.isArray(addOns) || addOns.length === 0) return [];
+    return addOns
+        .filter(s => {
+            if (!s || typeof s !== 'string') return false;
+            const t = s.trim();
+            return (
+                !t.startsWith('Largo') &&
+                !t.startsWith('Diseño') &&
+                !t.startsWith('Extra') &&
+                !t.startsWith('Estilo') &&
+                !t.startsWith('Cotización') &&
+                !t.startsWith('Referencia') &&
+                !t.startsWith('Catálogo') &&
+                !t.startsWith('Forma') &&
+                !t.startsWith('Grosor') &&
+                !t.startsWith('Técnica') &&
+                !t.startsWith('Color') &&
+                !t.startsWith('Efecto') &&
+                !t.startsWith('Decoración') &&
+                !t.startsWith('Tamaño') &&
+                !t.startsWith('Nivel')
+            );
+        })
+        .map(s => s.replace(/^Adicional:\s*/i, '').replace(/\s*\(\+\$\d+.*?\)/i, '').trim())
+        .filter(Boolean);
+}
+
 // Helper: notify barber via WhatsApp (fire-and-forget)
 async function notifyAdmin(
     tenantId: string,
@@ -16,6 +59,25 @@ async function notifyAdmin(
     try {
         const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
         const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+        
+        const rawServiceName = appointment.service_name;
+        const mainServiceClean = cleanServiceText(rawServiceName);
+        const realAddOns = cleanAddOnsList(appointment.additional_services);
+        
+        let finalFormattedService = mainServiceClean;
+        if (realAddOns.length > 0) {
+            const missingAddons = realAddOns.filter(a => !mainServiceClean.toLowerCase().includes(a.toLowerCase()));
+            if (missingAddons.length > 0) {
+                finalFormattedService = `${mainServiceClean} + ${missingAddons.join(', ')}`;
+            }
+        }
+
+        const cleanedAppointment = {
+            ...appointment,
+            service_name: finalFormattedService,
+            additional_services: [],
+        };
+
         await fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
             method: 'POST',
             headers: {
@@ -26,7 +88,7 @@ async function notifyAdmin(
             body: JSON.stringify({
                 tenant_id: tenantId,
                 event_type: eventType,
-                appointment,
+                appointment: cleanedAppointment,
                 ...(adminPhone   ? { admin_phone:   adminPhone   } : {}),
                 ...(businessName ? { business_name: businessName } : {}),
             }),
@@ -246,11 +308,22 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
     const cancelMutation = useMutation({
         mutationFn: async (payload: { id: string; serviceName?: string; reason?: string } | string) => {
             const id = typeof payload === 'string' ? payload : payload.id;
-            const serviceName = typeof payload === 'string' ? '' : (payload.serviceName || '');
+            let serviceName = typeof payload === 'string' ? '' : (payload.serviceName || '');
             const reason = typeof payload === 'string' ? undefined : payload.reason;
 
             if (!tenantId) throw new Error('No tenant info');
             const apt = query.data?.find(a => a.id === id);
+
+            if (!serviceName || serviceName === 'Servicio') {
+                const sId = apt?.serviceId || (apt as any)?.service_id;
+                if (sId) {
+                    const servicesList = queryClient.getQueryData<any[]>(['services', tenantId]);
+                    const matchedSvc = servicesList?.find(s => String(s.id) === String(sId));
+                    if (matchedSvc?.name) {
+                        serviceName = matchedSvc.name;
+                    }
+                }
+            }
 
             // Si ya está cancelada o ya se está procesando la cancelación de esta cita, evitar duplicados
             const lockKey = `cancel:${id}`;
@@ -379,11 +452,23 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
             queryClient.refetchQueries({ queryKey: ['appointments'] });
             showToast('Hora actualizada', 'success');
             if (tenantId && apt && apt.status !== 'cancelada') {
+                let resolvedServiceName = serviceName;
+                if (!resolvedServiceName || resolvedServiceName === 'Servicio') {
+                    const sId = (apt as any)?.service_id || (apt as any)?.serviceId;
+                    if (sId) {
+                        const servicesList = queryClient.getQueryData<any[]>(['services', tenantId]);
+                        const matchedSvc = servicesList?.find(s => String(s.id) === String(sId));
+                        if (matchedSvc?.name) {
+                            resolvedServiceName = matchedSvc.name;
+                        }
+                    }
+                }
+
                 notifyAdmin(tenantId, 'reschedule', {
                     id: id,
                     client_name: apt.client_name || (apt as any).clientName,
                     client_phone: apt.client_phone || (apt as any).clientPhone,
-                    service_name: serviceName,
+                    service_name: resolvedServiceName,
                     date: newDate ?? apt.date,
                     time: newTime,
                     stylist_id: apt.stylist_id || (apt as any).stylistId,
