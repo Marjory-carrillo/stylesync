@@ -658,8 +658,8 @@ export default function Quoter() {
             {/* ═════════ TAB 1: CALCULATOR / COTIZADOR ═════════ */}
             {activeTab === 'calculator' && (
                 <>
-                    <div className="flex items-center justify-end gap-3 -mt-2">
-                        {qualifiedStylists.length > 1 && (
+                    {qualifiedStylists.length > 1 && (
+                        <div className="flex items-center justify-end -mt-2">
                             <div className="flex items-center gap-2 bg-slate-900/80 border border-white/10 px-3 py-2 rounded-2xl">
                                 <User size={16} className="text-accent" />
                                 <select
@@ -675,16 +675,8 @@ export default function Quoter() {
                                     ))}
                                 </select>
                             </div>
-                        )}
-                        <button
-                            type="button"
-                            onClick={handleReset}
-                            className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                        >
-                            <RotateCcw size={14} />
-                            <span>Limpiar</span>
-                        </button>
-                    </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                         
