@@ -1020,49 +1020,57 @@ export default function Quoter() {
                         {/* ── Right Side: Live Ticket Card & Actions ── */}
                         <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6">
                             
-                            {/* Card Theme Selector & Reset Button */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 p-2 rounded-2xl border border-white/10">
-                                <div className="flex items-center gap-1.5">
-                                    <Sparkles size={14} className="text-pink-400" />
-                                    <div className="flex gap-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => setCardTheme('pink')}
-                                            className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
-                                                cardTheme === 'pink' ? 'bg-pink-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                                            }`}
-                                        >
-                                            🌸 Rosa Chic
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCardTheme('dark')}
-                                            className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
-                                                cardTheme === 'dark' ? 'bg-slate-800 text-white shadow-md border border-white/20' : 'text-slate-400 hover:text-white'
-                                            }`}
-                                        >
-                                            🖤 Dark
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCardTheme('gold')}
-                                            className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
-                                                cardTheme === 'gold' ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white'
-                                            }`}
-                                        >
-                                            👑 Oro
-                                        </button>
-                                    </div>
-                                </div>
+                            {/* Ticket Header: Title & Reset Button */}
+                            <div className="flex items-center justify-between px-1">
+                                <h3 className="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+                                    <Sparkles size={13} className="text-pink-400" />
+                                    <span>Vista Previa de Cotización</span>
+                                </h3>
                                 <button
                                     type="button"
                                     onClick={handleReset}
-                                    className="px-3 py-1 rounded-xl bg-white/10 hover:bg-red-500/20 text-slate-300 hover:text-red-300 font-bold text-xs border border-white/10 hover:border-red-500/30 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer ml-auto"
+                                    className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-300 font-bold text-xs border border-white/10 hover:border-red-500/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                                     title="Limpiar y reiniciar cotizador"
                                 >
                                     <RotateCcw size={13} className="text-red-400" />
-                                    <span>Limpiar</span>
+                                    <span>Limpiar Ticket</span>
                                 </button>
+                            </div>
+
+                            {/* Card Theme Selector */}
+                            <div className="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-2xl border border-white/10 shadow-md">
+                                <span className="text-xs text-slate-300 font-bold flex items-center gap-1.5 shrink-0">
+                                    <Sparkles size={14} className="text-pink-400" /> Estilo de la Foto:
+                                </span>
+                                <div className="flex gap-1.5 items-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCardTheme('pink')}
+                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                                            cardTheme === 'pink' ? 'bg-pink-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        🌸 Rosa Chic
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCardTheme('dark')}
+                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                                            cardTheme === 'dark' ? 'bg-slate-800 text-white shadow-md border border-white/20' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        🖤 Dark
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCardTheme('gold')}
+                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                                            cardTheme === 'gold' ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        👑 Oro
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Ticket Card */}
