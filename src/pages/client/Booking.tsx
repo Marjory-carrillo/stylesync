@@ -3266,10 +3266,22 @@ export default function Booking() {
                                     {selectedService.image ? (
                                         <img decoding="async" loading="lazy" src={selectedService.image} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full bg-slate-800 flex items-center justify-center"><RefreshCw className="text-muted" /></div>
+                                        <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                                            {selectedService.isPackage ? <Sparkles className="text-purple-400" size={26} /> : <RefreshCw className="text-muted" />}
+                                        </div>
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
+                                    {/* Etiqueta de Paquete */}
+                                    {selectedService.isPackage && (
+                                        <div className="mb-1.5">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/25 text-purple-200 border border-purple-500/35 shadow-sm">
+                                                <Sparkles size={10} className="text-purple-300 shrink-0" />
+                                                <span>Paquete</span>
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {/* Main service + add-ons combined label */}
                                     <h4 className="text-base font-bold text-white leading-snug">
                                         {selectedService.name}
@@ -3279,6 +3291,26 @@ export default function Booking() {
                                             </span>
                                         )}
                                     </h4>
+
+                                    {/* Descripción del Paquete */}
+                                    {selectedService.isPackage && selectedService.description && (
+                                        <p className="text-xs text-slate-300 font-normal mt-1 mb-1.5 leading-relaxed">
+                                            {selectedService.description}
+                                        </p>
+                                    )}
+
+                                    {/* Servicios incluidos en el Paquete */}
+                                    {selectedService.isPackage && selectedService.includedServiceNames && selectedService.includedServiceNames.length > 0 && (
+                                        <div className="text-[11px] text-purple-200 font-medium flex flex-wrap items-center gap-1 my-1.5">
+                                            <span className="text-purple-300 font-bold">Incluye:</span>
+                                            {selectedService.includedServiceNames.map((item, idx) => (
+                                                <span key={idx} className="inline-flex items-center bg-purple-500/20 text-purple-200 border border-purple-500/30 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                                    ✓ {item}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <p className="text-sm text-muted mb-2">{totalDuration} min en total</p>
                                     <div className="inline-block px-2 py-1 bg-accent/20 text-accent rounded text-xs font-bold border border-accent/20">
                                         ${totalPrice}
@@ -3603,16 +3635,35 @@ export default function Booking() {
                             <div className="w-full mb-10 text-center">
                                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Servicio Reservado</h4>
                                 <div className="bg-white/5 rounded-3xl p-4 border border-white/10 w-full text-left">
-                                    <div className="flex items-center gap-3 mb-2">
+                                    <div className="flex items-start gap-3 mb-2">
                                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-black flex items-center justify-center border border-white/10 shrink-0">
-                                            {selectedService?.image ? <img decoding="async" loading="lazy" src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" /> : <Sparkles size={18} className="text-accent" />}
-                                        </div>
-                                        <p className="font-black text-white text-sm leading-tight">
-                                            {selectedService?.name}
-                                            {selectedAddOns.length > 0 && (
-                                                <span className="text-cyan-400"> + {selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(' + ')}</span>
+                                            {selectedService?.image ? (
+                                                <img decoding="async" loading="lazy" src={selectedService.image} className="w-full h-full object-cover rounded-2xl" alt="" />
+                                            ) : (
+                                                <Sparkles size={18} className={selectedService?.isPackage ? "text-purple-400" : "text-accent"} />
                                             )}
-                                        </p>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            {selectedService?.isPackage && (
+                                                <div className="mb-1">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-500/25 text-purple-200 border border-purple-500/35">
+                                                        <Sparkles size={9} className="text-purple-300 shrink-0" />
+                                                        <span>Paquete</span>
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <p className="font-black text-white text-sm leading-tight">
+                                                {selectedService?.name}
+                                                {selectedAddOns.length > 0 && (
+                                                    <span className="text-cyan-400"> + {selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(' + ')}</span>
+                                                )}
+                                            </p>
+                                            {selectedService?.isPackage && selectedService?.description && (
+                                                <p className="text-xs text-slate-300 font-normal mt-1 leading-relaxed">
+                                                    {selectedService.description}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2 pl-1 mb-1">
                                         <span className="text-[9px] font-black text-slate-400 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-widest">{totalDuration} MIN</span>

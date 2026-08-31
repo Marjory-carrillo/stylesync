@@ -1200,9 +1200,24 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
                                             <span className="font-bold">{clientName}</span>
                                             <span className="text-slate-500 text-xs ml-auto">{formatPhoneDisplay(clientPhone)}</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-sm text-white">
-                                            <Sparkles size={14} className="text-accent shrink-0" />
-                                            <span>{selectedService?.name}</span>
+                                        <div className="flex items-start gap-2 text-sm text-white">
+                                            <Sparkles size={14} className={selectedService?.isPackage ? "text-purple-400 shrink-0 mt-0.5" : "text-accent shrink-0 mt-0.5"} />
+                                            <div className="flex-1 min-w-0">
+                                                {selectedService?.isPackage && (
+                                                    <div className="mb-0.5">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-500/25 text-purple-200 border border-purple-500/35">
+                                                            <Sparkles size={8} className="text-purple-300 shrink-0" />
+                                                            <span>Paquete</span>
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <span className="font-semibold">{selectedService?.name}</span>
+                                                {selectedService?.isPackage && selectedService?.description && (
+                                                    <p className="text-xs text-slate-400 font-normal mt-0.5 leading-relaxed">
+                                                        {selectedService.description}
+                                                    </p>
+                                                )}
+                                            </div>
                                             <span className="text-accent font-bold ml-auto">${totalPrice}</span>
                                         </div>
 
