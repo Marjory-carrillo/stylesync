@@ -1280,15 +1280,6 @@ export default function Quoter() {
                                         </button>
                                     </div>
                                 </div>
-
-                                <button
-                                    type="button"
-                                    onClick={handleReset}
-                                    className="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-slate-400 hover:text-red-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-                                >
-                                    <RotateCcw size={14} className="text-red-400" />
-                                    <span>Limpiar Ticket / Empezar Nueva Cotización</span>
-                                </button>
                             </div>
 
                         </div>
