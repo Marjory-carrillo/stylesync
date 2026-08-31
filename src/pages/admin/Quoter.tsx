@@ -387,11 +387,13 @@ export default function Quoter() {
         }
         if (lastSavedQuote && lastSavedQuote.hash === currentConfigHash) {
             showToast('Esta cotización ya se encuentra guardada en tu Historial 📋', 'info');
+            setActiveTab('history');
             return;
         }
         const saved = await saveQuoteToDatabase();
         if (saved) {
             showToast('¡Cotización guardada exitosamente en tu Historial! 📋', 'success');
+            setActiveTab('history');
         }
     };
 
@@ -1018,40 +1020,49 @@ export default function Quoter() {
                         {/* ── Right Side: Live Ticket Card & Actions ── */}
                         <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6">
                             
-                            {/* Card Theme Selector */}
-                            <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-2xl border border-white/10">
-                                <span className="text-xs text-slate-300 font-bold flex items-center gap-1.5">
-                                    <Sparkles size={14} className="text-accent" /> Estilo de la Foto:
-                                </span>
-                                <div className="flex gap-1.5">
-                                    <button
-                                        type="button"
-                                        onClick={() => setCardTheme('pink')}
-                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all ${
-                                            cardTheme === 'pink' ? 'bg-pink-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                                        }`}
-                                    >
-                                        🌸 Rosa Chic
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setCardTheme('dark')}
-                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all ${
-                                            cardTheme === 'dark' ? 'bg-slate-800 text-white shadow-md border border-white/20' : 'text-slate-400 hover:text-white'
-                                        }`}
-                                    >
-                                        🖤 Dark
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setCardTheme('gold')}
-                                        className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all ${
-                                            cardTheme === 'gold' ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white'
-                                        }`}
-                                    >
-                                        👑 Oro
-                                    </button>
+                            {/* Card Theme Selector & Reset Button */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 p-2 rounded-2xl border border-white/10">
+                                <div className="flex items-center gap-1.5">
+                                    <Sparkles size={14} className="text-pink-400" />
+                                    <div className="flex gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCardTheme('pink')}
+                                            className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                                                cardTheme === 'pink' ? 'bg-pink-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            🌸 Rosa Chic
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCardTheme('dark')}
+                                            className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                                                cardTheme === 'dark' ? 'bg-slate-800 text-white shadow-md border border-white/20' : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            🖤 Dark
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCardTheme('gold')}
+                                            className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                                                cardTheme === 'gold' ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            👑 Oro
+                                        </button>
+                                    </div>
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={handleReset}
+                                    className="px-3 py-1 rounded-xl bg-white/10 hover:bg-red-500/20 text-slate-300 hover:text-red-300 font-bold text-xs border border-white/10 hover:border-red-500/30 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer ml-auto"
+                                    title="Limpiar y reiniciar cotizador"
+                                >
+                                    <RotateCcw size={13} className="text-red-400" />
+                                    <span>Limpiar</span>
+                                </button>
                             </div>
 
                             {/* Ticket Card */}
@@ -1269,6 +1280,15 @@ export default function Quoter() {
                                         </button>
                                     </div>
                                 </div>
+
+                                <button
+                                    type="button"
+                                    onClick={handleReset}
+                                    className="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-slate-400 hover:text-red-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                                >
+                                    <RotateCcw size={14} className="text-red-400" />
+                                    <span>Limpiar Ticket / Empezar Nueva Cotización</span>
+                                </button>
                             </div>
 
                         </div>
