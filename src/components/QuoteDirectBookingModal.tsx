@@ -11,7 +11,7 @@ import { useTenantData } from '../lib/store/queries/useTenantData';
 import { markQuoteAsBooked } from '../lib/store/queries/useQuotes';
 import { getSmartSlots, calculateAppointmentDuration, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 import { useUIStore } from '../lib/store/uiStore';
-import { normalizePhone, formatPhoneDisplay } from '../lib/schemas';
+import { normalizePhone } from '../lib/schemas';
 import { sendManualBookingClientNotification } from '../lib/whatsappService';
 import type { Quote } from '../lib/types/store.types';
 

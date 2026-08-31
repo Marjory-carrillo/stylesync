@@ -1688,7 +1688,7 @@ export default function Booking() {
                         {urlQuoteId && !quoteLoading && publicQuote && publicQuote.status === 'agendada' && (
                             <div className="mb-6 p-4 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-left space-y-1 shadow-lg">
                                 <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs">
-                                    <CheckCircle2 size={15} />
+                                    <CheckCircle size={15} />
                                     <span>Cotización ya agendada previamente</span>
                                 </div>
                                 <p className="text-xs text-slate-300">

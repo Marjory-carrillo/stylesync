@@ -14,7 +14,6 @@ import { useImageUpload } from '../lib/store/queries/useImageUpload';
 import { useUIStore } from '../lib/store/uiStore';
 import { getSmartSlots, calculateAppointmentDuration, type Appointment as SlotAppointment, type BlockedInterval } from '../lib/smartSlots';
 import { isNailCalculatorEnabled, isAppointmentActive } from '../lib/planLimits';
-import { useAuthStore } from '../lib/store/authStore';
 import { normalizePhone, formatPhoneDisplay } from '../lib/schemas';
 import { sendManualBookingClientNotification } from '../lib/whatsappService';
 
@@ -76,7 +75,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
         }
     }, [nailQuoterConfig, nailSize]);
 
-    const processAndUploadFile = async (file: File | Blob) => {
+    const processAndUploadFile = async (file: File) => {
         try {
             setIsUploadingPhoto(true);
             const publicUrl = await uploadNailDesign(file);
@@ -476,7 +475,7 @@ export default function AdminBookingModal({ isOpen, onClose }: Props) {
             const cleanPhone = normalizePhone(clientPhone);
             const wasBlocked = isPhoneBlocked(cleanPhone);
 
-            const res = await addAppointment({
+            await addAppointment({
                 clientName: clientName.trim(),
                 clientPhone: cleanPhone,
                 serviceId: selectedService.id,
