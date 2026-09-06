@@ -102,7 +102,7 @@ export function useSuperAdmin() {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
                             },
-                            body: JSON.stringify({ email: ownerEmail, password: ownerPassword, businessName: name, businessSlug: slug }),
+                            body: JSON.stringify({ email: ownerEmail, password: ownerPassword, businessName: name, businessSlug: slug, createTenant: false }),
                         }
                     );
                     const fnData = await fnRes.json();

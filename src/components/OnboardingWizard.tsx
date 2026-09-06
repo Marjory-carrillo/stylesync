@@ -759,11 +759,11 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                 {servicesList.map(srv => (
                                     <div
                                         key={srv.id}
-                                        className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors flex items-center justify-between gap-3"
+                                        className="p-3 sm:p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors flex items-center justify-between gap-2.5 sm:gap-3"
                                     >
                                         <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold text-white uppercase truncate">{srv.name}</span>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className="text-xs font-bold text-white uppercase leading-snug break-words">{srv.name}</span>
                                                 {srv.isAddon && (
                                                     <span className="text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded font-black shrink-0">
                                                         Adicional
@@ -775,9 +775,11 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                                {srv.description && <span>{srv.description}</span>}
-                                            </div>
+                                            {srv.description && (
+                                                <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                                    <span>{srv.description}</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center gap-2 shrink-0">
