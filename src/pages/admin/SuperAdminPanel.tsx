@@ -6,8 +6,9 @@ import {
     Zap, AlertTriangle, Calendar, Users, UserPlus,
     Scissors, Sparkles, Flower2, Briefcase, MoreHorizontal,
     DollarSign, Pencil, Eye, Key, EyeOff, Download, ShoppingBag,
-    Phone, MapPin, MessageCircle, Copy, Check, ExternalLink, Navigation, RefreshCw, Settings
+    Phone, MapPin, MessageCircle, Copy, Check, ExternalLink, Navigation, RefreshCw, Settings, Activity
 } from 'lucide-react';
+import * as Sentry from '@sentry/react';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, isAfter } from 'date-fns';
 import { supabase } from '../../lib/supabaseClient';
@@ -1740,6 +1741,35 @@ export default function SuperAdminPanel() {
                         <Download size={14} className="text-emerald-400" />
                         <span>Catálogo</span>
                     </a>
+                    <a
+                        href="https://sentry.io/organizations/o4512040342126592/projects/4512040398290944/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 font-bold py-2 px-3 rounded-xl transition-all shadow-md flex items-center gap-1.5 text-xs"
+                        title="Abrir Centro de Monitoreo Sentry en tiempo real"
+                    >
+                        <Activity size={13} className="text-purple-400" />
+                        <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Sentry Live
+                        </span>
+                    </a>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            try {
+                                throw new Error("⚡ Prueba de Alerta CitaLink -> Sentry funcionando con éxito!");
+                            } catch (err: any) {
+                                Sentry.captureException(err);
+                                showToast("¡Alerta de prueba enviada a Sentry! Revisa tu panel o correo.", "success");
+                            }
+                        }}
+                        className="btn border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold py-2 px-2.5 rounded-xl transition-all shadow-md flex items-center gap-1 text-xs"
+                        title="Enviar evento de prueba a Sentry"
+                    >
+                        <Zap size={12} className="text-amber-400" />
+                        <span>Test Sentry</span>
+                    </button>
                     <button
                         type="button"
                         onClick={() => setIsCostModalOpen(true)}

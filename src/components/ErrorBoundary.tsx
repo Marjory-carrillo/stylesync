@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import * as Sentry from '@sentry/react';
 
 interface Props {
     children?: ReactNode;
@@ -24,6 +25,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('Uncaught error:', error, errorInfo);
+        Sentry.captureException(error, {
+            extra: {
+                componentStack: errorInfo.componentStack,
+            },
+        });
         this.setState({ error, errorInfo });
     }
 
