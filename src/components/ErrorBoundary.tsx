@@ -25,6 +25,24 @@ export class ErrorBoundary extends Component<Props, State> {
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('Uncaught error:', error, errorInfo);
+
+        // Si el fallo fue porque se subió una versión nueva y un chunk viejo ya no existe en el servidor
+        const isDynamicImportError = error?.message && (
+            error.message.includes('Failed to fetch dynamically imported module') ||
+            error.message.includes('error loading dynamically imported module') ||
+            error.message.includes('Importing a module script failed')
+        );
+
+        if (isDynamicImportError) {
+            const lastReload = sessionStorage.getItem('citalink_chunk_reload');
+            const now = Date.now();
+            if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+                sessionStorage.setItem('citalink_chunk_reload', String(now));
+                window.location.reload();
+                return;
+            }
+        }
+
         Sentry.captureException(error, {
             extra: {
                 componentStack: errorInfo.componentStack,

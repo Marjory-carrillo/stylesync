@@ -17,6 +17,7 @@ import { getPlanBadgeStyles } from '../../lib/planLimits';
 import type { PlanType } from '../../lib/planLimits';
 import { COUNTRY_PRESETS, getCountryPreset } from '../../lib/pricingConfig';
 import DatePickerInput from '../../components/DatePickerInput';
+import SystemErrorsModal from '../../components/SystemErrorsModal';
 
 // Modal de confirmación premium para borrado
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, tenantName }: any) => {
@@ -1037,6 +1038,22 @@ export default function SuperAdminPanel() {
         return saved ? parseFloat(saved) : 0.0085;
     });
     const [isCostModalOpen, setIsCostModalOpen] = useState(false);
+    const [isErrorsModalOpen, setIsErrorsModalOpen] = useState(false);
+    const [unresolvedErrorsCount, setUnresolvedErrorsCount] = useState<number>(0);
+
+    const fetchUnresolvedErrorsCount = async () => {
+        try {
+            const { count, error } = await supabase
+                .from('system_errors')
+                .select('id', { count: 'exact', head: true })
+                .eq('resolved', false);
+            if (!error && count !== null) {
+                setUnresolvedErrorsCount(count);
+            }
+        } catch {
+            // Silencioso
+        }
+    };
 
     const getCategorySuffix = (catId: string) => {
         switch (catId) {
@@ -1077,6 +1094,7 @@ export default function SuperAdminPanel() {
         fetchAllTenants();
         fetchSmsMetrics();
         fetchAppointmentMetrics();
+        fetchUnresolvedErrorsCount();
 
         const channel = supabase
             .channel('public:sms_logs')
@@ -1085,8 +1103,16 @@ export default function SuperAdminPanel() {
             })
             .subscribe();
 
+        const errorsChannel = supabase
+            .channel('public:system_errors')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'system_errors' }, () => {
+                fetchUnresolvedErrorsCount();
+            })
+            .subscribe();
+
         return () => {
             supabase.removeChannel(channel);
+            supabase.removeChannel(errorsChannel);
         };
     }, []);
 
@@ -1757,6 +1783,26 @@ export default function SuperAdminPanel() {
                             Sentry Live
                         </span>
                     </a>
+                    <button
+                        type="button"
+                        onClick={() => setIsErrorsModalOpen(true)}
+                        className={`btn border transition-all shadow-md flex items-center gap-1.5 text-xs py-2 px-3 rounded-xl relative ${
+                            unresolvedErrorsCount > 0
+                                ? 'border-rose-500/50 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200'
+                                : 'border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300'
+                        }`}
+                        title="Centro de Diagnóstico y Errores del Sistema"
+                    >
+                        <AlertTriangle size={13} className={unresolvedErrorsCount > 0 ? "text-rose-400 animate-pulse" : "text-purple-400"} />
+                        <span className="font-bold flex items-center gap-1.5">
+                            Diagnóstico
+                            {unresolvedErrorsCount > 0 && (
+                                <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full min-w-[18px] text-center shadow">
+                                    {unresolvedErrorsCount}
+                                </span>
+                            )}
+                        </span>
+                    </button>
                     <button
                         type="button"
                         onClick={() => {
@@ -2742,6 +2788,15 @@ export default function SuperAdminPanel() {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Centro de Diagnóstico y Errores del Sistema */}
+            <SystemErrorsModal
+                isOpen={isErrorsModalOpen}
+                onClose={() => setIsErrorsModalOpen(false)}
+                showToast={showToast}
+                unresolvedCount={unresolvedErrorsCount}
+                onRefreshCount={fetchUnresolvedErrorsCount}
+            />
         </div>
     );
 }
