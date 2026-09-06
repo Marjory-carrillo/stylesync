@@ -24,10 +24,13 @@ export default function Login() {
 
     const [isInviteFlow, setIsInviteFlow] = useState(!!inviteEmail && !!invitePw);
 
-    // Pre-fill credentials from magic link redirect
+    // Pre-fill credentials from magic link redirect and sanitize URL bar immediately
     useEffect(() => {
         if (inviteEmail) setEmail(inviteEmail);
         if (invitePw) setPassword(invitePw);
+        if (inviteEmail || invitePw || window.location.hash) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }, [inviteEmail, invitePw]);
 
     // If arriving via magic link invite, sign out the auto-session

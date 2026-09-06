@@ -12,7 +12,7 @@ import {
     Sparkles, Check, ArrowRight, ArrowLeft,
     Calendar, Clock, Users, Copy, MessageCircle, ExternalLink,
     Bot, CheckCircle2, Palette, Trash2, Plus, Upload,
-    Info, AlertTriangle, UserCheck, MapPin
+    Info, AlertTriangle, UserCheck, MapPin, ClipboardPaste
 } from 'lucide-react';
 
 interface OnboardingWizardProps {
@@ -667,10 +667,10 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
 
                     {/* ── PASO 2: Catálogo de Servicios Pre-Cargados ── */}
                     {currentStep === 2 && (
-                        <div className="space-y-5 animate-scale-up">
-                            <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-4 animate-scale-up">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                                 <div>
-                                    <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
+                                    <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
                                         <Sparkles className="text-accent" size={20} />
                                         2. Revisa tus Servicios Pre-Cargados
                                     </h3>
@@ -678,14 +678,41 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                         Ajusta precios y duraciones con un clic, o añade más servicios según tu catálogo.
                                     </p>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddServiceForm(!showAddServiceForm)}
-                                    className="px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
-                                >
-                                    <Plus size={14} />
-                                    <span>Agregar Servicio</span>
-                                </button>
+                                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setNewServiceData({ name: '', duration: '45', price: '200', isAddon: true });
+                                            setShowAddServiceForm(true);
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-bold text-xs flex items-center gap-1.5 transition-all"
+                                    >
+                                        <Plus size={13} />
+                                        <span>+ Adicional (Extra)</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setNewServiceData({ name: '', duration: '45', price: '200', isAddon: false });
+                                            setShowAddServiceForm(!showAddServiceForm);
+                                        }}
+                                        className="px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent font-bold text-xs flex items-center gap-1.5 transition-all"
+                                    >
+                                        <Plus size={14} />
+                                        <span>+ Servicio</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Banner Pro: Consejo para elevar el ticket promedio */}
+                            <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-accent/10 via-purple-500/10 to-cyan-500/10 border border-accent/20 text-slate-300 space-y-1">
+                                <div className="flex items-center gap-2 text-white font-bold text-xs">
+                                    <Sparkles size={14} className="text-accent shrink-0" />
+                                    <span>💡 Consejo para aumentar tus ingresos por cita:</span>
+                                </div>
+                                <p className="text-[11px] text-slate-300 leading-relaxed">
+                                    Agrega <strong>servicios adicionales rápidos</strong> (ej: mascarilla, exfoliación, retiro de gel, barba express). Tus clientes podrán sumarlos con 1 solo toque antes de confirmar su cita, aumentando tu ticket promedio hasta un 30%.
+                                </p>
                             </div>
 
                             {/* Formulario rápido para añadir servicio */}
@@ -1199,24 +1226,32 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                             {/* Sección de Colaboradores Adicionales */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                                        Equipo de Trabajo ({stylists?.length || 1}/2 en prueba)
+                                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Users size={14} className="text-accent" /> Equipo / Profesionales
                                     </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (stylists && stylists.length >= 2) {
-                                                setShowLimitBanner(true);
-                                            } else {
-                                                setShowAddStylistForm(!showAddStylistForm);
-                                            }
-                                        }}
-                                        className="text-xs text-accent hover:underline font-bold flex items-center gap-1"
-                                    >
-                                        <Plus size={13} />
-                                        <span>Agregar Colaborador</span>
-                                    </button>
+                                    {tenant?.plan !== 'lite' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (stylists.length >= 2 && tenant?.plan !== 'pro' && tenant?.plan !== 'business') {
+                                                    setShowLimitBanner(true);
+                                                } else {
+                                                    setShowAddStylistForm(true);
+                                                }
+                                            }}
+                                            className="text-xs font-bold text-accent hover:text-accent/80 flex items-center gap-1"
+                                        >
+                                            <Plus size={14} /> Agregar Colaborador
+                                        </button>
+                                    )}
                                 </div>
+
+                                {tenant?.plan === 'lite' && (
+                                    <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                                        <span>Plan Esencial (1 profesional incluido)</span>
+                                        <span className="text-amber-400 font-medium">1 / 1 Activo</span>
+                                    </div>
+                                )}
 
                                 {/* Formulario para agregar colaborador */}
                                 {showAddStylistForm && (
@@ -1226,6 +1261,8 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                             <input
                                                 required
                                                 type="text"
+                                                autoComplete="off"
+                                                data-lpignore="true"
                                                 placeholder="Nombre del colaborador"
                                                 className="w-full bg-[#040814] border border-slate-700 rounded-xl px-3 py-2 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-accent"
                                                 value={newStylistData.name}
@@ -1233,6 +1270,9 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                             />
                                             <input
                                                 type="tel"
+                                                inputMode="tel"
+                                                autoComplete="off"
+                                                data-lpignore="true"
                                                 placeholder="WhatsApp (opcional)"
                                                 className="w-full bg-[#040814] border border-slate-700 rounded-xl px-3 py-2 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-accent"
                                                 value={newStylistData.phone}
@@ -1319,20 +1359,47 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                         </label>
                                         <input
                                             type="text"
+                                            autoComplete="off"
+                                            data-lpignore="true"
                                             placeholder="Ej. Av. Juárez 450, Col. Centro"
                                             className="w-full bg-[#040814] border border-white/10 rounded-xl px-3 py-2 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-accent"
                                             value={businessAddress}
                                             onChange={e => setBusinessAddress(e.target.value)}
                                             onBlur={e => handleSaveLocation(e.target.value, undefined)}
                                         />
+                                        <span className="text-[10px] text-slate-500 block mt-1">
+                                            Solo calle y número o colonia (sin estados ni códigos postales largos)
+                                        </span>
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">
-                                            Enlace de Google Maps
-                                        </label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                Enlace de Google Maps
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    try {
+                                                        const text = await navigator.clipboard.readText();
+                                                        if (text) {
+                                                            setBusinessMapsUrl(text);
+                                                            await handleSaveLocation(undefined, text);
+                                                            showToast('Enlace pegado correctamente', 'success');
+                                                        }
+                                                    } catch (err) {
+                                                        showToast('Por favor pega el enlace manualmente', 'info');
+                                                    }
+                                                }}
+                                                className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                                            >
+                                                <ClipboardPaste size={12} /> Pegar Link
+                                            </button>
+                                        </div>
                                         <input
-                                            type="text"
+                                            type="url"
+                                            autoComplete="off"
+                                            data-lpignore="true"
                                             placeholder="https://maps.app.goo.gl/... o Coordenadas"
                                             className="w-full bg-[#040814] border border-white/10 rounded-xl px-3 py-2 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-accent font-mono text-[11px]"
                                             value={businessMapsUrl}

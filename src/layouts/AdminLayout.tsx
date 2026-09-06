@@ -52,17 +52,31 @@ export default function AdminLayout() {
         return () => window.removeEventListener('citalink:realtime-notification', handleRealtimeNotif);
     }, []);
 
-    // Detectar si el usuario debe ver el Asistente de Bienvenida (solo una vez por tenant)
+    // Detectar si el usuario debe ver el Asistente de Bienvenida y limpiar URL
     useEffect(() => {
+        if (window.location.hash && (window.location.hash.includes('error') || window.location.hash.includes('access_token'))) {
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
         const urlParams = new URLSearchParams(window.location.search);
+        let paramsChanged = false;
+        ['email', 'pw', 'password'].forEach(p => {
+            if (urlParams.has(p)) {
+                urlParams.delete(p);
+                paramsChanged = true;
+            }
+        });
         const isWelcomeUrl = urlParams.get('welcome') === 'true';
+        if (isWelcomeUrl) {
+            urlParams.delete('welcome');
+            paramsChanged = true;
+        }
+        if (paramsChanged) {
+            const newSearch = urlParams.toString() ? `?${urlParams.toString()}` : '';
+            window.history.replaceState({}, document.title, window.location.pathname + newSearch);
+        }
+
         const tenantId = tenantConfig?.id || localStorage.getItem('citalink_tenant_id') || 'current';
         const isLocallyDismissed = localStorage.getItem(`citalink_onboarding_dismissed_${tenantId}`) === 'true';
-
-        // Limpiar ?welcome=true de la URL para que no vuelva a saltar en futuros F5
-        if (isWelcomeUrl) {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
 
         if (
             (isWelcomeUrl || (tenantConfig && tenantConfig.onboarding_completed === false)) &&
@@ -315,10 +329,12 @@ export default function AdminLayout() {
 
                             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-8">Configuración</div>
 
-                            <Link to="/admin/team" onClick={closeMobileMenu} className={navLinkClass('/admin/team')}>
-                                <Users size={18} />
-                                <span>{t('nav.team')}</span>
-                            </Link>
+                            {businessConfig?.plan !== 'lite' && (
+                                <Link to="/admin/team" onClick={closeMobileMenu} className={navLinkClass('/admin/team')}>
+                                    <Users size={18} />
+                                    <span>{t('nav.team')}</span>
+                                </Link>
+                            )}
 
                             <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')}>
                                 <SettingsIcon size={18} />

@@ -41,7 +41,8 @@ export const useTenantData = (overrideTenantId?: string) => {
                 commissionsEnabled: data.commissions_enabled || false,
                 enableAddons: data.enable_addons || false,
                 enableNailCalculator: data.enable_nail_calculator ?? true,
-                showDashboardMetrics: data.show_dashboard_metrics ?? true,
+                showDashboardMetrics: data.show_dashboard_metrics ?? false,
+                allowTwoActiveAppointments: data.allow_two_active_appointments ?? false,
                 breakBetweenAppointments: data.break_between_appointments || 0,
                 smsProvider: (data.sms_provider as 'demo' | 'whatsapp') || 'demo',
                 brandSlug: data.brand_slug,
@@ -118,6 +119,9 @@ export const useTenantData = (overrideTenantId?: string) => {
             if (newData.depositClabe !== undefined) payload.deposit_clabe = newData.depositClabe;
             if (newData.depositHolderName !== undefined) payload.deposit_holder_name = newData.depositHolderName;
             if (newData.depositCancellationPolicy !== undefined) payload.deposit_cancellation_policy = newData.depositCancellationPolicy;
+            if (newData.allowTwoActiveAppointments !== undefined) payload.allow_two_active_appointments = newData.allowTwoActiveAppointments;
+
+            if (Object.keys(payload).length === 0) return;
 
             const { error } = await supabase
                 .from('tenants')
@@ -130,6 +134,9 @@ export const useTenantData = (overrideTenantId?: string) => {
             queryClient.invalidateQueries({ queryKey });
         },
         onError: (err: any) => {
+            if (err?.name === 'AbortError' || err?.message?.includes('aborted') || err?.message?.includes('AbortError')) {
+                return;
+            }
             showToast(`Error: ${err.message}`, 'error');
         }
     });

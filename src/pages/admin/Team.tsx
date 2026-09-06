@@ -5,7 +5,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, canAddEmployee } from '../../lib/planLimits';
 import { supabase } from '../../lib/supabaseClient';
-import { Users, Mail, Shield, Plus, Trash2, AlertCircle, Copy, Check, Info, UserCheck, Clock, Loader2 } from 'lucide-react';
+import { Users, Mail, Shield, Plus, Trash2, AlertCircle, Copy, Check, Info, UserCheck, Clock, Loader2, Sparkles } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import { z } from 'zod';
 
@@ -156,6 +156,36 @@ export default function Team() {
                 <Shield size={48} className="text-red-500 mb-4" />
                 <h2 className="text-2xl font-bold text-white mb-2">Acceso Restringido</h2>
                 <p className="text-muted">Solo los dueños y administradores pueden modificar el equipo.</p>
+            </div>
+        );
+    }
+
+    if (plan === 'lite') {
+        return (
+            <div className="animate-fade-in flex flex-col items-center justify-center p-8 sm:p-12 text-center max-w-lg mx-auto min-h-[60vh]">
+                <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-6 shadow-xl shadow-amber-500/10">
+                    <Users size={32} />
+                </div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-2">
+                    Módulo de Equipo y Permisos
+                </h2>
+                <p className="text-sm text-slate-400 leading-relaxed mb-6">
+                    Tu negocio cuenta actualmente con el <strong className="text-amber-400 font-bold">Plan Esencial</strong>, diseñado especialmente para negocios con 1 solo profesional activo.
+                </p>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-300 text-left space-y-2 mb-6 w-full">
+                    <p className="font-bold text-white flex items-center gap-1.5">
+                        <Sparkles size={14} className="text-accent" /> ¿Necesitas agregar colaboradores?
+                    </p>
+                    <p className="text-slate-400 leading-relaxed">
+                        Al actualizar a <strong>Plan Pro</strong> o <strong>Business</strong> podrás invitar estilistas adicionales, asignar roles y gestionar permisos individuales de acceso.
+                    </p>
+                </div>
+                <a
+                    href="/admin/settings"
+                    className="btn bg-accent text-slate-950 font-black text-xs uppercase px-6 py-3 rounded-xl shadow-lg hover:brightness-110 transition-all"
+                >
+                    Ver Planes en Configuración
+                </a>
             </div>
         );
     }

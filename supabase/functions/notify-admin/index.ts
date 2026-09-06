@@ -256,23 +256,16 @@ serve(async (req: Request) => {
             }
         }
 
-        // Construir lista de teléfonos destino sin duplicados (solo si no es cita manual)
+        // Construir lista de teléfonos destino (1 solo mensaje para no duplicar costos de WhatsApp):
+        // 1. Si el profesional asignado tiene teléfono registrado, le llega únicamente a él.
+        // 2. Si el profesional no tiene teléfono registrado, le llega como respaldo al teléfono configurado en ajustes del negocio.
         const targetPhones: Array<{ phone: string; role: 'stylist' | 'admin' }> = [];
-        const addedNormalized = new Set<string>();
 
         if (event_type !== 'manual') {
             if (stylistPhone) {
-                const stylistWA = normalizeToWA(stylistPhone);
                 targetPhones.push({ phone: stylistPhone, role: 'stylist' });
-                addedNormalized.add(stylistWA);
-            }
-
-            if (adminPhone) {
-                const adminWA = normalizeToWA(adminPhone);
-                if (!addedNormalized.has(adminWA)) {
-                    targetPhones.push({ phone: adminPhone, role: 'admin' });
-                    addedNormalized.add(adminWA);
-                }
+            } else if (adminPhone) {
+                targetPhones.push({ phone: adminPhone, role: 'admin' });
             }
         }
 

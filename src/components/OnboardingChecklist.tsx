@@ -17,7 +17,7 @@ import { useNailCalculator, DEFAULT_NAIL_CONFIG } from '../lib/store/queries/use
 import { isNailCalculatorEnabled } from '../lib/planLimits';
 
 interface OnboardingChecklistProps {
-    tenantId: string;
+    tenantId?: string;
     stylists: any[];
     services: any[];
     tenantConfig: any;
@@ -116,8 +116,8 @@ export function OnboardingChecklist({
             {
                 id: 'services',
                 icon: Sparkles,
-                label: 'Configura tus servicios',
-                description: 'Agrega servicios y precios.',
+                label: 'Servicios y fotos',
+                description: 'Precios, adicionales y fotos.',
                 route: '/admin/services',
                 done: hasRealService,
                 color: 'from-cyan-400 to-blue-500',
@@ -207,23 +207,23 @@ export function OnboardingChecklist({
                 <div className="absolute top-4 right-8 w-56 h-56 rounded-full bg-violet-600/8 blur-[80px] pointer-events-none" />
                 <div className="absolute bottom-0 left-16 w-40 h-40 rounded-full bg-cyan-500/6 blur-[60px] pointer-events-none" />
 
-                <div className="relative z-10 p-6 md:p-8">
+                <div className="relative z-10 p-4 sm:p-6 md:p-8">
 
                     {/* ── Header ── */}
-                    <div className="flex items-start justify-between gap-4 mb-7">
-                        <div className="flex items-center gap-4">
+                    <div className="flex items-start justify-between gap-4 mb-5 sm:mb-7">
+                        <div className="flex items-center gap-3 sm:gap-4">
                             {/* Animated rocket icon */}
-                            <div className="relative w-12 h-12 shrink-0">
+                            <div className="relative w-10 h-10 sm:w-12 sm:h-12 shrink-0">
                                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/30 to-cyan-500/20 blur-md" />
-                                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-600/10 border border-violet-500/20 flex items-center justify-center">
-                                    <Rocket size={22} className={`text-violet-400 ${allDone ? '' : 'animate-bounce'}`} />
+                                <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-violet-600/10 border border-violet-500/20 flex items-center justify-center">
+                                    <Rocket size={20} className={`text-violet-400 ${allDone ? '' : 'animate-bounce'}`} />
                                 </div>
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-white tracking-tight">
+                                <h2 className="text-base sm:text-xl font-black text-white tracking-tight">
                                     {allDone ? '🎉 ¡Todo configurado!' : 'Configura tu negocio'}
                                 </h2>
-                                <p className="text-sm text-slate-400 mt-0.5">
+                                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
                                     {allDone
                                         ? 'Tu negocio está listo para recibir citas.'
                                         : `${completedCount} de ${totalCount} pasos •`}
@@ -235,7 +235,7 @@ export function OnboardingChecklist({
                         </div>
                         <button
                             onClick={handleDismiss}
-                            className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 text-xs font-bold text-slate-300 hover:text-red-300 transition-all duration-200 shrink-0 shadow-sm"
+                            className="group flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 text-xs font-bold text-slate-300 hover:text-red-300 transition-all duration-200 shrink-0 shadow-sm"
                             title="Descartar guía de configuración"
                         >
                             <X size={14} className="text-slate-400 group-hover:text-red-400 transition-colors" />
@@ -243,8 +243,8 @@ export function OnboardingChecklist({
                         </button>
                     </div>
 
-                    {/* ── Tasks grid ── */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {/* ── Tasks grid (2x2 en móvil) ── */}
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                         {tasks.map((task, idx) => {
                             const Icon = task.icon;
                             return (
@@ -263,23 +263,23 @@ export function OnboardingChecklist({
                                         <div className={`absolute -top-4 -left-4 w-16 h-16 rounded-full bg-gradient-to-br ${task.color} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity`} />
                                     )}
 
-                                    <div className="relative p-4">
-                                        <div className="flex items-start justify-between gap-3 mb-3">
+                                    <div className="relative p-3 sm:p-4">
+                                        <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
                                             {/* Step number + icon */}
-                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300
+                                            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300
                                                 ${task.done
                                                     ? 'bg-emerald-500/15 border border-emerald-500/20'
                                                     : `bg-gradient-to-br ${task.color} opacity-90 shadow-lg ${task.glow}`
                                                 }`}
                                             >
                                                 {task.done
-                                                    ? <CheckCircle2 size={18} className="text-emerald-400" />
-                                                    : <Icon size={16} className="text-white" />
+                                                    ? <CheckCircle2 size={16} className="text-emerald-400" />
+                                                    : <Icon size={15} className="text-white" />
                                                 }
                                             </div>
 
                                             {/* Step counter badge */}
-                                            <span className={`text-[10px] font-black tabular-nums px-2 py-0.5 rounded-full border transition-colors
+                                            <span className={`text-[9px] sm:text-[10px] font-black tabular-nums px-1.5 sm:px-2 py-0.5 rounded-full border transition-colors
                                                 ${task.done
                                                     ? 'text-emerald-500/60 border-emerald-500/10 bg-emerald-500/5'
                                                     : 'text-slate-600 border-white/[0.06] bg-white/[0.03]'
@@ -288,18 +288,18 @@ export function OnboardingChecklist({
                                             </span>
                                         </div>
 
-                                        <div className={`text-sm font-bold leading-tight mb-1 transition-colors
+                                        <div className={`text-xs sm:text-sm font-bold leading-snug mb-1 transition-colors line-clamp-2
                                             ${task.done ? 'text-slate-500' : 'text-slate-200 group-hover:text-white'}`}>
                                             {task.label}
                                         </div>
-                                        <div className={`text-[11px] leading-relaxed transition-colors
+                                        <div className={`text-[10px] sm:text-[11px] leading-snug transition-colors line-clamp-2
                                             ${task.done ? 'text-slate-700' : 'text-slate-500 group-hover:text-slate-400'}`}>
                                             {task.description}
                                         </div>
 
                                         {/* Action hint */}
                                         {!task.done && (
-                                            <div className="flex items-center gap-1 mt-3 text-[10px] font-bold text-slate-600 group-hover:text-violet-400 transition-colors">
+                                            <div className="flex items-center gap-1 mt-2.5 sm:mt-3 text-[9px] sm:text-[10px] font-bold text-slate-600 group-hover:text-violet-400 transition-colors">
                                                 <span>Configurar</span>
                                                 <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
                                             </div>

@@ -784,7 +784,7 @@ export default function Dashboard() {
             {/* ── Onboarding Checklist (solo admin, desaparece cuando todo está completo) ── */}
             {!isEmployee && tenantConfig && (
                 <OnboardingChecklist
-                    tenantId={useAuthStore.getState().tenantId || ''}
+                    tenantId={tenantConfig.id || ''}
                     stylists={stylists}
                     services={services}
                     tenantConfig={tenantConfig}
@@ -1633,7 +1633,7 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {!isEmployee && (businessConfig as any).showDashboardMetrics !== false && (
+            {!isEmployee && (businessConfig as any).showDashboardMetrics === true && (
                 <div className="space-y-6">
                     {/* ── Grid Principal de Gráfica y Servicios ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

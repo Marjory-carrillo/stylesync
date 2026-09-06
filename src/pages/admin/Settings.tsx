@@ -14,7 +14,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
 import { useNavigate } from 'react-router-dom';
-import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle } from 'lucide-react';
+import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle, ClipboardPaste } from 'lucide-react';
 import { useReviews } from '../../lib/store/queries/useReviews';
 import BusinessQRCardsModal from '../../components/BusinessQRCardsModal';
 import { businessConfigSchema } from '../../lib/schemas';
@@ -284,6 +284,16 @@ export default function Settings() {
 
         updateBusinessConfig(infoForm);
         showToast('Información del negocio actualizada', 'success');
+    };
+
+    const handleFieldBlur = async (field: string, value: any) => {
+        if (!businessConfig || (businessConfig as any)[field] === value) return;
+        try {
+            await updateBusinessConfig({ [field]: value });
+            showToast('Guardado automáticamente', 'success');
+        } catch (e) {
+            console.error('Error auto-saving field:', e);
+        }
     };
 
 
@@ -814,18 +824,24 @@ export default function Settings() {
                             <label className="block text-sm text-muted mb-1">Nombre del Negocio</label>
                             <input
                                 type="text"
+                                autoComplete="off"
+                                data-lpignore="true"
                                 className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                                 value={infoForm.name}
                                 onChange={e => setInfoForm({ ...infoForm, name: e.target.value })}
+                                onBlur={e => handleFieldBlur('name', e.target.value)}
                             />
                         </div>
                         <div>
                             <label className="block text-sm text-muted mb-1">Descripción corta (PWA)</label>
                             <textarea
+                                autoComplete="off"
+                                data-lpignore="true"
                                 className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none"
                                 rows={2}
                                 value={infoForm.description || ''}
                                 onChange={e => setInfoForm({ ...infoForm, description: e.target.value })}
+                                onBlur={e => handleFieldBlur('description', e.target.value)}
                                 placeholder="Breve descripción para cuando los clientes instalen la app"
                             />
                         </div>
@@ -833,34 +849,72 @@ export default function Settings() {
                             <label className="block text-sm text-muted mb-1 flex items-center gap-1"><MapPin size={14} /> Dirección</label>
                             <input
                                 type="text"
+                                autoComplete="off"
+                                data-lpignore="true"
+                                placeholder="Ej. Calle 5 de Mayo #123, Col. Centro"
                                 className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                                 value={infoForm.address}
                                 onChange={e => setInfoForm({ ...infoForm, address: e.target.value })}
+                                onBlur={e => handleFieldBlur('address', e.target.value)}
                             />
+                            <p className="text-xs text-muted mt-1">
+                                Solo calle y número o colonia (sin estados ni códigos postales largos).
+                            </p>
                         </div>
                         <div>
                             <label className="block text-sm text-muted mb-1 flex items-center gap-1"><Phone size={14} /> Teléfono</label>
                             <input
-                                type="text"
-                                className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                                type="tel"
+                                inputMode="tel"
+                                autoComplete="off"
+                                data-lpignore="true"
+                                placeholder="8681234567"
+                                className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all font-mono"
                                 value={infoForm.phone}
                                 onChange={e => setInfoForm({ ...infoForm, phone: e.target.value })}
+                                onBlur={e => handleFieldBlur('phone', e.target.value)}
                             />
+                            <p className="text-xs text-muted mt-1">
+                                Teléfono principal de contacto y respaldo de notificaciones.
+                            </p>
                         </div>
 
                         <div>
-                            <label className="block text-sm text-muted mb-1 flex items-center gap-1"><Globe size={14} /> Enlace de Ubicación (Maps)</label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="text-sm text-muted flex items-center gap-1"><Globe size={14} /> Enlace de Ubicación (Maps)</label>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            const text = await navigator.clipboard.readText();
+                                            if (text) {
+                                                const cleanVal = text.trim();
+                                                setInfoForm({ ...infoForm, googleMapsUrl: cleanVal });
+                                                await handleFieldBlur('googleMapsUrl', cleanVal);
+                                                showToast('Enlace pegado correctamente', 'success');
+                                            }
+                                        } catch (err) {
+                                            showToast('Por favor pega el enlace manualmente', 'info');
+                                        }
+                                    }}
+                                    className="text-xs font-bold text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                                >
+                                    <ClipboardPaste size={13} /> Pegar Link
+                                </button>
+                            </div>
                             <div className="flex gap-2">
                                 <input
-                                    type="text"
+                                    type="url"
+                                    autoComplete="off"
+                                    data-lpignore="true"
                                     placeholder="https://maps.app.goo.gl/... o Coordenadas"
-                                    className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                                    className="w-full glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all font-mono text-xs"
                                     value={infoForm.googleMapsUrl || ''}
                                     onChange={e => {
                                         let val = e.target.value;
                                         setInfoForm({ ...infoForm, googleMapsUrl: val });
                                     }}
-                                    onBlur={e => {
+                                    onBlur={async (e) => {
                                         let val = e.target.value.trim();
                                         // Auto-convert coordinates to URL
                                         const coordRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
@@ -868,6 +922,7 @@ export default function Settings() {
                                             val = `https://www.google.com/maps/search/?api=1&query=${val.replace(/\s/g, '')}`;
                                             setInfoForm({ ...infoForm, googleMapsUrl: val });
                                         }
+                                        await handleFieldBlur('googleMapsUrl', val);
                                     }}
                                 />
                                 {infoForm.googleMapsUrl && (
@@ -971,7 +1026,7 @@ export default function Settings() {
                                     <input
                                         type="checkbox"
                                         className="sr-only peer"
-                                        checked={infoForm.showDashboardMetrics ?? true}
+                                        checked={infoForm.showDashboardMetrics ?? false}
                                         onChange={async (e) => {
                                             const val = e.target.checked;
                                             setInfoForm({ ...infoForm, showDashboardMetrics: val });
@@ -1337,9 +1392,11 @@ export default function Settings() {
                             </div>
                         )}
 
-                        <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 mt-4 flex justify-center items-center gap-2">
-                            <Save size={18} /> Guardar Cambios
-                        </button>
+                        <div className="sticky bottom-4 z-40 pt-2 bg-gradient-to-t from-[#0b101b]/95 via-[#0b101b]/80 to-transparent pb-1">
+                            <button type="submit" className="w-full btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 shadow-xl shadow-black/60 flex justify-center items-center gap-2">
+                                <Save size={18} /> Guardar Cambios
+                            </button>
+                        </div>
                     </form>
                 </section>
 

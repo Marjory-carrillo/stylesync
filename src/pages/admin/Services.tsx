@@ -6,12 +6,13 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useCatalog, MAX_CATALOG_IMAGES_PER_SERVICE } from '../../lib/store/queries/useCatalog';
-import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon, Images, Loader2, ChevronDown, ChevronUp, Users, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Clock, DollarSign, Upload, ImageIcon, Images, Loader2, ChevronDown, ChevronUp, Users, Sparkles, Camera } from 'lucide-react';
 import { Skeleton } from '../../components/ui/Skeleton';
 import ConfirmModal from '../../components/ConfirmModal';
 import PlaceholderSVG from '../../assets/placeholder-service.svg';
 import { serviceSchema } from '../../lib/schemas';
 import { isNailCalculatorEnabled } from '../../lib/planLimits';
+import { useUIStore } from '../../lib/store/uiStore';
 
 // ── Sub-componente: Galería de un servicio ────────────────────────────────
 function ServiceCatalogGallery({ serviceId, defaultDuration }: { serviceId: number; defaultDuration?: number }) {
@@ -182,12 +183,30 @@ export default function Services() {
     const { services, addService, removeService, updateService, isLoading } = useServices();
     const { stylists = [] } = useStylists();
     const { data: tenantConfig } = useTenantData();
+    const { showToast } = useUIStore();
     const businessConfig = tenantConfig || {} as any;
 
     const hasMultipleStylists = (stylists?.length || 0) >= 2;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [activeFilter, setActiveFilter] = useState<'all' | 'main' | 'packages' | 'addons'>('all');
+    const [uploadingServiceId, setUploadingServiceId] = useState<number | null>(null);
+
+    const handleDirectImageUpload = async (serviceId: number, file: File) => {
+        try {
+            setUploadingServiceId(serviceId);
+            const url = await uploadServiceImage(file);
+            if (url) {
+                await updateService({ id: serviceId, data: { image: url } });
+                showToast('Foto del servicio actualizada correctamente', 'success');
+            }
+        } catch (err) {
+            showToast('Error al subir la imagen', 'error');
+        } finally {
+            setUploadingServiceId(null);
+        }
+    };
     const [formName, setFormName] = useState('');
     const [formDescription, setFormDescription] = useState('');
     const [formDuration, setFormDuration] = useState('');
@@ -326,7 +345,7 @@ export default function Services() {
                         <span className="text-sm font-semibold">Nuevo Paquete</span>
                     </button>
                     <button className="btn btn-primary flex items-center gap-2" onClick={openAdd}>
-                        <Plus size={20} /> <span className="hidden md:inline">{t('services.new_service')}</span>
+                        <Plus size={20} /> <span className="text-sm font-semibold">{t('services.new_service')}</span>
                     </button>
                 </div>
             </div>
@@ -362,6 +381,78 @@ export default function Services() {
                     </Link>
                 </div>
             )}
+
+            {/* Pestañas de Filtros */}
+            <div className="flex items-center gap-2 p-1.5 bg-slate-900/60 border border-white/10 rounded-2xl w-full sm:w-fit overflow-x-auto custom-scrollbar">
+                <button
+                    type="button"
+                    onClick={() => setActiveFilter('all')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                        activeFilter === 'all'
+                            ? 'bg-accent text-slate-950 shadow-md'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    Todos
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                        activeFilter === 'all' ? 'bg-black/20 text-slate-950' : 'bg-white/10 text-slate-400'
+                    }`}>
+                        {services.length}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveFilter('main')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                        activeFilter === 'main'
+                            ? 'bg-accent text-slate-950 shadow-md'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    ⭐ Principales
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                        activeFilter === 'main' ? 'bg-black/20 text-slate-950' : 'bg-white/10 text-slate-400'
+                    }`}>
+                        {services.filter(s => !s.isAddon && !s.isPackage).length}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveFilter('packages')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                        activeFilter === 'packages'
+                            ? 'bg-purple-500 text-white shadow-md'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    <Sparkles size={12} />
+                    Paquetes
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                        activeFilter === 'packages' ? 'bg-black/20 text-white' : 'bg-white/10 text-slate-400'
+                    }`}>
+                        {services.filter(s => s.isPackage).length}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveFilter('addons')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                        activeFilter === 'addons'
+                            ? 'bg-cyan-500 text-slate-950 shadow-md'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    ✦ Adicionales (Add-ons)
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                        activeFilter === 'addons' ? 'bg-black/20 text-slate-950' : 'bg-white/10 text-slate-400'
+                    }`}>
+                        {services.filter(s => s.isAddon && !s.isPackage).length}
+                    </span>
+                </button>
+            </div>
 
             <div className="glass-card overflow-hidden rounded-xl">
                 <div className="overflow-x-auto">
@@ -403,14 +494,53 @@ export default function Services() {
                                     <>
                                         <tr key={service.id} className="hover:bg-white/5 transition-colors group">
                                             <td className="p-4">
-                                                <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden border border-white/10">
-                                                    <img
-                                                        decoding="async" loading="lazy"
-                                                        src={service.image || PlaceholderSVG}
-                                                        alt=""
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => { e.currentTarget.src = PlaceholderSVG; }}
-                                                    />
+                                                <div className="relative w-12 h-12 rounded-xl bg-slate-800/80 overflow-hidden border border-white/10 group/img shrink-0 flex items-center justify-center">
+                                                    {uploadingServiceId === service.id ? (
+                                                        <Loader2 size={18} className="animate-spin text-accent" />
+                                                    ) : service.image ? (
+                                                        <>
+                                                            <img
+                                                                decoding="async" loading="lazy"
+                                                                src={service.image}
+                                                                alt=""
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => { e.currentTarget.src = PlaceholderSVG; }}
+                                                            />
+                                                            <label
+                                                                title="Cambiar foto del servicio"
+                                                                className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white"
+                                                            >
+                                                                <Camera size={14} />
+                                                                <span className="text-[8px] font-bold mt-0.5">Cambiar</span>
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    className="hidden"
+                                                                    onChange={(e) => {
+                                                                        const f = e.target.files?.[0];
+                                                                        if (f) handleDirectImageUpload(service.id, f);
+                                                                    }}
+                                                                />
+                                                            </label>
+                                                        </>
+                                                    ) : (
+                                                        <label
+                                                            title="Subir foto del servicio"
+                                                            className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-accent/10 hover:bg-accent/20 border border-dashed border-accent/40 hover:border-accent rounded-xl text-accent transition-all p-1"
+                                                        >
+                                                            <Camera size={15} className="animate-pulse" />
+                                                            <span className="text-[8px] font-black uppercase tracking-tight mt-0.5">+ Foto</span>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={(e) => {
+                                                                    const f = e.target.files?.[0];
+                                                                    if (f) handleDirectImageUpload(service.id, f);
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="p-4">
@@ -509,10 +639,14 @@ export default function Services() {
                                     </>
                                 );
 
+                                const showMain = (activeFilter === 'all' || activeFilter === 'main') && mainServices.length > 0;
+                                const showPackages = (activeFilter === 'all' || activeFilter === 'packages') && packageServices.length > 0;
+                                const showAddons = (activeFilter === 'all' || activeFilter === 'addons') && addonServices.length > 0;
+
                                 return (
                                     <>
                                         {/* ── Servicios Principales ── */}
-                                        {mainServices.length > 0 && (
+                                        {showMain && (
                                             <>
                                                 <tr>
                                                     <td colSpan={6} className="px-4 pt-4 pb-2">
@@ -529,7 +663,7 @@ export default function Services() {
                                         )}
 
                                         {/* ── Paquetes ── */}
-                                        {packageServices.length > 0 && (
+                                        {showPackages && (
                                             <>
                                                 <tr>
                                                     <td colSpan={6} className="px-4 pt-6 pb-2">
@@ -546,7 +680,7 @@ export default function Services() {
                                         )}
 
                                         {/* ── Servicios Adicionales ── */}
-                                        {addonServices.length > 0 && (
+                                        {showAddons && (
                                             <>
                                                 <tr>
                                                     <td colSpan={6} className="px-4 pt-6 pb-2">
@@ -560,6 +694,14 @@ export default function Services() {
                                                 </tr>
                                                 {addonServices.map(service => renderServiceRow(service))}
                                             </>
+                                        )}
+
+                                        {!showMain && !showPackages && !showAddons && (
+                                            <tr>
+                                                <td colSpan={6} className="p-8 text-center text-muted">
+                                                    No hay elementos registrados en esta categoría.
+                                                </td>
+                                            </tr>
                                         )}
                                     </>
                                 );
