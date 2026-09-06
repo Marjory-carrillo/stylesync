@@ -20,6 +20,15 @@ if (sentryDsn) {
         blockAllMedia: false,
       }),
     ],
+    // Filtro anti-ruido: ignorar cancelaciones normales de red
+    ignoreErrors: [
+      'AbortError',
+      'The user aborted a request.',
+      'signal is aborted without reason',
+      'Failed to fetch',
+      'NetworkError',
+      'Load failed',
+    ],
     tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,

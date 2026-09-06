@@ -1487,6 +1487,9 @@ export default function SuperAdminPanel() {
             );
             fetchAllTenants();
         } else {
+            Sentry.captureException(new Error(res.error || 'Error al crear negocio'), {
+                extra: { businessName: newBusiness.name, category: newBusiness.category, email: newBusiness.ownerEmail }
+            });
             showToast(res.error || 'Error al crear negocio', 'error');
         }
     };

@@ -47,7 +47,6 @@ export function useSuperAdmin() {
                 owner_id: existingOwnerId || user.id,
                 timezone: timezone || 'America/Mexico_City',
                 sms_provider: 'whatsapp',
-                registration_source: 'direct',
                 onboarding_completed: false,
                 trial_ends_at: noTrial ? null : trialEnd.toISOString(),
                 country_code: countryCode || 'MX',
