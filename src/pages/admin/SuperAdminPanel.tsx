@@ -1055,39 +1055,16 @@ export default function SuperAdminPanel() {
         }
     };
 
-    const getCategorySuffix = (catId: string) => {
-        switch (catId) {
-            case 'barbershop': return '-barber';
-            case 'beauty_salon': return '-beauty';
-            case 'nail_bar': return '-nails';
-            case 'lashes': return '-lashes';
-            case 'spa': return '-spa';
-            case 'pet_grooming': return '-pets';
-            case 'consulting': return '-consulting';
-            default: return '';
-        }
-    };
-
-    const updateNewBusinessSlug = (businessName: string, catId: string, manualOverride: boolean = isSlugManual) => {
+    const updateNewBusinessSlug = (businessName: string, _catId?: string, manualOverride: boolean = isSlugManual) => {
         if (manualOverride) return;
-        const baseSlug = businessName.toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^\w\s-]/g, '')
-            .trim()
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-');
+        const baseSlug = businessName
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
         
-        if (!baseSlug) {
-            setNewBusiness(prev => ({ ...prev, slug: '' }));
-            return;
-        }
-
-        const suffix = getCategorySuffix(catId);
-        if (suffix && !baseSlug.endsWith(suffix)) {
-            setNewBusiness(prev => ({ ...prev, slug: baseSlug + suffix }));
-        } else {
-            setNewBusiness(prev => ({ ...prev, slug: baseSlug }));
-        }
+        setNewBusiness(prev => ({ ...prev, slug: baseSlug }));
     };
 
     useEffect(() => {
