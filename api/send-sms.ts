@@ -3,10 +3,24 @@ import twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // Configurar CORS
+    // 1. CORS Seguro: Restringir a dominios autorizados de CitaLink
+    const origin = (req.headers.origin as string) || '';
+    const isAllowedOrigin =
+        !origin ||
+        origin === 'https://www.citalink.app' ||
+        origin === 'https://citalink.app' ||
+        origin.endsWith('.vercel.app') ||
+        origin === 'http://localhost:5173' ||
+        origin === 'http://localhost:3000';
+
+    if (isAllowedOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', origin || 'https://www.citalink.app');
+    } else {
+        return res.status(403).json({ error: 'Origen no autorizado para envío de mensajería.' });
+    }
+
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
     res.setHeader(
         'Access-Control-Allow-Headers',
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, apikey'
@@ -38,6 +52,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Faltan parámetros phone/to o message/template_sid' });
     }
 
+    // 2. Blindaje Anti-Abuso / Anti Toll-Fraud:
+    // Si no es una plantilla oficial aprobada (template_sid), validar que sea una llamada autenticada
+    const hasValidTemplate = template_sid && typeof template_sid === 'string' && template_sid.startsWith('HX');
+    if (!hasValidTemplate && message) {
+        const authHeader = req.headers.authorization || '';
+        if (!authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({
+                error: 'Para mensajes de texto libre se requiere sesión autenticada o el uso de plantillas oficiales de CitaLink.',
+            });
+        }
+    }
+
     // Twilio Setup
     const accountSid = process.env.TWILIO_ACCOUNT_SID || process.env.VITE_TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN || process.env.VITE_TWILIO_AUTH_TOKEN;
@@ -50,6 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Normalizar teléfono (WhatsApp México sin el '1' intermedio)
     const digits = String(targetPhone).replace(/\D/g, '');
+    if (digits.length < 10) {
+        return res.status(400).json({ error: 'Número de teléfono inválido (mínimo 10 dígitos)' });
+    }
     let e164: string;
     if (digits.startsWith('521') && digits.length === 13) {
         e164 = `+52${digits.slice(3)}`;
