@@ -74,17 +74,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Servidor Twilio no configurado.' });
     }
 
-    // Normalizar teléfono (WhatsApp México sin el '1' intermedio)
-    const digits = String(targetPhone).replace(/\D/g, '');
+    // Normalizar teléfono con soporte para México (+52), EE.UU./Canadá (+1) e internacional
+    const rawStr = String(targetPhone).trim();
+    const digits = rawStr.replace(/\D/g, '');
     if (digits.length < 10) {
         return res.status(400).json({ error: 'Número de teléfono inválido (mínimo 10 dígitos)' });
     }
+
     let e164: string;
-    if (digits.startsWith('521') && digits.length === 13) {
+    // 1. Estados Unidos / Canadá (+1)
+    if (rawStr.startsWith('+1') || (digits.startsWith('1') && digits.length === 11)) {
+        e164 = `+1${digits.slice(-10)}`;
+    }
+    // 2. México (+52) - eliminar '1' intermedio antiguo para WhatsApp México
+    else if (digits.startsWith('521') && digits.length === 13) {
         e164 = `+52${digits.slice(3)}`;
     } else if (digits.startsWith('52') && digits.length === 12) {
         e164 = `+${digits}`;
-    } else {
+    }
+    // 3. Otro código internacional explícito (+34, +57, +58, etc.)
+    else if (rawStr.startsWith('+')) {
+        e164 = `+${digits}`;
+    }
+    // 4. 10 dígitos sin prefijo (por defecto México local)
+    else {
         e164 = `+52${digits.slice(-10)}`;
     }
 

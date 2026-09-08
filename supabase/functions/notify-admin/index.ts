@@ -37,10 +37,25 @@ const corsHeaders = {
 };
 
 function normalizeToWA(phone: string): string {
+    const raw = phone.trim();
     const digits = phone.replace(/\D/g, '');
-    // Siempre enviamos con +52 sin el 1 intermedio, ya que WhatsApp (y Twilio) están fallando en rutas +521.
-    if (digits.startsWith('521') && digits.length === 13) return `whatsapp:+52${digits.slice(3)}`;
-    if (digits.startsWith('52') && digits.length === 12) return `whatsapp:+${digits}`;
+
+    // 1. Estados Unidos / Canadá (+1)
+    if (raw.startsWith('+1') || (digits.startsWith('1') && digits.length === 11)) {
+        return `whatsapp:+1${digits.slice(-10)}`;
+    }
+    // 2. México (+52) - limpiar 1 intermedio antiguo de WhatsApp México
+    if (digits.startsWith('521') && digits.length === 13) {
+        return `whatsapp:+52${digits.slice(3)}`;
+    }
+    if (digits.startsWith('52') && digits.length === 12) {
+        return `whatsapp:+${digits}`;
+    }
+    // 3. Otro código internacional con '+'
+    if (raw.startsWith('+')) {
+        return `whatsapp:+${digits}`;
+    }
+    // 4. 10 dígitos por defecto (México)
     return `whatsapp:+52${digits.slice(-10)}`;
 }
 
