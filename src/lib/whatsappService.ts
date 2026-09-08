@@ -1,24 +1,7 @@
-// Servicio para envío directo de plantillas oficiales de WhatsApp vía Twilio API
-// Evita llamadas fallidas a endpoints intermedios y garantiza 0 errores en Twilio Logs.
-
-const TWILIO_ACCOUNT_SID = import.meta.env.VITE_TWILIO_ACCOUNT_SID as string;
-const TWILIO_AUTH_TOKEN  = import.meta.env.VITE_TWILIO_AUTH_TOKEN as string;
-const TWILIO_FROM_NUMBER = (import.meta.env.VITE_TWILIO_FROM_NUMBER as string) || '+15706349708';
+// Servicio para envío de plantillas oficiales de WhatsApp vía backend seguro /api/send-sms
+// Las credenciales de Twilio permanecen 100% privadas en el servidor y NUNCA se exponen al navegador.
 
 export const TEMPLATE_CLIENTE_CITA_MANUAL = 'HXcc71cca366ff7fa242044edb96ead1bc';
-
-function normalizeToWA(phone: string): string {
-    const digits = phone.replace(/\D/g, '');
-    let e164: string;
-    if (digits.startsWith('521') && digits.length === 13) {
-        e164 = `+52${digits.slice(3)}`;
-    } else if (digits.startsWith('52') && digits.length === 12) {
-        e164 = `+${digits}`;
-    } else {
-        e164 = `+52${digits.slice(-10)}`;
-    }
-    return `whatsapp:${e164}`;
-}
 
 export function formatDateTimeDisplay(dateStr: string, timeStr: string): string {
     try {
@@ -45,44 +28,36 @@ export async function sendManualBookingClientNotification(params: {
     serviceName: string;
 }): Promise<boolean> {
     try {
-        if (!params.clientPhone || !TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+        if (!params.clientPhone) {
             return false;
         }
 
-        const waTo = normalizeToWA(params.clientPhone);
-        const waFrom = `whatsapp:${TWILIO_FROM_NUMBER}`;
         const fechaFormateada = formatDateTimeDisplay(params.date, params.time);
         const bookingLink = params.businessSlug
             ? `https://www.citalink.app/reserva/${params.businessSlug}`
             : 'https://www.citalink.app';
 
-        const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
-        const formData = new URLSearchParams({
-            To: waTo,
-            From: waFrom,
-            ContentSid: TEMPLATE_CLIENTE_CITA_MANUAL,
-            ContentVariables: JSON.stringify({
-                '1': params.clientName.trim(),
-                '2': params.businessName || 'CitaLink',
-                '3': fechaFormateada,
-                '4': params.serviceName,
-                '5': bookingLink,
+        const res = await fetch('/api/send-sms', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                phone: params.clientPhone,
+                provider: 'whatsapp',
+                template_sid: TEMPLATE_CLIENTE_CITA_MANUAL,
+                template_variables: {
+                    '1': params.clientName.trim(),
+                    '2': params.businessName || 'CitaLink',
+                    '3': fechaFormateada,
+                    '4': params.serviceName,
+                    '5': bookingLink,
+                },
             }),
         });
 
-        const res = await fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-            {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Basic ${credentials}`,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: formData.toString(),
-            }
-        );
-
-        return res.ok;
+        const data = await res.json().catch(() => ({}));
+        return res.ok && data.success === true;
     } catch (e) {
         console.warn('[whatsappService] Error sending client notification:', e);
         return false;
