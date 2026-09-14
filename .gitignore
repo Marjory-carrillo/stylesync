@@ -35,3 +35,7 @@ test.js
 test_twilio.js
 twilio.json
 twilio_utf8.json
+
+# Media & Videos
+*.mp4
+*.mov

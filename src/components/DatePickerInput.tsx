@@ -11,11 +11,12 @@ interface Props {
     align?: 'left' | 'right'; // which side the dropdown opens toward
     appointmentCounts?: Record<string, number>;
     waitingListCounts?: Record<string, number>;
+    compact?: boolean;
 }
 
 const DAY_NAMES = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
 
-export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/aaaa', className = '', align = 'left', appointmentCounts, waitingListCounts }: Props) {
+export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/aaaa', className = '', align = 'left', appointmentCounts, waitingListCounts, compact = false }: Props) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -49,18 +50,22 @@ export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/
         setOpen(false);
     };
 
-    const displayValue = hasValue ? format(parsedDate!, "dd 'de' MMMM, yyyy", { locale: es }) : '';
+    const displayValue = hasValue
+        ? (compact ? format(parsedDate!, "dd/MM/yyyy") : format(parsedDate!, "dd 'de' MMMM, yyyy", { locale: es }))
+        : '';
 
     const todayZero = new Date();
     todayZero.setHours(0, 0, 0, 0);
 
     return (
-        <div ref={ref} className={`relative ${className}`}>
+        <div ref={ref} className={`relative ${open ? 'z-50' : ''} ${className}`}>
             {/* Trigger */}
             <button
                 type="button"
                 onClick={() => setOpen(o => !o)}
-                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border transition-all text-sm ${
+                className={`flex items-center gap-2.5 w-full rounded-xl border transition-all ${
+                    compact ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-sm'
+                } ${
                     open
                         ? 'bg-accent/10 border-accent/40 text-white'
                         : hasValue
@@ -68,8 +73,8 @@ export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/
                             : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
                 }`}
             >
-                <Calendar size={15} className={hasValue ? 'text-accent shrink-0' : 'text-slate-500 shrink-0'} />
-                <span className="flex-1 text-left font-medium">
+                <Calendar size={compact ? 13 : 15} className={hasValue ? 'text-accent shrink-0' : 'text-slate-500 shrink-0'} />
+                <span className="flex-1 text-left font-medium truncate">
                     {hasValue ? displayValue : placeholder}
                 </span>
             </button>
