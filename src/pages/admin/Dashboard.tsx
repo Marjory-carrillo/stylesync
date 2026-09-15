@@ -694,22 +694,29 @@ export default function Dashboard() {
 
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <div className="flex items-center gap-3 mb-1">
+                    <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-1">
                         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white">Dashboard</h2>
                         {!isEmployee && (
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                                tenantPlan === 'pro'
-                                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                                    : tenantPlan === 'business'
-                                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                                    : inTrial
-                                    ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                                    : 'bg-white/5 border-white/10 text-slate-500'
-                            }`}>
-                                {tenantPlan === 'pro' && '⭐ '}
-                                {tenantPlan === 'business' && '🚀 '}
-                                {inTrial ? 'Trial' : tenantPlan.toUpperCase()}
-                            </span>
+                            inTrial ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-violet-500/15 border-violet-500/30 text-violet-300 shadow-sm">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                                    <span>
+                                        Trial · {trialDaysLeft > 0 ? `${trialDaysLeft} ${trialDaysLeft === 1 ? 'día restante' : 'días restantes'}` : 'Último día'}
+                                    </span>
+                                </span>
+                            ) : (
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                    tenantPlan === 'pro'
+                                        ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                                        : tenantPlan === 'business'
+                                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                        : 'bg-white/5 border-white/10 text-slate-500'
+                                }`}>
+                                    {tenantPlan === 'pro' && '⭐ '}
+                                    {tenantPlan === 'business' && '🚀 '}
+                                    {tenantPlan.toUpperCase()}
+                                </span>
+                            )
                         )}
                     </div>
                     <p className="text-slate-400 text-xs md:text-sm">Resumen de actividad y métricas clave.</p>
@@ -958,143 +965,6 @@ export default function Dashboard() {
                 </div>
             </div>
 
-
-            {/* ── Monthly Usage Card (only for Free plan or Trial) ── */}
-            {!isEmployee && !isLoading && (tenantPlan === 'free' || inTrial) && (() => {
-                const used = currentMonthStats.count;
-                const limit = monthlyApptLimit; // -1 = unlimited
-                const hasLimit = limit > 0;
-                const pct = hasLimit ? Math.min((used / limit) * 100, 100) : -1;
-                const isNear = hasLimit && pct >= 70;
-                const isFull = hasLimit && pct >= 100;
-
-                // Days remaining — use trial end date if in trial, otherwise month
-                const now = new Date();
-                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                const daysLeft = inTrial && trialEndsAt
-                    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-                    : lastDay - now.getDate();
-
-                // Average daily rate
-                const dayOfMonth = now.getDate();
-                const avgPerDay = dayOfMonth > 0 ? (used / dayOfMonth) : 0;
-                const projected = Math.round(avgPerDay * lastDay);
-
-                // Colors
-                const ringColor = isFull ? 'stroke-red-500' : isNear ? 'stroke-amber-500' : 'stroke-violet-500';
-                const bgGlow = isFull ? 'from-red-600/10 via-red-600/5' : isNear ? 'from-amber-600/10 via-amber-600/5' : 'from-violet-600/10 via-violet-600/5';
-                const borderColor = isFull ? 'border-red-500/20' : isNear ? 'border-amber-500/20' : 'border-white/5';
-                const accentText = isFull ? 'text-red-400' : isNear ? 'text-amber-400' : 'text-violet-400';
-
-                // SVG ring calculations
-                const radius = 52;
-                const circumference = 2 * Math.PI * radius;
-                const dashOffset = hasLimit ? circumference - (circumference * (pct / 100)) : 0;
-
-                return (
-                    <div className={`relative overflow-hidden rounded-[2rem] border ${borderColor} bg-gradient-to-br ${bgGlow} to-transparent p-6 md:p-8 mb-8 transition-all duration-500`}>
-                        {/* Background decoration */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-radial from-white/[0.02] to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
-                            {/* Progress Ring */}
-                            {hasLimit ? (
-                                <div className="relative shrink-0">
-                                    <svg width="130" height="130" className="-rotate-90" viewBox="0 0 120 120">
-                                        <circle cx="60" cy="60" r={radius} fill="none" strokeWidth="8" stroke="rgba(255,255,255,0.05)" />
-                                        <circle
-                                            cx="60" cy="60" r={radius}
-                                            fill="none"
-                                            strokeWidth="8"
-                                            strokeLinecap="round"
-                                            className={`${ringColor} transition-all duration-1000 ease-out`}
-                                            strokeDasharray={circumference}
-                                            strokeDashoffset={dashOffset}
-                                        />
-                                    </svg>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span className={`text-3xl font-black tracking-tighter ${accentText}`}>{used}</span>
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">/ {limit}</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="relative shrink-0 w-[130px] h-[130px] flex items-center justify-center">
-                                    <div className="absolute inset-0 rounded-full border-[8px] border-white/5" />
-                                    <div className="absolute inset-0 rounded-full border-[8px] border-transparent border-t-violet-500 border-r-violet-500/50 animate-spin" style={{ animationDuration: '3s' }} />
-                                    <div className="flex flex-col items-center justify-center">
-                                        <span className="text-3xl font-black tracking-tighter text-violet-400">{used}</span>
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">∞</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0 text-center md:text-left">
-                                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                                    <h3 className="text-lg md:text-xl font-black text-white tracking-tight">Citas este Mes</h3>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                                        tenantPlan === 'pro' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                        tenantPlan === 'business' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
-                                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                                    }`}>
-                                        {inTrial ? '🎁 Trial' : tenantPlan === 'pro' ? '⭐ Pro' : tenantPlan === 'business' ? '🚀 Biz' : 'Free'}
-                                    </span>
-                                </div>
-
-                                {hasLimit ? (
-                                    <>
-                                        {/* Full progress bar */}
-                                        <div className="w-full max-w-md h-3 bg-white/5 rounded-full overflow-hidden mb-3">
-                                            <div
-                                                className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                                                    isFull ? 'bg-gradient-to-r from-red-500 to-red-600 animate-pulse' :
-                                                    isNear ? 'bg-gradient-to-r from-amber-500 to-orange-500' :
-                                                    'bg-gradient-to-r from-violet-500 to-indigo-500'
-                                                }`}
-                                                style={{ width: `${pct}%` }}
-                                            />
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-sm">
-                                            <span className={`font-bold ${accentText}`}>
-                                                {isFull ? '⚠️ Límite alcanzado' : `${limit - used} citas restantes`}
-                                            </span>
-                                            <span className="text-slate-600 text-xs font-medium">
-                                                {daysLeft} días restantes {inTrial ? 'de Trial' : 'en el mes'}
-                                            </span>
-                                            {!isFull && projected > limit && (
-                                                <span className="text-amber-500/80 text-xs font-bold">
-                                                    📈 Proyección: ~{projected} citas
-                                                </span>
-                                            )}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-sm">
-                                        <span className="text-slate-400 font-medium">
-                                            <span className="text-violet-400 font-black">{used}</span> citas completadas
-                                        </span>
-                                        <span className="text-slate-600 text-xs font-medium">
-                                            {daysLeft} días de Trial restantes · Citas ilimitadas ✨
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Full limit overlay warning */}
-                        {isFull && (
-                            <div className="mt-6 p-4 bg-red-500/5 border border-red-500/15 rounded-2xl">
-                                <p className="text-sm text-red-400/90 font-medium text-center">
-                                    Has alcanzado el límite de <strong>{limit} citas</strong> para el Plan Free este mes. 
-                                    Elige uno de nuestros planes para continuar sin interrupciones.
-                                </p>
-                            </div>
-                        )}
-
-                    </div>
-                );
-            })()}
 
             {/* Premium Plans Grid (Shown for Free plan, trial expiring soon, or grace period expiring soon) */}
             {!isEmployee && !isLoading && (tenantPlan === 'free' || (inTrial && trialDaysLeft <= 8) || (isGracePeriod && graceDaysLeft <= 8)) && (
@@ -1796,53 +1666,62 @@ export default function Dashboard() {
             )}
 
             {/* Today's Appointments - Vista Multicolumna por Profesional */}
-            <div className={`glass-panel rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl flex flex-col ${
+            <div className={`glass-panel rounded-2xl sm:rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl flex flex-col ${
                 isCalendarFullscreen
-                    ? "flex-1 h-full min-h-0 p-3 sm:p-4"
-                    : "p-6 sm:p-7"
+                    ? "flex-1 h-full min-h-0 p-3 sm:p-5"
+                    : "p-4 sm:p-7"
             }`}>
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-accent shrink-0 shadow-lg shadow-accent/5">
-                            <Calendar size={22} />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-black text-lg text-white tracking-tight">
-                                    Control de Citas
-                                </h3>
-                                {isCalendarFullscreen && (
-                                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/20 border border-accent/30 text-[10px] font-black text-accent uppercase tracking-wider">
-                                        Pantalla Completa
-                                    </span>
-                                )}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 shrink-0">
+                    <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                            <div className="p-2 sm:p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-accent shrink-0 shadow-lg shadow-accent/5">
+                                <Calendar size={20} className="sm:size-[22px]" />
                             </div>
-                            <p className="text-xs text-slate-400">
-                                Monitoreo en tiempo real por especialista
-                            </p>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-black text-base sm:text-lg text-white tracking-tight">
+                                        Control de Citas
+                                    </h3>
+                                    {isCalendarFullscreen && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/20 border border-accent/30 text-[10px] font-black text-accent uppercase tracking-wider">
+                                            Pantalla Completa
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[11px] sm:text-xs text-slate-400">
+                                    Monitoreo en tiempo real por especialista
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-                        {/* Botón de Pantalla Completa */}
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                        {/* Botón de Pantalla Completa - ULTRA VISIBLE & DESTACADO */}
                         <button
                             type="button"
                             onClick={toggleCalendarFullscreen}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl border transition-all text-xs font-black cursor-pointer shadow-sm active:scale-95 shrink-0 ${
+                            className={`flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-2.5 rounded-2xl border-2 transition-all cursor-pointer shadow-lg active:scale-95 shrink-0 ${
                                 isCalendarFullscreen
-                                    ? 'bg-accent text-slate-950 border-accent shadow-lg shadow-accent/20'
-                                    : 'bg-black/40 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
+                                    ? 'bg-gradient-to-r from-accent to-orange-500 hover:from-accent hover:to-orange-600 text-slate-950 border-accent shadow-accent/30 ring-2 ring-accent/40 font-black'
+                                    : 'bg-gradient-to-r from-accent/20 via-violet-600/20 to-purple-600/20 hover:from-accent/30 hover:to-violet-600/30 text-white border-accent/60 shadow-accent/20 ring-2 ring-accent/30 hover:ring-accent/50'
                             }`}
-                            title={isCalendarFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
+                            title={isCalendarFullscreen ? "Salir de pantalla completa (Esc)" : "Ver agenda en pantalla completa"}
                         >
-                            {isCalendarFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                            <span className="hidden sm:inline">
-                                {isCalendarFullscreen ? 'Salir de Pantalla Completa' : 'Pantalla Completa'}
-                            </span>
+                            {isCalendarFullscreen ? (
+                                <>
+                                    <Minimize2 size={16} className="text-slate-950 shrink-0" />
+                                    <span className="font-black text-xs sm:text-sm">Salir de Pantalla Completa</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Maximize2 size={16} className="text-accent shrink-0 animate-pulse-soft" />
+                                    <span className="font-black text-xs sm:text-sm text-white">Pantalla Completa</span>
+                                </>
+                            )}
                         </button>
 
                         {!isEmployee && (
-                            <>
+                            <div className="flex items-center gap-2 ml-auto sm:ml-0">
                                 <CustomSelect
                                     value={String(dashboardStylistId)}
                                     onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
@@ -1850,7 +1729,7 @@ export default function Dashboard() {
                                         { value: 'all', label: 'Todos los Profesionales' },
                                         ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
                                     ]}
-                                    buttonClassName="bg-slate-900/60 border border-white/10 text-white rounded-2xl px-3 py-2 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[140px] sm:min-w-[170px] shadow-sm shrink-0"
+                                    buttonClassName="bg-slate-900/60 border border-white/10 text-white rounded-2xl px-3 py-2 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[120px] sm:min-w-[170px] shadow-sm shrink-0"
                                     dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
                                 />
 
@@ -1858,18 +1737,18 @@ export default function Dashboard() {
                                 <button
                                     type="button"
                                     onClick={() => setIsWaitingListModalOpen(true)}
-                                    className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-2xl transition-all font-black text-[10px] uppercase tracking-wider shrink-0 cursor-pointer shadow-sm active:scale-95"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-2xl transition-all font-black text-[10px] uppercase tracking-wider shrink-0 cursor-pointer shadow-sm active:scale-95"
                                     title="Abrir Lista de Espera"
                                 >
                                     <Users size={14} />
-                                    <span className="hidden sm:inline">Lista de Espera</span>
+                                    <span className="hidden xs:inline sm:inline">Espera</span>
                                     {waitingList.length > 0 && (
                                         <span className="bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded-full text-[9px] min-w-[16px] h-4 flex items-center justify-center font-black">
                                             {waitingList.length}
                                         </span>
                                     )}
                                 </button>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>

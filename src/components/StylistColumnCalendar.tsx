@@ -328,21 +328,21 @@ export default function StylistColumnCalendar({
     }, [selectedApt]);
 
     return (
-        <div className="flex flex-col h-full bg-slate-950/80 rounded-3xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col h-full bg-slate-950/80 rounded-2xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-xl">
             {/* ── Top Navigation Bar ── */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-white/10 bg-[#0c101d]">
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 border-b border-white/10 bg-[#0c101d]">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-1 rounded-xl sm:rounded-2xl border border-white/10">
                         <button
                             onClick={() => setCurrentDate(subDays(currentDate, 1))}
-                            className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+                            className="p-1.5 sm:p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg sm:rounded-xl transition-colors cursor-pointer"
                             title="Día anterior"
                         >
-                            <ChevronLeft size={18} />
+                            <ChevronLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
                         <button
                             onClick={() => setCurrentDate(new Date())}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                                 isViewingToday ? 'bg-accent text-slate-950 font-black shadow-lg shadow-accent/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
                             }`}
                         >
@@ -350,15 +350,15 @@ export default function StylistColumnCalendar({
                         </button>
                         <button
                             onClick={() => setCurrentDate(addDays(currentDate, 1))}
-                            className="p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+                            className="p-1.5 sm:p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg sm:rounded-xl transition-colors cursor-pointer"
                             title="Día siguiente"
                         >
-                            <ChevronRight size={18} />
+                            <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-base sm:text-lg font-black text-white capitalize tracking-tight">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                        <h3 className="text-xs sm:text-base md:text-lg font-black text-white capitalize tracking-tight">
                             {format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
                         </h3>
                     </div>

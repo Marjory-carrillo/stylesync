@@ -207,7 +207,7 @@ export default function AdminLayout() {
     const isActive = (path: string) => location.pathname === path;
 
     const navLinkClass = (path: string) => `
-        flex items-center ${isSidebarCollapsed ? 'justify-center px-2 py-3' : 'gap-4 px-4 py-3'} rounded-xl transition-all duration-200 group
+        flex items-center ${isSidebarCollapsed ? 'lg:justify-center lg:px-2 py-3 px-4 gap-4' : 'gap-4 px-4 py-3'} rounded-xl transition-all duration-200 group
         ${isActive(path)
             ? 'bg-accent/10 text-accent font-semibold border border-accent/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
             : 'text-slate-400 hover:text-white hover:bg-white/5'}
@@ -299,24 +299,22 @@ export default function AdminLayout() {
             <aside className={`
                 fixed inset-y-0 left-0 shrink-0 bg-[#0f172a] shadow-2xl z-50 transform transition-all duration-300 ease-in-out
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-                ${isSidebarCollapsed ? 'w-20 lg:my-3 lg:ml-3 lg:mr-0 lg:rounded-3xl' : 'w-64 lg:m-4 lg:rounded-[2.5rem]'}
+                ${isSidebarCollapsed ? 'w-72 lg:w-20 lg:my-3 lg:ml-3 lg:mr-0 lg:rounded-3xl' : 'w-72 lg:w-64 lg:m-4 lg:rounded-[2.5rem]'}
                 lg:relative lg:translate-x-0 lg:glass-panel lg:border-none lg:flex lg:flex-col
             `}>
-                <div className={`p-4 lg:p-5 flex items-center ${isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between'} border-b border-white/5 transition-all`}>
-                    <button onClick={() => { closeMobileMenu(); window.location.href = '/admin'; }} className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`} title="CitaLink Admin">
+                <div className={`p-4 lg:p-5 flex items-center ${isSidebarCollapsed ? 'lg:flex-col lg:gap-3 lg:justify-center justify-between' : 'justify-between'} border-b border-white/5 transition-all`}>
+                    <button onClick={() => { closeMobileMenu(); window.location.href = '/admin'; }} className={`flex items-center ${isSidebarCollapsed ? 'lg:justify-center gap-3' : 'gap-3'}`} title="CitaLink Admin">
                         <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer shrink-0">
                             <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
                             <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
                         </div>
-                        {!isSidebarCollapsed && (
-                            <div className="text-left animate-fade-in">
-                                <h1 className="text-lg font-black tracking-tight text-white leading-none">Cita<span className="text-violet-500">Link</span></h1>
-                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
-                            </div>
-                        )}
+                        <div className={`text-left animate-fade-in ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
+                            <h1 className="text-lg font-black tracking-tight text-white leading-none">Cita<span className="text-violet-500">Link</span></h1>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
+                        </div>
                     </button>
 
-                    {/* Botón de Colapsar / Expandir Barra Lateral (Desktop) */}
+                    {/* Botón de Colapsar / Expandir Barra Lateral (Solo Desktop) */}
                     <button
                         type="button"
                         onClick={toggleSidebar}
@@ -326,18 +324,19 @@ export default function AdminLayout() {
                         {isSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
                     </button>
 
-                    {!isSidebarCollapsed && (
-                        <button
-                            className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-slate-500"
-                            onClick={closeMobileMenu}
-                        >
-                            <X size={20} />
-                        </button>
-                    )}
+                    {/* Botón Cerrar (Solo Móvil) */}
+                    <button
+                        className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-slate-500 cursor-pointer"
+                        onClick={closeMobileMenu}
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* Branch Switcher (multi-business owners) */}
-                {!isSidebarCollapsed && <BranchSwitcher />}
+                <div className={isSidebarCollapsed ? 'lg:hidden' : ''}>
+                    <BranchSwitcher />
+                </div>
 
                 {/* Desktop "Nueva Cita" Button */}
                 <div className={`${isSidebarCollapsed ? 'px-2 py-2' : 'px-4 py-2'} hidden lg:block`}>
@@ -353,195 +352,281 @@ export default function AdminLayout() {
                     </button>
                 </div>
 
-                <nav className={`flex-1 ${isSidebarCollapsed ? 'p-2 space-y-2' : 'p-4 space-y-1.5'} overflow-y-auto overflow-x-hidden custom-scrollbar transition-all`}>
-                    {!isSidebarCollapsed && (
-                        <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>
-                    )}
+                <nav className={`flex-1 ${isSidebarCollapsed ? 'lg:p-2 lg:space-y-2 p-4 space-y-1.5' : 'p-4 space-y-1.5'} overflow-y-auto overflow-x-hidden custom-scrollbar transition-all`}>
+                    <div className={`text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2 ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>Menú Principal</div>
 
                     {/* 1. Dashboard */}
                     <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')} title={t('nav.dashboard')}>
                         <LayoutDashboard size={18} className="shrink-0" />
-                        {!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}
+                        <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>{t('nav.dashboard')}</span>
                     </Link>
 
                     {/* 2. Cotizador y después anticipos según apliquen */}
                     {showNailCalculator && (
                         <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')} title="Cotizador de Uñas">
                             <Calculator size={18} className="shrink-0" />
-                            {!isSidebarCollapsed && <span>Cotizador de Uñas</span>}
+                            <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>Cotizador de Uñas</span>
                         </Link>
                     )}
 
                     {businessConfig?.depositEnabled && (
                         <Link to="/admin/deposits" onClick={closeMobileMenu} className={navLinkClass('/admin/deposits')} title="Anticipos">
                             <CreditCard size={18} className="shrink-0" />
-                            {!isSidebarCollapsed && <span>Anticipos</span>}
+                            <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>Anticipos</span>
                         </Link>
                     )}
 
                     {/* 3. Agenda */}
                     <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')} title={t('nav.appointments')}>
                         <Calendar size={18} className="shrink-0" />
-                        {!isSidebarCollapsed && <span>{t('nav.appointments')}</span>}
+                        <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>{t('nav.appointments')}</span>
                     </Link>
 
                     {/* 4. Herramientas */}
                     {!isEmployee && (
-                        isSidebarCollapsed ? (
-                            <Link
-                                to="/admin/social-content"
-                                onClick={closeMobileMenu}
-                                className={navLinkClass('/admin/social-content')}
-                                title="Contenido para redes"
-                            >
-                                <Share2 size={18} className="shrink-0 text-violet-400" />
-                            </Link>
-                        ) : (
-                            <div className="pt-1">
-                                <button
-                                    type="button"
-                                    onClick={toggleTools}
-                                    className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Wrench size={16} className="text-violet-400 group-hover:scale-110 transition-transform" />
-                                        <span>Herramientas</span>
-                                        {isToolsActive && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                        <>
+                            {isSidebarCollapsed ? (
+                                <>
+                                    <Link
+                                        to="/admin/social-content"
+                                        onClick={closeMobileMenu}
+                                        className={`hidden lg:flex ${navLinkClass('/admin/social-content')}`}
+                                        title="Contenido para redes"
+                                    >
+                                        <Share2 size={18} className="shrink-0 text-violet-400" />
+                                    </Link>
+                                    <div className="pt-1 lg:hidden">
+                                        <button
+                                            type="button"
+                                            onClick={toggleTools}
+                                            className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Wrench size={16} className="text-violet-400 group-hover:scale-110 transition-transform" />
+                                                <span>Herramientas</span>
+                                                {isToolsActive && (
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                                                )}
+                                            </div>
+                                            <ChevronDown
+                                                size={14}
+                                                className={`transition-transform duration-300 ${isToolsOpen ? 'rotate-180 text-violet-400' : 'text-slate-600'}`}
+                                            />
+                                        </button>
+
+                                        {isToolsOpen && (
+                                            <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                                <Link
+                                                    to="/admin/social-content"
+                                                    onClick={closeMobileMenu}
+                                                    className={subNavLinkClass('/admin/social-content')}
+                                                >
+                                                    <Share2 size={15} className="shrink-0 text-violet-400" />
+                                                    <span className="truncate">Contenido para redes</span>
+                                                </Link>
+                                            </div>
                                         )}
                                     </div>
-                                    <ChevronDown
-                                        size={14}
-                                        className={`transition-transform duration-300 ${isToolsOpen ? 'rotate-180 text-violet-400' : 'text-slate-600'}`}
-                                    />
-                                </button>
+                                </>
+                            ) : (
+                                <div className="pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={toggleTools}
+                                        className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Wrench size={16} className="text-violet-400 group-hover:scale-110 transition-transform" />
+                                            <span>Herramientas</span>
+                                            {isToolsActive && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                                            )}
+                                        </div>
+                                        <ChevronDown
+                                            size={14}
+                                            className={`transition-transform duration-300 ${isToolsOpen ? 'rotate-180 text-violet-400' : 'text-slate-600'}`}
+                                        />
+                                    </button>
 
-                                {isToolsOpen && (
-                                    <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
-                                        <Link
-                                            to="/admin/social-content"
-                                            onClick={closeMobileMenu}
-                                            className={subNavLinkClass('/admin/social-content')}
-                                        >
-                                            <Share2 size={15} className="shrink-0 text-violet-400" />
-                                            <span className="truncate">Contenido para redes</span>
-                                        </Link>
-                                    </div>
-                                )}
-                            </div>
-                        )
+                                    {isToolsOpen && (
+                                        <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                            <Link
+                                                to="/admin/social-content"
+                                                onClick={closeMobileMenu}
+                                                className={subNavLinkClass('/admin/social-content')}
+                                            >
+                                                <Share2 size={15} className="shrink-0 text-violet-400" />
+                                                <span className="truncate">Contenido para redes</span>
+                                            </Link>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {/* 5. Clientes */}
                     {!isEmployee && (
                         <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')} title={t('nav.clients')}>
                             <Users size={18} className="shrink-0" />
-                            {!isSidebarCollapsed && <span>{t('nav.clients')}</span>}
+                            <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>{t('nav.clients')}</span>
                         </Link>
                     )}
 
                     {/* 6. Configuración de negocio */}
                     {!isEmployee && (
-                        isSidebarCollapsed ? (
-                            <>
-                                <Link
-                                    to="/admin/staff"
-                                    onClick={closeMobileMenu}
-                                    className={navLinkClass('/admin/staff')}
-                                    title={t('nav.stylists')}
-                                >
-                                    <UserCheck size={18} className="shrink-0 text-sky-400" />
-                                </Link>
-
-                                <Link
-                                    to="/admin/services"
-                                    onClick={closeMobileMenu}
-                                    className={navLinkClass('/admin/services')}
-                                    title={t('nav.services')}
-                                >
-                                    <Sparkles size={18} className="shrink-0 text-amber-400" />
-                                </Link>
-
-                                {businessConfig?.plan !== 'lite' && (
-                                    <Link
-                                        to="/admin/team"
-                                        onClick={closeMobileMenu}
-                                        className={navLinkClass('/admin/team')}
-                                        title={t('nav.team')}
-                                    >
-                                        <ShieldCheck size={18} className="shrink-0 text-emerald-400" />
-                                    </Link>
-                                )}
-                            </>
-                        ) : (
-                            <div className="pt-1">
-                                <button
-                                    type="button"
-                                    onClick={toggleBusinessConfig}
-                                    className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Building2 size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
-                                        <span>Configuración de negocio</span>
-                                        {isBusinessConfigActive && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-                                        )}
-                                    </div>
-                                    <ChevronDown
-                                        size={14}
-                                        className={`transition-transform duration-300 ${isBusinessConfigOpen ? 'rotate-180 text-sky-400' : 'text-slate-600'}`}
-                                    />
-                                </button>
-
-                                {isBusinessConfigOpen && (
-                                    <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                        <>
+                            {isSidebarCollapsed ? (
+                                <>
+                                    <div className="hidden lg:flex flex-col space-y-2">
                                         <Link
                                             to="/admin/staff"
                                             onClick={closeMobileMenu}
-                                            className={subNavLinkClass('/admin/staff')}
+                                            className={navLinkClass('/admin/staff')}
+                                            title={t('nav.stylists')}
                                         >
-                                            <UserCheck size={15} className="shrink-0 text-sky-400" />
-                                            <span>{t('nav.stylists')}</span>
+                                            <UserCheck size={18} className="shrink-0 text-sky-400" />
                                         </Link>
 
                                         <Link
                                             to="/admin/services"
                                             onClick={closeMobileMenu}
-                                            className={subNavLinkClass('/admin/services')}
+                                            className={navLinkClass('/admin/services')}
+                                            title={t('nav.services')}
                                         >
-                                            <Sparkles size={15} className="shrink-0 text-amber-400" />
-                                            <span>{t('nav.services')}</span>
+                                            <Sparkles size={18} className="shrink-0 text-amber-400" />
                                         </Link>
 
                                         {businessConfig?.plan !== 'lite' && (
                                             <Link
                                                 to="/admin/team"
                                                 onClick={closeMobileMenu}
-                                                className={subNavLinkClass('/admin/team')}
+                                                className={navLinkClass('/admin/team')}
+                                                title={t('nav.team')}
                                             >
-                                                <ShieldCheck size={15} className="shrink-0 text-emerald-400" />
-                                                <span>{t('nav.team')}</span>
+                                                <ShieldCheck size={18} className="shrink-0 text-emerald-400" />
                                             </Link>
                                         )}
                                     </div>
-                                )}
-                            </div>
-                        )
+                                    <div className="pt-1 lg:hidden">
+                                        <button
+                                            type="button"
+                                            onClick={toggleBusinessConfig}
+                                            className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Building2 size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
+                                                <span>Configuración de negocio</span>
+                                                {isBusinessConfigActive && (
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+                                                )}
+                                            </div>
+                                            <ChevronDown
+                                                size={14}
+                                                className={`transition-transform duration-300 ${isBusinessConfigOpen ? 'rotate-180 text-sky-400' : 'text-slate-600'}`}
+                                            />
+                                        </button>
+
+                                        {isBusinessConfigOpen && (
+                                            <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                                <Link
+                                                    to="/admin/staff"
+                                                    onClick={closeMobileMenu}
+                                                    className={subNavLinkClass('/admin/staff')}
+                                                >
+                                                    <UserCheck size={15} className="shrink-0 text-sky-400" />
+                                                    <span>{t('nav.stylists')}</span>
+                                                </Link>
+
+                                                <Link
+                                                    to="/admin/services"
+                                                    onClick={closeMobileMenu}
+                                                    className={subNavLinkClass('/admin/services')}
+                                                >
+                                                    <Sparkles size={15} className="shrink-0 text-amber-400" />
+                                                    <span>{t('nav.services')}</span>
+                                                </Link>
+
+                                                {businessConfig?.plan !== 'lite' && (
+                                                    <Link
+                                                        to="/admin/team"
+                                                        onClick={closeMobileMenu}
+                                                        className={subNavLinkClass('/admin/team')}
+                                                    >
+                                                        <ShieldCheck size={15} className="shrink-0 text-emerald-400" />
+                                                        <span>{t('nav.team')}</span>
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={toggleBusinessConfig}
+                                        className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Building2 size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
+                                            <span>Configuración de negocio</span>
+                                            {isBusinessConfigActive && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+                                            )}
+                                        </div>
+                                        <ChevronDown
+                                            size={14}
+                                            className={`transition-transform duration-300 ${isBusinessConfigOpen ? 'rotate-180 text-sky-400' : 'text-slate-600'}`}
+                                        />
+                                    </button>
+
+                                    {isBusinessConfigOpen && (
+                                        <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                            <Link
+                                                to="/admin/staff"
+                                                onClick={closeMobileMenu}
+                                                className={subNavLinkClass('/admin/staff')}
+                                            >
+                                                <UserCheck size={15} className="shrink-0 text-sky-400" />
+                                                <span>{t('nav.stylists')}</span>
+                                            </Link>
+
+                                            <Link
+                                                to="/admin/services"
+                                                onClick={closeMobileMenu}
+                                                className={subNavLinkClass('/admin/services')}
+                                            >
+                                                <Sparkles size={15} className="shrink-0 text-amber-400" />
+                                                <span>{t('nav.services')}</span>
+                                            </Link>
+
+                                            {businessConfig?.plan !== 'lite' && (
+                                                <Link
+                                                    to="/admin/team"
+                                                    onClick={closeMobileMenu}
+                                                    className={subNavLinkClass('/admin/team')}
+                                                >
+                                                    <ShieldCheck size={15} className="shrink-0 text-emerald-400" />
+                                                    <span>{t('nav.team')}</span>
+                                                </Link>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {/* 7. Nómina */}
                     {!isEmployee && userRole === 'owner' && businessConfig?.plan !== 'lite' && (
                         <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')} title={t('nav.commissions')}>
                             <Percent size={18} className="shrink-0" />
-                            {!isSidebarCollapsed && (
-                                <>
-                                    <span className="flex-1 text-left">{t('nav.commissions')}</span>
-                                    {!businessConfig?.commissionsEnabled && (
-                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/10 shrink-0">
-                                            Inactivo
-                                        </span>
-                                    )}
-                                </>
+                            <span className={`flex-1 text-left ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>{t('nav.commissions')}</span>
+                            {!businessConfig?.commissionsEnabled && (
+                                <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/10 shrink-0 ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
+                                    Inactivo
+                                </span>
                             )}
                         </Link>
                     )}
@@ -550,12 +635,12 @@ export default function AdminLayout() {
                     {!isEmployee && (
                         <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')} title={t('nav.settings')}>
                             <Settings size={18} className="shrink-0" />
-                            {!isSidebarCollapsed && <span>{t('nav.settings')}</span>}
+                            <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>{t('nav.settings')}</span>
                         </Link>
                     )}
                 </nav>
 
-                <div className={`mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2 ${isSidebarCollapsed ? 'p-2 items-center' : 'p-4'}`}>
+                <div className={`mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2 ${isSidebarCollapsed ? 'p-4 lg:p-2 lg:items-center' : 'p-4'}`}>
                     {/* Notification Bell — Desktop sidebar */}
                     <div className={`hidden lg:flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'justify-between px-4 py-3'}`}>
                         {!isSidebarCollapsed && <span className="text-xs text-slate-500 font-medium">Notificaciones</span>}
@@ -577,20 +662,20 @@ export default function AdminLayout() {
                                 navigate('/super-admin');
                             }}
                             title="Volver a HQ"
-                            className={`flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-4 px-4 py-3'} w-full rounded-xl text-amber-400 hover:bg-amber-400/10 transition-all duration-200 group`}
+                            className={`flex items-center ${isSidebarCollapsed ? 'lg:justify-center lg:p-3 gap-4 px-4 py-3' : 'gap-4 px-4 py-3'} w-full rounded-xl text-amber-400 hover:bg-amber-400/10 transition-all duration-200 group`}
                         >
                             <ShieldCheck size={18} className="group-hover:-translate-y-1 transition-transform shrink-0" />
-                            {!isSidebarCollapsed && <span className="font-medium flex-1 text-left">Volver a HQ</span>}
+                            <span className={`font-medium flex-1 text-left ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>Volver a HQ</span>
                         </button>
                     )}
                     <button
                         onClick={() => { closeMobileMenu(); handleLogout(); }}
-                        className={`flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-4 px-4 py-3'} w-full rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200 group`}
+                        className={`flex items-center ${isSidebarCollapsed ? 'lg:justify-center lg:p-3 gap-4 px-4 py-3' : 'gap-4 px-4 py-3'} w-full rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200 group`}
                         aria-label={t('nav.logout')}
                         title={t('nav.logout')}
                     >
                         <LogOut size={18} className="group-hover:-translate-x-1 transition-transform shrink-0" />
-                        {!isSidebarCollapsed && <span className="font-medium">{t('nav.logout')}</span>}
+                        <span className={`font-medium ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>{t('nav.logout')}</span>
                     </button>
                 </div>
             </aside>
@@ -600,7 +685,7 @@ export default function AdminLayout() {
                 role="main"
                 className={`flex-1 min-w-0 relative bg-transparent transition-all ${
                     isCalendarFullscreen
-                        ? 'h-screen overflow-hidden flex flex-col pt-0'
+                        ? 'h-screen overflow-hidden flex flex-col pt-16 lg:pt-0'
                         : 'overflow-y-auto pt-16 lg:pt-0'
                 }`}
             >
