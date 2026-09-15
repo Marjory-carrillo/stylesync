@@ -15,6 +15,7 @@ import {
 import { useUIStore } from '../../lib/store/uiStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toPng } from 'html-to-image';
 import html2canvas from 'html2canvas';
 import QuoteDirectBookingModal from '../../components/QuoteDirectBookingModal';
 import type { Quote } from '../../lib/types/store.types';
@@ -102,7 +103,7 @@ export default function Quoter() {
     // Direct booking modal state
     const [selectedQuoteForBooking, setSelectedQuoteForBooking] = useState<Quote | null>(null);
     const [isDirectBookingModalOpen, setIsDirectBookingModalOpen] = useState<boolean>(false);
-    const [showImageExportOptions, setShowImageExportOptions] = useState<boolean>(false);
+    const [isExporting, setIsExporting] = useState<boolean>(false);
 
     // History filter & search
     const [historyFilter, setHistoryFilter] = useState<'all' | 'pending' | 'booked'>('all');
@@ -450,92 +451,98 @@ export default function Quoter() {
         }
     };
 
-    const captureQuoteCanvas = async () => {
-        if (!ticketRef.current) return null;
-        return await html2canvas(ticketRef.current, {
-            backgroundColor: null,
-            scale: 3,
-            logging: false,
-            useCORS: true,
-            allowTaint: true,
-            onclone: (clonedDoc) => {
-                if (clonedDoc.documentElement) {
-                    (clonedDoc.documentElement.style as any).zoom = '1';
-                }
-                if (clonedDoc.body) {
-                    (clonedDoc.body.style as any).zoom = 'normal';
-                    clonedDoc.body.style.minHeight = 'auto';
-                }
-
-                const clonedEl = clonedDoc.getElementById('printable-quote-card');
-                if (clonedEl) {
-                    clonedEl.style.width = '480px';
-                    clonedEl.style.minWidth = '480px';
-                    clonedEl.style.maxWidth = '480px';
-                    clonedEl.style.margin = '0 auto';
-                    clonedEl.style.boxSizing = 'border-box';
-                    clonedEl.style.transform = 'none';
-
-                    const allElements = clonedEl.querySelectorAll('*');
-                    allElements.forEach((node) => {
-                        const el = node as HTMLElement;
-                        if (el.style) {
-                            el.style.backdropFilter = 'none';
-                            (el.style as any).webkitBackdropFilter = 'none';
-                            el.style.letterSpacing = 'normal';
-                            el.style.wordSpacing = 'normal';
-                            const tagName = el.tagName.toLowerCase();
-                            if (tagName === 'h3' || tagName === 'p' || tagName === 'span') {
-                                el.style.lineHeight = '1.3';
-                            }
-                        }
-                    });
-                }
-            }
-        });
-    };
-
     const handleDownloadImage = async () => {
-        const savedQuote = await saveQuoteToDatabase();
-        if (!savedQuote) return;
-        try {
-            const canvas = await captureQuoteCanvas();
-            if (!canvas) return;
-            
-            const dataUrl = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = `cotizacion-${businessConfig.name?.replace(/\s+/g, '-').toLowerCase() || 'uñas'}.png`;
-            link.href = dataUrl;
-            link.click();
-            showToast('¡Foto de cotización descargada y guardada en historial! 🎨', 'success');
-        } catch (error) {
-            console.error('Error generating image:', error);
-            showToast('Error al generar la imagen', 'error');
-        }
-    };
+        if (!ticketRef.current || isExporting) return;
+        setIsExporting(true);
 
-    const handleCopyImage = async () => {
         const savedQuote = await saveQuoteToDatabase();
-        if (!savedQuote) return;
+        if (!savedQuote) {
+            setIsExporting(false);
+            return;
+        }
+
+        const docEl = document.documentElement;
+        const originalZoom = (docEl.style as any).zoom;
+
         try {
-            const canvas = await captureQuoteCanvas();
-            if (!canvas) return;
-            
-            canvas.toBlob((blob) => {
-                if (blob) {
-                    navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]).then(() => {
-                        showToast('¡Foto de cotización copiada! 📋 Pégala en WhatsApp.', 'success');
-                    }).catch(err => {
-                        console.error('Clipboard write error:', err);
-                        showToast('No se pudo copiar la imagen automáticamente. Descárgala en PNG.', 'error');
-                    });
-                }
-            }, 'image/png');
-        } catch (error) {
-            console.error('Error generating image:', error);
-            showToast('Error al generar la imagen', 'error');
+            // Temporarily normalize root zoom to 1 to guarantee 100% unscaled character font metrics and prevent kerning shift
+            (docEl.style as any).zoom = '1';
+            await new Promise((resolve) => setTimeout(resolve, 60));
+
+            let dataUrl: string = '';
+
+            const bgColor = cardTheme === 'pink' 
+                ? '#fff1f2' 
+                : cardTheme === 'gold' 
+                ? '#fefce8' 
+                : '#0f172a';
+
+            // Attempt 1: html-to-image (native browser SVG foreignObject engine, 100% pixel-perfect text kerning & crispness)
+            try {
+                dataUrl = await toPng(ticketRef.current, {
+                    pixelRatio: 3, // Ultra HD
+                    quality: 1,
+                    cacheBust: true,
+                    backgroundColor: bgColor,
+                    style: {
+                        transform: 'none',
+                        margin: '0',
+                    },
+                });
+            } catch (svgErr) {
+                console.warn('html-to-image failed, falling back to html2canvas:', svgErr);
+                // Attempt 2: html2canvas with full zoom & letter-spacing fixes
+                const canvas = await html2canvas(ticketRef.current, {
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: bgColor,
+                    logging: false,
+                    onclone: (clonedDoc) => {
+                        if (clonedDoc.documentElement) {
+                            (clonedDoc.documentElement.style as any).zoom = '1';
+                        }
+                        if (clonedDoc.body) {
+                            (clonedDoc.body.style as any).zoom = 'normal';
+                            clonedDoc.body.style.minHeight = 'auto';
+                        }
+                        const card = clonedDoc.getElementById('printable-quote-card');
+                        if (card) {
+                            card.style.transform = 'none';
+                            const nodes = card.querySelectorAll('*');
+                            nodes.forEach((n: any) => {
+                                n.style.letterSpacing = 'normal';
+                                n.style.wordSpacing = 'normal';
+                            });
+                        }
+                    }
+                });
+                dataUrl = canvas.toDataURL('image/png', 1.0);
+            }
+
+            if (!dataUrl) {
+                throw new Error('No se pudo generar la imagen');
+            }
+
+            const link = document.createElement('a');
+            const businessSlug = businessConfig.name?.replace(/\s+/g, '-').toLowerCase() || 'unas';
+            link.download = `cotizacion-${businessSlug}-${format(new Date(), 'yyyy-MM-dd')}.png`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('¡Foto de cotización descargada en Ultra HD! 🎨', 'success');
+            setActiveTab('history');
+        } catch (error: any) {
+            console.error('Error generating quote image:', error);
+            showToast('Error al generar la imagen: ' + (error.message || 'Inténtalo de nuevo'), 'error');
+        } finally {
+            if (originalZoom) {
+                (docEl.style as any).zoom = originalZoom;
+            } else {
+                (docEl.style as any).zoom = '';
+            }
+            setIsExporting(false);
         }
     };
 
@@ -1082,6 +1089,7 @@ export default function Quoter() {
                                     {(businessConfig?.logoUrl || businessConfig?.logo) ? (
                                         <img
                                             decoding="async" loading="lazy"
+                                            crossOrigin="anonymous"
                                             src={businessConfig.logoUrl || businessConfig.logo}
                                             alt={businessConfig.name || 'Logo'}
                                             className="w-14 h-14 rounded-full mx-auto object-cover border-2 border-white shadow-md mb-2 bg-white"
@@ -1195,7 +1203,7 @@ export default function Quoter() {
                                         📸 Envío de Cotización por WhatsApp
                                     </p>
                                     <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
-                                        Toma una <strong>captura de pantalla</strong> a la tarjeta de arriba para enviarla por WhatsApp y presiona <strong className="text-white">Guardar en Historial</strong> para tener la cotización lista en tu panel.
+                                        Descarga la imagen con el botón de abajo o toma una captura de pantalla para enviarla por WhatsApp y presiona <strong className="text-white">Guardar en Historial</strong> para registrar la cotización en tu panel.
                                     </p>
                                 </div>
                             </div>
@@ -1211,42 +1219,24 @@ export default function Quoter() {
                                     <span>Guardar en Historial</span>
                                 </button>
 
-                                {/* Barra Desplegable para Opciones de Descarga de Imagen */}
-                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowImageExportOptions(!showImageExportOptions)}
-                                        className="w-full px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-white flex items-center justify-between transition-colors cursor-pointer"
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <ImageIcon size={14} className="text-pink-400" />
-                                            <span>Opciones de exportación de imagen (Descargar/Copiar)</span>
-                                        </span>
-                                        {showImageExportOptions ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
-                                    </button>
-                                    
-                                    {showImageExportOptions && (
-                                        <div className="p-3 pt-1 space-y-2 border-t border-white/5 animate-fade-in">
-                                            <button
-                                                type="button"
-                                                onClick={handleDownloadImage}
-                                                className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-                                            >
-                                                <Download size={15} className="text-pink-400" />
-                                                <span>Descargar Cotización en Imagen (PNG)</span>
-                                            </button>
-                                            
-                                            <button
-                                                type="button"
-                                                onClick={handleCopyImage}
-                                                className="w-full py-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-white/10 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
-                                            >
-                                                <ImageIcon size={15} className="text-cyan-400" />
-                                                <span>Copiar Imagen para Pegar en WhatsApp</span>
-                                            </button>
-                                        </div>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadImage}
+                                    disabled={isExporting}
+                                    className="w-full py-3.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white font-bold text-sm tracking-wide border border-white/10 hover:border-pink-500/40 active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-lg disabled:opacity-50"
+                                >
+                                    {isExporting ? (
+                                        <>
+                                            <Loader2 size={18} className="text-pink-400 animate-spin" />
+                                            <span>Generando Imagen Ultra HD...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download size={18} className="text-pink-400" />
+                                            <span>Descargar Imagen</span>
+                                        </>
                                     )}
-                                </div>
+                                </button>
 
                                 {/* WhatsApp Booking Link Box */}
                                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2.5 text-left">

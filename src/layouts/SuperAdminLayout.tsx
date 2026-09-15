@@ -133,7 +133,7 @@ export default function SuperAdminLayout() {
 
             {/* Main Content Area */}
             <main className="flex-1 p-6 lg:p-10 pt-24 lg:pt-10 h-screen overflow-y-auto">
-                <div className="max-w-7xl mx-auto">
+                <div className="w-full max-w-none">
                     <Outlet />
                 </div>
             </main>

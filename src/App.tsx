@@ -36,6 +36,7 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Reschedule = lazy(() => import('./pages/client/Reschedule'));
 const PublicReview = lazy(() => import('./pages/PublicReview'));
+const SocialContent = lazy(() => import('./pages/admin/SocialContent'));
 
 import { useGlobalStore } from './lib/store/useGlobalStore';
 import { Settings as SettingsIcon, RefreshCw, Loader2 } from 'lucide-react';
@@ -453,6 +454,8 @@ function App() {
                     <Route path="team" element={<Team />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="commissions" element={<Commissions />} />
+                    <Route path="social-content" element={<SocialContent />} />
+                    <Route path="marketing" element={<SocialContent />} />
                   </Route>
                 </Route>
               </Route>

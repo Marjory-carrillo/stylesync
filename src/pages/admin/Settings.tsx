@@ -13,8 +13,8 @@ import { useServices } from '../../lib/store/queries/useServices';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
-import { useNavigate } from 'react-router-dom';
-import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle, ClipboardPaste } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle, ClipboardPaste, ChevronDown, X } from 'lucide-react';
 import { useReviews } from '../../lib/store/queries/useReviews';
 import BusinessQRCardsModal from '../../components/BusinessQRCardsModal';
 import { businessConfigSchema } from '../../lib/schemas';
@@ -198,6 +198,25 @@ export default function Settings() {
     const [newAnnouncementType, setNewAnnouncementType] = useState<'info' | 'warning' | 'closed'>('info');
     const [uploadingLogo, setUploadingLogo] = useState(false);
 
+    // Collapsible sections & Schedule helpers
+    const [isScheduleOpen, setIsScheduleOpen] = useState(true);
+    const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(() => (announcements && announcements.length > 0));
+    const [isQuoterOpen, setIsQuoterOpen] = useState(false);
+    const [showMarketplaceNotice, setShowMarketplaceNotice] = useState(false);
+
+    const toggleDayBreak = (day: string) => {
+        const current = scheduleForm[day] || { open: false, start: '09:00', end: '18:00' };
+        const hasBreak = !!current.breakStart && !!current.breakEnd;
+        setScheduleForm(prev => ({
+            ...prev,
+            [day]: {
+                ...current,
+                breakStart: hasBreak ? '' : '14:00',
+                breakEnd: hasBreak ? '' : '15:00',
+            }
+        }));
+    };
+
     // Reviews & QR Cards State
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
     const { reviews, totalReviews, averageRating, replyReview, isReplying } = useReviews(businessConfig?.id);
@@ -228,6 +247,8 @@ export default function Settings() {
 
     // Blocked slots form
     const [blockDate, setBlockDate] = useState('');
+    const [blockEndDate, setBlockEndDate] = useState('');
+    const [isRangeMode, setIsRangeMode] = useState(false);
     const [blockStart, setBlockStart] = useState('');
     const [blockEnd, setBlockEnd] = useState('');
     const [blockReason, setBlockReason] = useState('');
@@ -310,6 +331,31 @@ export default function Settings() {
         addAnnouncement({ message: newAnnouncement, type: newAnnouncementType } as any);
         setNewAnnouncement('');
         setNewAnnouncementType('info');
+        setIsAnnouncementsOpen(true);
+    };
+
+    /** Genera array de fechas YYYY-MM-DD para un rango continuo de días (ej: vacaciones de 3+ días) */
+    const getDaysInRange = (startStr: string, endStr: string): string[] => {
+        if (!startStr) return [];
+        if (!endStr || endStr <= startStr) return [startStr];
+
+        const [sy, sm, sd] = startStr.split('-').map(Number);
+        const [ey, em, ed] = endStr.split('-').map(Number);
+
+        const current = new Date(sy, sm - 1, sd, 12, 0, 0);
+        const end = new Date(ey, em - 1, ed, 12, 0, 0);
+
+        const dates: string[] = [];
+        let safety = 0;
+        while (current <= end && safety < 120) {
+            const y = current.getFullYear();
+            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const d = String(current.getDate()).padStart(2, '0');
+            dates.push(`${y}-${m}-${d}`);
+            current.setDate(current.getDate() + 1);
+            safety++;
+        }
+        return dates;
     };
 
     /** Genera array de fechas YYYY-MM-DD para bloqueo recurrente */
@@ -330,7 +376,12 @@ export default function Settings() {
         e.preventDefault();
 
         if (!blockDate) {
-            showToast('Por favor selecciona la fecha del bloqueo', 'error');
+            showToast('Por favor selecciona la fecha de inicio del bloqueo', 'error');
+            return;
+        }
+
+        if (isRangeMode && blockEndDate && blockEndDate < blockDate) {
+            showToast('La fecha final debe ser igual o posterior a la fecha inicial', 'error');
             return;
         }
 
@@ -352,7 +403,18 @@ export default function Settings() {
             }
         }
 
-        const dates = generateRecurringDates(blockDate, recurrence, repeatCount);
+        let dates: string[] = [];
+        if (isRangeMode && blockEndDate) {
+            dates = getDaysInRange(blockDate, blockEndDate);
+        } else {
+            dates = generateRecurringDates(blockDate, recurrence, repeatCount);
+        }
+
+        if (dates.length === 0) {
+            showToast('No se encontraron fechas válidas para bloquear', 'error');
+            return;
+        }
+
         const selectedStaffId = blockStaffId === 'all' ? undefined : blockStaffId;
 
         // ── Strict Conflict Check against existing appointments ────────────
@@ -411,10 +473,12 @@ export default function Settings() {
         }
 
         setBlockDate('');
+        setBlockEndDate('');
         setBlockStart('');
         setBlockEnd('');
         setBlockReason('');
         setIsAllDay(false);
+        setIsRangeMode(false);
         setRecurrence('none');
         setRepeatCount(4);
         setBlockStaffId('all');
@@ -675,10 +739,12 @@ export default function Settings() {
                 </div>
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
-                {/* ── Business Info (Section 1) ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[60]">
+                {/* ── Columna Izquierda: Información del Negocio ── */}
+                <div className="space-y-6">
+                    {/* ── Business Info (Section 1) ── */}
+                    <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[60]">
                     <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                         <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
                             <Shield size={24} />
@@ -1274,8 +1340,8 @@ export default function Settings() {
                                     <div>
                                         <h4 className="text-white font-bold text-base flex items-center gap-2">
                                             Aparecer en el Buscador Público CitaLink
-                                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                                Atrae Clientes Nuevos
+                                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                Próximamente
                                             </span>
                                         </h4>
                                         <p className="text-xs text-slate-400 mt-0.5">
@@ -1283,46 +1349,48 @@ export default function Settings() {
                                         </p>
                                     </div>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={infoForm.marketplaceEnabled ?? false}
-                                        onChange={async (e) => {
-                                            const val = e.target.checked;
-                                            setInfoForm({ ...infoForm, marketplaceEnabled: val });
-                                            await updateBusinessConfig({ marketplaceEnabled: val });
-                                            showToast(
-                                                val
-                                                    ? '¡Excelente! Tu negocio ahora aparece en el Buscador Público CitaLink'
-                                                    : 'Negocio oculto del Buscador Público',
-                                                'success'
-                                            );
-                                        }}
-                                    />
-                                    <div className="w-12 h-6.5 bg-slate-700/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2.5px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowMarketplaceNotice(true);
+                                        showToast('Esta función aún no está disponible de forma oficial', 'info');
+                                    }}
+                                    className="relative inline-flex items-center cursor-pointer ml-4 shrink-0 group"
+                                    title="Haz clic para ver el estado de esta función"
+                                >
+                                    <div className="w-12 h-6.5 bg-slate-700/60 rounded-full flex items-center px-1 border border-white/10 group-hover:border-amber-400/40 transition-colors">
+                                        <div className="h-5 w-5 bg-slate-400 group-hover:bg-amber-300 rounded-full shadow transition-all" />
+                                    </div>
+                                </button>
                             </div>
 
-                            {infoForm.marketplaceEnabled && (
-                                <div className="p-4 bg-emerald-950/40 rounded-xl border border-emerald-500/20 text-xs text-slate-300 space-y-3 animate-fade-in">
-                                    <div className="flex items-center justify-between font-bold text-emerald-400 text-sm">
-                                        <span className="flex items-center gap-2">
-                                            <DollarSign size={16} /> Términos del Plan de Crecimiento:
-                                        </span>
-                                        <span className="px-3 py-1 rounded-xl text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                            🛒 {infoForm.marketplaceCommissionRate ?? 15}% Comisión
-                                        </span>
+                            {/* Banner de aviso de que aún no es oficial */}
+                            {showMarketplaceNotice && (
+                                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start justify-between gap-3 text-xs text-amber-200 animate-fade-in">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5 border border-amber-500/30">
+                                            <Sparkles size={18} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h5 className="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+                                                🚀 Función en prelanzamiento (Aún no es oficial)
+                                            </h5>
+                                            <p className="text-slate-300 leading-relaxed text-xs">
+                                                Estamos preparando el lanzamiento oficial del <strong>Directorio y Buscador Público CitaLink</strong> para conectar clientes de tu ciudad directamente con tu negocio. Muy pronto estará disponible para que actives tu presencia con un solo clic.
+                                            </p>
+                                            <p className="text-[11px] text-amber-400/90 font-semibold pt-1">
+                                                💡 Por ahora, tu link de reservas oficial sigue funcionando al 100% y con 0% de comisiones.
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="leading-relaxed">
-                                        • Las reservas hechas desde tu enlace directo (redes sociales / WhatsApp) siguen teniendo <strong>0% de comisión</strong>.
-                                    </p>
-                                    <p className="leading-relaxed">
-                                        • Únicamente las citas registradas desde el <strong>Buscador Público de CitaLink</strong> generan una pequeña comisión del <strong>{infoForm.marketplaceCommissionRate ?? 15}%</strong> sobre el total del servicio.
-                                    </p>
-                                    <p className="leading-relaxed text-slate-400 italic">
-                                        Las comisiones acumuladas del mes se sumarán de manera clara en tu factura/corte mensual. La tasa asignada es administrada de manera exclusiva por la plataforma.
-                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowMarketplaceNotice(false)}
+                                        className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
+                                        title="Cerrar aviso"
+                                    >
+                                        <X size={16} />
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -1399,155 +1467,284 @@ export default function Settings() {
                         </div>
                     </form>
                 </section>
+            </div>
 
-                {/* ── Schedule (Section 3) ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[40]">
-                    <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                        <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
-                            <Clock size={24} />
+            {/* ── Columna Derecha: Horarios, Anuncios y Bloqueos ── */}
+            <div className="space-y-6">
+                {/* ── Schedule (Section 3) — Compact & Collapsible ── */}
+                <section className="glass-panel p-5 rounded-2xl border border-white/5 space-y-4 relative z-[40] transition-all">
+                    <button
+                        type="button"
+                        onClick={() => setIsScheduleOpen(!isScheduleOpen)}
+                        className="flex items-center justify-between w-full text-left cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:scale-105 transition-transform">
+                                <Clock size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-white">Horarios de Atención</h3>
+                                <p className="text-xs text-slate-500">
+                                    {Object.values(scheduleForm).filter(d => d?.open).length} días activos de atención
+                                </p>
+                            </div>
                         </div>
-                        <h3 className="text-lg font-bold text-white">Horarios de Atención</h3>
-                    </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                {Object.values(scheduleForm).filter(d => d?.open).length}/7 días
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`transition-transform duration-300 text-slate-400 ${isScheduleOpen ? 'rotate-180 text-emerald-400' : ''}`}
+                            />
+                        </div>
+                    </button>
 
-                    <form onSubmit={handleScheduleSubmit} className="space-y-4">
-                        {DAY_KEYS.map(day => {
-                            const hours = scheduleForm[day] || { open: false, start: '09:00', end: '18:00' };
-                            return (
-                                <div key={day} className="flex flex-col p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 gap-3">
-                                    {/* Day header: name + toggle */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="font-medium capitalize text-white flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full shrink-0 ${hours.open ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                            {DAY_NAMES[day]}
-                                        </div>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={hours.open}
-                                                onChange={e => setScheduleForm({
-                                                    ...scheduleForm,
-                                                    [day]: { ...hours, open: e.target.checked }
-                                                })}
-                                                className="sr-only peer"
-                                            />
-                                            <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                        </label>
-                                    </div>
+                    {isScheduleOpen && (
+                        <div className="pt-2 border-t border-white/5 space-y-3 animate-fade-in">
+                            <div className="pb-1">
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                    Configura los horarios de cada día
+                                </span>
+                            </div>
 
-                                    {hours.open && (
-                                        <div className="flex flex-col gap-2 pl-4">
-                                            {/* Agenda row */}
-                                            <div className="grid grid-cols-[3rem_1fr_auto_1fr] items-center gap-1.5">
-                                                <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Agenda</span>
-                                                <TimePickerInput
-                                                    value={hours.start}
-                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, start: val } })}
-                                                />
-                                                <span className="text-slate-600 text-xs text-center">—</span>
-                                                <TimePickerInput
-                                                    value={hours.end}
-                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, end: val } })}
-                                                />
+                            <form onSubmit={handleScheduleSubmit} className="space-y-2">
+                                <div className="space-y-1.5">
+                                    {DAY_KEYS.map(day => {
+                                        const hours = scheduleForm[day] || { open: false, start: '09:00', end: '18:00' };
+                                        const hasBreak = !!hours.breakStart && !!hours.breakEnd;
+                                        return (
+                                            <div
+                                                key={day}
+                                                className={`p-2 rounded-xl border transition-all ${
+                                                    hours.open
+                                                        ? 'bg-white/[0.02] border-white/5 hover:border-white/10'
+                                                        : 'bg-white/[0.01] border-transparent opacity-50'
+                                                }`}
+                                            >
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                    {/* Switch + Día */}
+                                                    <div
+                                                        onClick={() => setScheduleForm({
+                                                            ...scheduleForm,
+                                                            [day]: { ...hours, open: !hours.open }
+                                                        })}
+                                                        className="flex items-center gap-2.5 min-w-[110px] cursor-pointer group"
+                                                    >
+                                                        <div
+                                                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out ${
+                                                                hours.open
+                                                                    ? 'bg-emerald-500 shadow-sm shadow-emerald-500/40'
+                                                                    : 'bg-slate-700/70'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
+                                                                    hours.open ? 'translate-x-[19px]' : 'translate-x-[3px]'
+                                                                }`}
+                                                            />
+                                                        </div>
+                                                        <span className={`text-xs font-bold capitalize select-none transition-colors ${
+                                                            hours.open ? 'text-white' : 'text-slate-500 group-hover:text-slate-400'
+                                                        }`}>
+                                                            {DAY_NAMES[day]}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Horario o Cerrado */}
+                                                    {hours.open ? (
+                                                        <div className="flex flex-wrap items-center gap-1.5 flex-1 sm:justify-end">
+                                                            {/* Apertura - Cierre */}
+                                                            <div className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-lg border border-white/5">
+                                                                <div className="w-24">
+                                                                    <TimePickerInput
+                                                                        value={hours.start}
+                                                                        onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, start: val } })}
+                                                                    />
+                                                                </div>
+                                                                <span className="text-slate-600 text-xs">—</span>
+                                                                <div className="w-24">
+                                                                    <TimePickerInput
+                                                                        value={hours.end}
+                                                                        onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, end: val } })}
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Comida / Descanso */}
+                                                            {hasBreak ? (
+                                                                <div className="flex items-center gap-1 bg-amber-500/5 px-2 py-1 rounded-lg border border-amber-500/20">
+                                                                    <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider shrink-0">Comida</span>
+                                                                    <div className="w-24">
+                                                                        <TimePickerInput
+                                                                            value={hours.breakStart || ''}
+                                                                            onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakStart: val } })}
+                                                                            placeholder="--:--"
+                                                                        />
+                                                                    </div>
+                                                                    <span className="text-amber-500/40 text-xs">—</span>
+                                                                    <div className="w-24">
+                                                                        <TimePickerInput
+                                                                            value={hours.breakEnd || ''}
+                                                                            onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakEnd: val } })}
+                                                                            placeholder="--:--"
+                                                                        />
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleDayBreak(day)}
+                                                                        title="Quitar comida"
+                                                                        className="text-slate-500 hover:text-red-400 p-0.5 transition-colors"
+                                                                    >
+                                                                        <X size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => toggleDayBreak(day)}
+                                                                    className="text-[10px] font-bold text-slate-400 hover:text-amber-400 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all border border-dashed border-white/10 hover:border-amber-400/30 shrink-0"
+                                                                >
+                                                                    + Comida
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-500 italic py-0.5">Cerrado</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {/* Comida row */}
-                                            <div className="grid grid-cols-[3rem_1fr_auto_1fr] items-center gap-1.5">
-                                                <span className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Comida</span>
-                                                <TimePickerInput
-                                                    value={hours.breakStart || ''}
-                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakStart: val } })}
-                                                    placeholder="--:-- ---"
-                                                />
-                                                <span className="text-slate-600 text-xs text-center">—</span>
-                                                <TimePickerInput
-                                                    value={hours.breakEnd || ''}
-                                                    onChange={val => setScheduleForm({ ...scheduleForm, [day]: { ...hours, breakEnd: val } })}
-                                                    placeholder="--:-- ---"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                    {!hours.open && <span className="text-sm text-muted italic pl-4">Cerrado</span>}
+                                        );
+                                    })}
                                 </div>
-                            );
-                        })}
-                        <button type="submit" className="w-full btn bg-white/10 hover:bg-white/20 text-white font-bold py-3 mt-4 flex justify-center items-center gap-2 border border-white/10">
-                            <Save size={18} /> Actualizar Horarios
-                        </button>
-                    </form>
+
+                                <button
+                                    type="submit"
+                                    className="w-full btn bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs flex justify-center items-center gap-2 shadow-lg shadow-emerald-950/30 transition-all active:scale-95"
+                                >
+                                    <Save size={15} />
+                                    <span>Guardar Horarios</span>
+                                </button>
+                            </form>
+                        </div>
+                    )}
                 </section>
 
-                {/* ── Announcements (Section 4) ── */}
-                <section className="glass-panel p-6 rounded-xl space-y-6 relative z-[30]">
-                    <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
-                            <Megaphone size={24} />
+                {/* ── Announcements (Section 4) — Compact & Collapsible ── */}
+                <section className="glass-panel p-5 rounded-2xl border border-white/5 space-y-4 relative z-[30] transition-all">
+                    <button
+                        type="button"
+                        onClick={() => setIsAnnouncementsOpen(!isAnnouncementsOpen)}
+                        className="flex items-center justify-between w-full text-left cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 group-hover:scale-105 transition-transform">
+                                <Megaphone size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-white">Anuncios y Avisos</h3>
+                                <p className="text-xs text-slate-500">
+                                    Barra destacada en tu página pública de reservas
+                                </p>
+                            </div>
                         </div>
-                        <h3 className="text-lg font-bold text-white">Anuncios</h3>
-                    </div>
-
-                    <form onSubmit={handleAddAnnouncement} className="space-y-4">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                placeholder="Nuevo anuncio (ej: Descuentos de Primavera)"
-                                className="flex-1 glass-card bg-transparent border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-accent transition-all"
-                                value={newAnnouncement}
-                                onChange={e => setNewAnnouncement(e.target.value)}
+                        <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                announcements.length > 0
+                                    ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                    : 'bg-white/5 text-slate-500 border-white/10'
+                            }`}>
+                                {announcements.length > 0 ? `${announcements.length} activo${announcements.length > 1 ? 's' : ''}` : 'Opcional'}
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`transition-transform duration-300 text-slate-400 ${isAnnouncementsOpen ? 'rotate-180 text-amber-400' : ''}`}
                             />
-                            <button type="submit" className="btn bg-accent text-slate-900 hover:bg-accent/90 p-3 rounded-lg">
-                                <Plus size={24} />
-                            </button>
                         </div>
+                    </button>
 
-                        <div className="flex gap-2">
-                            {[
-                                { id: 'info', label: 'Info', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-                                { id: 'warning', label: 'Advertencia', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-                                { id: 'closed', label: 'Cierre', color: 'bg-red-500/20 text-red-400 border-red-500/30' }
-                            ].map(t => (
-                                <button
-                                    key={t.id}
-                                    type="button"
-                                    onClick={() => setNewAnnouncementType(t.id as any)}
-                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border transition-all ${newAnnouncementType === t.id ? t.color : 'bg-white/5 text-muted border-transparent hover:bg-white/10'}`}
-                                >
-                                    {t.label}
-                                </button>
-                            ))}
-                        </div>
-                    </form>
-
-                    <div className="space-y-3">
-                        {announcements.length === 0 ? (
-                            <p className="text-muted text-center py-4">No hay anuncios activos.</p>
-                        ) : (
-                            announcements.map(ann => (
-                                <div
-                                    key={ann.id}
-                                    className={`flex justify-between items-center p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border-l-4 ${ann.type === 'warning' ? 'border-amber-500' :
-                                        ann.type === 'closed' ? 'border-red-500' :
-                                            'border-blue-500'
-                                        }`}
-                                >
-                                    <div className="flex flex-col">
-                                        <span className="text-white font-medium">{ann.message}</span>
-                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${ann.type === 'warning' ? 'text-amber-400' :
-                                            ann.type === 'closed' ? 'text-red-400' :
-                                                'text-blue-400'
-                                            }`}>
-                                            {ann.type}
-                                        </span>
-                                    </div>
+                    {isAnnouncementsOpen && (
+                        <div className="pt-2 border-t border-white/5 space-y-3 animate-fade-in">
+                            <form onSubmit={handleAddAnnouncement} className="space-y-2.5">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Escribe un anuncio (ej: Descuento 20% los martes, aviso de vacaciones...)"
+                                        className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 transition-all"
+                                        value={newAnnouncement}
+                                        onChange={e => setNewAnnouncement(e.target.value)}
+                                    />
                                     <button
-                                        onClick={() => removeAnnouncement(ann.id)}
-                                        className="text-muted hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-500/10"
+                                        type="submit"
+                                        disabled={!newAnnouncement.trim()}
+                                        className="btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                     >
-                                        <Trash2 size={18} />
+                                        <Plus size={15} />
+                                        <span>Publicar</span>
                                     </button>
                                 </div>
-                            ))
-                        )}
-                    </div>
+
+                                <div className="flex gap-2">
+                                    {[
+                                        { id: 'info', label: 'ℹ️ Información', color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+                                        { id: 'warning', label: '⚠️ Advertencia', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+                                        { id: 'closed', label: '⛔ Cierre especial', color: 'bg-red-500/15 text-red-400 border-red-500/30' }
+                                    ].map(t => (
+                                        <button
+                                            key={t.id}
+                                            type="button"
+                                            onClick={() => setNewAnnouncementType(t.id as any)}
+                                            className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold border transition-all ${
+                                                newAnnouncementType === t.id
+                                                    ? t.color
+                                                    : 'bg-white/[0.02] text-slate-500 border-white/5 hover:bg-white/5'
+                                            }`}
+                                        >
+                                            {t.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </form>
+
+                            <div className="space-y-1.5 pt-1">
+                                {announcements.length === 0 ? (
+                                    <p className="text-xs text-slate-500 text-center py-2 italic">
+                                        No hay anuncios activos actualmente.
+                                    </p>
+                                ) : (
+                                    announcements.map(ann => (
+                                        <div
+                                            key={ann.id}
+                                            className={`flex justify-between items-center px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/5 transition-all border-l-4 border border-white/5 ${
+                                                ann.type === 'warning' ? 'border-l-amber-400' :
+                                                ann.type === 'closed' ? 'border-l-red-500' :
+                                                'border-l-blue-400'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                                                <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                                    ann.type === 'warning' ? 'bg-amber-500/15 text-amber-400' :
+                                                    ann.type === 'closed' ? 'bg-red-500/15 text-red-400' :
+                                                    'bg-blue-500/15 text-blue-400'
+                                                }`}>
+                                                    {ann.type === 'warning' ? 'Aviso' : ann.type === 'closed' ? 'Cierre' : 'Info'}
+                                                </span>
+                                                <span className="text-xs text-white font-medium truncate">{ann.message}</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeAnnouncement(ann.id)}
+                                                title="Eliminar anuncio"
+                                                className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-colors shrink-0"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* ── Blocked Slots (Section 5) ── */}
@@ -1588,6 +1785,8 @@ export default function Settings() {
                                     <button
                                         type="button"
                                         onClick={() => {
+                                            setIsRangeMode(false);
+                                            setBlockEndDate('');
                                             setBlockStart('14:00');
                                             setBlockEnd('15:00');
                                             setIsAllDay(false);
@@ -1601,17 +1800,27 @@ export default function Settings() {
                                     <button
                                         type="button"
                                         onClick={() => {
+                                            setIsRangeMode(true);
                                             setIsAllDay(true);
-                                            setBlockReason('Día de Vacaciones / Ausencia');
+                                            setBlockReason('Vacaciones / Ausencia');
+                                            if (!blockDate) {
+                                                const today = new Date().toISOString().slice(0, 10);
+                                                setBlockDate(today);
+                                                setBlockEndDate(today);
+                                            } else if (!blockEndDate) {
+                                                setBlockEndDate(blockDate);
+                                            }
                                         }}
                                         className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-[11px] font-bold transition-all text-center truncate cursor-pointer"
-                                        title="Vacaciones (Todo el día)"
+                                        title="Vacaciones (Varios días o todo el día)"
                                     >
                                         🌴 Vacaciones
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => {
+                                            setIsRangeMode(false);
+                                            setBlockEndDate('');
                                             setBlockStart('17:00');
                                             setBlockEnd('20:00');
                                             setIsAllDay(false);
@@ -1627,111 +1836,238 @@ export default function Settings() {
                         </div>
 
                         <form onSubmit={handleAddBlockedSlot} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-3">
-                                    <div>
-                                        <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Fecha Inicial</label>
-                                        <DatePickerInput
-                                            value={blockDate}
-                                            onChange={val => setBlockDate(val)}
-                                        />
-                                    </div>
-                                    {/* Todo el día — pill toggle */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsAllDay(v => !v)}
-                                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all w-fit ${
-                                            isAllDay
-                                                ? 'bg-accent/15 border-accent/40 text-white'
-                                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                                        }`}
-                                    >
-                                        <div className={`w-8 h-4 rounded-full transition-colors relative ${
-                                            isAllDay ? 'bg-accent' : 'bg-slate-700'
-                                        }`}>
-                                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${
-                                                isAllDay ? 'translate-x-4' : 'translate-x-0'
-                                            }`} />
-                                        </div>
-                                        <span className="text-sm font-bold">Todo el día</span>
-                                    </button>
-                                </div>
-
-                                <div className={`flex flex-wrap items-center gap-4 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-                                    <div className="flex-1 min-w-[130px]">
-                                        <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Desde</label>
-                                        <TimePickerInput
-                                            value={isAllDay ? '00:00' : blockStart}
-                                            onChange={val => setBlockStart(val)}
-                                            disabled={isAllDay}
-                                        />
-                                    </div>
-                                    <div className="pt-6 hidden sm:block">
-                                        <span className="text-slate-600">—</span>
-                                    </div>
-                                    <div className="flex-1 min-w-[130px]">
-                                        <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Hasta</label>
-                                        <TimePickerInput
-                                            value={isAllDay ? '23:59' : blockEnd}
-                                            onChange={val => setBlockEnd(val)}
-                                            disabled={isAllDay}
-                                        />
-                                    </div>
-                                </div>
+                            {/* Selector de Modo: 1 Solo Día vs Rango de Días / Vacaciones */}
+                            <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10 w-fit">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsRangeMode(false);
+                                        setBlockEndDate('');
+                                    }}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                        !isRangeMode
+                                            ? 'bg-accent text-slate-900 shadow-sm'
+                                            : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    📅 1 Solo Día
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsRangeMode(true);
+                                        if (!blockEndDate && blockDate) {
+                                            setBlockEndDate(blockDate);
+                                        }
+                                    }}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                        isRangeMode
+                                            ? 'bg-accent text-slate-900 shadow-sm'
+                                            : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    🌴 Varios Días
+                                </button>
                             </div>
 
-                            {/* Recurrence UI */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                                <div className="relative z-[30]">
-                                    <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">Recurrencia</label>
-                                    <div>
-                                        <CustomSelect
-                                            value={recurrence}
-                                            onChange={(val) => setRecurrence(val as 'none' | 'weekly' | 'monthly')}
-                                            options={[
-                                                { value: 'none', label: 'Una sola vez' },
-                                                { value: 'weekly', label: 'Cada semana' },
-                                                { value: 'monthly', label: 'Cada mes' }
-                                            ]}
-                                            buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
-                                            dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl py-1 z-[100]"
-                                        />
+                            {!isRangeMode ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-3">
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Fecha</label>
+                                            <DatePickerInput
+                                                value={blockDate}
+                                                onChange={val => setBlockDate(val)}
+                                            />
+                                        </div>
+                                        {/* Todo el día — pill toggle */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsAllDay(v => !v)}
+                                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all w-fit cursor-pointer ${
+                                                isAllDay
+                                                    ? 'bg-accent/15 border-accent/40 text-white'
+                                                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                                            }`}
+                                        >
+                                            <div className={`w-8 h-4 rounded-full transition-colors relative ${
+                                                isAllDay ? 'bg-accent' : 'bg-slate-700'
+                                            }`}>
+                                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${
+                                                    isAllDay ? 'translate-x-4' : 'translate-x-0'
+                                                }`} />
+                                            </div>
+                                            <span className="text-sm font-bold">Todo el día</span>
+                                        </button>
+                                    </div>
+
+                                    <div className={`flex flex-wrap items-center gap-4 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                                        <div className="flex-1 min-w-[130px]">
+                                            <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Desde</label>
+                                            <TimePickerInput
+                                                value={isAllDay ? '00:00' : blockStart}
+                                                onChange={val => setBlockStart(val)}
+                                                disabled={isAllDay}
+                                            />
+                                        </div>
+                                        <div className="pt-6 hidden sm:block">
+                                            <span className="text-slate-600">—</span>
+                                        </div>
+                                        <div className="flex-1 min-w-[130px]">
+                                            <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Hasta</label>
+                                            <TimePickerInput
+                                                value={isAllDay ? '23:59' : blockEnd}
+                                                onChange={val => setBlockEnd(val)}
+                                                disabled={isAllDay}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                {recurrence !== 'none' && (
-                                    <div className="relative z-[20]">
-                                        <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">
-                                            Repetir por
-                                        </label>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-slate-400 mb-1.5 tracking-widest flex items-center gap-1">
+                                                <Calendar size={12} className="text-cyan-400" /> Fecha Desde (Inicio)
+                                            </label>
+                                            <DatePickerInput
+                                                value={blockDate}
+                                                onChange={val => {
+                                                    setBlockDate(val);
+                                                    if (!blockEndDate || blockEndDate < val) {
+                                                        setBlockEndDate(val);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-slate-400 mb-1.5 tracking-widest flex items-center gap-1">
+                                                <Calendar size={12} className="text-cyan-400" /> Fecha Hasta (Fin)
+                                            </label>
+                                            <DatePickerInput
+                                                value={blockEndDate || blockDate}
+                                                onChange={val => setBlockEndDate(val)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Banner explicativo de rango */}
+                                    {blockDate && blockEndDate && (
+                                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between text-xs animate-fade-in">
+                                            <div className="flex items-center gap-2 text-emerald-300 font-bold">
+                                                <span className="text-sm">🌴</span>
+                                                <span>
+                                                    {getDaysInRange(blockDate, blockEndDate).length} día{getDaysInRange(blockDate, blockEndDate).length > 1 ? 's' : ''} consecutivo{getDaysInRange(blockDate, blockEndDate).length > 1 ? 's' : ''} a bloquear
+                                                </span>
+                                            </div>
+                                            <span className="text-[11px] text-slate-400 font-medium">
+                                                ({getDaysInRange(blockDate, blockEndDate).length === 1 ? '1 solo día' : `Del ${blockDate} al ${blockEndDate}`})
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Todo el día — pill toggle */}
+                                        <div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAllDay(v => !v)}
+                                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all w-fit cursor-pointer ${
+                                                    isAllDay
+                                                        ? 'bg-accent/15 border-accent/40 text-white'
+                                                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                                                }`}
+                                            >
+                                                <div className={`w-8 h-4 rounded-full transition-colors relative ${
+                                                    isAllDay ? 'bg-accent' : 'bg-slate-700'
+                                                }`}>
+                                                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform duration-200 ${
+                                                        isAllDay ? 'translate-x-4' : 'translate-x-0'
+                                                    }`} />
+                                                </div>
+                                                <span className="text-sm font-bold">Todo el día en cada fecha</span>
+                                            </button>
+                                        </div>
+
+                                        <div className={`flex flex-wrap items-center gap-4 transition-opacity ${isAllDay ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                                            <div className="flex-1 min-w-[130px]">
+                                                <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Desde</label>
+                                                <TimePickerInput
+                                                    value={isAllDay ? '00:00' : blockStart}
+                                                    onChange={val => setBlockStart(val)}
+                                                    disabled={isAllDay}
+                                                />
+                                            </div>
+                                            <div className="pt-6 hidden sm:block">
+                                                <span className="text-slate-600">—</span>
+                                            </div>
+                                            <div className="flex-1 min-w-[130px]">
+                                                <label className="block text-[10px] uppercase font-black text-slate-500 mb-1.5 tracking-widest">Hasta</label>
+                                                <TimePickerInput
+                                                    value={isAllDay ? '23:59' : blockEnd}
+                                                    onChange={val => setBlockEnd(val)}
+                                                    disabled={isAllDay}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recurrence UI (solo en modo 1 día) */}
+                            {!isRangeMode && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl border border-white/5">
+                                    <div className="relative z-[30]">
+                                        <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">Recurrencia</label>
                                         <div>
                                             <CustomSelect
-                                                value={String(repeatCount)}
-                                                onChange={(val) => setRepeatCount(Number(val))}
-                                                options={
-                                                    recurrence === 'weekly' 
-                                                    ? [
-                                                        { value: '2', label: '2 semanas' },
-                                                        { value: '3', label: '3 semanas' },
-                                                        { value: '4', label: '4 semanas (1 mes)' },
-                                                        { value: '8', label: '8 semanas (2 meses)' },
-                                                        { value: '12', label: '12 semanas (3 meses)' },
-                                                        { value: '24', label: '24 semanas (6 meses)' }
-                                                      ]
-                                                    : [
-                                                        { value: '2', label: '2 meses' },
-                                                        { value: '3', label: '3 meses' },
-                                                        { value: '4', label: '4 meses' },
-                                                        { value: '6', label: '6 meses' },
-                                                        { value: '12', label: '12 meses' }
-                                                      ]
-                                                }
+                                                value={recurrence}
+                                                onChange={(val) => setRecurrence(val as 'none' | 'weekly' | 'monthly')}
+                                                options={[
+                                                    { value: 'none', label: 'Una sola vez' },
+                                                    { value: 'weekly', label: 'Cada semana' },
+                                                    { value: 'monthly', label: 'Cada mes' }
+                                                ]}
                                                 buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
                                                 dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl py-1 z-[100]"
                                             />
                                         </div>
                                     </div>
-                                )}
-                            </div>
+                                    {recurrence !== 'none' && (
+                                        <div className="relative z-[20]">
+                                            <label className="block text-[10px] uppercase font-black text-accent mb-1.5 tracking-widest">
+                                                Repetir por
+                                            </label>
+                                            <div>
+                                                <CustomSelect
+                                                    value={String(repeatCount)}
+                                                    onChange={(val) => setRepeatCount(Number(val))}
+                                                    options={
+                                                        recurrence === 'weekly' 
+                                                        ? [
+                                                            { value: '2', label: '2 semanas' },
+                                                            { value: '3', label: '3 semanas' },
+                                                            { value: '4', label: '4 semanas (1 mes)' },
+                                                            { value: '8', label: '8 semanas (2 meses)' },
+                                                            { value: '12', label: '12 semanas (3 meses)' },
+                                                            { value: '24', label: '24 semanas (6 meses)' }
+                                                          ]
+                                                        : [
+                                                            { value: '2', label: '2 meses' },
+                                                            { value: '3', label: '3 meses' },
+                                                            { value: '4', label: '4 meses' },
+                                                            { value: '6', label: '6 meses' },
+                                                            { value: '12', label: '12 meses' }
+                                                          ]
+                                                    }
+                                                    buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-accent text-sm text-left flex justify-between items-center"
+                                                    dropdownClassName="absolute left-0 w-full mt-1 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl py-1 z-[100]"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <input
                                 type="text"
@@ -1745,7 +2081,13 @@ export default function Settings() {
                                 disabled={isAddingBatch}
                                 className="w-full btn bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 border border-red-500/20 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
-                                <Lock size={18} /> {isAddingBatch ? 'Guardando bloqueos...' : 'Bloquear Horario'}
+                                <Lock size={18} /> {
+                                    isAddingBatch 
+                                        ? 'Guardando bloqueos...' 
+                                        : isRangeMode && blockDate && blockEndDate && blockEndDate >= blockDate
+                                            ? `Bloquear ${getDaysInRange(blockDate, blockEndDate).length} Días Seleccionados`
+                                            : 'Bloquear Horario'
+                                }
                             </button>
                         </form>
                     </div>
@@ -1839,13 +2181,17 @@ export default function Settings() {
                         </div>
                     </div>
                 </section>
+            </div>
 
-                {/* ── Nail Calculator Config Module (Section 7 - For Nail Bars and Beauty Salons) ── */}
+            {/* ── Nail Calculator Config Module (Section 7 - For Nail Bars and Beauty Salons) ── */}
                 {userRole === 'owner' && isNailCalculatorEnabled(businessConfig) && (
-                    <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10]">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10] transition-all">
+                        <div
+                            onClick={() => setIsQuoterOpen(!isQuoterOpen)}
+                            className="flex items-center justify-between border-b border-white/5 pb-4 cursor-pointer group select-none"
+                        >
                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-105 transition-transform">
                                     <Sparkles size={24} />
                                 </div>
                                 <div>
@@ -1853,21 +2199,20 @@ export default function Settings() {
                                     <p className="text-xs text-slate-500">Configura las técnicas, largos, estilos y complementos para tu cotizador automático.</p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    await saveQuoterConfig(localQuoterConfig);
-                                }}
-                                disabled={isSavingQuoter}
-                                className="btn btn-primary btn-sm flex items-center gap-2"
-                            >
-                                <Save size={16} />
-                                {isSavingQuoter ? 'Guardando...' : 'Guardar Precios'}
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    {localQuoterConfig.reduce((acc, cat) => acc + (cat.items?.length || 0), 0)} opciones
+                                </span>
+                                <ChevronDown
+                                    size={18}
+                                    className={`transition-transform duration-300 text-slate-400 ${isQuoterOpen ? 'rotate-180 text-emerald-400' : ''}`}
+                                />
+                            </div>
                         </div>
 
-                        <div className="space-y-6">
-                            {localQuoterConfig.map((category, catIdx) => (
+                        {isQuoterOpen && (
+                            <div className="space-y-6 animate-fade-in">
+                                {localQuoterConfig.map((category, catIdx) => (
                                 <div key={category.id} className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-sm font-bold text-white uppercase tracking-wider">{category.name}</h4>
@@ -2031,108 +2376,59 @@ export default function Settings() {
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Sticky Save Button matching Información del Negocio */}
+                            <div className="sticky bottom-4 z-40 pt-4 pb-2 flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await saveQuoterConfig(localQuoterConfig);
+                                    }}
+                                    disabled={isSavingQuoter}
+                                    className="w-full max-w-xl btn bg-accent hover:bg-accent/90 text-slate-900 font-bold py-3 flex justify-center items-center gap-2 cursor-pointer transition-all active:scale-95 text-sm"
+                                >
+                                    <Save size={18} />
+                                    {isSavingQuoter ? 'Guardando...' : 'Guardar Cambios'}
+                                </button>
+                            </div>
                         </div>
-                    </section>
+                    )}
+                </section>
                 )}
 
-                {/* ── Commissions Module (Section 6) ── */}
+                {/* ── Commissions Module Shortcut (Section 6) ── */}
                 {userRole === 'owner' && tenantPlan !== 'lite' && (
-                    <section className="glass-panel p-6 rounded-xl space-y-6 lg:col-span-2 relative z-[10]">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                            <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
-                                <Percent size={24} />
-                            </div>
-                            <h3 className="text-lg font-bold text-white">Nómina y Comisiones</h3>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5">
-                                <div>
-                                    <h4 className="text-white font-medium">Activar Sistema de Nómina</h4>
-                                    <p className="text-sm text-muted">Habilita el cálculo automático de comisiones por cita completada y muestra el panel de Nómina a tu cuenta.</p>
+                    <section className="glass-panel p-6 rounded-2xl border border-white/5 space-y-4 lg:col-span-2 relative z-[10] bg-slate-900/40">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3.5">
+                                <div className="p-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 shrink-0">
+                                    <Percent size={22} />
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={infoForm.commissionsEnabled || false}
-                                        onChange={async (e) => {
-                                            const val = e.target.checked;
-                                            setInfoForm({ ...infoForm, commissionsEnabled: val });
-                                            await updateBusinessConfig({ commissionsEnabled: val });
-                                            showToast(val ? 'Módulo de Nómina activado' : 'Módulo de Nómina desactivado', 'success');
-                                        }}
-                                    />
-                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                                </label>
-                            </div>
-
-                            {infoForm.commissionsEnabled && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/5 mb-6">
-                                        <div>
-                                            <h4 className="text-white font-medium">Día de Inicio de Semana</h4>
-                                            <p className="text-sm text-muted">Afecta el rango de fechas en "Esta Semana" dentro de la Nómina.</p>
-                                        </div>
-                                        <div className="relative w-40 sm:w-48 z-10">
-                                            <CustomSelect
-                                                value={String(infoForm.weekStartsOn ?? 1)}
-                                                onChange={async (val: string) => {
-                                                    const numericVal = parseInt(val) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
-                                                    setInfoForm({ ...infoForm, weekStartsOn: numericVal });
-                                                    await updateBusinessConfig({ weekStartsOn: numericVal });
-                                                    showToast('Día de corte actualizado', 'success');
-                                                }}
-                                                options={[
-                                                    { value: '1', label: 'Lunes' },
-                                                    { value: '0', label: 'Domingo' },
-                                                    { value: '2', label: 'Martes' },
-                                                    { value: '3', label: 'Miércoles' },
-                                                    { value: '4', label: 'Jueves' },
-                                                    { value: '5', label: 'Viernes' },
-                                                    { value: '6', label: 'Sábado' },
-                                                ]}
-                                                buttonClassName="w-full glass-card bg-[#0f172a] border border-white/10 rounded-2xl p-2 text-white focus:outline-none focus:border-accent border-accent/30 transition-all cursor-pointer flex items-center justify-between text-sm"
-                                                dropdownClassName="absolute right-0 z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
-                                            />
-                                        </div>
+                                <div>
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <h3 className="text-base sm:text-lg font-bold text-white">Nómina y Comisiones</h3>
+                                        {infoForm.commissionsEnabled ? (
+                                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                Activo
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/10">
+                                                Inactivo
+                                            </span>
+                                        )}
                                     </div>
-
-                                    <h4 className="text-sm font-medium text-white mb-2">Porcentajes de Comisión por Profesional</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                        {stylists.map(stylist => (
-                                            <div key={stylist.id} className="flex flex-col gap-2 p-4 bg-[#0f172a]/50 border border-white/5 rounded-lg">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-xs shrink-0">
-                                                        {stylist.name.charAt(0)}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm text-white font-medium truncate">{stylist.name}</p>
-                                                        <p className="text-xs text-muted truncate">{stylist.role}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        className="w-20 bg-transparent border-b border-white/20 text-white text-center text-sm py-1 focus:border-accent focus:outline-none focus:bg-white/5 rounded"
-                                                        value={stylist.commissionRate || 0}
-                                                        onChange={(e) => {
-                                                            const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                                                            updateStylistCommissionRate(stylist.id, val);
-                                                        }}
-                                                    />
-                                                    <span className="text-muted text-sm">%</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <p className="text-xs text-muted">
-                                        Los cambios de porcentaje se guardan automáticamente y afectan el cálculo global histórico. Cambiar para periodos de prueba.
+                                    <p className="text-xs text-slate-400 max-w-xl">
+                                        Configura el encendido del módulo, porcentajes por especialista, día de corte semanal y emite liquidaciones directamente desde la sección de Nómina.
                                     </p>
                                 </div>
-                            )}
+                            </div>
+
+                            <Link
+                                to="/admin/commissions"
+                                className="btn bg-accent hover:bg-accent/90 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-accent/15 flex items-center justify-center gap-2 shrink-0 transition-all active:scale-95"
+                            >
+                                <span>Ir a Gestión de Nómina</span>
+                            </Link>
                         </div>
                     </section>
                 )}

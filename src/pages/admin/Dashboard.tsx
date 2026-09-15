@@ -16,7 +16,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
 import { calculateAppointmentDuration, getRealAdditionalServices } from '../../lib/smartSlots';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, CheckCircle2, RefreshCw, Share2 } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -137,6 +137,17 @@ export default function Dashboard() {
         ends.setHours(0, 0, 0, 0);
         return Math.max(0, Math.ceil((ends.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
     }, [isGracePeriod, businessConfig?.gracePeriodEndsAt]);
+
+    // Check if business was created within the last 7 days to highlight marketing actions
+    const isRecentBusiness = useMemo(() => {
+        const dateStr = businessConfig?.createdAt || (tenantConfig as any)?.created_at;
+        if (!dateStr) return false;
+        const created = new Date(dateStr);
+        if (isNaN(created.getTime())) return false;
+        const now = new Date();
+        const diffDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+    }, [businessConfig?.createdAt, (tenantConfig as any)?.created_at]);
 
     // Count non-cancelled appointments in the current calendar month
     const monthlyApptCount = useMemo(() => {
@@ -967,7 +978,7 @@ export default function Dashboard() {
                                         })()}
                                     </code>
                                 </div>
-                                <div className="flex gap-3">
+                                <div className="flex flex-wrap sm:flex-nowrap gap-3">
                                     <button
                                         onClick={() => {
                                             const path = linkType === 'brand' && businessConfig.brandSlug
@@ -977,7 +988,7 @@ export default function Dashboard() {
                                             navigator.clipboard.writeText(url);
                                             showToast('¡Enlace copiado!', 'success');
                                         }}
-                                        className={`flex-1 sm:flex-none px-8 py-4 text-white font-black rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-xl text-sm tracking-wide ${
+                                        className={`flex-1 sm:flex-none px-6 py-4 text-white font-black rounded-2xl hover:brightness-110 transition-all active:scale-95 shadow-xl text-sm tracking-wide ${
                                             linkType === 'brand'
                                                 ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600 shadow-violet-900/40'
                                                 : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-900/40'
@@ -989,10 +1000,22 @@ export default function Dashboard() {
                                         href={linkType === 'brand' && businessConfig.brandSlug ? `/sucursales/${businessConfig.brandSlug}` : `/reserva/${businessConfig.slug || ''}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="px-5 py-4 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm flex items-center gap-2 backdrop-blur-sm"
+                                        className="px-5 py-4 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-sm flex items-center justify-center gap-2 backdrop-blur-sm"
                                     >
                                         Abrir
                                     </a>
+                                    <button
+                                        onClick={() => navigate('/admin/social-content')}
+                                        className={`w-full sm:w-auto px-5 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                                            isRecentBusiness
+                                                ? 'bg-gradient-to-r from-fuchsia-600 via-pink-600 to-rose-600 text-white shadow-lg shadow-pink-600/30 hover:brightness-110 animate-pulse active:scale-95'
+                                                : 'bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 hover:text-white active:scale-95'
+                                        }`}
+                                        title="Generar historias y contenido para redes sociales"
+                                    >
+                                        <Share2 size={16} className={isRecentBusiness ? 'animate-bounce text-white' : 'text-fuchsia-400'} />
+                                        <span>{isRecentBusiness ? '📢 ¡Anuncia tu agenda!' : 'Contenido para redes'}</span>
+                                    </button>
                                 </div>
                             </div>
 

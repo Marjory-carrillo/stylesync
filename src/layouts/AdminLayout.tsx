@@ -8,7 +8,8 @@ import { useStylists } from '../lib/store/queries/useStylists';
 import { useServices } from '../lib/store/queries/useServices';
 import { useRealtimeNotifications, type AdminNotification } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Sparkles, Calendar, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing } from 'lucide-react';
+import { LayoutDashboard, Users, Sparkles, Calendar, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing, Wrench, Share2, ChevronDown, Building2, UserCheck, Settings } from 'lucide-react';
+import BusinessQRCardsModal from '../components/BusinessQRCardsModal';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
 import BranchSwitcher from '../components/BranchSwitcher';
@@ -18,7 +19,7 @@ import OnboardingWizard from '../components/OnboardingWizard';
 import { isAccountActive, isNailCalculatorEnabled } from '../lib/planLimits';
 
 export default function AdminLayout() {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const { isSuperAdmin, userRole, userStylistId } = useAuthStore();
     const { data: tenantConfig } = useTenantData();
     const { stylists } = useStylists();
@@ -31,6 +32,53 @@ export default function AdminLayout() {
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+    const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+    
+    type OpenAccordionType = 'tools' | 'business_config' | string | null;
+
+    const isToolsActive = useMemo(() => {
+        return location.pathname.startsWith('/admin/social-content') || location.pathname.startsWith('/admin/marketing');
+    }, [location.pathname]);
+
+    const isBusinessConfigActive = useMemo(() => {
+        return ['/admin/staff', '/admin/services', '/admin/team'].some(p => location.pathname.startsWith(p));
+    }, [location.pathname]);
+
+    const [openAccordion, setOpenAccordion] = useState<OpenAccordionType>(() => {
+        if (location.pathname.startsWith('/admin/social-content') || location.pathname.startsWith('/admin/marketing')) return 'tools';
+        if (['/admin/staff', '/admin/services', '/admin/team'].some(p => location.pathname.startsWith(p))) return 'business_config';
+        const saved = localStorage.getItem('citalink_active_accordion');
+        if (saved === 'tools') return 'tools';
+        if (saved === 'business_config') return 'business_config';
+        if (saved === 'none') return null;
+        return 'business_config';
+    });
+
+    // Auto-expand active accordion on route change
+    useEffect(() => {
+        if (isToolsActive) {
+            setOpenAccordion('tools');
+            localStorage.setItem('citalink_active_accordion', 'tools');
+        } else if (isBusinessConfigActive) {
+            setOpenAccordion('business_config');
+            localStorage.setItem('citalink_active_accordion', 'business_config');
+        }
+    }, [isToolsActive, isBusinessConfigActive]);
+
+    const toggleAccordion = (id: string) => {
+        setOpenAccordion(prev => {
+            const next = prev === id ? null : id;
+            localStorage.setItem('citalink_active_accordion', next || 'none');
+            return next;
+        });
+    };
+
+    const isToolsOpen = openAccordion === 'tools';
+    const isBusinessConfigOpen = openAccordion === 'business_config';
+
+    const toggleTools = () => toggleAccordion('tools');
+    const toggleBusinessConfig = () => toggleAccordion('business_config');
+
     const [activeToast, setActiveToast] = useState<AdminNotification | null>(null);
     const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useRealtimeNotifications();
     const { getMonthlyCancellations } = useCancellationLog();
@@ -136,10 +184,7 @@ export default function AdminLayout() {
         if (appleTitle) appleTitle.content = 'CitaLink Admin';
     }, []);
 
-    const toggleLanguage = () => {
-        const newLang = i18n.language === 'es' ? 'en' : 'es';
-        i18n.changeLanguage(newLang);
-    };
+
 
     const handleLogout = async () => {
         setIsLogoutModalOpen(true);
@@ -163,6 +208,13 @@ export default function AdminLayout() {
         flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group
         ${isActive(path)
             ? 'bg-accent/10 text-accent font-semibold border border-accent/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'}
+    `;
+
+    const subNavLinkClass = (path: string) => `
+        flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all
+        ${isActive(path)
+            ? 'bg-accent/15 text-accent border border-accent/25 shadow-sm font-semibold'
             : 'text-slate-400 hover:text-white hover:bg-white/5'}
     `;
 
@@ -285,15 +337,19 @@ export default function AdminLayout() {
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                     <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>
 
+                    {/* 1. Dashboard */}
                     <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')}>
                         <LayoutDashboard size={18} />
                         <span>{t('nav.dashboard')}</span>
                     </Link>
 
-                    <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')}>
-                        <Calendar size={18} />
-                        <span>{t('nav.appointments')}</span>
-                    </Link>
+                    {/* 2. Cotizador y después anticipos según apliquen */}
+                    {showNailCalculator && (
+                        <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
+                            <Calculator size={18} />
+                            <span>Cotizador de Uñas</span>
+                        </Link>
+                    )}
 
                     {businessConfig?.depositEnabled && (
                         <Link to="/admin/deposits" onClick={closeMobileMenu} className={navLinkClass('/admin/deposits')}>
@@ -302,13 +358,49 @@ export default function AdminLayout() {
                         </Link>
                     )}
 
-                    {showNailCalculator && (
-                        <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
-                            <Calculator size={18} />
-                            <span>Cotizador de Uñas</span>
-                        </Link>
+                    {/* 3. Agenda */}
+                    <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')}>
+                        <Calendar size={18} />
+                        <span>{t('nav.appointments')}</span>
+                    </Link>
+
+                    {/* 4. Herramientas (Acordeón) */}
+                    {!isEmployee && (
+                        <div className="pt-1">
+                            <button
+                                type="button"
+                                onClick={toggleTools}
+                                className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Wrench size={16} className="text-violet-400 group-hover:scale-110 transition-transform" />
+                                    <span>Herramientas</span>
+                                    {isToolsActive && (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                                    )}
+                                </div>
+                                <ChevronDown
+                                    size={14}
+                                    className={`transition-transform duration-300 ${isToolsOpen ? 'rotate-180 text-violet-400' : 'text-slate-600'}`}
+                                />
+                            </button>
+
+                            {isToolsOpen && (
+                                <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                    <Link
+                                        to="/admin/social-content"
+                                        onClick={closeMobileMenu}
+                                        className={subNavLinkClass('/admin/social-content')}
+                                    >
+                                        <Share2 size={15} className="shrink-0 text-violet-400" />
+                                        <span className="truncate">Contenido para redes</span>
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
                     )}
 
+                    {/* 5. Clientes */}
                     {!isEmployee && (
                         <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')}>
                             <Users size={18} />
@@ -316,37 +408,81 @@ export default function AdminLayout() {
                         </Link>
                     )}
 
+                    {/* 6. Configuración de negocio (Acordeón) */}
                     {!isEmployee && (
-                        <>
-                            <Link to="/admin/services" onClick={closeMobileMenu} className={navLinkClass('/admin/services')}>
-                                <Sparkles size={18} />
-                                <span>{t('nav.services')}</span>
-                            </Link>
-                            <Link to="/admin/staff" onClick={closeMobileMenu} className={navLinkClass('/admin/staff')}>
-                                <Users size={18} />
-                                <span>{t('nav.stylists')}</span>
-                            </Link>
+                        <div className="pt-1">
+                            <button
+                                type="button"
+                                onClick={toggleBusinessConfig}
+                                className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Building2 size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
+                                    <span>Configuración de negocio</span>
+                                    {isBusinessConfigActive && (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+                                    )}
+                                </div>
+                                <ChevronDown
+                                    size={14}
+                                    className={`transition-transform duration-300 ${isBusinessConfigOpen ? 'rotate-180 text-sky-400' : 'text-slate-600'}`}
+                                />
+                            </button>
 
-                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-8">Configuración</div>
+                            {isBusinessConfigOpen && (
+                                <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                    <Link
+                                        to="/admin/staff"
+                                        onClick={closeMobileMenu}
+                                        className={subNavLinkClass('/admin/staff')}
+                                    >
+                                        <UserCheck size={15} className="shrink-0 text-sky-400" />
+                                        <span>{t('nav.stylists')}</span>
+                                    </Link>
 
-                            {businessConfig?.plan !== 'lite' && (
-                                <Link to="/admin/team" onClick={closeMobileMenu} className={navLinkClass('/admin/team')}>
-                                    <Users size={18} />
-                                    <span>{t('nav.team')}</span>
-                                </Link>
+                                    <Link
+                                        to="/admin/services"
+                                        onClick={closeMobileMenu}
+                                        className={subNavLinkClass('/admin/services')}
+                                    >
+                                        <Sparkles size={15} className="shrink-0 text-amber-400" />
+                                        <span>{t('nav.services')}</span>
+                                    </Link>
+
+                                    {businessConfig?.plan !== 'lite' && (
+                                        <Link
+                                            to="/admin/team"
+                                            onClick={closeMobileMenu}
+                                            className={subNavLinkClass('/admin/team')}
+                                        >
+                                            <ShieldCheck size={15} className="shrink-0 text-emerald-400" />
+                                            <span>{t('nav.team')}</span>
+                                        </Link>
+                                    )}
+                                </div>
                             )}
+                        </div>
+                    )}
 
-                            <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')}>
-                                <SettingsIcon size={18} />
-                                <span>{t('nav.settings')}</span>
-                            </Link>
-                            {userRole === 'owner' && businessConfig?.commissionsEnabled && businessConfig?.plan !== 'lite' && (
-                                <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')}>
-                                    <Percent size={18} />
-                                    <span>{t('nav.commissions')}</span>
-                                </Link>
+                    {/* 7. Nómina (Entre Configuración de negocio y Ajustes) */}
+                    {!isEmployee && userRole === 'owner' && businessConfig?.plan !== 'lite' && (
+                        <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')}>
+                            <Percent size={18} />
+                            <span className="flex-1 text-left">{t('nav.commissions')}</span>
+                            {!businessConfig?.commissionsEnabled && (
+                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/10 shrink-0">
+                                    Inactivo
+                                </span>
                             )}
-                        </>
+                        </Link>
+                    )}
+
+                    {/* 8. Ajustes (Separado) */}
+                    {!isEmployee && (
+                        <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')}>
+                            <Settings size={18} />
+                            <span>{t('nav.settings')}</span>
+                        </Link>
                     )}
                 </nav>
 
@@ -364,18 +500,6 @@ export default function AdminLayout() {
                             getMonthlyCancellations={getMonthlyCancellations}
                         />
                     </div>
-                    <button
-                        onClick={toggleLanguage}
-                        className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 group"
-                        aria-label="Cambiar Idioma"
-                    >
-                        <div className="w-5 h-5 flex items-center justify-center font-bold text-[10px] border border-white/20 rounded-md">
-                            {i18n.language.toUpperCase().substring(0, 2)}
-                        </div>
-                        <span className="font-medium flex-1 text-left">
-                            {i18n.language.startsWith('es') ? 'English Language' : 'Idioma Español'}
-                        </span>
-                    </button>
                     {isSuperAdmin && (
                         <button
                             onClick={() => {
@@ -407,7 +531,7 @@ export default function AdminLayout() {
                     <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--color-primary)]/10 blur-[120px]"></div>
                 </div>
 
-                <div className="relative z-10 p-4 md:p-8 container mx-auto max-w-7xl pb-6">
+                <div className="relative z-10 p-4 md:p-6 lg:p-8 w-full max-w-none pb-6">
                     <Outlet />
                 </div>
                 <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />
@@ -444,6 +568,7 @@ export default function AdminLayout() {
             {isNewApptModalOpen && (
                 <AdminBookingModal isOpen={true} onClose={() => setIsNewApptModalOpen(false)} />
             )}
+            <BusinessQRCardsModal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} />
             <OnboardingWizard
                 isOpen={isOnboardingOpen}
                 onClose={() => {

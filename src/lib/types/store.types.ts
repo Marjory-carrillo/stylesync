@@ -260,6 +260,17 @@ export interface Announcement {
     createdAt: string;
 }
 
+export interface PayrollDeduction {
+    id: string;
+    tenantId: string;
+    stylistId: number;
+    amount: number;
+    concept: string;
+    date: string; // YYYY-MM-DD
+    notes?: string;
+    createdAt: string;
+}
+
 export interface CommissionEntry {
     stylistId: number;
     stylistName: string;
@@ -269,6 +280,8 @@ export interface CommissionEntry {
     appointmentsCount: number;
     commissionRate: number;
     commissionEarned: number;
+    deductionsTotal?: number;
+    netToPay?: number;
 }
 
 // ─── Store Interface ─────────────────────────────────────────────────────────
