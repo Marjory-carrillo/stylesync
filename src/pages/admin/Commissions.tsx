@@ -848,7 +848,7 @@ export default function Commissions() {
             </div>
 
             {/* Barra de Control Unificada: Período y Fechas */}
-            <div className="glass-panel p-2 sm:p-2.5 rounded-2xl border border-white/5 flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="glass-panel p-2 sm:p-2.5 rounded-2xl border border-white/5 flex flex-col md:flex-row items-center justify-between gap-3 relative z-30">
                 {/* Pestañas de Período */}
                 <div className="flex bg-slate-900/70 p-1 rounded-xl border border-white/5 w-full md:w-auto overflow-x-auto custom-scrollbar">
                     {[
@@ -876,7 +876,7 @@ export default function Commissions() {
                 </div>
 
                 {/* Navegación de Fechas & Rango de Corte */}
-                <div className="flex flex-wrap items-center justify-center md:justify-end gap-2.5 w-full md:w-auto">
+                <div className="flex flex-wrap items-center justify-center md:justify-end gap-2.5 w-full md:w-auto relative z-30">
                     {periodType !== 'custom' ? (
                         <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-white/5">
                             <button
@@ -943,7 +943,7 @@ export default function Commissions() {
             </div>
 
             {/* Metrics cards */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 ${hasMarketplaceActivity ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 sm:gap-6`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${hasMarketplaceActivity ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 sm:gap-6 relative z-10`}>
                 <div className="glass-panel p-5 sm:p-6 rounded-[2rem] relative overflow-hidden group border border-white/5 bg-slate-900/40">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl group-hover:bg-accent/10 transition-colors"></div>
                     <div className="flex items-center gap-4 relative z-10">
@@ -1035,7 +1035,7 @@ export default function Commissions() {
             </div>
 
             {/* Detailed Table Desglose */}
-            <div className="glass-panel rounded-3xl overflow-hidden border border-white/5 bg-slate-900/20">
+            <div className="glass-panel rounded-3xl overflow-hidden border border-white/5 bg-slate-900/20 relative z-10">
                 <div className="p-5 sm:p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/40">
                     <div>
                         <h2 className="text-lg font-bold text-white flex items-center gap-2">

@@ -81,7 +81,7 @@ export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/
 
             {/* Calendar dropdown */}
             {open && (
-                <div className={`absolute z-[200] top-full mt-2 ${align === 'right' ? 'right-0' : 'left-0'} bg-[#0f1420] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden animate-fade-in min-w-[280px]`}>
+                <div className={`absolute z-[200] top-full mt-2 ${align === 'right' ? 'right-0' : 'left-0'} bg-[#0c101d] border border-white/15 rounded-2xl shadow-2xl shadow-black/90 overflow-hidden animate-fade-in min-w-[280px]`}>
                     {/* Month navigation */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                         <button
