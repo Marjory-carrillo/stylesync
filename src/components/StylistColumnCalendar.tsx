@@ -380,7 +380,7 @@ export default function StylistColumnCalendar({
             </div>
 
             {/* ── Google Calendar Multi-Column Timeline Grid ── */}
-            <div className="flex-1 overflow-auto custom-scrollbar relative min-h-[600px]">
+            <div className="flex-1 overflow-auto custom-scrollbar relative min-h-0">
                 <div
                     className="relative flex flex-col w-full"
                     style={{

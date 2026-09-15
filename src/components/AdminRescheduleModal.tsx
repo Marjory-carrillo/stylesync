@@ -174,7 +174,7 @@ export default function AdminRescheduleModal({ isOpen, onClose, appointment }: A
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
             <div className="relative w-full max-w-md glass-panel bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl overflow-visible p-6 space-y-5">
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
                     <div className="flex items-center gap-2.5 text-white">

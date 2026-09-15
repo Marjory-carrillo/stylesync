@@ -16,7 +16,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
 import { calculateAppointmentDuration, getRealAdditionalServices } from '../../lib/smartSlots';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, CheckCircle2, RefreshCw, Share2 } from 'lucide-react';
+import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, CheckCircle2, RefreshCw, Share2, Maximize2, Minimize2 } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -35,7 +35,6 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const [chartRange, setChartRange] = useState<ChartRange>('7D');
     const [chartViewType, setChartViewType] = useState<'revenue' | 'volume'>('revenue');
-    const [tomorrowOpen, setTomorrowOpen] = useState(false);
     const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
     const { userRole, userStylistId, userTenants, tenantId } = useAuthStore();
@@ -45,31 +44,6 @@ export default function Dashboard() {
     );
     const { showToast } = useUIStore();
     const { redirectToCheckout, isCheckoutLoading } = useStripeCheckout();
-
-    // Note editing state for completed & active appointments
-    const [editingNoteApptId, setEditingNoteApptId] = useState<string | null>(null);
-    const [noteText, setNoteText] = useState('');
-    const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
-
-    const saveNote = async (aptId: string) => {
-        if (!tenantId) return;
-        setSavingNoteId(aptId);
-        try {
-            const { error } = await supabase
-                .from('appointments')
-                .update({ staff_notes: noteText.trim() || null })
-                .eq('id', aptId)
-                .eq('tenant_id', tenantId);
-            if (error) throw error;
-            queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
-            showToast('Nota guardada', 'success');
-            setEditingNoteApptId(null);
-        } catch (err: any) {
-            showToast(`Error al guardar nota: ${err.message}`, 'error');
-        } finally {
-            setSavingNoteId(null);
-        }
-    };
 
     // Custom confirm dialog state
     const [customConfirm, setCustomConfirm] = useState<{
@@ -465,7 +439,57 @@ export default function Dashboard() {
     }, [todayAppts]);
 
     const remindersSentCount = todayRemindersSent.length;
-    const [dashboardViewMode, setDashboardViewMode] = useState<'columns' | 'list'>('columns');
+    const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
+
+    const toggleCalendarFullscreen = useCallback(() => {
+        setIsCalendarFullscreen(prev => {
+            const next = !prev;
+            if (next) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+            } else {
+                if (document.fullscreenElement && document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+            return next;
+        });
+    }, []);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && isCalendarFullscreen) {
+                setIsCalendarFullscreen(false);
+            }
+        };
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isCalendarFullscreen) {
+                if (document.fullscreenElement && document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+                setIsCalendarFullscreen(false);
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isCalendarFullscreen]);
+
+    useEffect(() => {
+        if (isCalendarFullscreen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isCalendarFullscreen]);
 
     // ── Reports Logic ──
     const currentMonthStats = useMemo(() => {
@@ -1865,9 +1889,13 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Today's Appointments */}
-            <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl">
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            {/* Today's Appointments - Vista Multicolumna por Profesional */}
+            <div className={
+                isCalendarFullscreen
+                    ? "fixed inset-0 z-[110] bg-[#070b16] p-4 sm:p-6 flex flex-col overflow-hidden animate-fade-in"
+                    : "glass-panel p-6 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl"
+            }>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-accent shrink-0 shadow-lg shadow-accent/5">
                             <Calendar size={22} />
@@ -1875,43 +1903,37 @@ export default function Dashboard() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h3 className="font-black text-lg text-white tracking-tight">
-                                    {dashboardViewMode === 'columns' ? 'Control de Citas' : 'Próximas Citas de Hoy'}
+                                    Control de Citas
                                 </h3>
+                                {isCalendarFullscreen && (
+                                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/20 border border-accent/30 text-[10px] font-black text-accent uppercase tracking-wider">
+                                        Pantalla Completa
+                                    </span>
+                                )}
                             </div>
                             <p className="text-xs text-slate-400">
-                                {dashboardViewMode === 'columns'
-                                    ? 'Monitoreo en tiempo real por especialista'
-                                    : 'Citas programadas pendientes para la jornada de hoy'}
+                                Monitoreo en tiempo real por especialista
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-                        {/* View Mode Toggle */}
-                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10 shrink-0">
-                            <button
-                                onClick={() => setDashboardViewMode('columns')}
-                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                                    dashboardViewMode === 'columns'
-                                        ? 'bg-accent text-slate-950 font-black shadow-lg shadow-accent/20'
-                                        : 'text-slate-400 hover:text-white'
-                                }`}
-                                title="Vista Multicolumna por Profesional (Estilo Google Calendar)"
-                            >
-                                <User size={15} />
-                            </button>
-                            <button
-                                onClick={() => setDashboardViewMode('list')}
-                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                                    dashboardViewMode === 'list'
-                                        ? 'bg-accent text-slate-950 font-black shadow-lg shadow-accent/20'
-                                        : 'text-slate-400 hover:text-white'
-                                }`}
-                                title="Vista en Lista de Citas"
-                            >
-                                <Calendar size={15} />
-                            </button>
-                        </div>
+                        {/* Botón de Pantalla Completa */}
+                        <button
+                            type="button"
+                            onClick={toggleCalendarFullscreen}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl border transition-all text-xs font-black cursor-pointer shadow-sm active:scale-95 shrink-0 ${
+                                isCalendarFullscreen
+                                    ? 'bg-accent text-slate-950 border-accent shadow-lg shadow-accent/20'
+                                    : 'bg-black/40 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
+                            }`}
+                            title={isCalendarFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
+                        >
+                            {isCalendarFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                            <span className="hidden sm:inline">
+                                {isCalendarFullscreen ? 'Salir de Pantalla Completa' : 'Pantalla Completa'}
+                            </span>
+                        </button>
 
                         {!isEmployee && (
                             <>
@@ -1946,835 +1968,42 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {dashboardViewMode === 'columns' ? (
-                    <div className="mt-2 min-h-[550px]">
-                        {tomorrowAppts.length > 0 && (
-                            <div className="mb-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shadow-sm">
-                                <span>📌</span>
-                                <span>{tomorrowAppts.length} {tomorrowAppts.length === 1 ? 'cita confirmada para mañana' : 'citas confirmadas para mañana'}</span>
-                            </div>
-                        )}
-                        <StylistColumnCalendar
-                            appointments={appointments}
-                            services={services}
-                            stylists={stylists}
-                            waitingList={waitingList}
-                            selectedStylistId={dashboardStylistId}
-                            onWhatsApp={(apt) => {
-                                const waPhone = apt.clientPhone.replace(/\D/g, '');
-                                window.open(`https://wa.me/${waPhone}`, '_blank');
-                            }}
-                            onReschedule={(apt) => setRescheduleModal({ open: true, appt: apt })}
-                            onNoShow={(apt) => handleNoShow(apt)}
-                            onOpenReceipt={(url) => setReceiptModalUrl(url)}
-                            onCancel={(apt) => {
-                                setCustomConfirm({
-                                    open: true,
-                                    title: 'Cancelar Cita',
-                                    message: `¿Estás seguro de que deseas cancelar la cita de ${apt.clientName}?`,
-                                    confirmLabel: 'Sí, Cancelar',
-                                    cancelLabel: 'Volver',
-                                    danger: true,
-                                    onConfirm: () => {
-                                        cancelAppointment(apt.id);
-                                    }
-                                });
-                            }}
-                        />
-                    </div>
-                ) : (
-                    <div className="space-y-6 pt-4 border-t border-white/10">
-                        {/* ── Próximas Citas Mañana (collapsible) ── */}
-                        <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden">
-                            {/* Header / toggle */}
-                            <button
-                                onClick={() => setTomorrowOpen(o => !o)}
-                                className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className="flex h-3 w-3 relative">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
-                                    </span>
-                                    <h3 className="font-bold text-lg text-white">
-                                        Próximas Citas (Mañana)
-                                        <span className="ml-2 px-2.5 py-0.5 rounded-full bg-accent/20 text-accent text-sm font-black">
-                                            {tomorrowAppts.length}
-                                        </span>
-                                    </h3>
-                                </div>
-                                <ChevronDown
-                                    size={20}
-                                    className={`text-slate-400 transition-transform duration-300 ${tomorrowOpen ? 'rotate-180' : ''}`}
-                                />
-                            </button>
-
-                            {tomorrowOpen && (
-                                <div className="px-6 pb-6">
-                                    <p className="text-sm text-muted mb-4">
-                                        {reminders.length > 0
-                                            ? `${reminders.length} de estas citas llevan 3+ días reservadas. Recuerda enviarles un recordatorio.`
-                                            : 'Citas confirmadas para mañana.'}
-                                    </p>
-
-                                    {tomorrowAppts.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-10 opacity-40">
-                                            <Calendar size={32} className="mb-2 text-slate-500" />
-                                            <p className="text-sm">No hay citas agendadas para mañana.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {tomorrowAppts.map(appt => {
-                                                const svc = getServiceById(appt.serviceId);
-                                                const needsReminder = reminders.some(r => r.id === appt.id);
-                                                const [h, m] = appt.time.split(':');
-                                                let hh = parseInt(h);
-                                                const ampm = hh >= 12 ? 'pm' : 'am';
-                                                hh = hh % 12 || 12;
-                                                return (
-                                                    <div key={appt.id} className={`bg-slate-900/40 backdrop-blur-md border p-5 rounded-3xl hover:border-accent/40 transition-all duration-300 group ${
-                                                        needsReminder ? 'border-amber-500/30' : 'border-white/5'
-                                                    }`}>
-                                                        <div className="flex justify-between items-start mb-3">
-                                                            <div>
-                                                                <div className="font-black text-white text-base tracking-tight mb-1 flex items-center gap-2 flex-wrap">
-                                                                    <span>{appt.clientName.toUpperCase()}</span>
-                                                                    {appt.bookingSource === 'marketplace' && (
-                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                            🛒 Buscador CitaLink
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                                    <button
-                                                                         onClick={() => setExpandedServiceApptId(expandedServiceApptId === `quote-${appt.id}` ? null : `quote-${appt.id}`)}
-                                                                         className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
-                                                                             expandedServiceApptId === `quote-${appt.id}`
-                                                                                 ? 'bg-accent/20 border-accent/40 text-accent'
-                                                                                 : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
-                                                                         }`}
-                                                                         title="Ver/ocultar desglose de servicios"
-                                                                     >
-                                                                         <Sparkles size={12} className="text-accent shrink-0" />
-                                                                         <span>{getAppointmentFullServiceDisplay(appt, svc?.name)}</span>
-                                                                         <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `quote-${appt.id}` ? 'rotate-180 text-accent' : ''}`} />
-                                                                     </button>
-                                                                    {(() => {
-                                                                        const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
-                                                                        if (refItem) {
-                                                                            const url = refItem.replace('Referencia: ', '');
-                                                                            return (
-                                                                                <button
-                                                                                    onClick={() => setActivePhotoUrl(url)}
-                                                                                    className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
-                                                                                >
-                                                                                    <Eye size={12} className="text-slate-900" />
-                                                                                    <span>Diseño</span>
-                                                                                </button>
-                                                                            );
-                                                                        }
-                                                                        return null;
-                                                                    })()}
-                                                                    {appt.stylistId && stylists.find(s => Number(s.id) === Number(appt.stylistId)) ? (
-                                                                        <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-300 uppercase bg-white/5 border border-white/10 px-2.5 py-1 rounded-xl">
-                                                                            <User size={12} className="text-emerald-400 opacity-80" />
-                                                                            <span>{stylists.find(s => Number(s.id) === Number(appt.stylistId))?.name.split(' ')[0]}</span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase bg-white/5 border border-white/5 px-2.5 py-1 rounded-xl">
-                                                                            <User size={12} className="opacity-40" />
-                                                                            <span>Cualquiera</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Desplegable de detalles de servicio */}
-                                                                {expandedServiceApptId === `quote-${appt.id}` && (
-                                                                    <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-accent/30 text-xs space-y-1 animate-fade-in relative z-10">
-                                                                        <div className="text-[9px] font-black uppercase tracking-wider text-accent border-b border-white/10 pb-1 flex items-center justify-between">
-                                                                            <span>Desglose Detallado</span>
-                                                                        </div>
-                                                                        <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
-                                                                            <div className="flex justify-between items-center">
-                                                                                <span className="text-slate-400">Servicio Base:</span>
-                                                                                <span className="font-bold text-white">{svc?.name || 'Servicio'}</span>
-                                                                            </div>
-                                                                            <div className="flex justify-between items-center">
-                                                                                <span className="text-slate-400">Duración:</span>
-                                                                                <span className="font-bold text-accent">
-                                                                                    {getAppointmentTotalDuration(appt)} min
-                                                                                </span>
-                                                                            </div>
-                                                                            {appt.additionalServices && appt.additionalServices.length > 0 && (
-                                                                                <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
-                                                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
-                                                                                    {appt.additionalServices
-                                                                                        .filter((s: string) => !s.startsWith('Referencia:'))
-                                                                                        .map((extra: string, idx: number) => {
-                                                                                            const cleanExtra = extra
-                                                                                                .replace(/\s*\(\+\d+\s*min\)/gi, '')
-                                                                                                .replace(/\s*\(\d+\s*min\)/gi, '');
-                                                                                            return (
-                                                                                                <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
-                                                                                                    <span className="text-slate-500">•</span>
-                                                                                                    <span className="break-words">{cleanExtra}</span>
-                                                                                                </div>
-                                                                                            );
-                                                                                        })}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <span className="text-white font-black bg-white/5 border border-white/10 px-3 py-1 rounded-xl text-xs">{hh}:{m}{ampm}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium flex-wrap">
-                                                            <Phone size={12} className="opacity-50" />
-                                                            <span>{formatPhoneDisplay(appt.clientPhone)}</span>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingNoteApptId(appt.id);
-                                                                    setNoteText((appt as any).staff_notes || '');
-                                                                }}
-                                                                className={`px-2 py-0.5 rounded-md text-[9px] font-bold cursor-pointer transition-colors ${ (appt as any).staff_notes ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-500 hover:text-white'}`}
-                                                            >
-                                                                {(appt as any).staff_notes ? '🗒️ Nota' : '+ Nota'}
-                                                            </button>
-                                                            {!businessConfig?.hideServicePrices && (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setSelectedApptForPrice(appt);
-                                                                        setNewPriceValue(String(getAppointmentPrice(appt)));
-                                                                        setIsPriceModalOpen(true);
-                                                                    }}
-                                                                    className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border cursor-pointer hover:bg-white/5 active:scale-95 transition-all ${
-                                                                        isPriceConfirmed(appt)
-                                                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
-                                                                    }`}
-                                                                    title="Ajustar precio de la cita"
-                                                                >
-                                                                    <DollarSign size={9} />
-                                                                    <span>{getAppointmentPrice(appt)}</span>
-                                                                    <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
-                                                                        {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
-                                                                    </span>
-                                                                </button>
-                                                            )}
-                                                            {needsReminder && (
-                                                                <span className="ml-auto text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">Recordar</span>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setRescheduleModal({ open: true, appt })}
-                                                                className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 transition-all flex items-center justify-center font-bold cursor-pointer"
-                                                                title="Reagendar Cita"
-                                                            >
-                                                                <RefreshCw size={13} /> Reagendar
-                                                            </button>
-                                                            <button
-                                                                onClick={() => navigate('/admin/appointments')}
-                                                                className="flex-1 py-2 text-xs gap-1.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 hover:text-white border border-white/5 hover:border-white/10 transition-all flex items-center justify-center font-bold cursor-pointer"
-                                                            >
-                                                                <Calendar size={13} className="opacity-70" /> Gestionar
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                <div className={isCalendarFullscreen ? "mt-1 flex-1 min-h-0 flex flex-col overflow-hidden" : "mt-2 min-h-[550px]"}>
+                    {tomorrowAppts.length > 0 && (
+                        <div className="mb-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shadow-sm shrink-0">
+                            <span>📌</span>
+                            <span>{tomorrowAppts.length} {tomorrowAppts.length === 1 ? 'cita confirmada para mañana' : 'citas confirmadas para mañana'}</span>
                         </div>
-
-                        {/* Próximas Citas Hoy */}
-                        <div>
-                            {(() => {
-                                const now = new Date();
-                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                    const upcomingAppts = todayAppts.filter(appt => {
-                        const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
-                        if (!isMatch) return false;
-
-                        // Show if it isn't completed or cancelled
-                        return appt.status !== 'completada' && appt.status !== 'cancelada';
-                    }).sort((a, b) => a.time.localeCompare(b.time));
-
-                    if (upcomingAppts.length === 0) {
-                        return (
-                            <div className="bg-gradient-to-b from-white/[0.03] via-accent/[0.02] to-transparent rounded-3xl border border-dashed border-white/15 p-10 sm:p-12 text-center relative overflow-hidden shadow-inner">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-purple-500/10 border border-accent/30 text-accent flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent/10 ring-8 ring-accent/5">
-                                    <Calendar size={28} />
-                                </div>
-                                <p className="text-lg font-black text-white tracking-tight">¡Todo al día por hoy!</p>
-                                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">No hay citas pendientes para lo que resta de la jornada. Excelente trabajo.</p>
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div className="space-y-3">
-                            {upcomingAppts.map(appt => {
-                                const svc = services.find(s => s.id === appt.serviceId);
-                                const isCurrentlyHappening = currentTimeStr >= appt.time;
-
-                                const canMarkNoShow = (() => {
-                                    if (appt.status === 'completada' || appt.status === 'cancelada' || appt.status === 'no_show') return false;
-                                    const startDt = parseApptDateTime(appt.date, appt.time);
-                                    const totalDur = getAppointmentTotalDuration(appt);
-                                    const maxNoShowDt = new Date(startDt.getTime() + (totalDur + 60) * 60 * 1000);
-                                    const nowTime = new Date();
-                                    return nowTime >= startDt && nowTime <= maxNoShowDt;
-                                })();
-
-                                const displayTime = (() => {
-                                    const [h, m] = appt.time.split(':');
-                                    let hh = parseInt(h);
-                                    const ampm = hh >= 12 ? 'pm' : 'am';
-                                    hh = hh % 12;
-                                    hh = hh ? hh : 12;
-                                    return `${hh}:${m}${ampm}`;
-                                })();
-
-                                const duration = getAppointmentTotalDuration(appt);
-                                const endTimeDisplay = (() => {
-                                    const [hours, minutes] = appt.time.split(':').map(Number);
-                                    const endMinutes = hours * 60 + minutes + duration;
-                                    let endHours = Math.floor(endMinutes / 60);
-                                    const endMins = String(endMinutes % 60).padStart(2, '0');
-                                    const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
-                                    endHours = endHours % 12;
-                                    endHours = endHours ? endHours : 12;
-                                    return `${endHours}:${endMins}${ampm}`;
-                                })();
-
-                                return (
-                                    <div key={appt.id} className={`group flex items-stretch gap-0 rounded-[1.5rem] border transition-all duration-500 overflow-hidden ${isCurrentlyHappening
-                                        ? 'bg-accent/10 border-accent/20 ring-1 ring-accent/10 shadow-2xl shadow-accent/10'
-                                        : 'bg-slate-900/40 backdrop-blur-md border-white/5 hover:border-accent/40 hover:shadow-2xl hover:shadow-accent/5'
-                                        }`}>
-
-                                        {/* Status Indicator Bar */}
-                                        <div className={`w-1.5 shrink-0 ${isCurrentlyHappening ? 'bg-accent animate-pulse' : 'bg-gradient-to-b from-white/20 to-transparent'}`} />
-
-                                        {/* Time Column */}
-                                        <div className={`flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 ${isCurrentlyHappening ? 'bg-accent/10 border-accent/10' : 'bg-white/[0.03] border-white/5'}`}>
-                                            <span className={`text-sm sm:text-base font-black tracking-tighter ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
-                                                {displayTime.replace(/(am|pm)/, '')}
-                                            </span>
-                                            <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 ${isCurrentlyHappening ? 'text-accent' : 'text-accent/60'}`}>
-                                                {displayTime.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                            <span className={`text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 ${isCurrentlyHappening ? 'text-accent' : 'text-white'}`}>
-                                                a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                        </div>
-                                        {/* Main Info */}
-                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
-                                            <div className="flex items-center gap-5">
-                                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden ${isCurrentlyHappening ? 'bg-accent text-white' : 'bg-slate-800 text-slate-500'}`}>
-                                                    {isCurrentlyHappening && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
-                                                    <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                                                        <span className="font-black text-white text-lg tracking-tighter uppercase">{appt.clientName}</span>
-
-                                                        {appt.status === 'cancelada' && appt.cancellationReason && (
-                                                            <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-[10px] font-bold text-red-400 border border-red-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                Motivo: {appt.cancellationReason}
-                                                            </span>
-                                                        )}
-                                                        {appt.bookingSource === 'marketplace' && (
-                                                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                🛒 Buscador CitaLink
-                                                            </span>
-                                                        )}
-                                                        {isCurrentlyHappening && (
-                                                            <span className="px-2 py-0.5 rounded-full bg-accent/20 text-[9px] font-black uppercase tracking-widest text-accent border border-accent/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] animate-pulse">EN VIVO</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex flex-wrap items-center gap-3">
-                                                        <button
-                                                            onClick={() => setExpandedServiceApptId(expandedServiceApptId === `today-${appt.id}` ? null : `today-${appt.id}`)}
-                                                            className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
-                                                                expandedServiceApptId === `today-${appt.id}`
-                                                                    ? 'bg-accent/20 border-accent/40 text-accent'
-                                                                    : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
-                                                            }`}
-                                                            title="Ver/ocultar desglose de servicios"
-                                                        >
-                                                            <Sparkles size={12} className="text-accent shrink-0" />
-                                                            <span>{svc?.name}</span>
-                                                            <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `today-${appt.id}` ? 'rotate-180 text-accent' : ''}`} />
-                                                        </button>
-                                                        {(() => {
-                                                            const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
-                                                            if (refItem) {
-                                                                const url = refItem.replace('Referencia: ', '');
-                                                                return (
-                                                                    <button
-                                                                        onClick={() => setActivePhotoUrl(url)}
-                                                                        className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
-                                                                    >
-                                                                        <Eye size={12} className="text-slate-900" />
-                                                                        <span>Diseño</span>
-                                                                    </button>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        })()}
-                                                        {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
-                                                            <>
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                                <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-accent/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
-                                                            </>
-                                                        )}
-                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                         <a
-                                                             href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
-                                                             target="_blank"
-                                                             rel="noopener noreferrer"
-                                                             className="flex items-center gap-1.5 text-accent hover:text-white transition-colors"
-                                                         >
-                                                             <Phone size={12} className="opacity-70" />
-                                                             <span className="underline underline-offset-2 decoration-accent/30">{formatPhoneDisplay(appt.clientPhone)}</span>
-                                                         </a>
-                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                         {editingNoteApptId === appt.id ? (
-                                                             <div className="w-full mt-2.5 p-3 rounded-2xl bg-slate-950/90 border border-amber-500/30 space-y-2 animate-fade-in relative z-10 max-w-sm">
-                                                                 <div className="flex items-center justify-between text-[10px] font-black uppercase text-amber-400">
-                                                                     <span>Nota interna de la cita</span>
-                                                                 </div>
-                                                                 <textarea
-                                                                     value={noteText}
-                                                                     onChange={(e) => setNoteText(e.target.value)}
-                                                                     placeholder="Escribe una nota interna para esta cita..."
-                                                                     rows={2}
-                                                                     className="w-full bg-black/40 border border-amber-500/30 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none resize-none transition-colors"
-                                                                 />
-                                                                 <div className="flex items-center gap-2 justify-end">
-                                                                     <button
-                                                                         onClick={() => setEditingNoteApptId(null)}
-                                                                         className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
-                                                                     >
-                                                                         Cancelar
-                                                                     </button>
-                                                                     <button
-                                                                         onClick={() => saveNote(appt.id)}
-                                                                         disabled={savingNoteId === appt.id}
-                                                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all disabled:opacity-50 cursor-pointer"
-                                                                     >
-                                                                         <Save size={12} />
-                                                                         {savingNoteId === appt.id ? 'Guardando...' : 'Guardar Nota'}
-                                                                     </button>
-                                                                 </div>
-                                                             </div>
-                                                         ) : (
-                                                             <button
-                                                                 onClick={() => {
-                                                                     setEditingNoteApptId(appt.id);
-                                                                     setNoteText((appt as any).staff_notes || '');
-                                                                 }}
-                                                                 className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-amber-400 transition-colors group/note cursor-pointer"
-                                                                 title="Agregar o editar nota interna de la cita"
-                                                             >
-                                                                 <span className="text-xs group-hover/note:scale-110 transition-transform">🗒️</span>
-                                                                 <span className="group-hover/note:underline underline-offset-2">
-                                                                     {(appt as any).staff_notes ? (
-                                                                         <span className="text-amber-400/90 font-bold italic">
-                                                                             "{(appt as any).staff_notes.slice(0, 35)}{(appt as any).staff_notes.length > 35 ? '...' : ''}"
-                                                                         </span>
-                                                                     ) : (
-                                                                         <span className="text-slate-500 hover:text-amber-400">+ Nota</span>
-                                                                     )}
-                                                                 </span>
-                                                             </button>
-                                                         )}
-                                                        {!businessConfig?.hideServicePrices && (
-                                                            <>
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setSelectedApptForPrice(appt);
-                                                                        setNewPriceValue(String(getAppointmentPrice(appt)));
-                                                                        setIsPriceModalOpen(true);
-                                                                    }}
-                                                                    className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md border cursor-pointer hover:bg-white/5 active:scale-95 transition-all ${
-                                                                        isPriceConfirmed(appt)
-                                                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse-soft'
-                                                                    }`}
-                                                                    title="Ajustar precio de la cita"
-                                                                >
-                                                                    <DollarSign size={9} />
-                                                                    <span>${getAppointmentPrice(appt)}</span>
-                                                                    <span className="text-[7px] opacity-60 uppercase font-black ml-0.5">
-                                                                        {isPriceConfirmed(appt) ? 'Confirmado' : 'Aprox'}
-                                                                    </span>
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                    
-                                                     {/* Desplegable de detalles de servicio */}
-                                                     {expandedServiceApptId === `today-${appt.id}` && (
-                                                         <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-accent/30 text-xs space-y-1 animate-fade-in relative z-10 max-w-sm">
-                                                             <div className="text-[9px] font-black uppercase tracking-wider text-accent border-b border-white/10 pb-1 flex items-center justify-between">
-                                                                 <span>Desglose Detallado</span>
-                                                             </div>
-                                                             <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
-                                                                 <div className="flex justify-between items-center">
-                                                                     <span className="text-slate-400">Servicio Base:</span>
-                                                                     <span className="font-bold text-white">{getServiceById(appt.serviceId)?.name || 'Servicio'}</span>
-                                                                 </div>
-                                                                 <div className="flex justify-between items-center">
-                                                                     <span className="text-slate-400">Duración:</span>
-                                                                     <span className="font-bold text-accent">
-                                                                         {getAppointmentTotalDuration(appt)} min
-                                                                     </span>
-                                                                 </div>
-                                                                 {appt.additionalServices && appt.additionalServices.length > 0 && (
-                                                                     <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
-                                                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
-                                                                         {appt.additionalServices
-                                                                             .filter((s: string) => !s.startsWith('Referencia:'))
-                                                                             .map((extra: string, idx: number) => {
-                                                                                 const cleanExtra = extra
-                                                                                     .replace(/\s*\(\+\d+\s*min\)/gi, '')
-                                                                                     .replace(/\s*\(\d+\s*min\)/gi, '');
-                                                                                 return (
-                                                                                     <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
-                                                                                         <span className="text-slate-500">•</span>
-                                                                                         <span className="break-words">{cleanExtra}</span>
-                                                                                     </div>
-                                                                                 );
-                                                                             })}
-                                                                     </div>
-                                                                 )}
-                                                             </div>
-                                                         </div>
-                                                     )}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                {canMarkNoShow && (
-                                                    <button 
-                                                        onClick={() => handleNoShow(appt)} 
-                                                        className="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-xl text-amber-300 border border-amber-500/30 text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider"
-                                                        title="Marcar No Asistió"
-                                                    >
-                                                        <UserX size={14} /> No Asistió
-                                                    </button>
-                                                )}
-                                                {isCurrentlyHappening ? (
-                                                    <>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></div> Ahora
-                                                        </span>
-                                                        <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-accent text-white border-white/10">
-                                                            Atendiendo
-                                                        </div>
-                                                    </>
-                                                ) : appt.confirmedByClient ? (
-                                                    <div className="px-4 py-2 rounded-xl text-[10px] font-black border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 uppercase tracking-widest shadow-sm flex items-center gap-1.5">
-                                                        ✓ Confirmada
-                                                    </div>
-                                                ) : appt.reminderSent ? (
-                                                    <div className="px-4 py-2 rounded-xl text-[10px] font-black border border-amber-500/30 bg-amber-500/20 text-amber-400 uppercase tracking-widest shadow-sm flex items-center gap-1.5">
-                                                        ⌛ Pendiente
-                                                    </div>
-                                                ) : (
-                                                    <div className="px-4 py-2 rounded-xl text-[10px] font-black border border-indigo-500/30 bg-indigo-500/20 text-indigo-400 uppercase tracking-widest shadow-sm flex items-center gap-1.5">
-                                                        📅 Agendada
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })()}
+                    )}
+                    <StylistColumnCalendar
+                        appointments={appointments}
+                        services={services}
+                        stylists={stylists}
+                        waitingList={waitingList}
+                        selectedStylistId={dashboardStylistId}
+                        onWhatsApp={(apt) => {
+                            const waPhone = apt.clientPhone.replace(/\D/g, '');
+                            window.open(`https://wa.me/${waPhone}`, '_blank');
+                        }}
+                        onReschedule={(apt) => setRescheduleModal({ open: true, appt: apt })}
+                        onNoShow={(apt) => handleNoShow(apt)}
+                        onOpenReceipt={(url) => setReceiptModalUrl(url)}
+                        onCancel={(apt) => {
+                            setCustomConfirm({
+                                open: true,
+                                title: 'Cancelar Cita',
+                                message: `¿Estás seguro de que deseas cancelar la cita de ${apt.clientName}?`,
+                                confirmLabel: 'Sí, Cancelar',
+                                cancelLabel: 'Volver',
+                                danger: true,
+                                onConfirm: () => {
+                                    cancelAppointment(apt.id);
+                                }
+                            });
+                        }}
+                    />
+                </div>
             </div>
-
-                        {/* Completed Appointments Today */}
-                        <div className="pt-6 border-t border-white/10">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/5">
-                                    <CheckCircle2 size={22} />
-                                </div>
-                                <div>
-                                    <h3 className="font-black text-lg text-emerald-400 tracking-tight">Citas Completadas Hoy</h3>
-                                    <p className="text-xs text-slate-400">Historial de atenciones finalizadas el día de hoy</p>
-                                </div>
-                            </div>
-
-                {(() => {
-                    const now = new Date();
-                    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                    const completedAppts = todayAppts.filter(appt => {
-                        const isMatch = dashboardStylistId === 'all' || appt.stylistId === dashboardStylistId;
-                        if (!isMatch) return false;
-
-                        if (appt.status === 'completada') return true;
-
-                        const duration = getAppointmentTotalDuration(appt);
-
-                        // Calculate end time
-                        const [hours, minutes] = appt.time.split(':').map(Number);
-                        const endMinutes = hours * 60 + minutes + duration;
-                        const endHours = Math.floor(endMinutes / 60);
-                        const endMins = endMinutes % 60;
-                        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-
-                        // Show if it is confirmed but time has passed
-                        return currentTimeStr >= endTimeStr && appt.status === 'confirmada';
-                    }).sort((a, b) => b.time.localeCompare(a.time)); // Sort descending by time
-
-                    if (completedAppts.length === 0) {
-                        return (
-                            <div className="bg-gradient-to-b from-emerald-500/[0.04] via-emerald-500/[0.02] to-transparent rounded-3xl border border-dashed border-emerald-500/20 p-10 sm:p-12 text-center relative overflow-hidden shadow-inner">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/10 ring-8 ring-emerald-500/5">
-                                    <CheckCircle2 size={28} />
-                                </div>
-                                <p className="text-lg font-black text-white tracking-tight">Aún no hay citas completadas hoy</p>
-                                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Las citas que atiendas y finalices a lo largo del día aparecerán registradas aquí.</p>
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div className="space-y-3">
-                            {completedAppts.map(appt => {
-                                const svc = services.find(s => s.id === appt.serviceId);
-
-                                const displayTime = (() => {
-                                    const [h, m] = appt.time.split(':');
-                                    let hh = parseInt(h);
-                                    const ampm = hh >= 12 ? 'pm' : 'am';
-                                    hh = hh % 12;
-                                    hh = hh ? hh : 12;
-                                    return `${hh}:${m}${ampm}`;
-                                })();
-
-                                const duration = getAppointmentTotalDuration(appt);
-                                const endTimeDisplay = (() => {
-                                    const [hours, minutes] = appt.time.split(':').map(Number);
-                                    const endMinutes = hours * 60 + minutes + duration;
-                                    let endHours = Math.floor(endMinutes / 60);
-                                    const endMins = String(endMinutes % 60).padStart(2, '0');
-                                    const ampm = endHours >= 12 && endHours < 24 ? 'pm' : 'am';
-                                    endHours = endHours % 12;
-                                    endHours = endHours ? endHours : 12;
-                                    return `${endHours}:${endMins}${ampm}`;
-                                })();
-
-                                return (
-                                    <div key={appt.id} className="group flex items-stretch gap-0 rounded-2xl border transition-all overflow-hidden glass-card border-white/5 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10">
-
-                                        {/* Status Indicator Bar */}
-                                        <div className="w-1.5 shrink-0 bg-gradient-to-b from-emerald-500/50 to-transparent" />
-
-                                        {/* Time Column */}
-                                        <div className="flex flex-col items-center justify-center w-20 sm:w-28 shrink-0 border-r py-4 bg-white/[0.03] border-white/5">
-                                            <span className="text-sm sm:text-base font-black tracking-tighter text-white">
-                                                {displayTime.replace(/(am|pm)/, '')}
-                                            </span>
-                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest -mt-1 text-emerald-500/60">
-                                                {displayTime.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                            <span className="text-[8px] sm:text-[9px] font-bold mt-2 opacity-60 text-white">
-                                                a {endTimeDisplay.replace(/(am|pm)/, '')}{endTimeDisplay.match(/(am|pm)/)?.[0]}
-                                            </span>
-                                        </div>
-
-                                         {/* Main Info */}
-                                        <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center justify-between gap-4 p-5">
-                                            <div className="flex items-center gap-5">
-                                                <div className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner relative overflow-hidden bg-slate-800 text-emerald-500/70">
-                                                    <span className="relative z-10">{appt.clientName.charAt(0).toUpperCase()}</span>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                                         <span className="font-black text-white text-lg tracking-tight uppercase">{appt.clientName}</span>
-                                                         {appt.bookingSource === 'marketplace' && (
-                                                             <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-black text-emerald-400 border border-emerald-500/30 flex items-center gap-1 tracking-wider uppercase shadow-sm">
-                                                                 🛒 Buscador CitaLink
-                                                             </span>
-                                                         )}
-                                                     </div>
-                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center flex-wrap gap-3 tracking-wide">
-                                                        <button
-                                                             onClick={() => setExpandedServiceApptId(expandedServiceApptId === `tomorrow-${appt.id}` ? null : `tomorrow-${appt.id}`)}
-                                                             className={`flex items-center gap-2 text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer uppercase tracking-tight ${
-                                                                 expandedServiceApptId === `tomorrow-${appt.id}`
-                                                                     ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                                                                     : 'bg-white/5 border-white/10 hover:border-white/20 text-white'
-                                                             }`}
-                                                             title="Ver/ocultar desglose de servicios"
-                                                         >
-                                                             <Sparkles size={12} className="text-emerald-400 shrink-0" />
-                                                             <span>{svc?.name}</span>
-                                                             <ChevronDown size={10} className={`text-slate-400 transition-transform duration-300 shrink-0 ${expandedServiceApptId === `tomorrow-${appt.id}` ? 'rotate-180 text-emerald-400' : ''}`} />
-                                                         </button>
-                                                        {(() => {
-                                                            const refItem = (appt.additionalServices ?? []).find((s: string) => s.startsWith('Referencia:'));
-                                                            if (refItem) {
-                                                                const url = refItem.replace('Referencia: ', '');
-                                                                return (
-                                                                    <button
-                                                                        onClick={() => setActivePhotoUrl(url)}
-                                                                        className="inline-flex items-center gap-1.5 text-[10px] font-black bg-cyan-500 text-slate-900 px-3 py-1.5 rounded-xl hover:bg-cyan-400 transition-all uppercase tracking-wider cursor-pointer active:scale-95 shadow-md shadow-cyan-500/20"
-                                                                    >
-                                                                        <Eye size={12} className="text-slate-900" />
-                                                                        <span>Diseño</span>
-                                                                    </button>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        })()}
-                                                        {appt.stylistId && stylists.find(s => s.id === appt.stylistId) && (
-                                                            <>
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                                <div className="flex items-center gap-1.5 uppercase text-slate-400"><User size={12} className="opacity-40 text-emerald-500/60" /> {stylists.find(s => s.id === appt.stylistId)?.name.split(' ')[0]}</div>
-                                                            </>
-                                                        )}
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                        <a
-                                                            href={`https://wa.me/${appt.clientPhone.replace(/\D/g, '')}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-1.5 text-emerald-500/70 hover:text-emerald-400 transition-colors"
-                                                        >
-                                                            <Phone size={12} className="opacity-70" />
-                                                            <span className="underline underline-offset-2 decoration-emerald-500/30">{formatPhoneDisplay(appt.clientPhone)}</span>
-                                                        </a>
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-                                                        {editingNoteApptId === appt.id ? (
-                                                            <div className="w-full mt-2.5 p-3 rounded-2xl bg-slate-950/90 border border-amber-500/30 space-y-2 animate-fade-in relative z-10 max-w-sm">
-                                                                <div className="flex items-center justify-between text-[10px] font-black uppercase text-amber-400">
-                                                                    <span>Nota interna de la cita</span>
-                                                                </div>
-                                                                <textarea
-                                                                    value={noteText}
-                                                                    onChange={(e) => setNoteText(e.target.value)}
-                                                                    placeholder="Escribe una nota interna para esta cita..."
-                                                                    rows={2}
-                                                                    className="w-full bg-black/40 border border-amber-500/30 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none resize-none transition-colors"
-                                                                />
-                                                                <div className="flex items-center gap-2 justify-end">
-                                                                    <button
-                                                                        onClick={() => setEditingNoteApptId(null)}
-                                                                        className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
-                                                                    >
-                                                                        Cancelar
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => saveNote(appt.id)}
-                                                                        disabled={savingNoteId === appt.id}
-                                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all disabled:opacity-50 cursor-pointer"
-                                                                    >
-                                                                        <Save size={12} />
-                                                                        {savingNoteId === appt.id ? 'Guardando...' : 'Guardar Nota'}
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingNoteApptId(appt.id);
-                                                                    setNoteText((appt as any).staff_notes || '');
-                                                                }}
-                                                                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-amber-400 transition-colors group/note cursor-pointer"
-                                                                title="Agregar o editar nota interna de la cita"
-                                                            >
-                                                                <span className="text-xs group-hover/note:scale-110 transition-transform">🗒️</span>
-                                                                <span className="group-hover/note:underline underline-offset-2">
-                                                                    {(appt as any).staff_notes ? (
-                                                                        <span className="text-amber-400/90 font-bold italic">
-                                                                            "{(appt as any).staff_notes.slice(0, 35)}{(appt as any).staff_notes.length > 35 ? '...' : ''}"
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="text-slate-500 hover:text-amber-400">+ Nota</span>
-                                                                    )}
-                                                                </span>
-                                                            </button>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Desplegable de detalles de servicio */}
-                                                    {expandedServiceApptId === `tomorrow-${appt.id}` && (
-                                                         <div className="mt-2 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/30 text-xs space-y-1 animate-fade-in relative z-10 max-w-sm">
-                                                             <div className="text-[9px] font-black uppercase tracking-wider text-emerald-400 border-b border-white/10 pb-1 flex items-center justify-between">
-                                                                 <span>Desglose Detallado</span>
-                                                             </div>
-                                                             <div className="space-y-1 text-slate-300 font-medium text-[11px] pt-1">
-                                                                 <div className="flex justify-between items-center">
-                                                                     <span className="text-slate-400">Servicio Base:</span>
-                                                                     <span className="font-bold text-white">{svc?.name || 'Servicio'}</span>
-                                                                 </div>
-                                                                 {svc?.duration && (
-                                                                     <div className="flex justify-between items-center">
-                                                                         <span className="text-slate-400">Duración:</span>
-                                                                         <span className="font-bold text-accent">
-                                                                             {getAppointmentTotalDuration(appt)} min
-                                                                         </span>
-                                                                     </div>
-                                                                 )}
-                                                                 {appt.additionalServices && appt.additionalServices.length > 0 && (
-                                                                     <div className="mt-1 pt-1 border-t border-white/5 space-y-0.5">
-                                                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Opciones / Adicionales:</span>
-                                                                         {appt.additionalServices
-                                                                             .filter((s: string) => !s.startsWith('Referencia:'))
-                                                                             .map((extra: string, idx: number) => {
-                                                                                 const cleanExtra = extra
-                                                                                     .replace(/\s*\(\+\d+\s*min\)/gi, '')
-                                                                                     .replace(/\s*\(\d+\s*min\)/gi, '');
-                                                                                 return (
-                                                                                     <div key={idx} className="flex items-start gap-1.5 text-amber-300/90 pl-1">
-                                                                                         <span className="text-slate-500">•</span>
-                                                                                         <span className="break-words">{cleanExtra}</span>
-                                                                                     </div>
-                                                                                 );
-                                                                             })}
-                                                                     </div>
-                                                                 )}
-                                                             </div>
-                                                         </div>
-                                                     )}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                {!isEmployee && (
-                                                    <div className="text-right mr-2 hidden sm:block">
-                                                        <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Ingreso</span>
-                                                        <span className="text-sm font-black text-emerald-400">${getAppointmentPrice(appt)}</span>
-                                                    </div>
-                                                )}
-                                                <div className="px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-inner bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                                                    Completada
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })()}
-            </div>
-        </div>
-    )}
-</div>
 
             {/* Full screen design reference photo preview modal */}
             <PhotoZoomViewer
@@ -2870,7 +2099,7 @@ export default function Dashboard() {
             />
 
             {receiptModalUrl && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
                     <div className="bg-[#1e293b] border border-cyan-500/30 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
                         <div className="flex justify-between items-center pb-3 border-b border-white/10">
                             <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
