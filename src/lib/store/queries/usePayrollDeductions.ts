@@ -65,55 +65,106 @@ export const usePayrollDeductions = () => {
     });
 
     const addDeduction = useMutation({
-        mutationFn: async (deduction: Omit<PayrollDeduction, 'id' | 'tenantId' | 'createdAt'>) => {
-            if (!tenantId) throw new Error('No hay tenant activo');
+        onMutate: async (newDeduction: Omit<PayrollDeduction, 'id' | 'tenantId' | 'createdAt'>) => {
+            if (!tenantId) return;
+            await queryClient.cancelQueries({ queryKey });
 
-            const newId = crypto.randomUUID ? crypto.randomUUID() : `ded_${Date.now()}`;
-            const item: PayrollDeduction = {
-                id: newId,
+            const previousDeductions = queryClient.getQueryData<PayrollDeduction[]>(queryKey) || [];
+            const tempId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `ded_${Date.now()}`;
+            
+            const optimisticItem: PayrollDeduction = {
+                id: tempId,
                 tenantId,
-                stylistId: deduction.stylistId,
-                amount: Number(deduction.amount),
-                concept: deduction.concept.trim() || 'Adelanto de sueldo',
-                date: deduction.date,
-                notes: deduction.notes?.trim() || undefined,
+                stylistId: newDeduction.stylistId,
+                amount: Number(newDeduction.amount),
+                concept: newDeduction.concept.trim() || 'Adelanto de sueldo',
+                date: newDeduction.date,
+                notes: newDeduction.notes?.trim() || undefined,
                 createdAt: new Date().toISOString(),
             };
 
+            const nextList = [optimisticItem, ...previousDeductions];
+            queryClient.setQueryData<PayrollDeduction[]>(queryKey, nextList);
+            saveLocalDeductions(tenantId, nextList);
+
+            return { previousDeductions, tempId };
+        },
+        mutationFn: async (deduction: Omit<PayrollDeduction, 'id' | 'tenantId' | 'createdAt'>) => {
+            if (!tenantId) throw new Error('No hay tenant activo');
+
+            const insertId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `ded_${Date.now()}`;
+            const payload = {
+                id: insertId,
+                tenant_id: tenantId,
+                stylist_id: deduction.stylistId,
+                amount: Number(deduction.amount),
+                concept: deduction.concept.trim() || 'Adelanto de sueldo',
+                date: deduction.date,
+                notes: deduction.notes?.trim() || null,
+            };
+
             try {
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from('payroll_deductions')
-                    .insert([{
-                        id: item.id,
-                        tenant_id: item.tenantId,
-                        stylist_id: item.stylistId,
-                        amount: item.amount,
-                        concept: item.concept,
-                        date: item.date,
-                        notes: item.notes || null,
-                    }]);
+                    .insert([payload])
+                    .select()
+                    .single();
 
                 if (error) {
-                    const current = getLocalDeductions(tenantId);
-                    saveLocalDeductions(tenantId, [item, ...current]);
+                    console.warn('Supabase insert fallback to local:', error);
+                    return null;
                 }
-            } catch {
-                const current = getLocalDeductions(tenantId);
-                saveLocalDeductions(tenantId, [item, ...current]);
+                return data;
+            } catch (err) {
+                console.warn('Supabase insert network fallback:', err);
+                return null;
             }
-
-            return item;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey });
+        onSuccess: (data, _variables, context) => {
+            if (data && context?.tempId && tenantId) {
+                const updatedList = (queryClient.getQueryData<PayrollDeduction[]>(queryKey) || []).map(item =>
+                    item.id === context.tempId ? {
+                        id: String(data.id),
+                        tenantId: String(data.tenant_id),
+                        stylistId: Number(data.stylist_id),
+                        amount: Number(data.amount),
+                        concept: data.concept,
+                        date: data.date,
+                        notes: data.notes || undefined,
+                        createdAt: data.created_at
+                    } : item
+                );
+                queryClient.setQueryData<PayrollDeduction[]>(queryKey, updatedList);
+                saveLocalDeductions(tenantId, updatedList);
+            }
             showToast('Adelanto registrado correctamente', 'success');
         },
-        onError: (err: any) => {
-            showToast('Error al registrar adelanto: ' + (err?.message || 'Error'), 'error');
+        onError: (_err: any, _variables, context) => {
+            if (context?.previousDeductions && tenantId) {
+                queryClient.setQueryData(queryKey, context.previousDeductions);
+                saveLocalDeductions(tenantId, context.previousDeductions);
+            }
+            showToast('Error al registrar adelanto', 'error');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey });
         }
     });
 
     const deleteDeduction = useMutation({
+        onMutate: async (idToDelete: string) => {
+            if (!tenantId) return;
+            await queryClient.cancelQueries({ queryKey });
+
+            const previousDeductions = queryClient.getQueryData<PayrollDeduction[]>(queryKey) || [];
+            const nextList = previousDeductions.filter(item => item.id !== idToDelete);
+
+            // Actualización instantánea en memoria y local
+            queryClient.setQueryData<PayrollDeduction[]>(queryKey, nextList);
+            saveLocalDeductions(tenantId, nextList);
+
+            return { previousDeductions };
+        },
         mutationFn: async (id: string) => {
             if (!tenantId) throw new Error('No hay tenant activo');
 
@@ -124,25 +175,26 @@ export const usePayrollDeductions = () => {
                     .eq('id', id)
                     .eq('tenant_id', tenantId);
 
-                const current = getLocalDeductions(tenantId);
-                saveLocalDeductions(tenantId, current.filter(c => c.id !== id));
-
-                if (error && error.code !== '42P01') {
+                if (error) {
                     console.warn('Supabase delete error:', error);
                 }
-            } catch {
-                const current = getLocalDeductions(tenantId);
-                saveLocalDeductions(tenantId, current.filter(c => c.id !== id));
+            } catch (err) {
+                console.warn('Supabase delete network error:', err);
             }
-
             return id;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey });
-            showToast('Registro eliminado', 'info');
+            showToast('Adelanto eliminado correctamente', 'info');
         },
-        onError: (err: any) => {
-            showToast('Error al eliminar registro: ' + (err?.message || 'Error'), 'error');
+        onError: (_err: any, _id, context) => {
+            if (context?.previousDeductions && tenantId) {
+                queryClient.setQueryData(queryKey, context.previousDeductions);
+                saveLocalDeductions(tenantId, context.previousDeductions);
+            }
+            showToast('Error al eliminar adelanto', 'error');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey });
         }
     });
 

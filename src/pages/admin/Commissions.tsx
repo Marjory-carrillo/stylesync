@@ -1529,13 +1529,13 @@ export default function Commissions() {
                                     showToast('Ingresa un monto válido mayor a 0', 'error');
                                     return;
                                 }
-                                await addDeduction({
+                                const payload = {
                                     stylistId: Number(deductionForm.stylistId),
                                     amount: numAmount,
                                     concept: deductionForm.concept || 'Adelanto de sueldo',
                                     date: deductionForm.date,
                                     notes: deductionForm.notes || undefined,
-                                });
+                                };
                                 setIsDeductionModalOpen(false);
                                 setDeductionForm({
                                     stylistId: '',
@@ -1544,6 +1544,7 @@ export default function Commissions() {
                                     date: format(new Date(), 'yyyy-MM-dd'),
                                     notes: ''
                                 });
+                                addDeduction(payload);
                             }}
                             className="p-6 space-y-4"
                         >
@@ -1677,16 +1678,11 @@ export default function Commissions() {
                 cancelLabel="Cancelar"
                 danger={true}
                 onCancel={() => setDeductionToDelete(null)}
-                onConfirm={async () => {
+                onConfirm={() => {
                     if (!deductionToDelete) return;
-                    try {
-                        await deleteDeduction(deductionToDelete.id);
-                        showToast('Adelanto eliminado correctamente', 'success');
-                    } catch {
-                        showToast('Error al eliminar el adelanto', 'error');
-                    } finally {
-                        setDeductionToDelete(null);
-                    }
+                    const id = deductionToDelete.id;
+                    setDeductionToDelete(null);
+                    deleteDeduction(id);
                 }}
             />
         </div>
