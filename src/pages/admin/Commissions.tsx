@@ -1497,8 +1497,8 @@ export default function Commissions() {
             {/* Modal para Registrar Adelanto / Préstamo */}
             {isDeductionModalOpen && (
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-                    <div className="glass-panel bg-[#0b1329] border border-white/10 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-scale-in">
-                        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-slate-900/50">
+                    <div className="glass-panel bg-[#0b1329] border border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative animate-scale-in">
+                        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-slate-900/50 rounded-t-3xl">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
                                     <DollarSign size={20} />
@@ -1630,6 +1630,7 @@ export default function Commissions() {
                                     value={deductionForm.date}
                                     onChange={(val) => setDeductionForm({ ...deductionForm, date: val })}
                                     className="w-full"
+                                    dropUp
                                 />
                             </div>
 

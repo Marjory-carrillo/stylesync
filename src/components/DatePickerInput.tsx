@@ -12,18 +12,32 @@ interface Props {
     appointmentCounts?: Record<string, number>;
     waitingListCounts?: Record<string, number>;
     compact?: boolean;
+    dropUp?: boolean;
 }
 
 const DAY_NAMES = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
 
-export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/aaaa', className = '', align = 'left', appointmentCounts, waitingListCounts, compact = false }: Props) {
+export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/aaaa', className = '', align = 'left', appointmentCounts, waitingListCounts, compact = false, dropUp }: Props) {
     const [open, setOpen] = useState(false);
+    const [isAbove, setIsAbove] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
     const parsedDate = value ? parse(value, 'yyyy-MM-dd', new Date()) : null;
     const hasValue = parsedDate && isValid(parsedDate);
 
     const [viewMonth, setViewMonth] = useState<Date>(hasValue ? parsedDate! : new Date());
+
+    useEffect(() => {
+        if (open && ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (dropUp || spaceBelow < 340) {
+                setIsAbove(true);
+            } else {
+                setIsAbove(false);
+            }
+        }
+    }, [open, dropUp]);
 
     useEffect(() => {
         if (hasValue && parsedDate) setViewMonth(parsedDate);
@@ -81,7 +95,7 @@ export default function DatePickerInput({ value, onChange, placeholder = 'dd/mm/
 
             {/* Calendar dropdown */}
             {open && (
-                <div className={`absolute z-[200] top-full mt-2 ${align === 'right' ? 'right-0' : 'left-0'} bg-[#0c101d] border border-white/15 rounded-2xl shadow-2xl shadow-black/90 overflow-hidden animate-fade-in min-w-[280px]`}>
+                <div className={`absolute z-[200] ${isAbove ? 'bottom-full mb-2' : 'top-full mt-2'} ${align === 'right' ? 'right-0' : 'left-0'} bg-[#0c101d] border border-white/15 rounded-2xl shadow-2xl shadow-black/90 overflow-hidden animate-fade-in min-w-[280px]`}>
                     {/* Month navigation */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                         <button
