@@ -8,7 +8,7 @@ import { useStylists } from '../lib/store/queries/useStylists';
 import { useServices } from '../lib/store/queries/useServices';
 import { useRealtimeNotifications, type AdminNotification } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Sparkles, Calendar, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing, Wrench, Share2, ChevronDown, Building2, UserCheck, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Sparkles, Calendar, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing, Wrench, Share2, ChevronDown, Building2, UserCheck, Settings, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import BusinessQRCardsModal from '../components/BusinessQRCardsModal';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
@@ -17,9 +17,11 @@ import PWAInstallBanner from '../components/PWAInstallBanner';
 import PaymentBlockedScreen from '../components/PaymentBlockedScreen';
 import OnboardingWizard from '../components/OnboardingWizard';
 import { isAccountActive, isNailCalculatorEnabled } from '../lib/planLimits';
+import { useUIStore } from '../lib/store/uiStore';
 
 export default function AdminLayout() {
     const { t } = useTranslation();
+    const { isCalendarFullscreen, isSidebarCollapsed, toggleSidebar } = useUIStore();
     const { isSuperAdmin, userRole, userStylistId } = useAuthStore();
     const { data: tenantConfig } = useTenantData();
     const { stylists } = useStylists();
@@ -205,7 +207,7 @@ export default function AdminLayout() {
     const isActive = (path: string) => location.pathname === path;
 
     const navLinkClass = (path: string) => `
-        flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group
+        flex items-center ${isSidebarCollapsed ? 'justify-center px-2 py-3' : 'gap-4 px-4 py-3'} rounded-xl transition-all duration-200 group
         ${isActive(path)
             ? 'bg-accent/10 text-accent font-semibold border border-accent/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
             : 'text-slate-400 hover:text-white hover:bg-white/5'}
@@ -295,201 +297,268 @@ export default function AdminLayout() {
 
             {/* Sidebar Navigation */}
             <aside className={`
-                fixed inset-y-0 left-0 w-64 shrink-0 bg-[#0f172a] shadow-2xl z-50 transform transition-all duration-500 ease-in-out
+                fixed inset-y-0 left-0 shrink-0 bg-[#0f172a] shadow-2xl z-50 transform transition-all duration-300 ease-in-out
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-                lg:relative lg:translate-x-0 lg:m-4 lg:rounded-[2.5rem] lg:glass-panel lg:border-none lg:flex lg:flex-col
+                ${isSidebarCollapsed ? 'w-20 lg:my-3 lg:ml-3 lg:mr-0 lg:rounded-3xl' : 'w-64 lg:m-4 lg:rounded-[2.5rem]'}
+                lg:relative lg:translate-x-0 lg:glass-panel lg:border-none lg:flex lg:flex-col
             `}>
-                <div className="p-6 flex items-center justify-between border-b border-white/5">
-                    <button onClick={() => { closeMobileMenu(); window.location.href = '/admin'; }} className="flex items-center gap-3">
-                        <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer">
+                <div className={`p-4 lg:p-5 flex items-center ${isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between'} border-b border-white/5 transition-all`}>
+                    <button onClick={() => { closeMobileMenu(); window.location.href = '/admin'; }} className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`} title="CitaLink Admin">
+                        <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer shrink-0">
                             <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
                             <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
                         </div>
-                        <div className="text-left">
-                            <h1 className="text-lg font-black tracking-tight text-white leading-none">Cita<span className="text-violet-500">Link</span></h1>
-                            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
-                        </div>
+                        {!isSidebarCollapsed && (
+                            <div className="text-left animate-fade-in">
+                                <h1 className="text-lg font-black tracking-tight text-white leading-none">Cita<span className="text-violet-500">Link</span></h1>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
+                            </div>
+                        )}
                     </button>
+
+                    {/* Botón de Colapsar / Expandir Barra Lateral (Desktop) */}
                     <button
-                        className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-slate-500"
-                        onClick={closeMobileMenu}
+                        type="button"
+                        onClick={toggleSidebar}
+                        className="hidden lg:flex p-1.5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer active:scale-90"
+                        title={isSidebarCollapsed ? "Expandir menú lateral" : "Colapsar menú lateral"}
                     >
-                        <X size={20} />
+                        {isSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
                     </button>
+
+                    {!isSidebarCollapsed && (
+                        <button
+                            className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-slate-500"
+                            onClick={closeMobileMenu}
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Branch Switcher (multi-business owners) */}
-                <BranchSwitcher />
+                {!isSidebarCollapsed && <BranchSwitcher />}
 
                 {/* Desktop "Nueva Cita" Button */}
-                <div className="px-4 py-2 hidden lg:block">
+                <div className={`${isSidebarCollapsed ? 'px-2 py-2' : 'px-4 py-2'} hidden lg:block`}>
                     <button
                         onClick={() => setIsNewApptModalOpen(true)}
-                        className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl
+                        title="Nueva Cita"
+                        className={`w-full flex items-center justify-center ${isSidebarCollapsed ? 'p-3' : 'gap-2.5 py-3 px-4'} rounded-2xl
                             bg-gradient-to-r from-accent to-orange-500 hover:from-accent hover:to-orange-600
-                            text-white font-bold text-sm shadow-lg shadow-accent/20 active:scale-95 transition-all border border-accent/10"
+                            text-white font-bold text-sm shadow-lg shadow-accent/20 active:scale-95 transition-all border border-accent/10`}
                     >
-                        <CalendarPlus size={18} />
-                        <span>Nueva Cita</span>
+                        <CalendarPlus size={18} className="shrink-0" />
+                        {!isSidebarCollapsed && <span>Nueva Cita</span>}
                     </button>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-                    <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>
+                <nav className={`flex-1 ${isSidebarCollapsed ? 'p-2 space-y-2' : 'p-4 space-y-1.5'} overflow-y-auto overflow-x-hidden custom-scrollbar transition-all`}>
+                    {!isSidebarCollapsed && (
+                        <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 px-4 mt-2">Menú Principal</div>
+                    )}
 
                     {/* 1. Dashboard */}
-                    <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')}>
-                        <LayoutDashboard size={18} />
-                        <span>{t('nav.dashboard')}</span>
+                    <Link to="/admin" onClick={closeMobileMenu} className={navLinkClass('/admin')} title={t('nav.dashboard')}>
+                        <LayoutDashboard size={18} className="shrink-0" />
+                        {!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}
                     </Link>
 
                     {/* 2. Cotizador y después anticipos según apliquen */}
                     {showNailCalculator && (
-                        <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')}>
-                            <Calculator size={18} />
-                            <span>Cotizador de Uñas</span>
+                        <Link to="/admin/quoter" onClick={closeMobileMenu} className={navLinkClass('/admin/quoter')} title="Cotizador de Uñas">
+                            <Calculator size={18} className="shrink-0" />
+                            {!isSidebarCollapsed && <span>Cotizador de Uñas</span>}
                         </Link>
                     )}
 
                     {businessConfig?.depositEnabled && (
-                        <Link to="/admin/deposits" onClick={closeMobileMenu} className={navLinkClass('/admin/deposits')}>
-                            <CreditCard size={18} />
-                            <span>Anticipos</span>
+                        <Link to="/admin/deposits" onClick={closeMobileMenu} className={navLinkClass('/admin/deposits')} title="Anticipos">
+                            <CreditCard size={18} className="shrink-0" />
+                            {!isSidebarCollapsed && <span>Anticipos</span>}
                         </Link>
                     )}
 
                     {/* 3. Agenda */}
-                    <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')}>
-                        <Calendar size={18} />
-                        <span>{t('nav.appointments')}</span>
+                    <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')} title={t('nav.appointments')}>
+                        <Calendar size={18} className="shrink-0" />
+                        {!isSidebarCollapsed && <span>{t('nav.appointments')}</span>}
                     </Link>
 
-                    {/* 4. Herramientas (Acordeón) */}
+                    {/* 4. Herramientas */}
                     {!isEmployee && (
-                        <div className="pt-1">
-                            <button
-                                type="button"
-                                onClick={toggleTools}
-                                className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                        isSidebarCollapsed ? (
+                            <Link
+                                to="/admin/social-content"
+                                onClick={closeMobileMenu}
+                                className={navLinkClass('/admin/social-content')}
+                                title="Contenido para redes"
                             >
-                                <div className="flex items-center gap-3">
-                                    <Wrench size={16} className="text-violet-400 group-hover:scale-110 transition-transform" />
-                                    <span>Herramientas</span>
-                                    {isToolsActive && (
-                                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                                    )}
-                                </div>
-                                <ChevronDown
-                                    size={14}
-                                    className={`transition-transform duration-300 ${isToolsOpen ? 'rotate-180 text-violet-400' : 'text-slate-600'}`}
-                                />
-                            </button>
+                                <Share2 size={18} className="shrink-0 text-violet-400" />
+                            </Link>
+                        ) : (
+                            <div className="pt-1">
+                                <button
+                                    type="button"
+                                    onClick={toggleTools}
+                                    className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Wrench size={16} className="text-violet-400 group-hover:scale-110 transition-transform" />
+                                        <span>Herramientas</span>
+                                        {isToolsActive && (
+                                            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                                        )}
+                                    </div>
+                                    <ChevronDown
+                                        size={14}
+                                        className={`transition-transform duration-300 ${isToolsOpen ? 'rotate-180 text-violet-400' : 'text-slate-600'}`}
+                                    />
+                                </button>
 
-                            {isToolsOpen && (
-                                <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
-                                    <Link
-                                        to="/admin/social-content"
-                                        onClick={closeMobileMenu}
-                                        className={subNavLinkClass('/admin/social-content')}
-                                    >
-                                        <Share2 size={15} className="shrink-0 text-violet-400" />
-                                        <span className="truncate">Contenido para redes</span>
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
+                                {isToolsOpen && (
+                                    <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                        <Link
+                                            to="/admin/social-content"
+                                            onClick={closeMobileMenu}
+                                            className={subNavLinkClass('/admin/social-content')}
+                                        >
+                                            <Share2 size={15} className="shrink-0 text-violet-400" />
+                                            <span className="truncate">Contenido para redes</span>
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        )
                     )}
 
                     {/* 5. Clientes */}
                     {!isEmployee && (
-                        <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')}>
-                            <Users size={18} />
-                            <span>{t('nav.clients')}</span>
+                        <Link to="/admin/clients" onClick={closeMobileMenu} className={navLinkClass('/admin/clients')} title={t('nav.clients')}>
+                            <Users size={18} className="shrink-0" />
+                            {!isSidebarCollapsed && <span>{t('nav.clients')}</span>}
                         </Link>
                     )}
 
-                    {/* 6. Configuración de negocio (Acordeón) */}
+                    {/* 6. Configuración de negocio */}
                     {!isEmployee && (
-                        <div className="pt-1">
-                            <button
-                                type="button"
-                                onClick={toggleBusinessConfig}
-                                className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <Building2 size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
-                                    <span>Configuración de negocio</span>
-                                    {isBusinessConfigActive && (
-                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-                                    )}
-                                </div>
-                                <ChevronDown
-                                    size={14}
-                                    className={`transition-transform duration-300 ${isBusinessConfigOpen ? 'rotate-180 text-sky-400' : 'text-slate-600'}`}
-                                />
-                            </button>
+                        isSidebarCollapsed ? (
+                            <>
+                                <Link
+                                    to="/admin/staff"
+                                    onClick={closeMobileMenu}
+                                    className={navLinkClass('/admin/staff')}
+                                    title={t('nav.stylists')}
+                                >
+                                    <UserCheck size={18} className="shrink-0 text-sky-400" />
+                                </Link>
 
-                            {isBusinessConfigOpen && (
-                                <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
+                                <Link
+                                    to="/admin/services"
+                                    onClick={closeMobileMenu}
+                                    className={navLinkClass('/admin/services')}
+                                    title={t('nav.services')}
+                                >
+                                    <Sparkles size={18} className="shrink-0 text-amber-400" />
+                                </Link>
+
+                                {businessConfig?.plan !== 'lite' && (
                                     <Link
-                                        to="/admin/staff"
+                                        to="/admin/team"
                                         onClick={closeMobileMenu}
-                                        className={subNavLinkClass('/admin/staff')}
+                                        className={navLinkClass('/admin/team')}
+                                        title={t('nav.team')}
                                     >
-                                        <UserCheck size={15} className="shrink-0 text-sky-400" />
-                                        <span>{t('nav.stylists')}</span>
+                                        <ShieldCheck size={18} className="shrink-0 text-emerald-400" />
                                     </Link>
+                                )}
+                            </>
+                        ) : (
+                            <div className="pt-1">
+                                <button
+                                    type="button"
+                                    onClick={toggleBusinessConfig}
+                                    className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Building2 size={16} className="text-sky-400 group-hover:scale-110 transition-transform" />
+                                        <span>Configuración de negocio</span>
+                                        {isBusinessConfigActive && (
+                                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+                                        )}
+                                    </div>
+                                    <ChevronDown
+                                        size={14}
+                                        className={`transition-transform duration-300 ${isBusinessConfigOpen ? 'rotate-180 text-sky-400' : 'text-slate-600'}`}
+                                    />
+                                </button>
 
-                                    <Link
-                                        to="/admin/services"
-                                        onClick={closeMobileMenu}
-                                        className={subNavLinkClass('/admin/services')}
-                                    >
-                                        <Sparkles size={15} className="shrink-0 text-amber-400" />
-                                        <span>{t('nav.services')}</span>
-                                    </Link>
-
-                                    {businessConfig?.plan !== 'lite' && (
+                                {isBusinessConfigOpen && (
+                                    <div className="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1 animate-fade-in">
                                         <Link
-                                            to="/admin/team"
+                                            to="/admin/staff"
                                             onClick={closeMobileMenu}
-                                            className={subNavLinkClass('/admin/team')}
+                                            className={subNavLinkClass('/admin/staff')}
                                         >
-                                            <ShieldCheck size={15} className="shrink-0 text-emerald-400" />
-                                            <span>{t('nav.team')}</span>
+                                            <UserCheck size={15} className="shrink-0 text-sky-400" />
+                                            <span>{t('nav.stylists')}</span>
                                         </Link>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+
+                                        <Link
+                                            to="/admin/services"
+                                            onClick={closeMobileMenu}
+                                            className={subNavLinkClass('/admin/services')}
+                                        >
+                                            <Sparkles size={15} className="shrink-0 text-amber-400" />
+                                            <span>{t('nav.services')}</span>
+                                        </Link>
+
+                                        {businessConfig?.plan !== 'lite' && (
+                                            <Link
+                                                to="/admin/team"
+                                                onClick={closeMobileMenu}
+                                                className={subNavLinkClass('/admin/team')}
+                                            >
+                                                <ShieldCheck size={15} className="shrink-0 text-emerald-400" />
+                                                <span>{t('nav.team')}</span>
+                                            </Link>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )
                     )}
 
-                    {/* 7. Nómina (Entre Configuración de negocio y Ajustes) */}
+                    {/* 7. Nómina */}
                     {!isEmployee && userRole === 'owner' && businessConfig?.plan !== 'lite' && (
-                        <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')}>
-                            <Percent size={18} />
-                            <span className="flex-1 text-left">{t('nav.commissions')}</span>
-                            {!businessConfig?.commissionsEnabled && (
-                                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/10 shrink-0">
-                                    Inactivo
-                                </span>
+                        <Link to="/admin/commissions" onClick={closeMobileMenu} className={navLinkClass('/admin/commissions')} title={t('nav.commissions')}>
+                            <Percent size={18} className="shrink-0" />
+                            {!isSidebarCollapsed && (
+                                <>
+                                    <span className="flex-1 text-left">{t('nav.commissions')}</span>
+                                    {!businessConfig?.commissionsEnabled && (
+                                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/10 shrink-0">
+                                            Inactivo
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </Link>
                     )}
 
-                    {/* 8. Ajustes (Separado) */}
+                    {/* 8. Ajustes */}
                     {!isEmployee && (
-                        <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')}>
-                            <Settings size={18} />
-                            <span>{t('nav.settings')}</span>
+                        <Link to="/admin/settings" onClick={closeMobileMenu} className={navLinkClass('/admin/settings')} title={t('nav.settings')}>
+                            <Settings size={18} className="shrink-0" />
+                            {!isSidebarCollapsed && <span>{t('nav.settings')}</span>}
                         </Link>
                     )}
                 </nav>
 
-                <div className="p-4 mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2">
+                <div className={`mt-auto border-t border-white/5 bg-[var(--color-bg-tertiary)]/50 flex flex-col gap-2 ${isSidebarCollapsed ? 'p-2 items-center' : 'p-4'}`}>
                     {/* Notification Bell — Desktop sidebar */}
-                    <div className="hidden lg:flex items-center justify-between px-4 py-3">
-                        <span className="text-xs text-slate-500 font-medium">Notificaciones</span>
+                    <div className={`hidden lg:flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'justify-between px-4 py-3'}`}>
+                        {!isSidebarCollapsed && <span className="text-xs text-slate-500 font-medium">Notificaciones</span>}
                         <NotificationBell
                             notifications={notifications}
                             unreadCount={unreadCount}
@@ -507,34 +576,47 @@ export default function AdminLayout() {
                                 closeMobileMenu();
                                 navigate('/super-admin');
                             }}
-                            className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-amber-400 hover:bg-amber-400/10 transition-all duration-200 group"
+                            title="Volver a HQ"
+                            className={`flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-4 px-4 py-3'} w-full rounded-xl text-amber-400 hover:bg-amber-400/10 transition-all duration-200 group`}
                         >
-                            <ShieldCheck size={18} className="group-hover:-translate-y-1 transition-transform" />
-                            <span className="font-medium flex-1 text-left">Volver a HQ</span>
+                            <ShieldCheck size={18} className="group-hover:-translate-y-1 transition-transform shrink-0" />
+                            {!isSidebarCollapsed && <span className="font-medium flex-1 text-left">Volver a HQ</span>}
                         </button>
                     )}
                     <button
                         onClick={() => { closeMobileMenu(); handleLogout(); }}
-                        className="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200 group"
+                        className={`flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-4 px-4 py-3'} w-full rounded-xl text-red-400 hover:bg-red-400/10 transition-all duration-200 group`}
                         aria-label={t('nav.logout')}
+                        title={t('nav.logout')}
                     >
-                        <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="font-medium">{t('nav.logout')}</span>
+                        <LogOut size={18} className="group-hover:-translate-x-1 transition-transform shrink-0" />
+                        {!isSidebarCollapsed && <span className="font-medium">{t('nav.logout')}</span>}
                     </button>
                 </div>
             </aside>
 
             {/* Main Content Area */}
-            <main role="main" className="flex-1 min-w-0 overflow-y-auto relative pt-16 lg:pt-0 bg-transparent">
+            <main
+                role="main"
+                className={`flex-1 min-w-0 relative bg-transparent transition-all ${
+                    isCalendarFullscreen
+                        ? 'h-screen overflow-hidden flex flex-col pt-0'
+                        : 'overflow-y-auto pt-16 lg:pt-0'
+                }`}
+            >
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-40">
                     <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-[var(--color-accent)]/10 blur-[120px]"></div>
                     <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--color-primary)]/10 blur-[120px]"></div>
                 </div>
 
-                <div className="relative z-10 p-4 md:p-6 lg:p-8 w-full max-w-none pb-6">
+                <div className={`relative z-10 w-full ${
+                    isCalendarFullscreen
+                        ? 'h-full flex-1 flex flex-col p-2 sm:p-3 overflow-hidden min-h-0'
+                        : 'p-4 md:p-6 lg:p-8 max-w-none pb-6'
+                }`}>
                     <Outlet />
                 </div>
-                <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />
+                {!isCalendarFullscreen && <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />}
             </main>
 
             {/* Logout Modal */}

@@ -15,8 +15,8 @@ import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import ConfirmModal from '../../components/ConfirmModal';
 import AdminBookingModal from '../../components/AdminBookingModal';
 import AdminRescheduleModal from '../../components/AdminRescheduleModal';
-import { calculateAppointmentDuration, getRealAdditionalServices } from '../../lib/smartSlots';
-import { Calendar, DollarSign, Users, User, UserX, TrendingUp, Bell, MessageCircle, Phone, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, CheckCircle2, RefreshCw, Share2, Maximize2, Minimize2 } from 'lucide-react';
+import { calculateAppointmentDuration } from '../../lib/smartSlots';
+import { Calendar, DollarSign, Users, TrendingUp, Bell, MessageCircle, Clock, Sparkles, Activity, ChevronDown, Building2, X, Eye, Save, Share2, Maximize2, Minimize2 } from 'lucide-react';
 import { getPlanLimits, isInTrial } from '../../lib/planLimits';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -24,7 +24,6 @@ import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatPhoneDisplay } from '../../lib/schemas';
 import StylistColumnCalendar from '../../components/StylistColumnCalendar';
 import WaitingListModal from '../../components/WaitingListModal';
 import PhotoZoomViewer from '../../components/PhotoZoomViewer';
@@ -42,7 +41,7 @@ export default function Dashboard() {
     const [dashboardStylistId, setDashboardStylistId] = useState<number | 'all'>(
         isEmployee && userStylistId ? userStylistId : 'all'
     );
-    const { showToast } = useUIStore();
+    const { showToast, isCalendarFullscreen, toggleCalendarFullscreen, setCalendarFullscreen } = useUIStore();
     const { redirectToCheckout, isCheckoutLoading } = useStripeCheckout();
 
     // Custom confirm dialog state
@@ -150,36 +149,6 @@ export default function Dashboard() {
         return calculateAppointmentDuration(apt, services);
     }, [services]);
 
-    const getAppointmentFullServiceDisplay = useCallback((apt: any, baseServiceName?: string) => {
-        const base = baseServiceName || 'Servicio';
-        const catalogAddons = getRealAdditionalServices(apt.additionalServices, services);
-        if (catalogAddons.length > 0) {
-            return `${base} + ${catalogAddons.join(', ')}`;
-        }
-        return base;
-    }, [services]);
-
-    const parseApptDateTime = useCallback((dateStr?: string, timeStr?: string) => {
-        if (!dateStr || !timeStr) return new Date();
-        try {
-            const cleanDate = dateStr.split('T')[0].replace(/\//g, '-');
-            const [year, month, day] = cleanDate.split('-').map(Number);
-
-            let [hStr, mStr] = timeStr.trim().split(':');
-            let hours = parseInt(hStr, 10);
-            let minutes = parseInt(mStr, 10) || 0;
-
-            const isPM = /pm/i.test(timeStr);
-            const isAM = /am/i.test(timeStr);
-            if (isPM && hours < 12) hours += 12;
-            if (isAM && hours === 12) hours = 0;
-
-            return new Date(year, month - 1, day, hours, minutes);
-        } catch {
-            return new Date();
-        }
-    }, []);
-
     const getAppointmentPrice = useCallback((apt: any) => {
         const service = getServiceById(apt.serviceId);
         const addServices = apt.additionalServices || [];
@@ -240,22 +209,6 @@ export default function Dashboard() {
 
         return total;
     }, [getServiceById, services]);
-
-    const isPriceConfirmed = useCallback((apt: any) => {
-        if ((apt.additionalServices || []).some((s: string) => s.startsWith('Cotización Confirmada:'))) {
-            return true;
-        }
-        const hasApproxDesign = (apt.additionalServices || []).some((s: string) => 
-            s.startsWith('Diseño:') && (
-                s.includes('Sencillo') || 
-                s.includes('Elaborado') || 
-                s.includes('Complex') || 
-                s.includes('complex') || 
-                s.includes('simple')
-            )
-        );
-        return !hasApproxDesign;
-    }, []);
 
     const handleNoShow = useCallback((appt: any) => {
         setCustomConfirm({
@@ -394,16 +347,6 @@ export default function Dashboard() {
             .sort((a, b) => a.time.localeCompare(b.time));
     }, [appointments, dashboardStylistId]);
 
-    const reminders = useMemo(() => {
-        return tomorrowAppts.filter(a => {
-            if (!a.bookedAt) return false;
-            const diffDays = (Date.now() - new Date(a.bookedAt).getTime()) / (1000 * 3600 * 24);
-            return diffDays >= 3;
-        });
-    }, [tomorrowAppts]);
-
-
-
     // Citas pendientes de confirmar precio (servicios sin precio fijo, rango o calculadora con diseño extra)
     const pendingPriceAppts = useMemo(() => {
         const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -439,57 +382,16 @@ export default function Dashboard() {
     }, [todayAppts]);
 
     const remindersSentCount = todayRemindersSent.length;
-    const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
-
-    const toggleCalendarFullscreen = useCallback(() => {
-        setIsCalendarFullscreen(prev => {
-            const next = !prev;
-            if (next) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(() => {});
-                }
-            } else {
-                if (document.fullscreenElement && document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {});
-                }
-            }
-            return next;
-        });
-    }, []);
 
     useEffect(() => {
-        const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && isCalendarFullscreen) {
-                setIsCalendarFullscreen(false);
-            }
-        };
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isCalendarFullscreen) {
-                if (document.fullscreenElement && document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {});
-                }
-                setIsCalendarFullscreen(false);
+                setCalendarFullscreen(false);
             }
         };
-
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
         window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [isCalendarFullscreen]);
-
-    useEffect(() => {
-        if (isCalendarFullscreen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-        return () => {
-            document.body.style.overflow = '';
-        };
-    }, [isCalendarFullscreen]);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isCalendarFullscreen, setCalendarFullscreen]);
 
     // ── Reports Logic ──
     const currentMonthStats = useMemo(() => {
@@ -723,8 +625,10 @@ export default function Dashboard() {
 
 
     return (
-        <div className="animate-fade-in space-y-6 md:space-y-8">
-            {/* Warning Banner (Grace Period or Trial expiring soon) */}
+        <div className={`animate-fade-in ${isCalendarFullscreen ? 'h-full flex flex-col min-h-0' : 'space-y-6 md:space-y-8'}`}>
+            {!isCalendarFullscreen && (
+                <>
+                    {/* Warning Banner (Grace Period or Trial expiring soon) */}
             {(() => {
                 const isGrace = businessConfig?.paymentStatus === 'grace_period';
                 const showTrialWarning = inTrial && trialDaysLeft <= 8 && trialDaysLeft >= 0;
@@ -1888,13 +1792,15 @@ export default function Dashboard() {
 
                 </div>
             )}
+                </>
+            )}
 
             {/* Today's Appointments - Vista Multicolumna por Profesional */}
-            <div className={
+            <div className={`glass-panel rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl flex flex-col ${
                 isCalendarFullscreen
-                    ? "fixed inset-0 z-[110] bg-[#070b16] p-4 sm:p-6 flex flex-col overflow-hidden animate-fade-in"
-                    : "glass-panel p-6 sm:p-7 rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl"
-            }>
+                    ? "flex-1 h-full min-h-0 p-3 sm:p-4"
+                    : "p-6 sm:p-7"
+            }`}>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-accent shrink-0 shadow-lg shadow-accent/5">

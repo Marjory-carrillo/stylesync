@@ -20,6 +20,16 @@ interface UIState {
     setDeviceHasPending: (id: string | null) => void;
     getDevicePendingId: () => string | null;
     clearDevicePending: () => void;
+
+    // Estado Pantalla Completa Calendario
+    isCalendarFullscreen: boolean;
+    setCalendarFullscreen: (val: boolean) => void;
+    toggleCalendarFullscreen: () => void;
+
+    // Estado Colapso Barra Lateral (Iconos vs Completo)
+    isSidebarCollapsed: boolean;
+    setSidebarCollapsed: (val: boolean) => void;
+    toggleSidebar: () => void;
 }
 
 const DEVICE_BOOKING_KEY = 'citalink_pending_booking';
@@ -27,6 +37,23 @@ const DEVICE_BOOKING_KEY = 'citalink_pending_booking';
 export const useUIStore = create<UIState>((set, get) => ({
     toasts: [],
     deviceHasPendingId: localStorage.getItem(DEVICE_BOOKING_KEY),
+    isCalendarFullscreen: false,
+    isSidebarCollapsed: false,
+
+    setCalendarFullscreen: (val) => set({
+        isCalendarFullscreen: val,
+        isSidebarCollapsed: val,
+    }),
+    toggleCalendarFullscreen: () => set((state) => {
+        const next = !state.isCalendarFullscreen;
+        return {
+            isCalendarFullscreen: next,
+            isSidebarCollapsed: next,
+        };
+    }),
+
+    setSidebarCollapsed: (val) => set({ isSidebarCollapsed: val }),
+    toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
 
     showToast: (message, type = 'info') => {
         const id = Math.random().toString(36).substring(2, 9);
