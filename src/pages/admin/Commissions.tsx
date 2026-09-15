@@ -14,6 +14,7 @@ import DatePickerInput from '../../components/DatePickerInput';
 import CustomSelect from '../../components/CustomSelect';
 import { useUIStore } from '../../lib/store/uiStore';
 import { usePayrollDeductions } from '../../lib/store/queries/usePayrollDeductions';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function Commissions() {
     const { userRole, loadingAuth, loadingTenant } = useAuthStore();
@@ -23,6 +24,7 @@ export default function Commissions() {
     
     const { deductions, addDeduction, deleteDeduction, isAdding: isAddingDeduction } = usePayrollDeductions();
     const [isDeductionModalOpen, setIsDeductionModalOpen] = useState(false);
+    const [deductionToDelete, setDeductionToDelete] = useState<{ id: string; amount: number; concept: string } | null>(null);
     const [deductionForm, setDeductionForm] = useState({
         stylistId: '',
         amount: '',
@@ -1319,11 +1321,7 @@ export default function Commissions() {
                                                                                     </span>
                                                                                     <button
                                                                                         type="button"
-                                                                                        onClick={async () => {
-                                                                                            if (confirm(`¿Eliminar este adelanto de ${formatMoney(ded.amount)}?`)) {
-                                                                                                await deleteDeduction(ded.id);
-                                                                                            }
-                                                                                        }}
+                                                                                        onClick={() => setDeductionToDelete({ id: ded.id, amount: Number(ded.amount), concept: ded.concept })}
                                                                                         className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
                                                                                         title="Eliminar adelanto"
                                                                                     >
@@ -1669,6 +1667,28 @@ export default function Commissions() {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Confirmación de Eliminación de Adelanto */}
+            <ConfirmModal
+                isOpen={!!deductionToDelete}
+                title="Eliminar Adelanto"
+                message={`¿Estás seguro de que deseas eliminar este adelanto de ${deductionToDelete ? formatMoney(deductionToDelete.amount) : ''}? El total neto a liquidar del colaborador se recalculará automáticamente.`}
+                confirmLabel="Sí, eliminar adelanto"
+                cancelLabel="Cancelar"
+                danger={true}
+                onCancel={() => setDeductionToDelete(null)}
+                onConfirm={async () => {
+                    if (!deductionToDelete) return;
+                    try {
+                        await deleteDeduction(deductionToDelete.id);
+                        showToast('Adelanto eliminado correctamente', 'success');
+                    } catch {
+                        showToast('Error al eliminar el adelanto', 'error');
+                    } finally {
+                        setDeductionToDelete(null);
+                    }
+                }}
+            />
         </div>
     );
 }
