@@ -10,7 +10,7 @@ import {
     Calculator, Sparkles, Plus, Minus, Upload, Image as ImageIcon, Trash2, Maximize2, 
     Eye, X, RotateCcw, Download, User, Clock, Link as LinkIcon, MessageCircle, 
     History, CheckCircle, Search, CalendarPlus, AlertCircle, Loader2,
-    ChevronDown, ChevronUp, Camera
+    Camera
 } from 'lucide-react';
 import { useUIStore } from '../../lib/store/uiStore';
 import { format } from 'date-fns';

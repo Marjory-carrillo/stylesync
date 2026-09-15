@@ -14,7 +14,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useNailCalculator } from '../../lib/store/queries/useNailCalculator';
 import ColorThief from 'colorthief';
 import { useNavigate, Link } from 'react-router-dom';
-import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, DollarSign, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle, ClipboardPaste, ChevronDown, X } from 'lucide-react';
+import { Save, Plus, Trash2, Clock, Calendar, Megaphone, Lock, Shield, MapPin, Phone, Globe, Upload, ImageIcon, Percent, BarChart2, CreditCard, ExternalLink, Crown, Sparkles, Paintbrush, Instagram, Facebook, Store, QrCode, Star, Copy, Check, Reply, CheckCircle2, User, AlertTriangle, ClipboardPaste, ChevronDown, X } from 'lucide-react';
 import { useReviews } from '../../lib/store/queries/useReviews';
 import BusinessQRCardsModal from '../../components/BusinessQRCardsModal';
 import { businessConfigSchema } from '../../lib/schemas';
@@ -180,17 +180,13 @@ export default function Settings() {
     const { blockedSlots, addBlockedSlot, addBlockedSlots, isAddingBatch, removeBlockedSlot } = useBlockedSlots();
     const { appointments } = useAppointments();
     const { services } = useServices();
-    const { stylists, updateStylist } = useStylists();
+    const { stylists } = useStylists();
     const { config: quoterConfig, saveConfig: saveQuoterConfig, isSaving: isSavingQuoter } = useNailCalculator();
     const [localQuoterConfig, setLocalQuoterConfig] = useState(quoterConfig);
 
     useEffect(() => {
         setLocalQuoterConfig(quoterConfig);
     }, [quoterConfig]);
-
-    const updateStylistCommissionRate = async (id: number, rate: number) => {
-        await updateStylist({ id, data: { commissionRate: rate } });
-    };
 
     const [infoForm, setInfoForm] = useState(businessConfig);
     const [scheduleForm, setScheduleForm] = useState(schedule);
