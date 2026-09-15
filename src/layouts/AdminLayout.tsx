@@ -37,7 +37,7 @@ export default function AdminLayout() {
     type OpenAccordionType = 'tools' | 'business_config' | string | null;
 
     const isToolsActive = useMemo(() => {
-        return location.pathname.startsWith('/admin/social-content') || location.pathname.startsWith('/admin/marketing');
+        return location.pathname.startsWith('/admin/social-content');
     }, [location.pathname]);
 
     const isBusinessConfigActive = useMemo(() => {
@@ -45,7 +45,7 @@ export default function AdminLayout() {
     }, [location.pathname]);
 
     const [openAccordion, setOpenAccordion] = useState<OpenAccordionType>(() => {
-        if (location.pathname.startsWith('/admin/social-content') || location.pathname.startsWith('/admin/marketing')) return 'tools';
+        if (location.pathname.startsWith('/admin/social-content')) return 'tools';
         if (['/admin/staff', '/admin/services', '/admin/team'].some(p => location.pathname.startsWith(p))) return 'business_config';
         const saved = localStorage.getItem('citalink_active_accordion');
         if (saved === 'tools') return 'tools';

@@ -1247,41 +1247,29 @@ export default function Settings() {
                                             <label className="block text-xs font-bold text-slate-300 mb-1">Política de Cancelación & Reembolsos</label>
                                             <p className="text-[11px] font-semibold text-slate-400 mb-2">Selecciona una plantilla prediseñada o redacta tus propias reglas:</p>
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => setInfoForm({
                                                         ...infoForm,
                                                         depositCancellationPolicy: "Para cancelaciones o reprogramaciones con derecho a reembolso total de tu anticipo, debes avisar al menos con 24 horas de anticipación. Cancelaciones con menos de 24 horas o inasistencias perderán el anticipo."
                                                     })}
-                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all text-[11px] cursor-pointer"
+                                                    className="p-3 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all text-[11px] cursor-pointer"
                                                 >
                                                     <span className="font-bold text-emerald-400 block mb-0.5">🛡️ Estándar (24 hrs)</span>
-                                                    <span className="text-slate-400 text-[10px] leading-tight block">Reembolso 100% si avisas al menos 24 hrs antes.</span>
+                                                    <span className="text-slate-400 text-[10px] leading-tight block">Reembolso 100% si avisas al menos 24 hrs antes de la cita.</span>
                                                 </button>
 
                                                 <button
                                                     type="button"
                                                     onClick={() => setInfoForm({
                                                         ...infoForm,
-                                                        depositCancellationPolicy: "Entendemos que surgen imprevistos. Puedes cancelar o mover tu cita hasta 12 horas antes sin penalización para recibir tu reembolso. De lo contrario, el anticipo no será reembolsable."
+                                                        depositCancellationPolicy: "El anticipo no es reembolsable bajo ninguna circunstancia. Sin embargo, en caso de imprevistos, puedes reprogramar tu cita avisando con anticipación para no perder tu anticipo y transferirlo a tu nueva fecha."
                                                     })}
-                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all text-[11px] cursor-pointer"
+                                                    className="p-3 rounded-xl bg-white/5 hover:bg-amber-500/10 border border-white/10 hover:border-amber-500/30 text-left transition-all text-[11px] cursor-pointer"
                                                 >
-                                                    <span className="font-bold text-teal-400 block mb-0.5">⚡ Flexible (12 hrs)</span>
-                                                    <span className="text-slate-400 text-[10px] leading-tight block">Reembolso 100% hasta 12 hrs antes de la cita.</span>
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setInfoForm({
-                                                        ...infoForm,
-                                                        depositCancellationPolicy: "El anticipo asegura tu lugar en nuestra agenda. No se realizan reembolsos en efectivo; sin embargo, si cancelas al menos 48 horas antes, tu anticipo se abonará como crédito para tu próxima cita."
-                                                    })}
-                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all text-[11px] cursor-pointer"
-                                                >
-                                                    <span className="font-bold text-cyan-400 block mb-0.5">🔒 Crédito a Favor</span>
-                                                    <span className="text-slate-400 text-[10px] leading-tight block">Sin reembolso en dinero; crédito para tu próxima cita.</span>
+                                                    <span className="font-bold text-amber-400 block mb-0.5">🔄 No Reembolsable (Reprogramable)</span>
+                                                    <span className="text-slate-400 text-[10px] leading-tight block">El anticipo no se devuelve, pero permite reprogramar tu cita.</span>
                                                 </button>
                                             </div>
                                         </div>

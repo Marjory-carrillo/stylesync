@@ -455,7 +455,6 @@ function App() {
                     <Route path="settings" element={<Settings />} />
                     <Route path="commissions" element={<Commissions />} />
                     <Route path="social-content" element={<SocialContent />} />
-                    <Route path="marketing" element={<SocialContent />} />
                   </Route>
                 </Route>
               </Route>
