@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useClients } from '../../lib/store/queries/useClients';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useBlockedPhones } from '../../lib/store/queries/useBlockedPhones';
-import { Search, User, Phone, ChevronRight, Trash2, MessageCircle, Plus, Check, Copy, Ban, ShieldAlert, ShieldCheck, UserX, AlertTriangle, Unlock, Sparkles } from 'lucide-react';
+import { Search, User, Phone, ChevronRight, Trash2, MessageCircle, Plus, Ban, ShieldAlert, ShieldCheck, UserX, AlertTriangle, Unlock, Sparkles } from 'lucide-react';
 import { parse, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -56,17 +56,6 @@ export default function Clients() {
         if (!tenant?.slug) return '';
         return `${window.location.origin}/reserva/${tenant.slug}`;
     }, [tenant?.slug]);
-
-    const invitationTemplate = useMemo(() => {
-        return `¡Hola! Te compartimos nuestro nuevo sistema de reservas en línea. Ahora puedes agendar tus citas al instante en el siguiente enlace:\n\n🔗 ${bookingUrl}\n\nEs rápido, cómodo y puedes elegir a tu profesional y horario favorito. ¡Te esperamos en ${tenantName}!`;
-    }, [bookingUrl, tenantName]);
-
-    const [isCopiedTemplate, setIsCopiedTemplate] = useState(false);
-    const handleCopyTemplate = () => {
-        navigator.clipboard.writeText(invitationTemplate);
-        setIsCopiedTemplate(true);
-        setTimeout(() => setIsCopiedTemplate(false), 2000);
-    };
 
     const handleCreateClient = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -210,32 +199,6 @@ export default function Clients() {
                     </span>
                 </button>
             </div>
-
-            {/* Launch Campaign / Invitation Card (Solo visible en Clientes Activos) */}
-            {activeTab === 'all' && (
-                <div className="glass-panel p-5 bg-gradient-to-br from-violet-600/10 via-slate-900 to-slate-900 border border-violet-500/20 rounded-2xl relative overflow-hidden">
-                    <div className="relative z-10 space-y-1">
-                        <span className="px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 text-[10px] font-black uppercase tracking-wider border border-violet-500/20">
-                            📢 Campaña de Lanzamiento
-                        </span>
-                        <h3 className="text-sm font-black text-white uppercase tracking-tight mt-1.5">Anuncia tu Link de Reservas</h3>
-                        <p className="text-slate-400 text-xs max-w-2xl leading-relaxed">
-                            Copia esta plantilla de invitación y compártela en tus redes sociales (Instagram, Facebook) o WhatsApp para que tus clientes comiencen a agendar solos.
-                        </p>
-                    </div>
-
-                    <div className="bg-black/35 border border-white/[0.04] p-4 rounded-xl text-slate-300 text-xs mt-4 leading-relaxed font-mono relative pr-12">
-                        <p className="whitespace-pre-wrap">{invitationTemplate}</p>
-                        <button
-                            onClick={handleCopyTemplate}
-                            className="absolute right-3 top-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
-                            title="Copiar plantilla"
-                        >
-                            {isCopiedTemplate ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Search Bar */}
             <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border border-white/5">
