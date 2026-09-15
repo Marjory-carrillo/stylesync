@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabaseClient';
@@ -30,6 +30,16 @@ export default function AdminLayout() {
     const isEmployee = userRole === 'employee';
     const location = useLocation();
     const navigate = useNavigate();
+    const isDashboardRoute = location.pathname === '/admin' || location.pathname === '/admin/';
+    const effectiveCalendarFullscreen = isCalendarFullscreen && isDashboardRoute;
+    const mainRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        if (effectiveCalendarFullscreen) {
+            mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [effectiveCalendarFullscreen]);
+
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isNewApptModalOpen, setIsNewApptModalOpen] = useState(false);
@@ -253,7 +263,7 @@ export default function AdminLayout() {
         <div className="flex h-screen overflow-hidden bg-[var(--color-bg)] text-slate-200">
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--color-bg-secondary)] border-b border-white/10 z-[100] px-4 flex items-center justify-between">
-                <button onClick={() => { closeMobileMenu(); window.location.href = '/admin'; }} className="flex items-center gap-2">
+                <button onClick={() => { closeMobileMenu(); navigate('/admin'); }} className="flex items-center gap-2">
                     <div className="relative flex items-center justify-center w-8 h-8 group">
                         <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
                         <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
@@ -279,7 +289,7 @@ export default function AdminLayout() {
                     </button>
                     <button
                         onClick={() => setIsMobileMenuOpen(true)}
-                        className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-accent transition-all active:scale-90"
+                        className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-accent transition-all active:scale-90 cursor-pointer"
                         aria-label="Menu"
                     >
                         <Menu size={24} />
@@ -290,20 +300,20 @@ export default function AdminLayout() {
             {/* Overlay for mobile menu */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 z-[40] lg:hidden animate-fade-in"
+                    className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[140] lg:hidden animate-fade-in"
                     onClick={closeMobileMenu}
                 />
             )}
 
             {/* Sidebar Navigation */}
             <aside className={`
-                fixed inset-y-0 left-0 shrink-0 bg-[#0f172a] shadow-2xl z-50 transform transition-all duration-300 ease-in-out
+                fixed inset-y-0 left-0 shrink-0 bg-[#0f172a] shadow-2xl z-[150] transform transition-all duration-300 ease-in-out
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
                 ${isSidebarCollapsed ? 'w-72 lg:w-20 lg:my-3 lg:ml-3 lg:mr-0 lg:rounded-3xl' : 'w-72 lg:w-64 lg:m-4 lg:rounded-[2.5rem]'}
                 lg:relative lg:translate-x-0 lg:glass-panel lg:border-none lg:flex lg:flex-col
             `}>
                 <div className={`p-4 lg:p-5 flex items-center ${isSidebarCollapsed ? 'lg:flex-col lg:gap-3 lg:justify-center justify-between' : 'justify-between'} border-b border-white/5 transition-all`}>
-                    <button onClick={() => { closeMobileMenu(); window.location.href = '/admin'; }} className={`flex items-center ${isSidebarCollapsed ? 'lg:justify-center gap-3' : 'gap-3'}`} title="CitaLink Admin">
+                    <button onClick={() => { closeMobileMenu(); navigate('/admin'); }} className={`flex items-center ${isSidebarCollapsed ? 'lg:justify-center gap-3' : 'gap-3'}`} title="CitaLink Admin">
                         <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer shrink-0">
                             <div className="absolute inset-0 bg-violet-500 blur-md opacity-20 group-hover:opacity-60 transition-opacity rounded-full"></div>
                             <InfinityIcon className="w-8 h-8 text-violet-500 relative z-10" strokeWidth={2.5} />
@@ -682,9 +692,10 @@ export default function AdminLayout() {
 
             {/* Main Content Area */}
             <main
+                ref={mainRef}
                 role="main"
-                className={`flex-1 min-w-0 relative bg-transparent transition-all ${
-                    isCalendarFullscreen
+                className={`flex-1 min-w-0 relative bg-transparent transition-all duration-500 ease-in-out ${
+                    effectiveCalendarFullscreen
                         ? 'h-screen overflow-hidden flex flex-col pt-16 lg:pt-0'
                         : 'overflow-y-auto pt-16 lg:pt-0'
                 }`}
@@ -694,14 +705,14 @@ export default function AdminLayout() {
                     <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[var(--color-primary)]/10 blur-[120px]"></div>
                 </div>
 
-                <div className={`relative z-10 w-full ${
-                    isCalendarFullscreen
+                <div className={`relative z-10 w-full transition-all duration-500 ease-in-out ${
+                    effectiveCalendarFullscreen
                         ? 'h-full flex-1 flex flex-col p-2 sm:p-3 overflow-hidden min-h-0'
                         : 'p-4 md:p-6 lg:p-8 max-w-none pb-6'
                 }`}>
                     <Outlet />
                 </div>
-                {!isCalendarFullscreen && <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />}
+                {!effectiveCalendarFullscreen && <PWAInstallBanner businessName={businessConfig?.name || 'CitaLink Admin'} />}
             </main>
 
             {/* Logout Modal */}

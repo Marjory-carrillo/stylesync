@@ -625,9 +625,13 @@ export default function Dashboard() {
 
 
     return (
-        <div className={`animate-fade-in ${isCalendarFullscreen ? 'h-full flex flex-col min-h-0' : 'space-y-6 md:space-y-8'}`}>
-            {!isCalendarFullscreen && (
-                <>
+        <div className={`transition-all duration-500 ease-in-out flex flex-col min-w-0 ${isCalendarFullscreen ? 'h-full flex-1 min-h-0 gap-0' : 'min-h-full gap-6 md:gap-8'}`}>
+            <div className={`grid transition-all duration-500 ease-in-out transform-gpu ${
+                isCalendarFullscreen
+                    ? 'grid-rows-[0fr] opacity-0 -translate-y-4 pointer-events-none'
+                    : 'grid-rows-[1fr] opacity-100 translate-y-0'
+            }`}>
+                <div className="overflow-hidden min-h-0 space-y-6 md:space-y-8">
                     {/* Warning Banner (Grace Period or Trial expiring soon) */}
             {(() => {
                 const isGrace = businessConfig?.paymentStatus === 'grace_period';
@@ -1662,11 +1666,11 @@ export default function Dashboard() {
 
                 </div>
             )}
-                </>
-            )}
+                </div>
+            </div>
 
             {/* Today's Appointments - Vista Multicolumna por Profesional */}
-            <div className={`glass-panel rounded-2xl sm:rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl flex flex-col ${
+            <div id="appointments-section" className={`glass-panel rounded-2xl sm:rounded-3xl border border-white/10 relative overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl flex flex-col transition-all duration-500 ease-in-out transform-gpu ${
                 isCalendarFullscreen
                     ? "flex-1 h-full min-h-0 p-3 sm:p-5"
                     : "p-4 sm:p-7"
@@ -1753,7 +1757,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className={isCalendarFullscreen ? "mt-1 flex-1 min-h-0 flex flex-col overflow-hidden" : "mt-2 min-h-[550px]"}>
+                <div className={`transition-all duration-500 ease-in-out ${isCalendarFullscreen ? "mt-1 flex-1 min-h-0 flex flex-col overflow-hidden" : "mt-2 min-h-[550px]"}`}>
                     {tomorrowAppts.length > 0 && (
                         <div className="mb-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shadow-sm shrink-0">
                             <span>📌</span>

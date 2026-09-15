@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { Appointment, Service, Stylist, WaitingClient } from '../lib/types/store.types';
 import { format, addDays, subDays, isToday, parseISO } from 'date-fns';
@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTenantData } from '../lib/store/queries/useTenantData';
 import { calculateAppointmentDuration, getRealAdditionalServices, formatAddOnItemDisplay } from '../lib/smartSlots';
+import { useUIStore } from '../lib/store/uiStore';
 
 interface StylistColumnCalendarProps {
     appointments: Appointment[];
@@ -190,10 +191,17 @@ export default function StylistColumnCalendar({
         return calculateAppointmentDuration(apt, services);
     };
 
-    // Dynamic operating hours bounds calculation (Adapts automatically if business has early/late appointments)
+    // Dynamic operating hours bounds calculation (Adapts automatically if business has early/late appointments or for current time)
     const { START_HOUR, END_HOUR } = useMemo(() => {
         let baseStart = 7; // Default 7:00 AM
         let baseEnd = 21;  // Default 9:00 PM (21:00)
+
+        // Ensure the current hour is visible if viewing today
+        if (isViewingToday) {
+            const currentHour = now.getHours();
+            if (currentHour < baseStart) baseStart = Math.max(0, currentHour);
+            if (currentHour > baseEnd) baseEnd = Math.min(23, currentHour);
+        }
 
         (dayAppointments || []).forEach(apt => {
             try {
@@ -210,7 +218,7 @@ export default function StylistColumnCalendar({
         });
 
         return { START_HOUR: baseStart, END_HOUR: baseEnd };
-    }, [dayAppointments]);
+    }, [dayAppointments, isViewingToday, now]);
 
     const HOUR_HEIGHT = 100; // 100px per hour for better readability
     const HOURS = useMemo(() => Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i), [START_HOUR, END_HOUR]);
@@ -298,7 +306,70 @@ export default function StylistColumnCalendar({
         if (h < START_HOUR || h > END_HOUR) return null;
         const minsFromStart = (h - START_HOUR) * 60 + m;
         return (minsFromStart / 60) * HOUR_HEIGHT;
-    }, [now, isViewingToday]);
+    }, [now, isViewingToday, START_HOUR, END_HOUR, HOUR_HEIGHT]);
+
+    // Timeline Scroll Container Ref & Centering Logic
+    const timelineScrollRef = useRef<HTMLDivElement>(null);
+    const hasInitialScrolledRef = useRef(false);
+    const isCalendarFullscreen = useUIStore((state) => state.isCalendarFullscreen);
+
+    const scrollToCurrentTime = useCallback((behavior: ScrollBehavior = 'smooth') => {
+        if (!timelineScrollRef.current || currentRedLineTop === null) return;
+        const container = timelineScrollRef.current;
+        const containerHeight = container.clientHeight;
+        if (containerHeight <= 0) return;
+
+        const stickyHeader = container.querySelector('.sticky') as HTMLElement | null;
+        const headerHeight = stickyHeader ? stickyHeader.offsetHeight : 54;
+        const visibleHeight = Math.max(100, containerHeight - headerHeight);
+        const targetScrollTop = Math.max(0, currentRedLineTop - (visibleHeight / 2));
+
+        container.scrollTo({
+            top: targetScrollTop,
+            behavior
+        });
+    }, [currentRedLineTop]);
+
+    // Auto-center current time line on mount and when date changes to today
+    useEffect(() => {
+        if (!isViewingToday || currentRedLineTop === null) {
+            hasInitialScrolledRef.current = false;
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            scrollToCurrentTime(hasInitialScrolledRef.current ? 'smooth' : 'auto');
+            hasInitialScrolledRef.current = true;
+        }, 120);
+
+        return () => clearTimeout(timer);
+    }, [isViewingToday, currentDate, scrollToCurrentTime, currentRedLineTop !== null]);
+
+    // Re-center when fullscreen mode toggles (synchronized with 500ms layout transition)
+    useEffect(() => {
+        if (!isViewingToday || currentRedLineTop === null) return;
+        const t1 = setTimeout(() => {
+            scrollToCurrentTime('smooth');
+        }, 200);
+        const t2 = setTimeout(() => {
+            scrollToCurrentTime('smooth');
+        }, 520);
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, [isCalendarFullscreen, isViewingToday, scrollToCurrentTime]);
+
+    // Re-center when window resizes
+    useEffect(() => {
+        const handleResize = () => {
+            if (isViewingToday && currentRedLineTop !== null) {
+                scrollToCurrentTime('auto');
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [isViewingToday, currentRedLineTop, scrollToCurrentTime]);
 
     // Reference Photo Lightbox & Selected Appointment State
     const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
@@ -341,10 +412,14 @@ export default function StylistColumnCalendar({
                             <ChevronLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
                         </button>
                         <button
-                            onClick={() => setCurrentDate(new Date())}
+                            onClick={() => {
+                                setCurrentDate(new Date());
+                                setTimeout(() => scrollToCurrentTime('smooth'), 50);
+                            }}
                             className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                                 isViewingToday ? 'bg-accent text-slate-950 font-black shadow-lg shadow-accent/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
                             }`}
+                            title="Ir a hoy y centrar hora actual"
                         >
                             HOY
                         </button>
@@ -380,7 +455,7 @@ export default function StylistColumnCalendar({
             </div>
 
             {/* ── Google Calendar Multi-Column Timeline Grid ── */}
-            <div className="flex-1 overflow-auto custom-scrollbar relative min-h-0">
+            <div ref={timelineScrollRef} className="flex-1 overflow-auto custom-scrollbar relative min-h-0">
                 <div
                     className="relative flex flex-col w-full"
                     style={{
@@ -444,7 +519,11 @@ export default function StylistColumnCalendar({
                                 style={{ top: `${currentRedLineTop}px` }}
                             >
                                 <div className="w-20 text-right pr-1">
-                                    <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg">
+                                    <span
+                                        onClick={() => scrollToCurrentTime('smooth')}
+                                        title="Hora actual (clic para centrar)"
+                                        className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg pointer-events-auto cursor-pointer hover:scale-110 active:scale-95 transition-transform inline-block"
+                                    >
                                         {format(now, 'h:mm a')}
                                     </span>
                                 </div>

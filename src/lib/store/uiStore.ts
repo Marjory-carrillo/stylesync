@@ -33,19 +33,38 @@ interface UIState {
 }
 
 const DEVICE_BOOKING_KEY = 'citalink_pending_booking';
+const CALENDAR_FULLSCREEN_KEY = 'citalink_calendar_fullscreen';
+
+const getInitialFullscreen = (): boolean => {
+    try {
+        return localStorage.getItem(CALENDAR_FULLSCREEN_KEY) === 'true';
+    } catch {
+        return false;
+    }
+};
+
+const initialFullscreen = getInitialFullscreen();
 
 export const useUIStore = create<UIState>((set, get) => ({
     toasts: [],
     deviceHasPendingId: localStorage.getItem(DEVICE_BOOKING_KEY),
-    isCalendarFullscreen: false,
-    isSidebarCollapsed: false,
+    isCalendarFullscreen: initialFullscreen,
+    isSidebarCollapsed: initialFullscreen,
 
-    setCalendarFullscreen: (val) => set({
-        isCalendarFullscreen: val,
-        isSidebarCollapsed: val,
-    }),
+    setCalendarFullscreen: (val) => {
+        try {
+            localStorage.setItem(CALENDAR_FULLSCREEN_KEY, String(val));
+        } catch {}
+        set({
+            isCalendarFullscreen: val,
+            isSidebarCollapsed: val,
+        });
+    },
     toggleCalendarFullscreen: () => set((state) => {
         const next = !state.isCalendarFullscreen;
+        try {
+            localStorage.setItem(CALENDAR_FULLSCREEN_KEY, String(next));
+        } catch {}
         return {
             isCalendarFullscreen: next,
             isSidebarCollapsed: next,
