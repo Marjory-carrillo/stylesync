@@ -5,6 +5,23 @@ const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2
 const META_WA_ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN || 'EAAaAOZBzRqVIBSjPgz0yZAk4FS3wWO9k8chAKvldSs0c79EgZBwAIQjOOvevQKzwBRFzj9hhlFpUDUNNnDJIS1tZAJjiNtAxQdzug6lF0nPfOZChfWSLoM1bkwuifWDRE6TJZBtiSTjwPHwUxZAL9GybQSAC4s3oPTVO92mpCMzK4iE4J9ylWLxE1phtVmNzy7sKAZDZD';
 const DEFAULT_PHONE_NUMBER_ID = process.env.META_WA_PHONE_NUMBER_ID || '1337471699449991';
 
+interface ServiceItem {
+    name: string;
+    price: number;
+    duration: number;
+    is_addon?: boolean;
+    is_package?: boolean;
+    price_type?: string;
+    min_price?: number;
+    max_price?: number;
+}
+
+interface StylistItem {
+    name: string;
+    role?: string | null;
+    active?: boolean;
+}
+
 interface TenantContext {
     clientName?: string;
     tenant: {
@@ -14,12 +31,75 @@ interface TenantContext {
         address?: string | null;
         phone?: string | null;
     };
-    services: Array<{
-        name: string;
-        price: number;
-        duration: number;
-        is_addon?: boolean;
-    }>;
+    services: ServiceItem[];
+    stylists: StylistItem[];
+}
+
+function formatPrice(s: ServiceItem): string {
+    if (s.price_type === 'variable' && s.min_price && s.max_price) {
+        return `$${s.min_price} - $${s.max_price}`;
+    }
+    return `$${s.price}`;
+}
+
+function formatServicesCategorized(services: ServiceItem[], userMessage?: string): string {
+    const lowerMsg = (userMessage || '').toLowerCase();
+
+    // Búsqueda específica si el usuario preguntó por un tipo de servicio (ej: "corte", "barba", "ceja")
+    const searchKeywords = ['corte', 'barba', 'ceja', 'mascarilla', 'exfoliacion', 'facial', 'unas', 'uñas', 'gel', 'acrilico', 'pedicure', 'manicure', 'tinte', 'peinado', 'express'];
+    const matchedKeyword = searchKeywords.find((kw) => lowerMsg.includes(kw));
+
+    if (matchedKeyword) {
+        const matchingServices = services.filter((s) => s.name.toLowerCase().includes(matchedKeyword));
+        if (matchingServices.length > 0) {
+            const list = matchingServices
+                .map((s) => `• *${s.name.trim()}*: ${formatPrice(s)} (${s.duration} min)`)
+                .join('\n');
+            return `💈 *Opciones para "${matchedKeyword}":*\n\n${list}`;
+        }
+    }
+
+    // Separar servicios principales, paquetes y adicionales
+    const principales = services.filter((s) => !s.is_addon && !s.is_package);
+    const paquetes = services.filter((s) => s.is_package);
+    const adicionales = services.filter((s) => s.is_addon);
+
+    const sections: string[] = [];
+
+    if (principales.length > 0) {
+        sections.push(
+            `✂️ *Servicios Principales:*\n` +
+            principales.map((s) => `• *${s.name.trim()}*: ${formatPrice(s)} (${s.duration} min)`).join('\n')
+        );
+    }
+
+    if (paquetes.length > 0) {
+        sections.push(
+            `🎁 *Paquetes & Combos:*\n` +
+            paquetes.map((s) => `• *${s.name.trim()}*: ${formatPrice(s)} (${s.duration} min)`).join('\n')
+        );
+    }
+
+    if (adicionales.length > 0) {
+        sections.push(
+            `✨ *Servicios Adicionales (Extras):*\n` +
+            adicionales.map((s) => `• *${s.name.trim()}*: ${formatPrice(s)} (${s.duration} min)`).join('\n')
+        );
+    }
+
+    return sections.join('\n\n');
+}
+
+function formatStylists(stylists: StylistItem[], businessName: string): string {
+    if (!stylists || stylists.length === 0) {
+        return `En *${businessName}* nuestro equipo está listo para atenderte con la mayor calidad.`;
+    }
+    const count = stylists.length;
+    const countText = count === 1 ? '1 profesional disponible' : `${count} profesionales disponibles`;
+    const list = stylists
+        .map((st) => `• 👤 *${st.name.trim()}*${st.role ? ` — ${st.role.trim()}` : ''}`)
+        .join('\n');
+    return `En *${businessName}* contamos con *${countText}*:\n\n${list}`;
 }
 
 async function resolveTenantContext(phone: string): Promise<TenantContext | null> {
@@ -68,18 +148,27 @@ async function resolveTenantContext(phone: string): Promise<TenantContext | null
 
         if (!tenant) return null;
 
-        // 4. Traer catálogo de servicios del negocio
+        // 4. Traer catálogo de servicios del negocio (principales, paquetes y adicionales)
         const { data: services } = await supabase
             .from('services')
-            .select('name, price, duration, is_addon')
+            .select('name, price, duration, is_addon, is_package, price_type, min_price, max_price')
             .eq('tenant_id', tenantId)
+            .eq('active', true)
             .order('price', { ascending: true })
-            .limit(8);
+            .limit(30);
+
+        // 5. Traer profesionales / estilistas del negocio
+        const { data: stylists } = await supabase
+            .from('stylists')
+            .select('name, role, active')
+            .eq('tenant_id', tenantId)
+            .eq('active', true);
 
         return {
             clientName: clientName || undefined,
             tenant,
-            services: services || [],
+            services: (services as ServiceItem[]) || [],
+            stylists: (stylists as StylistItem[]) || [],
         };
     } catch (err) {
         console.warn('[meta-webhook] Error resolviendo contexto de tenant:', err);
@@ -139,6 +228,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const context = await resolveTenantContext(targetPhone);
                 const tenant = context?.tenant;
                 const services = context?.services || [];
+                const stylists = context?.stylists || [];
                 const clientName = context?.clientName || senderName;
                 const greetingName = clientName ? ` ${clientName.trim()}` : '';
 
@@ -146,44 +236,83 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const bookingUrl = tenant ? `https://www.citalink.app/reserva/${tenant.slug}` : 'https://www.citalink.app';
                 const businessAddress = tenant?.address ? tenant.address.trim() : null;
 
-                // Formatear catálogo de servicios si existe
-                let formattedServices = '';
-                if (services.length > 0) {
-                    formattedServices = services
-                        .map((s) => `• *${s.name}*: $${s.price} (${s.duration} min)`)
-                        .join('\n');
-                }
+                const bookingSteps = `📋 *Pasos para reservar en línea (en 1 minuto):*\n1️⃣ Abre el enlace: ${bookingUrl}\n2️⃣ Selecciona tu servicio, combo o adicional\n3️⃣ Elige a tu profesional y tu hora preferida\n4️⃣ Confirma con tu WhatsApp para recibir tu confirmación inmediata ✨`;
 
                 // Lógica de respuesta conversacional inteligente de Sara adaptada al negocio
                 const lower = textBody.toLowerCase();
                 let replyText = '';
 
+                // A) Saludos
                 if (!lower || lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos') || lower.includes('hey') || lower.includes('inicio')) {
                     if (tenant) {
-                        replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n💇 *Ver servicios y precios*: Escribe "servicios"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n👤 *Hablar con una persona*: Escribe "humano"`;
+                        replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n💇 *Servicios y precios*: Escribe "servicios"\n💈 *Profesionales*: Escribe "disponibles" o "equipo"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n👤 *Hablar con una persona*: Escribe "humano"`;
                     } else {
                         replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar"\n💇 *Ver servicios*: Escribe "servicios"\n👤 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
                     }
-                } else if (lower.includes('agend') || lower.includes('cita') || lower.includes('reserv') || lower.includes('turno')) {
-                    replyText = `¡Con gusto te ayudo a agendar tu cita en *${businessName}*! 🗓️✨\n\nPuedes consultar la disponibilidad en tiempo real y elegir a tu profesional favorito directamente desde nuestra plataforma:\n\n👉 ${bookingUrl}\n\n¿Buscas algún servicio o profesional en específico?`;
-                } else if (lower.includes('precio') || lower.includes('costo') || lower.includes('cuanto') || lower.includes('servicio') || lower.includes('catalogo') || lower.includes('corte') || lower.includes('unas') || lower.includes('uñas')) {
-                    if (formattedServices) {
-                        replyText = `En *${businessName}* contamos con los siguientes servicios:\n\n${formattedServices}\n\n👉 Puedes reservar tu turno directamente aquí:\n${bookingUrl}`;
+                }
+                // B) Profesionales / Estilistas / Barberos disponibles / Quién atiende
+                else if (
+                    lower.includes('profesional') ||
+                    lower.includes('estilista') ||
+                    lower.includes('barbero') ||
+                    lower.includes('quien') ||
+                    lower.includes('quién') ||
+                    lower.includes('equipo') ||
+                    lower.includes('atiende') ||
+                    lower.includes('personal') ||
+                    (lower.includes('cuales') && (lower.includes('disponible') || lower.includes('hay'))) ||
+                    (lower.includes('cuáles') && (lower.includes('disponible') || lower.includes('hay'))) ||
+                    (lower.includes('con') && lower.includes('quien'))
+                ) {
+                    const stylistsText = formatStylists(stylists, businessName);
+                    replyText = `${stylistsText}\n\n🗓️ Puedes consultar los horarios libres de cada uno y apartar tu turno directamente aquí:\n👉 ${bookingUrl}`;
+                }
+                // C) Agendar cita / Pasos para reservar
+                else if (lower.includes('agend') || lower.includes('cita') || lower.includes('reserv') || lower.includes('turno') || lower.includes('apartar')) {
+                    replyText = `¡Con gusto te ayudo a agendar tu cita en *${businessName}*! 🗓️✨\n\n${bookingSteps}\n\n¿Deseas conocer los precios o consultar con qué profesional atenderte?`;
+                }
+                // D) Precios / Servicios / Catálogo / Paquetes / Cortes / Búsqueda específica
+                else if (
+                    lower.includes('precio') ||
+                    lower.includes('costo') ||
+                    lower.includes('cuanto') ||
+                    lower.includes('cuánto') ||
+                    lower.includes('servicio') ||
+                    lower.includes('catalogo') ||
+                    lower.includes('paquete') ||
+                    lower.includes('combo') ||
+                    lower.includes('corte') ||
+                    lower.includes('barba') ||
+                    lower.includes('ceja') ||
+                    lower.includes('unas') ||
+                    lower.includes('uñas')
+                ) {
+                    const categorized = formatServicesCategorized(services, textBody);
+                    if (categorized) {
+                        replyText = `En *${businessName}* contamos con las siguientes opciones:\n\n${categorized}\n\n👉 *Reserva tu turno directamente aquí:*\n${bookingUrl}`;
                     } else {
-                        replyText = `Puedes consultar todos los servicios y precios actualizados de *${businessName}* aquí:\n👉 ${bookingUrl}`;
+                        replyText = `Puedes consultar todos los servicios, paquetes y precios actualizados de *${businessName}* aquí:\n👉 ${bookingUrl}`;
                     }
-                } else if (lower.includes('ubicacion') || lower.includes('donde') || lower.includes('direccion') || lower.includes('llegar') || lower.includes('local')) {
+                }
+                // E) Ubicación / Dirección
+                else if (lower.includes('ubicacion') || lower.includes('ubicación') || lower.includes('donde') || lower.includes('dónde') || lower.includes('direccion') || lower.includes('dirección') || lower.includes('llegar') || lower.includes('local')) {
                     if (businessAddress) {
-                        replyText = `📍 *Ubicación de ${businessName}*:\n${businessAddress}\n\n¡Te esperamos con gusto! ¿Te gustaría agendar una cita antes de venir? 👉 ${bookingUrl}`;
+                        replyText = `📍 *Ubicación de ${businessName}*:\n${businessAddress}\n\n¡Te esperamos con gusto! Puedes agendar tu turno antes de venir aquí 👉 ${bookingUrl}`;
                     } else {
-                        replyText = `Puedes consultar la ubicación y detalles de *${businessName}* en nuestro portal:\n👉 ${bookingUrl}`;
+                        replyText = `Puedes consultar nuestra ubicación y mapa interactivo aquí:\n👉 ${bookingUrl}`;
                     }
-                } else if (lower.includes('horario') || lower.includes('hora') || lower.includes('abierto') || lower.includes('dias')) {
+                }
+                // F) Horarios
+                else if (lower.includes('horario') || lower.includes('hora') || lower.includes('abierto') || lower.includes('dias') || lower.includes('días')) {
                     replyText = `Nuestros horarios de atención habituales en *${businessName}* son de Lunes a Sábado de 9:00 AM a 8:00 PM ⏰\n\nPuedes ver los turnos libres de hoy y de la semana aquí:\n👉 ${bookingUrl}`;
-                } else if (lower.includes('humano') || lower.includes('persona') || lower.includes('asesor') || lower.includes('ayuda')) {
+                }
+                // G) Contacto humano
+                else if (lower.includes('humano') || lower.includes('persona') || lower.includes('asesor') || lower.includes('ayuda')) {
                     replyText = `¡Entendido${greetingName}! 👤 Un asesor de *${businessName}* se pondrá en contacto contigo a la brevedad por este mismo chat. Mientras tanto, dime con confianza si hay algo puntual que quieras resolver.`;
-                } else {
-                    replyText = `Te he leído fuerte y claro${greetingName}: *"${textBody}"* 🌸\n\nComo asistente de *${businessName}* puedo ayudarte a *agendar citas*, *consultar servicios y precios* o *darte nuestra ubicación*.\n\nEscribe *cita* para reservar o visita directamente 👉 ${bookingUrl} ✨`;
+                }
+                // H) Respuesta general con menú
+                else {
+                    replyText = `Te he leído fuerte y claro${greetingName}: *"${textBody}"* 🌸\n\nComo asistente de *${businessName}* puedo ayudarte a:\n• *Agendar citas* (escribe "agendar")\n• *Ver servicios y paquetes* (escribe "servicios")\n• *Conocer al equipo* (escribe "disponibles")\n• *Ver nuestra ubicación* (escribe "ubicación")\n\nO visita directamente nuestra agenda en línea 👉 ${bookingUrl} ✨`;
                 }
 
                 // Enviar respuesta inmediata a WhatsApp vía Meta Graph API
