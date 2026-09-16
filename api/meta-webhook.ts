@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2026';
-const META_WA_ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN || 'EAAaAOZBzRqVIBSbR8uXiNLQrfrGbNHXILl5HqhB7T4ZAZCOMHQQ8iEd3Qivyh0vvz3gmshApU0GojspIqgDp9uOYZCwd1i4Ti8SZCzfPZBkLyNmx8e2OJsSjSVp032lL3NpQh4Bq5khNyc4mxQZA7JMQZBLKkcapgS2OweALGArbrARt7XMZBDdhLRhAdZBiDFRGINklP8e4hxYZC7w4HHcrdkbsbJNv89ZCewE9rh1BKa3cr6ow5klvV6fQdD1W18Pkw2MUY0RcpiBHvte6IYwP3ME1e4BEbQZDZD';
+const META_WA_ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN || 'EAAaAOZBzRqVIBSjPgz0yZAk4FS3wWO9k8chAKvldSs0c79EgZBwAIQjOOvevQKzwBRFzj9hhlFpUDUNNnDJIS1tZAJjiNtAxQdzug6lF0nPfOZChfWSLoM1bkwuifWDRE6TJZBtiSTjwPHwUxZAL9GybQSAC4s3oPTVO92mpCMzK4iE4J9ylWLxE1phtVmNzy7sKAZDZD';
 const DEFAULT_PHONE_NUMBER_ID = process.env.META_WA_PHONE_NUMBER_ID || '1337471699449991';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
