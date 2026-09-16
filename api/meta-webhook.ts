@@ -1,8 +1,91 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 
 const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2026';
 const META_WA_ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN || 'EAAaAOZBzRqVIBSjPgz0yZAk4FS3wWO9k8chAKvldSs0c79EgZBwAIQjOOvevQKzwBRFzj9hhlFpUDUNNnDJIS1tZAJjiNtAxQdzug6lF0nPfOZChfWSLoM1bkwuifWDRE6TJZBtiSTjwPHwUxZAL9GybQSAC4s3oPTVO92mpCMzK4iE4J9ylWLxE1phtVmNzy7sKAZDZD';
 const DEFAULT_PHONE_NUMBER_ID = process.env.META_WA_PHONE_NUMBER_ID || '1337471699449991';
+
+interface TenantContext {
+    clientName?: string;
+    tenant: {
+        id: string;
+        name: string;
+        slug: string;
+        address?: string | null;
+        phone?: string | null;
+    };
+    services: Array<{
+        name: string;
+        price: number;
+        duration: number;
+        is_addon?: boolean;
+    }>;
+}
+
+async function resolveTenantContext(phone: string): Promise<TenantContext | null> {
+    try {
+        const digits = phone.replace(/\D/g, '').slice(-10);
+        if (!digits || digits.length < 10) return null;
+
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseKey) return null;
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // 1. Buscar en appointments más reciente
+        const { data: apt } = await supabase
+            .from('appointments')
+            .select('tenant_id, client_name')
+            .ilike('client_phone', `%${digits}%`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        let tenantId = apt?.tenant_id;
+        let clientName = apt?.client_name;
+
+        // 2. Si no hay cita, buscar en sms_logs (donde se registró el último OTP o mensaje)
+        if (!tenantId) {
+            const { data: log } = await supabase
+                .from('sms_logs')
+                .select('tenant_id')
+                .ilike('phone', `%${digits}%`)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            tenantId = log?.tenant_id;
+        }
+
+        if (!tenantId) return null;
+
+        // 3. Traer información del negocio
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('id, name, slug, address, phone')
+            .eq('id', tenantId)
+            .single();
+
+        if (!tenant) return null;
+
+        // 4. Traer catálogo de servicios del negocio
+        const { data: services } = await supabase
+            .from('services')
+            .select('name, price, duration, is_addon')
+            .eq('tenant_id', tenantId)
+            .order('price', { ascending: true })
+            .limit(8);
+
+        return {
+            clientName: clientName || undefined,
+            tenant,
+            services: services || [],
+        };
+    } catch (err) {
+        console.warn('[meta-webhook] Error resolviendo contexto de tenant:', err);
+        return null;
+    }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1. Verificación del Webhook por Meta (GET Handshake)
@@ -52,23 +135,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 console.log('[meta-webhook] Mensaje entrante de:', { from, targetPhone, senderName, textBody });
 
-                // Lógica de respuesta conversacional inteligente de Sara
+                // Resolver contexto del negocio a partir del número de teléfono
+                const context = await resolveTenantContext(targetPhone);
+                const tenant = context?.tenant;
+                const services = context?.services || [];
+                const clientName = context?.clientName || senderName;
+                const greetingName = clientName ? ` ${clientName.trim()}` : '';
+
+                const businessName = tenant ? tenant.name : 'CitaLink';
+                const bookingUrl = tenant ? `https://www.citalink.app/reserva/${tenant.slug}` : 'https://www.citalink.app';
+                const businessAddress = tenant?.address ? tenant.address.trim() : null;
+
+                // Formatear catálogo de servicios si existe
+                let formattedServices = '';
+                if (services.length > 0) {
+                    formattedServices = services
+                        .map((s) => `• *${s.name}*: $${s.price} (${s.duration} min)`)
+                        .join('\n');
+                }
+
+                // Lógica de respuesta conversacional inteligente de Sara adaptada al negocio
                 const lower = textBody.toLowerCase();
-                const greetingName = senderName ? ` ${senderName.trim()}` : '';
                 let replyText = '';
 
                 if (!lower || lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos') || lower.includes('hey') || lower.includes('inicio')) {
-                    replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar" o "cita"\n💇 *Ver servicios y precios*: Escribe "servicios"\n🕒 *Horarios de atención*: Escribe "horarios"\n👤 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
+                    if (tenant) {
+                        replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n💇 *Ver servicios y precios*: Escribe "servicios"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n👤 *Hablar con una persona*: Escribe "humano"`;
+                    } else {
+                        replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar"\n💇 *Ver servicios*: Escribe "servicios"\n👤 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
+                    }
                 } else if (lower.includes('agend') || lower.includes('cita') || lower.includes('reserv') || lower.includes('turno')) {
-                    replyText = `¡Con gusto te ayudo a agendar tu cita! 🗓️✨\n\nPuedes consultar la disponibilidad en tiempo real y elegir a tu profesional favorito directamente desde nuestra plataforma:\n\n👉 https://www.citalink.app\n\n¿Buscas algún servicio o profesional en específico?`;
-                } else if (lower.includes('precio') || lower.includes('costo') || lower.includes('cuanto') || lower.includes('servicio') || lower.includes('catalogo')) {
-                    replyText = `Ofrecemos un catálogo completo de belleza, estilismo, barbería, uñas y más ✂️💅\n\nPuedes ver todos los precios actualizados y duraciones de cada servicio aquí:\n👉 https://www.citalink.app\n\n¿Te gustaría que te reservemos un espacio?`;
+                    replyText = `¡Con gusto te ayudo a agendar tu cita en *${businessName}*! 🗓️✨\n\nPuedes consultar la disponibilidad en tiempo real y elegir a tu profesional favorito directamente desde nuestra plataforma:\n\n👉 ${bookingUrl}\n\n¿Buscas algún servicio o profesional en específico?`;
+                } else if (lower.includes('precio') || lower.includes('costo') || lower.includes('cuanto') || lower.includes('servicio') || lower.includes('catalogo') || lower.includes('corte') || lower.includes('unas') || lower.includes('uñas')) {
+                    if (formattedServices) {
+                        replyText = `En *${businessName}* contamos con los siguientes servicios:\n\n${formattedServices}\n\n👉 Puedes reservar tu turno directamente aquí:\n${bookingUrl}`;
+                    } else {
+                        replyText = `Puedes consultar todos los servicios y precios actualizados de *${businessName}* aquí:\n👉 ${bookingUrl}`;
+                    }
+                } else if (lower.includes('ubicacion') || lower.includes('donde') || lower.includes('direccion') || lower.includes('llegar') || lower.includes('local')) {
+                    if (businessAddress) {
+                        replyText = `📍 *Ubicación de ${businessName}*:\n${businessAddress}\n\n¡Te esperamos con gusto! ¿Te gustaría agendar una cita antes de venir? 👉 ${bookingUrl}`;
+                    } else {
+                        replyText = `Puedes consultar la ubicación y detalles de *${businessName}* en nuestro portal:\n👉 ${bookingUrl}`;
+                    }
                 } else if (lower.includes('horario') || lower.includes('hora') || lower.includes('abierto') || lower.includes('dias')) {
-                    replyText = `Nuestros horarios de atención habituales son de Lunes a Sábado de 9:00 AM a 8:00 PM ⏰\n\nPuedes ver los turnos libres de hoy y de la semana aquí:\n👉 https://www.citalink.app`;
+                    replyText = `Nuestros horarios de atención habituales en *${businessName}* son de Lunes a Sábado de 9:00 AM a 8:00 PM ⏰\n\nPuedes ver los turnos libres de hoy y de la semana aquí:\n👉 ${bookingUrl}`;
                 } else if (lower.includes('humano') || lower.includes('persona') || lower.includes('asesor') || lower.includes('ayuda')) {
-                    replyText = `¡Entendido${greetingName}! 👤 Un asesor de nuestro equipo se pondrá en contacto contigo a la brevedad por este mismo chat. Mientras tanto, dime con confianza si hay algo puntual que quieras resolver.`;
+                    replyText = `¡Entendido${greetingName}! 👤 Un asesor de *${businessName}* se pondrá en contacto contigo a la brevedad por este mismo chat. Mientras tanto, dime con confianza si hay algo puntual que quieras resolver.`;
                 } else {
-                    replyText = `Te he leído fuerte y claro${greetingName}: *"${textBody}"* 🌸\n\nComo asistente de CitaLink puedo ayudarte a *agendar citas*, *consultar servicios* o *revisar horarios*.\n\nEscribe *cita* para reservar o visita directamente 👉 https://www.citalink.app ✨`;
+                    replyText = `Te he leído fuerte y claro${greetingName}: *"${textBody}"* 🌸\n\nComo asistente de *${businessName}* puedo ayudarte a *agendar citas*, *consultar servicios y precios* o *darte nuestra ubicación*.\n\nEscribe *cita* para reservar o visita directamente 👉 ${bookingUrl} ✨`;
                 }
 
                 // Enviar respuesta inmediata a WhatsApp vía Meta Graph API
