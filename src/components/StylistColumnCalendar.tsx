@@ -77,7 +77,6 @@ export default function StylistColumnCalendar({
     }, []);
 
     const dateStr = format(currentDate, 'yyyy-MM-dd');
-    const isViewingToday = isToday(currentDate);
 
     // Filter active appointments for the selected date
     const dayAppointments = useMemo(() => {
@@ -98,6 +97,83 @@ export default function StylistColumnCalendar({
         }
         return list;
     }, [stylists, dayAppointments, selectedStylistId]);
+
+    // Responsive screen width tracking for smart column layout
+    const [windowWidth, setWindowWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1200));
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isSingleStylist = activeStylists.length === 1;
+    const singleStylist = isSingleStylist ? activeStylists[0] : null;
+
+    // Optional user override for number of days (1, 3, 4). If null, uses responsive default.
+    const [userSelectedDays, setUserSelectedDays] = useState<number | null>(null);
+
+    // Responsive default: Desktop (>= 1024) -> 4 days, Mobile & Tablet -> 3 days
+    const defaultDaysForWidth = useMemo(() => {
+        if (windowWidth < 1024) return 3;
+        return 4;
+    }, [windowWidth]);
+
+    // Active days count: defaults to 4 on desktop, 3 on mobile (or user selected override)
+    const daysCount = useMemo(() => {
+        if (!isSingleStylist) return 1;
+        if (userSelectedDays !== null) {
+            return userSelectedDays;
+        }
+        return defaultDaysForWidth;
+    }, [isSingleStylist, userSelectedDays, defaultDaysForWidth]);
+
+    // Array of consecutive dates to display when single stylist is active
+    const displayDays = useMemo(() => {
+        if (!isSingleStylist || daysCount <= 1) {
+            return [currentDate];
+        }
+        const list: Date[] = [];
+        for (let i = 0; i < daysCount; i++) {
+            list.push(addDays(currentDate, i));
+        }
+        return list;
+    }, [isSingleStylist, daysCount, currentDate]);
+
+    // Check if Today is in the current view
+    const isViewingToday = useMemo(() => {
+        if (isSingleStylist && daysCount > 1) {
+            return displayDays.some(d => isToday(d));
+        }
+        return isToday(currentDate);
+    }, [isSingleStylist, daysCount, displayDays, currentDate]);
+
+    // Header date range label
+    const dateRangeLabel = useMemo(() => {
+        if (!isSingleStylist || daysCount <= 1) {
+            return format(currentDate, "EEEE, d 'de' MMMM", { locale: es });
+        }
+        const start = displayDays[0];
+        const end = displayDays[displayDays.length - 1];
+        const startDay = format(start, 'd');
+        const endDay = format(end, 'd');
+        const startMonth = format(start, 'MMMM', { locale: es });
+        const endMonth = format(end, 'MMMM', { locale: es });
+
+        if (startMonth === endMonth) {
+            return `${startDay} al ${endDay} de ${startMonth}`;
+        }
+        return `${startDay} de ${startMonth} - ${endDay} de ${endMonth}`;
+    }, [isSingleStylist, daysCount, currentDate, displayDays]);
+
+    // Visible appointments (across all displayed days) for bounds and red line
+    const visibleAppointments = useMemo(() => {
+        if (!isSingleStylist || daysCount <= 1) {
+            return appointments.filter(a => a.date === dateStr && a.status !== 'cancelada');
+        }
+        const datesSet = new Set(displayDays.map(d => format(d, 'yyyy-MM-dd')));
+        return appointments.filter(a => datesSet.has(a.date) && a.status !== 'cancelada');
+    }, [appointments, isSingleStylist, daysCount, dateStr, displayDays]);
 
     const appointmentCounts = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -203,7 +279,7 @@ export default function StylistColumnCalendar({
             if (currentHour > baseEnd) baseEnd = Math.min(23, currentHour);
         }
 
-        (dayAppointments || []).forEach(apt => {
+        (visibleAppointments || []).forEach(apt => {
             try {
                 const startDt = parseApptDateTime(apt.date, apt.time);
                 const duration = getAppointmentTotalDuration(apt);
@@ -218,7 +294,7 @@ export default function StylistColumnCalendar({
         });
 
         return { START_HOUR: baseStart, END_HOUR: baseEnd };
-    }, [dayAppointments, isViewingToday, now]);
+    }, [visibleAppointments, isViewingToday, now]);
 
     const HOUR_HEIGHT = 100; // 100px per hour for better readability
     const HOURS = useMemo(() => Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i), [START_HOUR, END_HOUR]);
@@ -398,14 +474,161 @@ export default function StylistColumnCalendar({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedApt]);
 
+    // Helper to render individual appointment cards (shared between single-day and multi-day views)
+    const renderAppointmentCard = (apt: Appointment) => {
+        const service = getServiceById(apt.serviceId);
+        const duration = getAppointmentTotalDuration(apt);
+        const topPx = calculateTop(apt.time);
+        const heightPx = calculateHeight(duration);
+        const isShort = duration <= 35 || heightPx < 70;
+        const totalPrice = getAppointmentTotalPrice(apt);
+        const statusState = getAppointmentStatusState(apt);
+
+        return (
+            <div
+                key={apt.id}
+                onClick={() => setSelectedApt(apt)}
+                style={{
+                    top: `${topPx}px`,
+                    height: `${Math.max(48, heightPx - 4)}px`,
+                }}
+                className={`absolute left-1 right-1 border text-left transition-all duration-300 cursor-pointer shadow-xl overflow-hidden group hover:z-20 hover:scale-[1.01] ${
+                    isShort ? 'rounded-xl p-2' : 'rounded-2xl p-2.5'
+                } ${
+                    statusState.isCompleted
+                        ? 'bg-gradient-to-br from-emerald-950/80 to-slate-900/90 border-emerald-500/40 text-emerald-100 shadow-emerald-950/40'
+                        : statusState.isLiveAtendiendo
+                        ? 'bg-gradient-to-br from-purple-950/90 via-slate-900/90 to-amber-950/80 border-accent/60 text-accent shadow-accent/20 ring-1 ring-accent/40'
+                        : statusState.isFullPayment
+                        ? 'bg-gradient-to-br from-emerald-950/90 to-teal-900/80 border-emerald-500/50 hover:border-emerald-400 text-emerald-100 shadow-emerald-950/50'
+                        : statusState.isConfirmed
+                        ? 'bg-gradient-to-br from-teal-950/90 to-cyan-900/80 border-teal-500/40 hover:border-teal-300 text-teal-100'
+                        : 'bg-gradient-to-br from-slate-900/90 to-indigo-950/80 border-indigo-500/30 hover:border-indigo-400 text-slate-100'
+                }`}
+            >
+                {isShort ? (
+                    /* ── Modo Compacto para citas de 30-35 min (Cero texto cortado) ── */
+                    <div className="flex flex-col justify-between h-full">
+                        <div className="flex items-center justify-between gap-1 leading-none">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                {/* Mini status indicator dot */}
+                                {apt.status === 'no_show' ? (
+                                    <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" title="No asistió" />
+                                ) : statusState.isCompleted ? (
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Completada" />
+                                ) : statusState.isLiveAtendiendo ? (
+                                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" title="Atendiendo" />
+                                ) : statusState.isConfirmed ? (
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Confirmada" />
+                                ) : statusState.isPending ? (
+                                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Pendiente" />
+                                ) : (
+                                    <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" title="Agendada" />
+                                )}
+                                <span className="text-xs font-black truncate">{apt.clientName}</span>
+                            </div>
+                            <span className="text-[10px] font-bold opacity-80 shrink-0 font-mono">
+                                {apt.time.slice(0, 5)}
+                            </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-1 leading-none">
+                            <p className="text-[10px] font-semibold opacity-90 truncate flex items-center gap-1 min-w-0" title={getAppointmentFullServiceDisplay(apt, service?.name)}>
+                                <Sparkles size={10} className="shrink-0 text-accent" />
+                                <span className="truncate">{getAppointmentFullServiceDisplay(apt, service?.name)}</span>
+                            </p>
+                            <div className="flex items-center gap-1 shrink-0">
+                                {(apt.bookingSource === 'marketplace' || (apt as any).booking_source === 'marketplace') && (
+                                    <span className="px-1 py-0.5 rounded bg-purple-500/30 text-[8px] font-black text-purple-300 border border-purple-500/40 leading-none">
+                                        MKT
+                                    </span>
+                                )}
+                                {totalPrice > 0 && (
+                                    <span className="px-1 py-0.5 rounded bg-emerald-500/25 text-[9px] font-black text-emerald-300 border border-emerald-500/40 leading-none">
+                                        ${totalPrice}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* ── Modo Completo para citas de 45+ min ── */
+                    <>
+                        <div className="flex items-start justify-between gap-1 mb-1">
+                            <span className="text-xs font-black truncate">{apt.clientName}</span>
+                            <span className="text-[10px] font-bold opacity-80 shrink-0">
+                                {apt.time.slice(0, 5)}
+                            </span>
+                        </div>
+
+                        <p className="text-[11px] font-bold opacity-90 truncate leading-tight flex items-center gap-1" title={getAppointmentFullServiceDisplay(apt, service?.name)}>
+                            <Sparkles size={11} className="shrink-0 text-accent" />
+                            {getAppointmentFullServiceDisplay(apt, service?.name)}
+                        </p>
+
+                        <div className="mt-1.5 flex items-center gap-1 flex-wrap">
+                            {/* Dynamic Status Badge */}
+                            {apt.status === 'no_show' ? (
+                                <span className="px-1.5 py-0.5 rounded bg-orange-500/30 text-[9px] font-black text-orange-300 uppercase tracking-wider border border-orange-500/40">
+                                    ⚠️ NO ASISTIÓ
+                                </span>
+                            ) : statusState.isCompleted ? (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
+                                    ✓ COMPLETADA
+                                </span>
+                            ) : statusState.isLiveAtendiendo ? (
+                                <span className="px-1.5 py-0.5 rounded bg-accent/30 text-[9px] font-black text-accent uppercase tracking-wider border border-accent/50 animate-pulse">
+                                    🔴 ATENDIENDO
+                                </span>
+                            ) : statusState.isConfirmed ? (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
+                                    ✓ CONFIRMADA
+                                </span>
+                            ) : statusState.isPending ? (
+                                <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-[9px] font-black text-amber-300 uppercase tracking-wider border border-amber-500/40">
+                                    ⌛ PENDIENTE
+                                </span>
+                            ) : (
+                                <span className="px-1.5 py-0.5 rounded bg-indigo-500/30 text-[9px] font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/40">
+                                    📅 AGENDADA
+                                </span>
+                            )}
+
+                            {/* Marketplace Origin Badge */}
+                            {(apt.bookingSource === 'marketplace' || (apt as any).booking_source === 'marketplace') && (
+                                <span className="px-1.5 py-0.5 rounded bg-purple-500/30 text-[9px] font-black text-purple-300 border border-purple-500/40 uppercase tracking-wider">
+                                    🛒 MARKETPLACE
+                                </span>
+                            )}
+
+                            {/* Total Confirmed Price Badge */}
+                            {totalPrice > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/25 text-[9px] font-black text-emerald-300 border border-emerald-500/40">
+                                    💲 ${totalPrice} MXN
+                                </span>
+                            )}
+
+                            {/* Staff Note Badge */}
+                            {((apt as any).staff_notes || (apt as any).notes) && (
+                                <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-[9px] font-bold text-amber-300 border border-amber-400/30 truncate max-w-[150px]">
+                                    📝 {(apt as any).staff_notes || (apt as any).notes}
+                                </span>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-950/80 rounded-2xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-xl">
             {/* ── Top Navigation Bar ── */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 border-b border-white/10 bg-[#0c101d]">
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-1 rounded-xl sm:rounded-2xl border border-white/10">
                         <button
-                            onClick={() => setCurrentDate(subDays(currentDate, 1))}
+                            onClick={() => setCurrentDate(prev => subDays(prev, 1))}
                             className="p-1.5 sm:p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg sm:rounded-xl transition-colors cursor-pointer"
                             title="Día anterior"
                         >
@@ -424,7 +647,7 @@ export default function StylistColumnCalendar({
                             HOY
                         </button>
                         <button
-                            onClick={() => setCurrentDate(addDays(currentDate, 1))}
+                            onClick={() => setCurrentDate(prev => addDays(prev, 1))}
                             className="p-1.5 sm:p-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg sm:rounded-xl transition-colors cursor-pointer"
                             title="Día siguiente"
                         >
@@ -432,14 +655,34 @@ export default function StylistColumnCalendar({
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                        <h3 className="text-xs sm:text-base md:text-lg font-black text-white capitalize tracking-tight">
-                            {format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-xs sm:text-base md:text-lg font-black text-white capitalize tracking-tight truncate">
+                            {dateRangeLabel}
                         </h3>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* View days selector for single stylist */}
+                    {isSingleStylist && (
+                        <div className="flex items-center bg-black/40 p-0.5 rounded-xl border border-white/10 shadow-inner">
+                            {[1, 3, 4].map(num => (
+                                <button
+                                    key={num}
+                                    onClick={() => setUserSelectedDays(num)}
+                                    className={`px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-black rounded-lg transition-all cursor-pointer ${
+                                        daysCount === num
+                                            ? 'bg-accent text-slate-950 shadow-md shadow-accent/20 font-black'
+                                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                                    title={`Ver ${num} ${num === 1 ? 'día' : 'días'}`}
+                                >
+                                    {num === 1 ? '1D' : `${num}D`}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     <DatePickerInput
                         value={dateStr}
                         onChange={(val) => {
@@ -459,36 +702,79 @@ export default function StylistColumnCalendar({
                 <div
                     className="relative flex flex-col w-full"
                     style={{
-                        minWidth: activeStylists.length <= 1
+                        minWidth: (!isSingleStylist && activeStylists.length <= 1) || (isSingleStylist && daysCount <= 1)
                             ? '100%'
-                            : `${Math.max(600, activeStylists.length * 180 + 80)}px`
+                            : `${Math.max(320, (isSingleStylist ? daysCount : activeStylists.length) * (windowWidth < 640 ? 105 : 180) + (windowWidth < 640 ? 56 : 80))}px`
                     }}
                 >
 
-                    {/* Column Headers (Stylists) */}
+                    {/* Column Headers */}
                     <div className="sticky top-0 z-30 flex border-b border-white/10 bg-[#0f1526]/95 backdrop-blur-xl shadow-md">
                         {/* Time axis header cell */}
-                        <div className="w-20 shrink-0 p-3 text-center border-r border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center justify-center">
+                        <div className="w-14 sm:w-20 shrink-0 p-2 sm:p-3 text-center border-r border-white/10 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center justify-center">
                             Hora
                         </div>
 
-                        {/* Stylist Columns */}
+                        {/* Columns Header: either Multi-Stylist (1 day) OR Single Stylist (Multi-Day) */}
                         <div className="flex-1 grid grid-flow-col auto-cols-fr divide-x divide-white/10">
-                            {activeStylists.map(stylist => (
-                                <div key={stylist.id} className="p-3 flex items-center gap-2.5 justify-center text-center">
-                                    {stylist.image ? (
-                                        <img decoding="async" loading="lazy" src={stylist.image} alt={stylist.name} className="w-7 h-7 rounded-full object-cover border border-accent/40 shrink-0" />
-                                    ) : (
-                                        <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shrink-0 text-xs font-black">
-                                            {stylist.name.charAt(0)}
+                            {isSingleStylist && daysCount > 1 ? (
+                                displayDays.map(dayDate => {
+                                    const isDayToday = isToday(dayDate);
+                                    const dStr = format(dayDate, 'yyyy-MM-dd');
+                                    const apptCount = appointmentCounts[dStr] || 0;
+
+                                    return (
+                                        <div
+                                            key={dStr}
+                                            className={`p-2 sm:p-3 flex flex-col items-center justify-center text-center transition-colors ${
+                                                isDayToday ? 'bg-accent/10 border-b-2 border-accent' : ''
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-1 sm:gap-1.5 leading-tight">
+                                                <span className={`text-[11px] sm:text-sm font-black capitalize ${isDayToday ? 'text-accent' : 'text-white'}`}>
+                                                    <span className="sm:hidden">{format(dayDate, 'EEE', { locale: es })}</span>
+                                                    <span className="hidden sm:inline">{format(dayDate, 'EEEE', { locale: es })}</span>
+                                                </span>
+                                                {isDayToday && (
+                                                    <span className="px-1 sm:px-1.5 py-0.2 rounded bg-accent text-slate-950 text-[7px] sm:text-[8px] font-black uppercase tracking-wider shadow-sm">
+                                                        HOY
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-1 sm:gap-2 mt-0.5">
+                                                <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 capitalize">
+                                                    {format(dayDate, "d 'de' MMM", { locale: es })}
+                                                </span>
+                                                {apptCount > 0 ? (
+                                                    <span className="text-[8px] sm:text-[9px] font-bold text-accent bg-accent/15 px-1 sm:px-1.5 py-0.2 rounded-full border border-accent/30">
+                                                        {apptCount} {apptCount === 1 ? 'cita' : 'citas'}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[8px] sm:text-[9px] font-medium text-slate-500 hidden xs:inline">
+                                                        Libre
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                    )}
-                                    <div className="min-w-0 text-left">
-                                        <h4 className="text-xs font-black text-white truncate leading-tight">{stylist.name}</h4>
-                                        <p className="text-[9px] text-slate-400 truncate uppercase tracking-wider font-bold">{stylist.role || 'Estilista'}</p>
+                                    );
+                                })
+                            ) : (
+                                activeStylists.map(stylist => (
+                                    <div key={stylist.id} className="p-3 flex items-center gap-2.5 justify-center text-center">
+                                        {stylist.image ? (
+                                            <img decoding="async" loading="lazy" src={stylist.image} alt={stylist.name} className="w-7 h-7 rounded-full object-cover border border-accent/40 shrink-0" />
+                                        ) : (
+                                            <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shrink-0 text-xs font-black">
+                                                {stylist.name.charAt(0)}
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 text-left">
+                                            <h4 className="text-xs font-black text-white truncate leading-tight">{stylist.name}</h4>
+                                            <p className="text-[9px] text-slate-400 truncate uppercase tracking-wider font-bold">{stylist.role || 'Estilista'}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
 
@@ -496,7 +782,7 @@ export default function StylistColumnCalendar({
                     <div className="relative flex flex-1" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
 
                         {/* Time Labels Y-Axis */}
-                        <div className="w-20 shrink-0 border-r border-white/10 bg-black/20 select-none">
+                        <div className="w-14 sm:w-20 shrink-0 border-r border-white/10 bg-black/20 select-none">
                             {HOURS.map((h) => {
                                 const ampm = h >= 12 ? 'PM' : 'AM';
                                 const displayH = h % 12 === 0 ? 12 : h % 12;
@@ -504,9 +790,9 @@ export default function StylistColumnCalendar({
                                     <div
                                         key={h}
                                         style={{ height: `${HOUR_HEIGHT}px` }}
-                                        className="border-b border-white/5 pr-3 pt-2 text-right text-[11px] font-bold text-slate-500 box-border"
+                                        className="border-b border-white/5 pr-2 sm:pr-3 pt-2 text-right text-[10px] sm:text-[11px] font-bold text-slate-500 box-border"
                                     >
-                                        {displayH}:00 <span className="text-[9px] text-slate-600 font-normal">{ampm}</span>
+                                        {displayH}:00 <span className="text-[8px] sm:text-[9px] text-slate-600 font-normal">{ampm}</span>
                                     </div>
                                 );
                             })}
@@ -518,16 +804,18 @@ export default function StylistColumnCalendar({
                                 className="absolute left-0 right-0 z-20 pointer-events-none flex items-center -translate-y-1/2"
                                 style={{ top: `${currentRedLineTop}px` }}
                             >
-                                <div className="w-20 text-right pr-1">
+                                <div className="w-14 sm:w-20 text-right pr-1">
                                     <span
                                         onClick={() => scrollToCurrentTime('smooth')}
                                         title="Hora actual (clic para centrar)"
-                                        className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg pointer-events-auto cursor-pointer hover:scale-110 active:scale-95 transition-transform inline-block"
+                                        className="bg-red-500 text-white text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded-full shadow-lg pointer-events-auto cursor-pointer hover:scale-110 active:scale-95 transition-transform inline-block"
                                     >
                                         {format(now, 'h:mm a')}
                                     </span>
                                 </div>
-                                <div className="flex-1 h-[2px] bg-gradient-to-r from-red-500 via-red-500 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                                {(!isSingleStylist || daysCount <= 1) && (
+                                    <div className="flex-1 h-[2px] bg-gradient-to-r from-red-500 via-red-500 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                                )}
                             </div>
                         )}
 
@@ -541,164 +829,47 @@ export default function StylistColumnCalendar({
                                 ))}
                             </div>
 
-                            {/* Stylist Columns Content */}
-                            {activeStylists.map(stylist => {
-                                const stylistAppts = dayAppointments.filter(a => {
-                                    if (stylist.id === 0) return !a.stylistId;
-                                    return Number(a.stylistId) === Number(stylist.id);
-                                });
+                            {/* Columns Content: either Single Stylist Multi-Day OR Multi-Stylist Single-Day */}
+                            {isSingleStylist && daysCount > 1 ? (
+                                displayDays.map(dayDate => {
+                                    const dStr = format(dayDate, 'yyyy-MM-dd');
+                                    const isDayToday = isToday(dayDate);
+                                    const dayStylistAppts = appointments.filter(a => {
+                                        if (a.date !== dStr || a.status === 'cancelada') return false;
+                                        if (!singleStylist || singleStylist.id === 0) return !a.stylistId;
+                                        return Number(a.stylistId) === Number(singleStylist.id);
+                                    });
 
-                                return (
-                                    <div key={stylist.id} className="relative h-full">
-                                        {stylistAppts.map(apt => {
-                                            const service = getServiceById(apt.serviceId);
-                                            const duration = getAppointmentTotalDuration(apt);
-                                            const topPx = calculateTop(apt.time);
-                                            const heightPx = calculateHeight(duration);
-                                            const isShort = duration <= 35 || heightPx < 70;
-                                            const totalPrice = getAppointmentTotalPrice(apt);
-
-                                            const statusState = getAppointmentStatusState(apt);
-
-                                            return (
+                                    return (
+                                        <div key={dStr} className={`relative h-full ${isDayToday ? 'bg-accent/[0.02]' : ''}`}>
+                                            {/* Live red line on today's column */}
+                                            {isDayToday && currentRedLineTop !== null && (
                                                 <div
-                                                    key={apt.id}
-                                                    onClick={() => setSelectedApt(apt)}
-                                                    style={{
-                                                        top: `${topPx}px`,
-                                                        height: `${Math.max(48, heightPx - 4)}px`,
-                                                    }}
-                                                    className={`absolute left-1 right-1 border text-left transition-all duration-300 cursor-pointer shadow-xl overflow-hidden group hover:z-20 hover:scale-[1.01] ${
-                                                        isShort ? 'rounded-xl p-2' : 'rounded-2xl p-2.5'
-                                                    } ${
-                                                        statusState.isCompleted
-                                                            ? 'bg-gradient-to-br from-emerald-950/80 to-slate-900/90 border-emerald-500/40 text-emerald-100 shadow-emerald-950/40'
-                                                            : statusState.isLiveAtendiendo
-                                                            ? 'bg-gradient-to-br from-purple-950/90 via-slate-900/90 to-amber-950/80 border-accent/60 text-accent shadow-accent/20 ring-1 ring-accent/40'
-                                                            : statusState.isFullPayment
-                                                            ? 'bg-gradient-to-br from-emerald-950/90 to-teal-900/80 border-emerald-500/50 hover:border-emerald-400 text-emerald-100 shadow-emerald-950/50'
-                                                            : statusState.isConfirmed
-                                                            ? 'bg-gradient-to-br from-teal-950/90 to-cyan-900/80 border-teal-500/40 hover:border-teal-300 text-teal-100'
-                                                            : 'bg-gradient-to-br from-slate-900/90 to-indigo-950/80 border-indigo-500/30 hover:border-indigo-400 text-slate-100'
-                                                    }`}
+                                                    className="absolute left-0 right-0 z-20 pointer-events-none flex items-center -translate-y-1/2"
+                                                    style={{ top: `${currentRedLineTop}px` }}
                                                 >
-                                                    {isShort ? (
-                                                        /* ── Modo Compacto para citas de 30-35 min (Cero texto cortado) ── */
-                                                        <div className="flex flex-col justify-between h-full">
-                                                            <div className="flex items-center justify-between gap-1 leading-none">
-                                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                                    {/* Mini status indicator dot */}
-                                                                    {apt.status === 'no_show' ? (
-                                                                        <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" title="No asistió" />
-                                                                    ) : statusState.isCompleted ? (
-                                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Completada" />
-                                                                    ) : statusState.isLiveAtendiendo ? (
-                                                                        <span className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" title="Atendiendo" />
-                                                                    ) : statusState.isConfirmed ? (
-                                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Confirmada" />
-                                                                    ) : statusState.isPending ? (
-                                                                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Pendiente" />
-                                                                    ) : (
-                                                                        <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" title="Agendada" />
-                                                                    )}
-                                                                    <span className="text-xs font-black truncate">{apt.clientName}</span>
-                                                                </div>
-                                                                <span className="text-[10px] font-bold opacity-80 shrink-0 font-mono">
-                                                                    {apt.time.slice(0, 5)}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center justify-between gap-1 leading-none">
-                                                                <p className="text-[10px] font-semibold opacity-90 truncate flex items-center gap-1 min-w-0" title={getAppointmentFullServiceDisplay(apt, service?.name)}>
-                                                                    <Sparkles size={10} className="shrink-0 text-accent" />
-                                                                    <span className="truncate">{getAppointmentFullServiceDisplay(apt, service?.name)}</span>
-                                                                </p>
-                                                                <div className="flex items-center gap-1 shrink-0">
-                                                                    {(apt.bookingSource === 'marketplace' || (apt as any).booking_source === 'marketplace') && (
-                                                                        <span className="px-1 py-0.5 rounded bg-purple-500/30 text-[8px] font-black text-purple-300 border border-purple-500/40 leading-none">
-                                                                            MKT
-                                                                        </span>
-                                                                    )}
-                                                                    {totalPrice > 0 && (
-                                                                        <span className="px-1 py-0.5 rounded bg-emerald-500/25 text-[9px] font-black text-emerald-300 border border-emerald-500/40 leading-none">
-                                                                            ${totalPrice}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        /* ── Modo Completo para citas de 45+ min ── */
-                                                        <>
-                                                            <div className="flex items-start justify-between gap-1 mb-1">
-                                                                <span className="text-xs font-black truncate">{apt.clientName}</span>
-                                                                <span className="text-[10px] font-bold opacity-80 shrink-0">
-                                                                    {apt.time.slice(0, 5)}
-                                                                </span>
-                                                            </div>
-
-                                                            <p className="text-[11px] font-bold opacity-90 truncate leading-tight flex items-center gap-1" title={getAppointmentFullServiceDisplay(apt, service?.name)}>
-                                                                <Sparkles size={11} className="shrink-0 text-accent" />
-                                                                {getAppointmentFullServiceDisplay(apt, service?.name)}
-                                                            </p>
-
-                                                            <div className="mt-1.5 flex items-center gap-1 flex-wrap">
-                                                                {/* Dynamic Status Badge */}
-                                                                {apt.status === 'no_show' ? (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/30 text-[9px] font-black text-orange-300 uppercase tracking-wider border border-orange-500/40">
-                                                                        ⚠️ NO ASISTIÓ
-                                                                    </span>
-                                                                ) : statusState.isCompleted ? (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
-                                                                        ✓ COMPLETADA
-                                                                    </span>
-                                                                ) : statusState.isLiveAtendiendo ? (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-accent/30 text-[9px] font-black text-accent uppercase tracking-wider border border-accent/50 animate-pulse">
-                                                                        🔴 ATENDIENDO
-                                                                    </span>
-                                                                ) : statusState.isConfirmed ? (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/30 text-[9px] font-black text-emerald-300 uppercase tracking-wider border border-emerald-500/40">
-                                                                        ✓ CONFIRMADA
-                                                                    </span>
-                                                                ) : statusState.isPending ? (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-[9px] font-black text-amber-300 uppercase tracking-wider border border-amber-500/40">
-                                                                        ⌛ PENDIENTE
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/30 text-[9px] font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/40">
-                                                                        📅 AGENDADA
-                                                                    </span>
-                                                                )}
-
-                                                                {/* Marketplace Origin Badge */}
-                                                                {(apt.bookingSource === 'marketplace' || (apt as any).booking_source === 'marketplace') && (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-purple-500/30 text-[9px] font-black text-purple-300 border border-purple-500/40 uppercase tracking-wider">
-                                                                        🛒 MARKETPLACE
-                                                                    </span>
-                                                                )}
-
-                                                                {/* Total Confirmed Price Badge */}
-                                                                {totalPrice > 0 && (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/25 text-[9px] font-black text-emerald-300 border border-emerald-500/40">
-                                                                        💲 ${totalPrice} MXN
-                                                                    </span>
-                                                                )}
-
-                                                                {/* Staff Note Badge */}
-                                                                {((apt as any).staff_notes || (apt as any).notes) && (
-                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-[9px] font-bold text-amber-300 border border-amber-400/30 truncate max-w-[150px]">
-                                                                        📝 {(apt as any).staff_notes || (apt as any).notes}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </>
-                                                    )}
+                                                    <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)] -ml-1 shrink-0" />
+                                                    <div className="flex-1 h-[2px] bg-gradient-to-r from-red-500 to-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })}
+                                            )}
+                                            {dayStylistAppts.map(apt => renderAppointmentCard(apt))}
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                activeStylists.map(stylist => {
+                                    const stylistAppts = dayAppointments.filter(a => {
+                                        if (stylist.id === 0) return !a.stylistId;
+                                        return Number(a.stylistId) === Number(stylist.id);
+                                    });
+
+                                    return (
+                                        <div key={stylist.id} className="relative h-full">
+                                            {stylistAppts.map(apt => renderAppointmentCard(apt))}
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 </div>
