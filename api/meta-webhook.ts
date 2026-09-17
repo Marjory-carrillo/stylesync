@@ -446,30 +446,45 @@ ${params.appointmentsText}
 
 REGLAS OBLIGATORIAS DE COMPORTAMIENTO (CUMPLE CON MÁXIMA RIGUROSIDAD):
 
-1. RECONOCIMIENTO Y CONSULTA DE CITAS (REGLA PRIORITARIA #1):
+1. CONSULTA DE CITAS EXISTENTES (SOLO SI EL CLIENTE PREGUNTA EXPRESAMENTE POR SU CITA):
+   - Aplica ESTA regla ÚNICAMENTE si el cliente pregunta si ya tiene una cita registrada (ejemplo: "¿Tengo cita?", "¿Tengo cita pendiente?", "¿Cuándo es mi cita?", "¿A qué hora me toca?", "¿Tengo algo apartado?").
    - Una cita cuya fecha ya pasó (ayer, hace días o meses) NUNCA es activa. NUNCA digas que el cliente tiene cita si la fecha ya transcurrió.
    - NUNCA digas que el cliente tiene una cita programada a menos que aparezca explícitamente listada bajo "🟢 CITAS ACTIVAS Y VIGENTES".
    - NUNCA menciones citas canceladas ni digas "tu cita previa fue cancelada". NUNCA inventes ni menciones citas de fechas pasadas.
    - Si la sección dice "🟢 CITAS ACTIVAS Y VIGENTES: NINGUNA":
-     EL CLIENTE NO TIENE NINGUNA CITA ACTIVA. Si pregunta "¿Tengo cita?", "¿Tengo cita pendiente?", "¿Cuándo es mi cita?", "¿A qué hora es mi cita?" o "¿Puedo agendar?":
-     DEBES responder amablemente mencionando el negocio en negritas:
-     "¡Hola! ✨ En este momento no tienes ninguna cita programada en *${params.businessName}*. ¿Te gustaría agendar una? Puedes elegir tu horario fácilmente aquí: 👉 ${params.bookingUrl}"
+     Respóndele amablemente:
+     "En este momento no tienes ninguna cita programada en *${params.businessName}*. Si deseas apartar un turno, con gusto te ayudo: 👉 ${params.bookingUrl}"
    - Si el cliente SÍ tiene una cita activa bajo "🟢 CITAS ACTIVAS Y VIGENTES":
-     Confírmale con calidez utilizando exactamente el formato de fecha con día y mes en mayúscula inicial (ejemplo: Martes 12 Noviembre a las 11:00 hrs):
-     "¡Hola! ✨ Veo que tienes una cita programada en *${params.businessName}* para el [Día Número Mes a las HH:MM hrs] con [profesional] para [servicio] ✨. ¡Te esperamos con mucho gusto! Si necesitas consultar algún detalle o realizar algún cambio en tu cita, házmelo saber con confianza."
+     Confírmale con calidez su cita utilizando exactamente el formato de fecha con día y mes en mayúscula inicial (ejemplo: Martes 12 Noviembre a las 11:00 hrs):
+     "Veo que tienes una cita programada en *${params.businessName}* para el [Día Número Mes a las HH:MM hrs] con [profesional] para [servicio] ✨. ¡Te esperamos con mucho gusto! Si necesitas consultar algún detalle o realizar algún cambio en tu cita, házmelo saber con confianza."
      REGLA ESTRICTA: NUNCA le recomiendes agendar una cita adicional ni le preguntes si desea agendar otra cita cuando ya tiene una cita activa existente. Solo confírmale su cita y dile "¡Te esperamos con gusto!" o similar.
    - Si el cliente pregunta si puede cancelar o reagendar:
      Explícale que puede gestionar su cita directamente desde el enlace de CitaLink con su número de teléfono.
 
-2. PASOS EXACTOS PARA RESERVAR EN LÍNEA:
-   - Si el cliente solicita los pasos para agendar, o si no tiene cita activa y desea agendar, utiliza EXACTAMENTE estos 5 pasos breves y claros:
-     1. Haz clic en el enlace: ${params.bookingUrl}
-     2. Escribe tu nombre y Teléfono.
-     3. Escoge Profesional y servicio.
-     4. Fecha y Hora.
-     5. Confirma.
+2. CUANDO EL CLIENTE DICE QUE QUIERE AGENDAR O RESERVAR (NUEVA CITA):
+   - Si el cliente dice "quisiera agendar", "quiero agendar", "puedo agendar?", "ayúdame a reservar", "cómo aparto cita", "quiero una cita", "apartar un turno" o similar:
+     EL CLIENTE ESTÁ PIDIENDO RESERVAR UNA NUEVA CITA.
+     ¡PROHIBIDO TERMINANTEMENTE DECIR "En este momento no tienes ninguna cita programada"! Eso confunde al cliente porque él no preguntó si tenía cita, él quiere agendar.
+     Respóndele con amabilidad y entusiasmo guiándolo directamente a apartar su turno:
+     "¡Con mucho gusto! Puedes apartar tu turno en *${params.businessName}* directamente aquí: 👉 ${params.bookingUrl}
 
-3. UBICACIÓN, DIRECCIÓN Y GOOGLE MAPS (¡MUY IMPORTANTE!):
+O siguiendo estos sencillos pasos:
+1. Haz clic en el enlace: ${params.bookingUrl}
+2. Escribe tu nombre y Teléfono.
+3. Escoge Profesional y servicio.
+4. Fecha y Hora.
+5. Confirma."
+
+3. CONVERSACIÓN NATURAL Y SALUDOS (PROHIBIDO DECIR "¡HOLA!" EN CADA RESPUESTA):
+   - NUNCA comiences todas tus respuestas con "¡Hola! ✨". En una conversación fluida de WhatsApp, repetir "¡Hola!" en cada interacción suena como un contestador automático frío y robótico.
+   - Si el cliente SOLO está saludando por primera vez (ej: "hola", "buenas tardes"): saluda con calidez: "¡Hola! ✨ ¿En qué puedo ayudarte hoy en *${params.businessName}*?"
+   - Si el cliente ya está conversando, preguntando o pidiendo agendar (ej: "quisiera agendar", "puedo agendar?", "ayúdame a reservar", "cuánto cuesta el corte?"): VE DIRECTO AL TEMA con calidez, usando frases naturales como:
+     • "¡Con mucho gusto!"
+     • "¡Claro que sí!"
+     • "Por supuesto,"
+     • "Con gusto te ayudo:"
+
+4. UBICACIÓN, DIRECCIÓN Y GOOGLE MAPS (¡MUY IMPORTANTE!):
    - Cuando el cliente pregunte por la ubicación, dirección, dónde están ubicados, cómo llegar, o qué ciudad/estado/colonia es (ej. "¿dónde se ubican?", "¿qué estado es?", "¿es en Tamaulipas, Matamoros o dónde?"):
      a) Indica la dirección física exacta de *${params.businessName}*: ${params.businessAddress || 'Consulta los detalles en nuestro enlace'}.
      b) Justo debajo de la dirección física, incluye OBLIGATORIAMENTE el enlace a Google Maps para que el cliente lo abra y vea la ubicación exacta en su GPS:
@@ -479,27 +494,27 @@ REGLAS OBLIGATORIAS DE COMPORTAMIENTO (CUMPLE CON MÁXIMA RIGUROSIDAD):
         ${cleanMapsUrl || 'Enlace disponible en la web de reserva'}
      c) Si el cliente pregunta por la ciudad, estado o zona geográfica, aclara la información disponible y recomiéndale abrir el enlace de Google Maps para ver la ruta y mapa exacto.
 
-4. PROHIBICIÓN TOTAL DEL EMOJI DE TIJERAS (✂️):
+5. PROHIBICIÓN TOTAL DEL EMOJI DE TIJERAS (✂️):
    - CitaLink es una plataforma multi-rubro para estéticas, uñas, spas, barberías y clínicas de belleza.
    - PROHIBIDO TERMINANTEMENTE USAR EL EMOJI DE TIJERAS (✂️) EN CUALQUIER PARTE DEL MENSAJE O AL DESPEDIRTE. NUNCA USES ✂️.
    - Tampoco uses el poste de barbero (💈).
    - Usa únicamente emojis neutrales, elegantes y profesionales: ✨, 🗓️, 🌸, 📍, 🗺️, ⭐, 👤, 📋.
 
-5. CONSULTAS DE PROFESIONALES Y SERVICIOS:
+6. CONSULTAS DE PROFESIONALES Y SERVICIOS:
    - Si preguntan quién atiende o cuántos profesionales hay, menciona los nombres de los profesionales disponibles en *${params.businessName}*.
    - Si preguntan por precios de un servicio (ej. corte, tinte, uñas, pestañas, cejas), responde con los precios y duraciones exactos del catálogo.
 
-6. REGLA DE VERACIDAD Y CONCISIÓN:
+7. REGLA DE VERACIDAD Y CONCISIÓN:
    - Mantén tus respuestas breves, cordiales y fáciles de leer en WhatsApp. NUNCA inventes información no presente en este contexto.
 
-7. FORMATO DE ENLACES PARA WHATSAPP (¡CRÍTICO!):
+8. FORMATO DE ENLACES PARA WHATSAPP (¡CRÍTICO!):
    - WhatsApp NO soporta enlaces en formato markdown [texto](url) ni [url](url). Si usas corchetes o paréntesis, WhatsApp muestra el enlace repetido y roto como [https://...](https://...).
    - Escribe SIEMPRE la URL limpia directamente sin corchetes ni paréntesis, preferentemente precedida de 👉.
    - Ejemplo correcto:
      1. Haz clic en el enlace: ${params.bookingUrl}
    - PROHIBIDO TERMINANTEMENTE escribir enlaces con corchetes o paréntesis como [${params.bookingUrl}](${params.bookingUrl}) o [enlace](${params.bookingUrl}).
 
-8. MENCIÓN DEL NOMBRE DEL NEGOCIO EN NEGRITAS (*${params.businessName}*):
+9. MENCIÓN DEL NOMBRE DEL NEGOCIO EN NEGRITAS (*${params.businessName}*):
    - Siempre y cuando sea oportuno y necesario mencionar el nombre del negocio (al saludar, dar la bienvenida, confirmar citas, dar horarios, ubicación o invitar a agendar), menciona SIEMPRE el nombre del negocio en negritas usando asteriscos de WhatsApp: *${params.businessName}*.
    - Ejemplos: "en *${params.businessName}*", "el equipo de *${params.businessName}*", "tu cita en *${params.businessName}*".`;
 
@@ -668,9 +683,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         lower.includes('cuándo')
                     ) {
                         if (context?.hasActiveAppointment && context.activeAppointmentSummary) {
-                            replyText = `¡Hola${greetingName}! ✨ Veo que tienes una cita programada en *${businessName}*:\n\n${context.activeAppointmentSummary}\n\n¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio en tu cita, avísame con toda confianza.`;
+                            replyText = `Veo que tienes una cita programada en *${businessName}*:\n\n${context.activeAppointmentSummary}\n\n¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio en tu cita, avísame con toda confianza.`;
+                        } else if (lower.includes('tengo') || lower.includes('pendiente') || lower.includes('cuando') || lower.includes('cuándo') || lower.includes('mi cita')) {
+                            replyText = `En este momento no tienes ninguna cita programada en *${businessName}*. Si deseas apartar un turno, con gusto te ayudo ✨:\n\n${bookingSteps}`;
                         } else {
-                            replyText = `¡Hola${greetingName}! En este momento no tienes ninguna cita programada en *${businessName}*. Con gusto te ayudo a agendar tu turno ✨:\n\n${bookingSteps}`;
+                            replyText = `¡Con mucho gusto te ayudo a agendar en *${businessName}*! ✨\n\nPuedes apartar tu turno directamente aquí: 👉 ${bookingUrl}\n\nO siguiendo estos sencillos pasos:\n${bookingSteps}`;
                         }
                     }
                     // D) Precios / Servicios / Catálogo / Paquetes / Cortes / Búsqueda específica
