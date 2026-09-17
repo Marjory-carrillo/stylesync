@@ -219,7 +219,7 @@ function App() {
   }, [fetchGlobalConfig]);
 
   useEffect(() => {
-    applyZoom(85);
+    applyZoom();
     let mounted = true;
     let isFetchingContext = false;
 

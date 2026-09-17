@@ -19,7 +19,7 @@
   - Nunca usar `background-attachment: fixed` en `html`, `body` o contenedores con scroll (causa repaints continuos en Safari iOS).
   - Los fondos degradados fijos deben ir en `body::before` con aceleración GPU (`will-change: transform`, `transform: translateZ(0)`).
 - **Control de Zoom y DOM (`useAppZoom.ts`)**:
-  - Escala unificada al 85% (`0.85`) en `document.documentElement` con `minHeight: 100vh` para todas las plataformas (Android, iOS Safari y Escritorio).
+  - Escala unificada al 80% (`0.80`) en `document.documentElement` con `minHeight: 100vh` para todas las plataformas (Android, iOS Safari y Escritorio).
 - **Robustez de Carga & SplashScreen**:
   - Todo fallback de tiempo (`safetyTimer`) o bloque `catch`/`finally` en la inicialización de sesión debe garantizar la limpieza de `loadingAuth`, `loadingTenant` y `loadingConfig` para evitar estados de SplashScreen infinito.
   - El Service Worker (`public/sw.js`) debe mantener la estrategia *Network-First* en navegación sin pre-cachear `index.html`.

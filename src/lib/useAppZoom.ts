@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 
-export const FIXED_ZOOM = 85;
+export const FIXED_ZOOM = 80;
 
 export const applyZoom = (zoomLevel: number = FIXED_ZOOM) => {
     if (typeof document === 'undefined') return;
 
-    const scale = zoomLevel / 100; // 0.85
+    const scale = zoomLevel / 100; // 0.80
 
     if (document.documentElement) {
         (document.documentElement.style as any).zoom = `${scale}`;
@@ -22,7 +22,7 @@ export function useAppZoom() {
     useEffect(() => {
         applyZoom(FIXED_ZOOM);
         try {
-            localStorage.setItem('citalink_app_zoom', '85');
+            localStorage.setItem('citalink_app_zoom', '80');
         } catch {}
     }, []);
 
