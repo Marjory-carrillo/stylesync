@@ -1,13 +1,21 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon, Eye, EyeOff, Copy, CheckCircle2, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
-import { useAuthStore } from '../lib/store/authStore';
+import { useAuthStore, isUserSuperAdmin } from '../lib/store/authStore';
 
 export default function Login() {
     const { user, isSuperAdmin } = useAuthStore();
+    const [savedAccount, setSavedAccount] = useState<{ email: string; name?: string } | null>(() => {
+        try {
+            const raw = localStorage.getItem('citalink_saved_account');
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    });
     const [email, setEmail] = useState(() => {
         return localStorage.getItem('citalink_saved_email') || '';
     });
@@ -24,10 +32,21 @@ export default function Login() {
     const [copiedPw, setCopiedPw] = useState(false);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const passwordInputRef = useRef<HTMLInputElement>(null);
     const inviteEmail = searchParams.get('email');
     const invitePw = searchParams.get('pw');
 
     const [isInviteFlow, setIsInviteFlow] = useState(!!inviteEmail && !!invitePw);
+
+    // Auto-enfocar el campo de contraseña si el correo ya está recordado (activa la barra de autocompletar Face ID en Safari)
+    useEffect(() => {
+        if (email && !password && passwordInputRef.current) {
+            const timer = setTimeout(() => {
+                passwordInputRef.current?.focus();
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, []);
 
     // Pre-fill credentials from magic link redirect and sanitize URL bar immediately
     useEffect(() => {
@@ -81,22 +100,37 @@ export default function Login() {
                 });
                 if (error) throw error;
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email: trimmedEmail,
                     password,
                 });
                 if (error) throw error;
 
-                // Guardar correo para autocompletar en próximas sesiones en iOS/Android/Escritorio
+                // Guardar correo y cuenta para autocompletar en próximas sesiones en Safari iOS y navegadores
                 if (rememberEmail) {
-                    localStorage.setItem('citalink_saved_email', trimmedEmail);
-                    localStorage.setItem('citalink_remember_email', 'true');
+                    try {
+                        localStorage.setItem('citalink_saved_email', trimmedEmail);
+                        localStorage.setItem('citalink_remember_email', 'true');
+                        const account = {
+                            email: trimmedEmail,
+                            name: data?.user?.user_metadata?.name || data?.user?.user_metadata?.full_name || trimmedEmail.split('@')[0],
+                            timestamp: Date.now()
+                        };
+                        localStorage.setItem('citalink_saved_account', JSON.stringify(account));
+                    } catch (e) {
+                        console.debug('Storage error:', e);
+                    }
                 } else {
-                    localStorage.removeItem('citalink_saved_email');
-                    localStorage.setItem('citalink_remember_email', 'false');
+                    try {
+                        localStorage.removeItem('citalink_saved_email');
+                        localStorage.removeItem('citalink_saved_account');
+                        localStorage.setItem('citalink_remember_email', 'false');
+                    } catch (e) {
+                        console.debug('Storage error:', e);
+                    }
                 }
 
-                // Guardar credenciales en el Llavero de iCloud / Administrador nativo de contraseñas de iOS
+                // Guardar credenciales en el Llavero de iCloud / Administrador nativo de contraseñas
                 if (typeof window !== 'undefined' && (window as any).PasswordCredential && navigator.credentials) {
                     try {
                         const cred = new (window as any).PasswordCredential({
@@ -106,11 +140,16 @@ export default function Login() {
                         });
                         await navigator.credentials.store(cred);
                     } catch (credErr) {
-                        console.debug('iCloud Keychain store skipped:', credErr);
+                        console.debug('Keychain store skipped:', credErr);
                     }
                 }
+
+                // Navegación nativa para que WebKit (Safari en iOS) detecte el envío exitoso
+                // y dispare la ventana nativa: "¿Deseas guardar esta contraseña en el llavero de iCloud?"
+                const target = isUserSuperAdmin(data?.user) ? '/super-admin' : '/admin';
+                window.location.href = target;
+                return;
             }
-            // Navigation will be handled by useEffect observing 'user' state
         } catch (err: any) {
             console.error('Auth error:', err);
             setError(err.message || (isSignUp ? 'Error al crear cuenta.' : 'Credenciales incorrectas o error de conexión.'));
@@ -173,7 +212,40 @@ export default function Login() {
                     </div>
                 )}
 
-                <form onSubmit={handleLogin} method="post" action="#" autoComplete="on" className="space-y-5 relative z-10">
+                {/* Tarjeta de Acceso Rápido si ya existe una cuenta guardada en este dispositivo */}
+                {email && !isResetting && !isSignUp && (
+                    <div className="mb-5 bg-gradient-to-r from-violet-600/15 via-fuchsia-600/10 to-amber-500/15 border border-violet-500/30 rounded-2xl p-3.5 shadow-lg flex items-center justify-between animate-fade-in">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-amber-500 flex items-center justify-center font-black text-white text-base shadow-md shrink-0">
+                                {email.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Cuenta en este dispositivo</span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                </div>
+                                <p className="text-sm font-semibold text-white truncate">{email}</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                try {
+                                    localStorage.removeItem('citalink_saved_account');
+                                    localStorage.removeItem('citalink_saved_email');
+                                } catch (_) {}
+                                setSavedAccount(null);
+                                setEmail('');
+                                setPassword('');
+                            }}
+                            className="text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 ml-2"
+                        >
+                            Cambiar
+                        </button>
+                    </div>
+                )}
+
+                <form onSubmit={handleLogin} method="post" action="/login" autoComplete="on" className="space-y-5 relative z-10">
 
                         {/* Email Input */}
                         <div className="space-y-2">
@@ -184,10 +256,10 @@ export default function Login() {
                                 </div>
                                 <input
                                     id="email"
-                                    name="username"
+                                    name="email"
                                     type="email"
                                     inputMode="email"
-                                    autoComplete="username"
+                                    autoComplete="username email"
                                     autoCapitalize="none"
                                     autoCorrect="off"
                                     spellCheck={false}
@@ -220,6 +292,7 @@ export default function Login() {
                                         <Lock size={18} />
                                     </div>
                                     <input
+                                        ref={passwordInputRef}
                                         id="password"
                                         name="password"
                                         type={showPassword ? "text" : "password"}
@@ -243,10 +316,22 @@ export default function Login() {
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
+
+                                {/* Acceso Rápido Face ID / Llavero de iCloud en iOS */}
+                                {!isSignUp && (
+                                    <button
+                                        type="button"
+                                        onClick={() => passwordInputRef.current?.focus()}
+                                        className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-amber-400/90 hover:text-amber-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                    >
+                                        <KeyRound size={13} className="text-amber-400 shrink-0" />
+                                        <span>Usar Llavero de iCloud / Face ID</span>
+                                    </button>
+                                )}
                             </div>
                         )}
 
-                        {/* Recordar correo en este dispositivo */}
+                        {/* Recordar credenciales en este dispositivo */}
                         {!isResetting && !isSignUp && (
                             <div className="flex items-center justify-between px-1 pt-0.5">
                                 <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-400 hover:text-slate-200 transition-colors">
@@ -256,7 +341,7 @@ export default function Login() {
                                         onChange={(e) => setRememberEmail(e.target.checked)}
                                         className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500/30 focus:ring-offset-0 cursor-pointer accent-amber-500"
                                     />
-                                    <span>Recordar correo en este dispositivo</span>
+                                    <span>Mantener sesión iniciada y recordar correo</span>
                                 </label>
                             </div>
                         )}
