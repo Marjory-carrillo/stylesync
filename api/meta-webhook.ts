@@ -462,10 +462,10 @@ REGLAS OBLIGATORIAS DE COMPORTAMIENTO (CUMPLE CON MÁXIMA RIGUROSIDAD):
      Explícale que puede gestionar su cita directamente desde el enlace de CitaLink con su número de teléfono.
 
 2. CUANDO EL CLIENTE DICE QUE QUIERE AGENDAR O RESERVAR (NUEVA CITA):
-   - Si el cliente dice "quisiera agendar", "quiero agendar", "puedo agendar?", "ayúdame a reservar", "cómo aparto cita", "quiero una cita", "apartar un turno" o similar:
-     EL CLIENTE ESTÁ PIDIENDO RESERVAR UNA NUEVA CITA.
-     ¡PROHIBIDO TERMINANTEMENTE DECIR "En este momento no tienes ninguna cita programada"! Eso confunde al cliente porque él no preguntó si tenía cita, él quiere agendar.
-     Respóndele con amabilidad y entusiasmo guiándolo directamente a apartar su turno:
+   - Esta regla aplica cuando el cliente expresa el deseo o intención de apartar una cita a futuro (ej: "quisiera agendar", "quiero agendar", "puedo agendar?", "ayúdame a reservar", "cómo aparto cita", "quiero una cita", "apartar un turno").
+   - NO APLICA si el cliente dice que YA agendó, ya reservó o ya terminó (para eso aplica la regla 2.1).
+   - ¡PROHIBIDO TERMINANTEMENTE DECIR "En este momento no tienes ninguna cita programada"! Eso confunde al cliente porque él no preguntó si tenía cita, él quiere agendar.
+   - Respóndele con amabilidad y entusiasmo guiándolo directamente a apartar su turno:
      "¡Con mucho gusto! Puedes apartar tu turno en *${params.businessName}* directamente aquí: 👉 ${params.bookingUrl}
 
 O siguiendo estos sencillos pasos:
@@ -474,6 +474,23 @@ O siguiendo estos sencillos pasos:
 3. Escoge Profesional y servicio.
 4. Fecha y Hora.
 5. Confirma."
+
+2.1 CUANDO EL CLIENTE AVISA QUE YA AGENDÓ, YA RESERVÓ O YA TERMINÓ ("ya agendé", "ok ya agende", "ya quedó", "listo ya agendé", "ya terminé", "ya aparté mi cita", "ya lo hice", "listo"):
+   - ¡PROHIBIDO TOTALMENTE volver a mandarle los pasos para agendar o el enlace de reservas como si no hubiera agendado!
+   - El cliente te está avisando que YA realizó su reserva en la página.
+   - Si el cliente YA tiene una cita activa en la sección "🟢 CITAS ACTIVAS Y VIGENTES":
+     Confírmale con alegría y calidez los datos exactos de su cita:
+     "¡Excelente${params.clientName ? ', ' + params.clientName : ''}! 🎉 Veo que tu cita en *${params.businessName}* quedó confirmada para el [Día Número Mes a las HH:MM hrs] con [profesional] para [servicio] ✨. ¡Te esperamos con mucho gusto! Si necesitas consultar algún detalle o realizar algún cambio, avísame con toda confianza."
+   - Si en la sección dice "🟢 CITAS ACTIVAS Y VIGENTES: NINGUNA" (por ejemplo, porque la cita recién se envió y está terminando de registrarse):
+     Respóndele con alegría y calidez:
+     "¡Excelente${params.clientName ? ', ' + params.clientName : ''}! 🎉 ¡Muchas gracias por reservar en *${params.businessName}*! ¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio, avísame con toda confianza."
+   - ¡PROHIBIDO MENCIONAR CÓDIGOS DE VERIFICACIÓN O CÓDIGOS OTP! NUNCA menciones códigos OTP ni le digas que no tiene cita ni le vuelvas a enviar la lista de pasos para agendar.
+
+2.2 AGRADECIMIENTOS O CIERRES ("gracias", "muchas gracias", "ok gracias", "enterado", "perfecto", "vale", "excelente"):
+   - Si el cliente agradece o confirma que entendió (ej: "muchas gracias", "gracias", "ok gracias", "enterado", "perfecto", "vale", "dale", "de acuerdo"):
+     Respóndele con amabilidad y naturalidad:
+     "¡Con mucho gusto! ✨ Quedo a tus órdenes si necesitas algo más en *${params.businessName}*. ¡Que tengas un excelente día! 🌸"
+   - NUNCA repitas listas de pasos para agendar ni menús largos ante un simple agradecimiento.
 
 3. CONVERSACIÓN NATURAL Y SALUDOS (PROHIBIDO DECIR "¡HOLA!" EN CADA RESPUESTA):
    - NUNCA comiences todas tus respuestas con "¡Hola! ✨". En una conversación fluida de WhatsApp, repetir "¡Hola!" en cada interacción suena como un contestador automático frío y robótico.
@@ -669,6 +686,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     ) {
                         const stylistsText = formatStylists(stylists, businessName);
                         replyText = `${stylistsText}\n\n🗓️ Puedes consultar los horarios libres de cada uno y apartar tu turno directamente aquí:\n👉 ${bookingUrl}`;
+                    }
+                    // B.1) Cliente avisa que ya agendó / ya reservó / ya quedó
+                    else if (
+                        lower.includes('ya agend') ||
+                        lower.includes('ya reserv') ||
+                        lower.includes('ya qued') ||
+                        lower.includes('ya termin') ||
+                        lower.includes('ya la saque') ||
+                        lower.includes('ya la apart') ||
+                        lower.includes('ya lo hice') ||
+                        lower.includes('listo ya') ||
+                        lower.includes('ya tengo cita') ||
+                        lower.includes('ya se agend') ||
+                        lower === 'ya quedo' ||
+                        lower === 'listo' ||
+                        lower === 'ok ya' ||
+                        lower.startsWith('ok ya agend') ||
+                        lower.includes('ya agende')
+                    ) {
+                        if (context?.hasActiveAppointment && context.activeAppointmentSummary) {
+                            replyText = `¡Excelente${greetingName}! 🎉 Veo que tu cita en *${businessName}* quedó registrada:\n\n${context.activeAppointmentSummary}\n\n¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio en tu cita, avísame con toda confianza.`;
+                        } else {
+                            replyText = `¡Excelente${greetingName}! 🎉 ¡Muchas gracias por reservar en *${businessName}*! ¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio, avísame con toda confianza.`;
+                        }
+                    }
+                    // B.2) Agradecimientos / Cierres
+                    else if (
+                        lower === 'gracias' ||
+                        lower.includes('muchas gracias') ||
+                        lower.includes('mil gracias') ||
+                        lower.includes('gracias sara') ||
+                        lower.includes('ok gracias') ||
+                        lower === 'perfecto' ||
+                        lower === 'excelente' ||
+                        lower === 'enterado' ||
+                        lower === 'vale gracias' ||
+                        lower === 'ok perfecto' ||
+                        lower === 'de acuerdo'
+                    ) {
+                        replyText = `¡Con mucho gusto${greetingName}! ✨ Quedo a tus órdenes si necesitas algo más en *${businessName}*. ¡Que tengas un excelente día! 🌸`;
                     }
                     // C) Agendar cita / Pasos para reservar / Consultar cita
                     else if (
