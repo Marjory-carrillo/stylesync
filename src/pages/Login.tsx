@@ -213,18 +213,18 @@ export default function Login() {
                 )}
 
                 {/* Tarjeta de Acceso Rápido si ya existe una cuenta guardada en este dispositivo */}
-                {email && !isResetting && !isSignUp && (
+                {(savedAccount?.email || email) && !isResetting && !isSignUp && (
                     <div className="mb-5 bg-gradient-to-r from-violet-600/15 via-fuchsia-600/10 to-amber-500/15 border border-violet-500/30 rounded-2xl p-3.5 shadow-lg flex items-center justify-between animate-fade-in">
                         <div className="flex items-center gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-amber-500 flex items-center justify-center font-black text-white text-base shadow-md shrink-0">
-                                {email.charAt(0).toUpperCase()}
+                                {(savedAccount?.email || email).charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Cuenta en este dispositivo</span>
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                                 </div>
-                                <p className="text-sm font-semibold text-white truncate">{email}</p>
+                                <p className="text-sm font-semibold text-white truncate">{savedAccount?.email || email}</p>
                             </div>
                         </div>
                         <button
