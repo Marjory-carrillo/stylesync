@@ -64,7 +64,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
     }
 
-    // Twilio Setup
+    // Normalizar teléfono con soporte para México (+52), EE.UU./Canadá (+1) e internacional
+    const rawStr = String(targetPhone).trim();
+    const digits = rawStr.replace(/\D/g, '');
+    if (digits.length < 10) {
+        return res.status(400).json({ error: 'Número de teléfono inválido (mínimo 10 dígitos)' });
+    }
+
+    // ── 3. Meta Cloud API (WhatsApp Oficial) ──────────────────────────────────
+    const metaToken = process.env.META_WA_ACCESS_TOKEN;
+    const metaPhoneId = process.env.META_WA_PHONE_NUMBER_ID || '1337471699449991';
+    const whatsappProvider = process.env.WHATSAPP_PROVIDER || 'meta';
+
+    if (provider === 'whatsapp' && metaToken && (whatsappProvider === 'meta' || !process.env.TWILIO_ACCOUNT_SID)) {
+        try {
+            let waDigits = digits;
+            if (digits.length === 10) {
+                waDigits = `52${digits}`;
+            } else if (digits.startsWith('521') && digits.length === 13) {
+                waDigits = `52${digits.slice(3)}`;
+            }
+
+            console.log(`[api/send-sms] 🚀 Enviando WhatsApp vía Meta Cloud API a ${waDigits}...`);
+
+            const metaRes = await fetch(`https://graph.facebook.com/v21.0/${metaPhoneId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${metaToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    recipient_type: 'individual',
+                    to: waDigits,
+                    type: 'text',
+                    text: {
+                        preview_url: false,
+                        body: message || 'Confirmación de cita CitaLink',
+                    },
+                }),
+            });
+
+            const metaData = await metaRes.json();
+            console.log('[api/send-sms] Respuesta de Meta:', metaRes.status, JSON.stringify(metaData));
+
+            if (metaRes.ok) {
+                return res.status(200).json({ success: true, provider: 'meta', data: metaData });
+            } else {
+                console.warn('[api/send-sms] Meta falló, intentando fallback con Twilio...', metaData);
+            }
+        } catch (metaErr: any) {
+            console.warn('[api/send-sms] Error en Meta Cloud API:', metaErr.message);
+        }
+    }
+
+    // Twilio Setup (Fallback)
     const accountSid = process.env.TWILIO_ACCOUNT_SID || process.env.VITE_TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN || process.env.VITE_TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_WA_FROM || process.env.VITE_TWILIO_FROM_NUMBER || process.env.TWILIO_FROM_NUMBER || '+15706349708';
@@ -72,13 +126,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!accountSid || !authToken) {
         console.error('Configuración Twilio incompleta en Vercel:', { hasSid: !!accountSid, hasToken: !!authToken });
         return res.status(500).json({ error: 'Servidor Twilio no configurado.' });
-    }
-
-    // Normalizar teléfono con soporte para México (+52), EE.UU./Canadá (+1) e internacional
-    const rawStr = String(targetPhone).trim();
-    const digits = rawStr.replace(/\D/g, '');
-    if (digits.length < 10) {
-        return res.status(400).json({ error: 'Número de teléfono inválido (mínimo 10 dígitos)' });
     }
 
     let e164: string;

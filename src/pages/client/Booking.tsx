@@ -1204,27 +1204,46 @@ export default function Booking() {
                        selectedService.priceType === 'range' || 
                        (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice)));
 
-                fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
-                    body: JSON.stringify({
-                        tenant_id:     tenantId,
-                        event_type:    'new',
-                        admin_phone:   businessConfig?.phone ?? undefined,
-                        business_name: businessConfig?.name  ?? undefined,
-                        appointment: {
-                            id:                 (result as any)?.id,
-                            client_name:        clientName.trim(),
-                            client_phone:       clientPhone.trim(),
-                            service_name:       combinedServiceName,
-                            date:               selectedDate,
-                            time:               selectedTime,
-                            design_photo:       nailDesignUrl || selectedCatalogItem?.imageUrl || undefined,
-                            stylist_id:         assignedStylistId ? Number(assignedStylistId) : undefined,
-                            is_variable_price:  isVariablePrice,
-                        },
-                    }),
-                }).catch(() => { /* fire-and-forget */ });
+                const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+                if (isLocal) {
+                    const adminTargetPhone = businessConfig?.phone;
+                    if (adminTargetPhone) {
+                        const adminMsg = `🆕 *NUEVA CITA REGISTRADA* — *${businessConfig?.name || 'CitaLink'}*\n\n👤 *Cliente:* ${clientName.trim()}\n✨ *Servicio:* ${combinedServiceName}\n📆 *Fecha y Hora:* ${selectedDate} a las ${format12h(selectedTime)}\n📱 *Teléfono:* ${clientPhone.trim()}\n\nEntra a tu panel CitaLink para ver todos los detalles.`;
+                        fetch('/api/send-sms', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: adminTargetPhone,
+                                phone: adminTargetPhone,
+                                message: adminMsg,
+                                provider: 'whatsapp',
+                            }),
+                        }).catch(() => { /* fire-and-forget */ });
+                    }
+                } else {
+                    fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
+                        body: JSON.stringify({
+                            tenant_id:     tenantId,
+                            event_type:    'new',
+                            admin_phone:   businessConfig?.phone ?? undefined,
+                            business_name: businessConfig?.name  ?? undefined,
+                            appointment: {
+                                id:                 (result as any)?.id,
+                                client_name:        clientName.trim(),
+                                client_phone:       clientPhone.trim(),
+                                service_name:       combinedServiceName,
+                                date:               selectedDate,
+                                time:               selectedTime,
+                                design_photo:       nailDesignUrl || selectedCatalogItem?.imageUrl || undefined,
+                                stylist_id:         assignedStylistId ? Number(assignedStylistId) : undefined,
+                                is_variable_price:  isVariablePrice,
+                            },
+                        }),
+                    }).catch(() => { /* fire-and-forget */ });
+                }
             }
         }
     };
@@ -1277,8 +1296,35 @@ export default function Booking() {
         setIsSendingSms(true);
         setResendCountdown(15);
         try {
+            const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
             const currentProvider = businessConfig?.smsProvider ?? 'demo';
-            if (currentProvider === 'whatsapp') {
+
+            if (isLocal) {
+                const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+                const addOnNames = selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean);
+                const combinedServiceName = selectedService ? selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '') : 'tu servicio';
+                const dateLabel = selectedDate
+                    ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
+                    : 'próximamente';
+                const timeLabel = format12h(selectedTime);
+                const appointmentDateTime = `${dateLabel} a las ${timeLabel}`;
+                const bName = businessConfig?.name ?? 'CitaLink';
+
+                const otpMessage = `🔐 *Código CitaLink:* *${newOtp}*\n\nHola *${clientName.trim()}*, tu cita en *${bName}* está casi lista.\n\n📅 *Fecha:* ${appointmentDateTime}\n✨ *Servicio:* ${combinedServiceName}\n\nIngresa el código *${newOtp}* en la pantalla de reserva para confirmar tu cita.\n⏱️ Válido por 10 minutos.`;
+
+                await fetch('/api/send-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: clientPhone,
+                        phone: clientPhone,
+                        message: otpMessage,
+                        provider: 'whatsapp',
+                    }),
+                });
+                setGeneratedOtp(newOtp);
+                setOtpAttempts(0);
+            } else if (currentProvider === 'whatsapp') {
                 await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
@@ -1451,6 +1497,50 @@ export default function Booking() {
                 const isVariablePrice = selectedService.priceType === 'no_price' || 
                     selectedService.priceType === 'range' || 
                     (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice));
+
+                const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+                if (isLocal) {
+                    const localOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+                    let cleanService = combinedServiceName
+                        .split(' + Largo:')[0]
+                        .split(' + Diseño:')[0]
+                        .split(' + Extra:')[0]
+                        .split(' + Cotización')[0]
+                        .trim();
+                    if (isVariablePrice) {
+                        cleanService += ' (⚠️ Requiere cotización. Te notificaremos cuando tu Profesional confirme el monto final)';
+                    }
+
+                    const otpMessage = `🔐 *Código CitaLink:* *${localOtp}*\n\nHola *${clientName.trim()}*, tu cita en *${bName}* está casi lista.\n\n📅 *Fecha:* ${appointmentDateTime}\n✨ *Servicio:* ${cleanService}\n\nIngresa el código *${localOtp}* en la pantalla de reserva para confirmar tu cita.\n⏱️ Válido por 10 minutos.`;
+
+                    const localRes = await fetch('/api/send-sms', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: clientPhone,
+                            phone: clientPhone,
+                            message: otpMessage,
+                            provider: 'whatsapp',
+                        }),
+                    });
+
+                    const localData = await localRes.json().catch(() => ({}));
+                    if (!localRes.ok || localData?.success === false) {
+                        const debugErr = localData?.error || localData?.data?.error?.message || 'Error al enviar WhatsApp vía Meta Cloud API';
+                        setSmsDebugError(debugErr);
+                        setClientError(`Error procesando WhatsApp (Meta): ${debugErr}`);
+                        return;
+                    }
+
+                    setSmsProvider('whatsapp');
+                    setGeneratedOtp(localOtp);
+                    setOtpAttempts(0);
+                    setOtpCode('');
+                    setStep(16); // ir a pantalla OTP (banner WhatsApp)
+                    return;
+                }
 
                 const funcRes = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
                     method:  'POST',
