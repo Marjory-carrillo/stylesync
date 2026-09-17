@@ -82,6 +82,14 @@ export default function Dashboard() {
     const { services, isPending: svcsLoading } = useServices();
     const { waitingList, addToWaitingList, removeFromWaitingList } = useWaitingList();
     const { stylists } = useStylists();
+
+    // Si solo hay un profesional en el negocio, auto-seleccionarlo directamente
+    useEffect(() => {
+        if (stylists.length === 1 && dashboardStylistId === 'all') {
+            setDashboardStylistId(stylists[0].id);
+        }
+    }, [stylists, dashboardStylistId]);
+
     const { data: tenantConfig } = useTenantData();
     const { schedule } = useSchedule();
     const businessConfig = (tenantConfig || { slug: '', brandSlug: '', name: '', paymentStatus: 'active', gracePeriodEndsAt: null }) as any;
@@ -1726,16 +1734,18 @@ export default function Dashboard() {
 
                         {!isEmployee && (
                             <div className="flex items-center gap-2 ml-auto sm:ml-0">
-                                <CustomSelect
-                                    value={String(dashboardStylistId)}
-                                    onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
-                                    options={[
-                                        { value: 'all', label: 'Todos los Profesionales' },
-                                        ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
-                                    ]}
-                                    buttonClassName="bg-slate-900/60 border border-white/10 text-white rounded-2xl px-3 py-2 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[120px] sm:min-w-[170px] shadow-sm shrink-0"
-                                    dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
-                                />
+                                {stylists.length > 1 && (
+                                    <CustomSelect
+                                        value={String(dashboardStylistId)}
+                                        onChange={(val) => setDashboardStylistId(val === 'all' ? 'all' : Number(val))}
+                                        options={[
+                                            { value: 'all', label: 'Todos los Profesionales' },
+                                            ...stylists.map(s => ({ value: String(s.id), label: s.name.split(' ')[0] }))
+                                        ]}
+                                        buttonClassName="bg-slate-900/60 border border-white/10 text-white rounded-2xl px-3 py-2 text-xs focus:outline-none focus:border-accent flex items-center justify-between min-w-[120px] sm:min-w-[170px] shadow-sm shrink-0"
+                                        dropdownClassName="absolute z-50 w-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-2xl shadow-2xl py-1 animate-fade-in overflow-hidden"
+                                    />
+                                )}
 
                                 {/* Button to open Waiting List Modal */}
                                 <button

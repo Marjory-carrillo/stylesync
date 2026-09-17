@@ -541,7 +541,7 @@ export default function Appointments() {
                     )}
                 </div>
                 {/* Professional Filter */}
-                {!isEmployee && (
+                {!isEmployee && stylists.length > 1 && (
                     <CustomSelect
                         value={String(selectedStylistId)}
                         onChange={(val: string) => setSelectedStylistId(val === 'all' ? 'all' : Number(val))}

@@ -28,6 +28,20 @@ interface StylistColumnCalendarProps {
     onOpenReceipt?: (url: string) => void;
 }
 
+const CALENDAR_VIEW_DAYS_KEY = 'citalink_calendar_view_days';
+
+const getSavedCalendarDays = (): number | null => {
+    try {
+        const saved = localStorage.getItem(CALENDAR_VIEW_DAYS_KEY);
+        if (saved === '1' || saved === '3') {
+            return Number(saved);
+        }
+        return null;
+    } catch {
+        return null;
+    }
+};
+
 export default function StylistColumnCalendar({
     appointments,
     services,
@@ -109,41 +123,40 @@ export default function StylistColumnCalendar({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const isSingleStylistSelected = Boolean(selectedStylistId && selectedStylistId !== 'all');
+    const isSingleStylistSelected = Boolean((selectedStylistId && selectedStylistId !== 'all') || stylists.length === 1);
     const singleStylist = useMemo(() => {
         if (isSingleStylistSelected) {
-            return stylists.find(s => Number(s.id) === Number(selectedStylistId)) || null;
-        }
-        if (stylists.length === 1) {
-            return stylists[0];
+            if (selectedStylistId && selectedStylistId !== 'all') {
+                return stylists.find(s => Number(s.id) === Number(selectedStylistId)) || null;
+            }
+            if (stylists.length === 1) {
+                return stylists[0];
+            }
         }
         return null;
     }, [isSingleStylistSelected, selectedStylistId, stylists]);
 
-    // Optional user override for number of days (1, 3, 4). If null, uses responsive default.
-    const [userSelectedDays, setUserSelectedDays] = useState<number | null>(null);
+    // Optional user override for number of days (1, 3). Persistido en localStorage; si null, por defecto 3 días
+    const [userSelectedDays, setUserSelectedDays] = useState<number | null>(() => getSavedCalendarDays());
 
-    // Responsive default: Desktop (>= 1024) -> 4 days, Mobile & Tablet -> 3 days
-    const defaultDaysForWidth = useMemo(() => {
-        if (windowWidth < 1024) return 3;
-        return 4;
-    }, [windowWidth]);
-
-    // Active days count: only applies when an individual stylist is selected
+    // Active days count: por defecto 'ver 3 días' (3D) cuando es un solo profesional o se selecciona un estilista individual
     const daysCount = useMemo(() => {
         if (!isSingleStylistSelected) return 1;
         if (userSelectedDays !== null) {
             return userSelectedDays;
         }
-        return defaultDaysForWidth;
-    }, [isSingleStylistSelected, userSelectedDays, defaultDaysForWidth]);
+        return 3; // Por defecto 'ver 3 días'
+    }, [isSingleStylistSelected, userSelectedDays]);
 
     // Multi-day mode only when an individual stylist is selected AND daysCount > 1
     const isMultiDayActive = isSingleStylistSelected && daysCount > 1;
 
-    // Handle day pills click: if user clicks 3D/4D while in 'all', auto-selects the first stylist
+    // Handle day pills click: recuerda la preferencia en localStorage (1D o 3D)
     const handleSelectDays = (num: number) => {
         setUserSelectedDays(num);
+        try {
+            localStorage.setItem(CALENDAR_VIEW_DAYS_KEY, String(num));
+        } catch (_) {}
         if (num > 1 && (!selectedStylistId || selectedStylistId === 'all') && stylists.length > 0) {
             onSelectStylist?.(stylists[0].id);
         }
@@ -689,9 +702,9 @@ export default function StylistColumnCalendar({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                    {/* View days selector: allows toggling 1D, 3D, 4D. If user clicks 3D/4D while in 'all', auto-selects first stylist */}
+                    {/* View days selector: permite alternar 1D o 3D */}
                     <div className="flex items-center bg-black/40 p-0.5 rounded-xl border border-white/10 shadow-inner">
-                        {[1, 3, 4].map(num => {
+                        {[1, 3].map(num => {
                             const isCurrentActive = (isMultiDayActive && daysCount === num) || (!isMultiDayActive && num === 1);
                             return (
                                 <button
