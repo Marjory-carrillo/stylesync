@@ -465,15 +465,9 @@ REGLAS OBLIGATORIAS DE COMPORTAMIENTO (CUMPLE CON MÁXIMA RIGUROSIDAD):
    - Esta regla aplica cuando el cliente expresa el deseo o intención de apartar una cita a futuro (ej: "quisiera agendar", "quiero agendar", "puedo agendar?", "ayúdame a reservar", "cómo aparto cita", "quiero una cita", "apartar un turno").
    - NO APLICA si el cliente dice que YA agendó, ya reservó o ya terminó (para eso aplica la regla 2.1).
    - ¡PROHIBIDO TERMINANTEMENTE DECIR "En este momento no tienes ninguna cita programada"! Eso confunde al cliente porque él no preguntó si tenía cita, él quiere agendar.
-   - Respóndele con amabilidad y entusiasmo guiándolo directamente a apartar su turno:
-     "¡Con mucho gusto! Puedes apartar tu turno en *${params.businessName}* directamente aquí: 👉 ${params.bookingUrl}
-
-O siguiendo estos sencillos pasos:
-1. Haz clic en el enlace: ${params.bookingUrl}
-2. Escribe tu nombre y Teléfono.
-3. Escoge Profesional y servicio.
-4. Fecha y Hora.
-5. Confirma."
+   - NUNCA envíes listas de pasos numeradas ("Paso 1: Haz clic, Paso 2: Escribe tu nombre..."). Eso parece un manual frío o una plantilla de bot y suena poco profesional en WhatsApp.
+   - Respóndele de forma amable, cercana y natural invitándolo a ver los horarios y apartar su lugar:
+     "¡Claro que sí! Con mucho gusto. Aquí puedes ver los horarios que tenemos libres en *${params.businessName}* y elegir el que mejor te quede: 👉 ${params.bookingUrl} ¿Para qué día te gustaría?"
 
 2.1 CUANDO EL CLIENTE AVISA QUE YA AGENDÓ, YA RESERVÓ O YA TERMINÓ ("ya agendé", "ok ya agende", "ya quedó", "listo ya agendé", "ya terminé", "ya aparté mi cita", "ya lo hice", "listo"):
    - ¡PROHIBIDO TOTALMENTE volver a mandarle los pasos para agendar o el enlace de reservas como si no hubiera agendado!
@@ -628,8 +622,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const businessAddress = tenant?.address ? tenant.address.trim() : null;
                 const googleMapsUrl = tenant?.google_maps_url || (businessAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessAddress + ' ' + businessName)}` : null);
 
-                const bookingSteps = `📋 *Pasos para reservar en línea:*\n1. Haz clic en el enlace: ${bookingUrl}\n2. Escribe tu nombre y Teléfono.\n3. Escoge Profesional y servicio.\n4. Fecha y Hora.\n5. Confirma.`;
-
                 // Formatear servicios y estilistas para el contexto
                 const servicesText = formatServicesCategorized(services);
                 const stylistsText = formatStylists(stylists, businessName);
@@ -665,9 +657,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     // A) Saludos
                     if (!lower || lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos') || lower.includes('hey') || lower.includes('inicio')) {
                         if (tenant) {
-                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n✨ *Servicios y precios*: Escribe "servicios"\n👤 *Profesionales*: Escribe "disponibles" o "equipo"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n💬 *Hablar con una persona*: Escribe "humano"`;
+                            replyText = `¡Hola${greetingName}! 🌸 Con mucho gusto te atiendo en *${businessName}*. ¿En qué te puedo apoyar hoy? Si gustas agendar una cita, ver nuestros servicios o consultar dudas, dime con toda confianza ✨`;
                         } else {
-                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar"\n✨ *Ver servicios*: Escribe "servicios"\n💬 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
+                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente de CitaLink ✨ ¿En qué te puedo apoyar hoy? Con gusto te ayudo con tus citas y servicios.`;
                         }
                     }
                     // B) Profesionales / Estilistas / Quién atiende
@@ -706,9 +698,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         lower.includes('ya agende')
                     ) {
                         if (context?.hasActiveAppointment && context.activeAppointmentSummary) {
-                            replyText = `¡Excelente${greetingName}! 🎉 Veo que tu cita en *${businessName}* quedó registrada:\n\n${context.activeAppointmentSummary}\n\n¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio en tu cita, avísame con toda confianza.`;
+                            replyText = `¡Buenísimo${greetingName}! 🎉 Ya quedó confirmada tu cita en *${businessName}*:\n\n${context.activeAppointmentSummary}\n\n¡Por acá te esperamos con mucho gusto! ✨`;
                         } else {
-                            replyText = `¡Excelente${greetingName}! 🎉 ¡Muchas gracias por reservar en *${businessName}*! ¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio, avísame con toda confianza.`;
+                            replyText = `¡Excelente${greetingName}! 🎉 ¡Muchas gracias por reservar en *${businessName}*! Ya recibimos tu solicitud, por acá te esperamos con mucho gusto ✨. Si necesitas checar o cambiar algo, avísame con toda confianza.`;
                         }
                     }
                     // B.2) Agradecimientos / Cierres
@@ -727,7 +719,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     ) {
                         replyText = `¡Con mucho gusto${greetingName}! ✨ Quedo a tus órdenes si necesitas algo más en *${businessName}*. ¡Que tengas un excelente día! 🌸`;
                     }
-                    // C) Agendar cita / Pasos para reservar / Consultar cita
+                    // C) Agendar cita / Consultar cita
                     else if (
                         lower.includes('agend') ||
                         lower.includes('cita') ||
@@ -742,9 +734,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         if (context?.hasActiveAppointment && context.activeAppointmentSummary) {
                             replyText = `Veo que tienes una cita programada en *${businessName}*:\n\n${context.activeAppointmentSummary}\n\n¡Te esperamos con mucho gusto! ✨ Si necesitas consultar algún detalle o hacer algún cambio en tu cita, avísame con toda confianza.`;
                         } else if (lower.includes('tengo') || lower.includes('pendiente') || lower.includes('cuando') || lower.includes('cuándo') || lower.includes('mi cita')) {
-                            replyText = `En este momento no tienes ninguna cita programada en *${businessName}*. Si deseas apartar un turno, con gusto te ayudo ✨:\n\n${bookingSteps}`;
+                            replyText = `Ahorita no tienes ninguna cita programada con nosotros en *${businessName}*. Si gustas apartar un turno, con gusto te paso el enlace directo:\n👉 ${bookingUrl}`;
                         } else {
-                            replyText = `¡Con mucho gusto te ayudo a agendar en *${businessName}*! ✨\n\nPuedes apartar tu turno directamente aquí: 👉 ${bookingUrl}\n\nO siguiendo estos sencillos pasos:\n${bookingSteps}`;
+                            replyText = `¡Claro que sí${greetingName}! Con mucho gusto. Aquí puedes checar los horarios libres que tenemos en *${businessName}* y elegir el que mejor te quede:\n👉 ${bookingUrl}\n\n¿Para qué día te gustaría apartar? ✨`;
                         }
                     }
                     // D) Precios / Servicios / Catálogo / Paquetes / Cortes / Búsqueda específica
