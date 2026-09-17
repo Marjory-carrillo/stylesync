@@ -658,31 +658,34 @@ export default function StylistColumnCalendar({
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-xs sm:text-base md:text-lg font-black text-white capitalize tracking-tight truncate">
-                            {format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
-                        </h3>
-                        {singleStylist && (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 border border-white/10 shadow-sm shrink-0">
-                                {singleStylist.image ? (
-                                    <img
-                                        decoding="async"
-                                        loading="lazy"
-                                        src={singleStylist.image}
-                                        alt={singleStylist.name}
-                                        className="w-5 h-5 rounded-full object-cover border border-accent/40 shrink-0"
-                                    />
-                                ) : (
-                                    <div className="w-5 h-5 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-[10px] font-black text-accent shrink-0">
-                                        {singleStylist.name.charAt(0)}
-                                    </div>
-                                )}
-                                <span className="text-xs font-black text-white truncate max-w-[120px]">
+                    {/* Transición elegante subiendo el perfil del profesional SOLO en modo multi-día (3 o 4 días) */}
+                    {isMultiDayActive && singleStylist && (
+                        <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-accent/15 via-slate-900/90 to-accent/5 border border-accent/30 shadow-md shadow-accent/5 transition-all duration-300 transform translate-y-0 opacity-100 animate-in fade-in slide-in-from-bottom-2">
+                            {singleStylist.image ? (
+                                <img
+                                    decoding="async"
+                                    loading="lazy"
+                                    src={singleStylist.image}
+                                    alt={singleStylist.name}
+                                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-accent/50 shadow-sm shrink-0"
+                                />
+                            ) : (
+                                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center text-[9px] sm:text-[10px] font-black text-accent shrink-0">
+                                    {singleStylist.name.charAt(0)}
+                                </div>
+                            )}
+                            <div className="flex flex-col leading-none min-w-0">
+                                <span className="text-xs sm:text-sm font-black text-white tracking-tight truncate max-w-[120px] sm:max-w-[180px]">
                                     {singleStylist.name}
                                 </span>
+                                {singleStylist.role && (
+                                    <span className="text-[8px] sm:text-[9px] font-bold text-accent/80 uppercase tracking-widest mt-0.5 truncate max-w-[120px]">
+                                        {singleStylist.role}
+                                    </span>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
