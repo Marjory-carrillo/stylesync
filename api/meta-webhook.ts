@@ -31,6 +31,7 @@ interface TenantContext {
         slug: string;
         address?: string | null;
         phone?: string | null;
+        google_maps_url?: string | null;
     };
     services: ServiceItem[];
     stylists: StylistItem[];
@@ -57,7 +58,7 @@ function formatServicesCategorized(services: ServiceItem[], userMessage?: string
             const list = matchingServices
                 .map((s) => `• *${s.name.trim()}*: ${formatPrice(s)} (${s.duration} min)`)
                 .join('\n');
-            return `💈 *Opciones para "${matchedKeyword}":*\n\n${list}`;
+            return `✨ *Opciones para "${matchedKeyword}":*\n\n${list}`;
         }
     }
 
@@ -70,7 +71,7 @@ function formatServicesCategorized(services: ServiceItem[], userMessage?: string
 
     if (principales.length > 0) {
         sections.push(
-            `✂️ *Servicios Principales:*\n` +
+            `✨ *Servicios Principales:*\n` +
             principales.map((s) => `• *${s.name.trim()}*: ${formatPrice(s)} (${s.duration} min)`).join('\n')
         );
     }
@@ -92,6 +93,23 @@ function formatServicesCategorized(services: ServiceItem[], userMessage?: string
     return sections.join('\n\n');
 }
 
+function matchesTenant(tenantName: string, tenantSlug: string, userText: string): boolean {
+    const clean = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ');
+    const cleanMsg = clean(userText);
+    const cleanName = clean(tenantName);
+    const cleanSlug = tenantSlug.replace(/-/g, ' ');
+
+    if (cleanMsg.includes(cleanName) || cleanMsg.includes(cleanSlug)) return true;
+
+    const words = cleanName.split(/\s+/).filter((w) => w.length >= 3 && !['salon', 'studio', 'barberia', 'beauty', 'nails', 'nail'].includes(w));
+    if (words.length > 0 && words.every((w) => cleanMsg.includes(w))) return true;
+
+    const distinct = words.filter((w) => w.length >= 4);
+    if (distinct.some((w) => cleanMsg.includes(w))) return true;
+
+    return false;
+}
+
 function formatStylists(stylists: StylistItem[], businessName: string): string {
     if (!stylists || stylists.length === 0) {
         return `En *${businessName}* nuestro equipo está listo para atenderte con la mayor calidad.`;
@@ -104,7 +122,7 @@ function formatStylists(stylists: StylistItem[], businessName: string): string {
     return `En *${businessName}* contamos con *${countText}*:\n\n${list}`;
 }
 
-async function resolveTenantContext(phone: string): Promise<TenantContext | null> {
+async function resolveTenantContext(phone: string, userMessage?: string): Promise<TenantContext | null> {
     try {
         const digits = phone.replace(/\D/g, '').slice(-10);
         if (!digits || digits.length < 10) return null;
@@ -115,19 +133,48 @@ async function resolveTenantContext(phone: string): Promise<TenantContext | null
 
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // 1. Buscar en appointments más reciente
-        const { data: apt } = await supabase
-            .from('appointments')
-            .select('tenant_id, client_name')
-            .ilike('client_phone', `%${digits}%`)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        let tenantId: string | null = null;
+        let clientName: string | null = null;
 
-        let tenantId = apt?.tenant_id;
-        let clientName = apt?.client_name;
+        // 1. Detectar si el usuario mencionó explícitamente otro negocio en su mensaje
+        if (userMessage) {
+            const { data: allTenants } = await supabase.from('tenants').select('id, name, slug, address, phone, google_maps_url');
+            if (allTenants && allTenants.length > 0) {
+                const matched = allTenants.find((t) => matchesTenant(t.name, t.slug, userMessage));
+                if (matched) {
+                    tenantId = matched.id;
+                    console.log('[meta-webhook] Negocio detectado por mención en texto:', matched.name);
+                }
+            }
+        }
 
-        // 2. Si no hay cita, buscar en sms_logs (donde se registró el último OTP o mensaje)
+        // 2. Si no mencionó negocio, buscar en appointments más reciente
+        if (!tenantId) {
+            const { data: apt } = await supabase
+                .from('appointments')
+                .select('tenant_id, client_name')
+                .ilike('client_phone', `%${digits}%`)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            tenantId = apt?.tenant_id || null;
+            clientName = apt?.client_name || null;
+        }
+
+        // Si aún no tenemos clientName, buscarlo en las citas del cliente
+        if (!clientName) {
+            const { data: aptClient } = await supabase
+                .from('appointments')
+                .select('client_name')
+                .ilike('client_phone', `%${digits}%`)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            clientName = aptClient?.client_name || null;
+        }
+
+        // 3. Si no hay cita, buscar en sms_logs (donde se registró el último OTP o mensaje)
         if (!tenantId) {
             const { data: log } = await supabase
                 .from('sms_logs')
@@ -136,15 +183,15 @@ async function resolveTenantContext(phone: string): Promise<TenantContext | null
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
-            tenantId = log?.tenant_id;
+            tenantId = log?.tenant_id || null;
         }
 
         if (!tenantId) return null;
 
-        // 3. Traer información del negocio
+        // 3. Traer información del negocio incluyendo enlace de google maps
         const { data: tenant } = await supabase
             .from('tenants')
-            .select('id, name, slug, address, phone')
+            .select('id, name, slug, address, phone, google_maps_url')
             .eq('id', tenantId)
             .single();
 
@@ -167,20 +214,25 @@ async function resolveTenantContext(phone: string): Promise<TenantContext | null
             .eq('active', true);
 
         // 6. Traer citas recientes o próximas del cliente
-        let appointmentsText = 'No se encontraron citas recientes.';
+        let appointmentsText = 'No se encontraron citas registradas.';
         try {
             const { data: apts } = await supabase
                 .from('appointments')
-                .select('date, time, status, service_id, stylist_id')
+                .select('date, time, status, service_id, stylist_id, tenant_id, additional_services')
                 .ilike('client_phone', `%${digits}%`)
                 .order('date', { ascending: false })
-                .limit(3);
+                .limit(4);
 
             if (apts && apts.length > 0) {
                 const aptLines = await Promise.all(
                     apts.map(async (a) => {
                         let sName = 'Servicio general';
                         let stName = 'Profesional asignado';
+                        let tName = '';
+                        if (a.tenant_id && a.tenant_id !== tenantId) {
+                            const { data: t } = await supabase.from('tenants').select('name').eq('id', a.tenant_id).maybeSingle();
+                            if (t?.name) tName = ` (en ${t.name})`;
+                        }
                         if (a.service_id) {
                             const { data: s } = await supabase.from('services').select('name').eq('id', a.service_id).maybeSingle();
                             if (s?.name) sName = s.name;
@@ -189,7 +241,10 @@ async function resolveTenantContext(phone: string): Promise<TenantContext | null
                             const { data: st } = await supabase.from('stylists').select('name').eq('id', a.stylist_id).maybeSingle();
                             if (st?.name) stName = st.name;
                         }
-                        return `• Cita: ${a.date} a las ${String(a.time).slice(0, 5)} hrs — Servicio: ${sName} — Con: ${stName} (Estado: ${a.status})`;
+                        const extras = Array.isArray(a.additional_services) && a.additional_services.length > 0
+                            ? ` + Extras: ${a.additional_services.join(', ')}`
+                            : '';
+                        return `• Cita: ${a.date} a las ${String(a.time).slice(0, 5)} hrs${tName} — Servicio: ${sName}${extras} — Con: ${stName} (Estado: ${a.status})`;
                     })
                 );
                 appointmentsText = aptLines.join('\n');
@@ -215,6 +270,7 @@ async function generateSaraAIResponse(params: {
     userMessage: string;
     businessName: string;
     businessAddress?: string | null;
+    googleMapsUrl?: string | null;
     businessPhone?: string | null;
     bookingUrl: string;
     clientName?: string;
@@ -224,13 +280,17 @@ async function generateSaraAIResponse(params: {
 }): Promise<string | null> {
     if (!OPENAI_API_KEY) return null;
 
-    const systemPrompt = `Eres Sara, la recepcionista y asistente virtual inteligente de "${params.businessName}".
-Tu personalidad es amable, atenta, profesional y resolutiva. Hablas en español con un tono acogedor. Usas emojis de forma sutil y formateas con viñetas limpias para que sea muy fácil de leer en WhatsApp.
+    const cleanMapsUrl = params.googleMapsUrl || (params.businessAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(params.businessAddress + ' ' + params.businessName)}` : null);
+
+    const systemPrompt = `Eres Sara, la recepcionista y asistente virtual oficial de "${params.businessName}".
+Tu personalidad es amable, cálida, atenta y resolutiva. Hablas siempre en español con un tono acogedor.
+Formateas tus mensajes para WhatsApp con viñetas limpias y directas para una lectura rápida y cómoda.
 
 INFORMACIÓN DEL NEGOCIO "${params.businessName}":
-- Enlace directo para agendar: ${params.bookingUrl}
-- Ubicación: ${params.businessAddress || 'Consulta nuestra ubicación en el enlace'}
-- Teléfono: ${params.businessPhone || 'N/A'}
+- Enlace para agendar en línea: ${params.bookingUrl}
+- Dirección física: ${params.businessAddress || 'Consulta los detalles en nuestro enlace de reservas'}
+- Enlace exacto a Google Maps / GPS: ${cleanMapsUrl || 'No disponible'}
+- Teléfono de contacto: ${params.businessPhone || 'N/A'}
 - Horarios de atención: Lunes a Sábado de 9:00 AM a 8:00 PM.
 
 EQUIPO DE PROFESIONALES DISPONIBLES:
@@ -240,21 +300,48 @@ CATÁLOGO DE SERVICIOS Y PRECIOS:
 ${params.servicesText || 'Servicios disponibles en la plataforma.'}
 
 DATOS DEL CLIENTE (${params.clientName || 'Cliente'}):
-- Citas registradas en el sistema:
+- Citas registradas en el sistema para este cliente:
 ${params.appointmentsText || 'No hay citas registradas recientemente.'}
 
-INSTRUCCIONES CLAVE DE RESPUESTA:
-1. SI EL CLIENTE DICE QUE YA AGENDÓ O PREGUNTA POR SU CITA:
-   - Revisa sus citas registradas arriba. Si tiene una cita agendada, confírmale con entusiasmo su fecha, hora, servicio y profesional. Felicítalo y dile que lo esperan con gusto en ${params.businessName}.
-   - Si no ves la cita aún, dile amablemente que puede verificarla en el enlace o consultar con su número.
-2. SI EL CLIENTE PREGUNTA POR PROFESIONALES DISPONIBLES O QUIÉN ATIENDE:
-   - Menciona claramente a los profesionales del equipo de ${params.businessName} y diles que pueden elegir a su favorito en el enlace.
-3. SI EL CLIENTE QUIERE AGENDAR O PREGUNTA CÓMO AGENDAR:
-   - Dale el enlace directo (${params.bookingUrl}) y los 4 pasos resumidos para reservar.
-4. SI PREGUNTA POR UN SERVICIO ESPECÍFICO (ej. "precio de un corte", "uñas", "barba", etc.):
-   - Responde con los precios y duraciones exactos del catálogo de ${params.businessName}.
-5. Si preguntan algo no relacionado o fuera de tema, responde cordialmente y redirígelos a los servicios de ${params.businessName}.
-6. Respuestas ágiles, amigables y concisas (adecuadas para WhatsApp). NUNCA inventes información que no esté en este contexto.`;
+REGLAS OBLIGATORIAS DE COMPORTAMIENTO (CUMPLE CON MÁXIMA RIGUROSIDAD):
+
+1. RECONOCIMIENTO PROACTIVO DE CITAS EXISTENTES (REGLA PRIORITARIA #1):
+   - ANTES de sugerir agendar o dar pasos de reserva, REVISA SIEMPRE si el cliente ya tiene una cita registrada en "DATOS DEL CLIENTE -> Citas registradas en el sistema".
+   - Si el cliente pregunta "¿Puedo agendar?", "Quiero agendar", "¿Hay citas?", "¿Puedo sacar cita?" o similar, y YA TIENE una cita programada activa (confirmada o próxima):
+     DEBES MENCIONARLA DE INMEDIATO PRIMERO:
+     Ejemplo: "¡Hola! Veo que ya tienes una cita programada para el [fecha] a las [hora] con [profesional] para [servicio] ✨. ¿Deseas agendar una cita ADICIONAL, o necesitas consultar o modificar tu cita existente?"
+   - NUNCA le des los pasos de agendar en blanco ignorando que ya tiene una cita reservada.
+
+2. PASOS EXACTOS PARA RESERVAR EN LÍNEA:
+   - Si el cliente solicita los pasos para agendar, o si confirma que desea agendar una nueva cita adicional, utiliza EXACTAMENTE estos 5 pasos breves y claros:
+     1. Haz clic en el enlace: ${params.bookingUrl}
+     2. Escribe tu nombre y Teléfono.
+     3. Escoge Profesional y servicio.
+     4. Fecha y Hora.
+     5. Confirma.
+
+3. UBICACIÓN, DIRECCIÓN Y GOOGLE MAPS (¡MUY IMPORTANTE!):
+   - Cuando el cliente pregunte por la ubicación, dirección, dónde están ubicados, cómo llegar, o qué ciudad/estado/colonia es (ej. "¿dónde se ubican?", "¿qué estado es?", "¿es en Tamaulipas, Matamoros o dónde?"):
+     a) Indica la dirección física exacta de ${params.businessName}: ${params.businessAddress || 'Consulta los detalles en nuestro enlace'}.
+     b) Justo debajo de la dirección física, incluye OBLIGATORIAMENTE el enlace a Google Maps para que el cliente lo abra y vea la ubicación exacta en su GPS:
+        📍 *Ubicación de ${params.businessName}:*
+        ${params.businessAddress || 'Consulta nuestra ubicación en el enlace'}
+        🗺️ *Cómo llegar en Google Maps:*
+        ${cleanMapsUrl || 'Enlace disponible en la web de reserva'}
+     c) Si el cliente pregunta por la ciudad, estado o zona geográfica, aclara la información disponible y recomiéndale abrir el enlace de Google Maps para ver la ruta y mapa exacto.
+
+4. PROHIBICIÓN TOTAL DEL EMOJI DE TIJERAS (✂️):
+   - CitaLink es una plataforma multi-rubro para estéticas, uñas, spas, barberías y clínicas de belleza.
+   - PROHIBIDO TERMINANTEMENTE USAR EL EMOJI DE TIJERAS (✂️) EN CUALQUIER PARTE DEL MENSAJE O AL DESPEDIRTE. NUNCA USES ✂️.
+   - Tampoco uses el poste de barbero (💈).
+   - Usa únicamente emojis neutrales, elegantes y profesionales: ✨, 🗓️, 🌸, 📍, 🗺️, ⭐, 👤, 📋.
+
+5. CONSULTAS DE PROFESIONALES Y SERVICIOS:
+   - Si preguntan quién atiende o cuántos profesionales hay, menciona los nombres de los profesionales disponibles en ${params.businessName}.
+   - Si preguntan por precios de un servicio (ej. corte, tinte, uñas, pestañas, cejas), responde con los precios y duraciones exactos del catálogo.
+
+6. REGLA DE VERACIDAD Y CONCISIÓN:
+   - Mantén tus respuestas breves, cordiales y fáciles de leer en WhatsApp. NUNCA inventes información no presente en este contexto.`;
 
     try {
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -269,8 +356,8 @@ INSTRUCCIONES CLAVE DE RESPUESTA:
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: params.userMessage },
                 ],
-                max_tokens: 350,
-                temperature: 0.6,
+                max_tokens: 380,
+                temperature: 0.5,
             }),
         });
 
@@ -335,8 +422,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 console.log('[meta-webhook] Mensaje entrante de:', { from, targetPhone, senderName, textBody });
 
-                // Resolver contexto del negocio a partir del número de teléfono
-                const context = await resolveTenantContext(targetPhone);
+                // Resolver contexto del negocio a partir del número de teléfono y mensaje (para detectar cambios de negocio)
+                const context = await resolveTenantContext(targetPhone, textBody);
                 const tenant = context?.tenant;
                 const services = context?.services || [];
                 const stylists = context?.stylists || [];
@@ -346,8 +433,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const businessName = tenant ? tenant.name : 'CitaLink';
                 const bookingUrl = tenant ? `https://www.citalink.app/reserva/${tenant.slug}` : 'https://www.citalink.app';
                 const businessAddress = tenant?.address ? tenant.address.trim() : null;
+                const googleMapsUrl = tenant?.google_maps_url || (businessAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessAddress + ' ' + businessName)}` : null);
 
-                const bookingSteps = `📋 *Pasos para reservar en línea (en 1 minuto):*\n1️⃣ Abre el enlace: ${bookingUrl}\n2️⃣ Selecciona tu servicio, combo o adicional\n3️⃣ Elige a tu profesional y tu hora preferida\n4️⃣ Confirma con tu WhatsApp para recibir tu confirmación inmediata ✨`;
+                const bookingSteps = `📋 *Pasos para reservar en línea:*\n1. Haz clic en el enlace: ${bookingUrl}\n2. Escribe tu nombre y Teléfono.\n3. Escoge Profesional y servicio.\n4. Fecha y Hora.\n5. Confirma.`;
 
                 // Formatear servicios y estilistas para el contexto
                 const servicesText = formatServicesCategorized(services);
@@ -360,6 +448,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         userMessage: textBody,
                         businessName,
                         businessAddress,
+                        googleMapsUrl,
                         businessPhone: tenant?.phone,
                         bookingUrl,
                         clientName: clientName || senderName,
@@ -379,75 +468,88 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     // A) Saludos
                     if (!lower || lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos') || lower.includes('hey') || lower.includes('inicio')) {
                         if (tenant) {
-                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n💇 *Servicios y precios*: Escribe "servicios"\n💈 *Profesionales*: Escribe "disponibles" o "equipo"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n👤 *Hablar con una persona*: Escribe "humano"`;
+                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n✨ *Servicios y precios*: Escribe "servicios"\n👤 *Profesionales*: Escribe "disponibles" o "equipo"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n💬 *Hablar con una persona*: Escribe "humano"`;
                         } else {
-                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar"\n💇 *Ver servicios*: Escribe "servicios"\n👤 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
+                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar"\n✨ *Ver servicios*: Escribe "servicios"\n💬 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
                         }
                     }
-                    // B) Profesionales / Estilistas / Barberos disponibles / Quién atiende
+                    // B) Profesionales / Estilistas / Quién atiende
                     else if (
-                    lower.includes('profesional') ||
-                    lower.includes('estilista') ||
-                    lower.includes('barbero') ||
-                    lower.includes('quien') ||
-                    lower.includes('quién') ||
-                    lower.includes('equipo') ||
-                    lower.includes('atiende') ||
-                    lower.includes('personal') ||
-                    (lower.includes('cuales') && (lower.includes('disponible') || lower.includes('hay'))) ||
-                    (lower.includes('cuáles') && (lower.includes('disponible') || lower.includes('hay'))) ||
-                    (lower.includes('con') && lower.includes('quien'))
-                ) {
-                    const stylistsText = formatStylists(stylists, businessName);
-                    replyText = `${stylistsText}\n\n🗓️ Puedes consultar los horarios libres de cada uno y apartar tu turno directamente aquí:\n👉 ${bookingUrl}`;
-                }
-                // C) Agendar cita / Pasos para reservar
-                else if (lower.includes('agend') || lower.includes('cita') || lower.includes('reserv') || lower.includes('turno') || lower.includes('apartar')) {
-                    replyText = `¡Con gusto te ayudo a agendar tu cita en *${businessName}*! 🗓️✨\n\n${bookingSteps}\n\n¿Deseas conocer los precios o consultar con qué profesional atenderte?`;
-                }
-                // D) Precios / Servicios / Catálogo / Paquetes / Cortes / Búsqueda específica
-                else if (
-                    lower.includes('precio') ||
-                    lower.includes('costo') ||
-                    lower.includes('cuanto') ||
-                    lower.includes('cuánto') ||
-                    lower.includes('servicio') ||
-                    lower.includes('catalogo') ||
-                    lower.includes('paquete') ||
-                    lower.includes('combo') ||
-                    lower.includes('corte') ||
-                    lower.includes('barba') ||
-                    lower.includes('ceja') ||
-                    lower.includes('unas') ||
-                    lower.includes('uñas')
-                ) {
-                    const categorized = formatServicesCategorized(services, textBody);
-                    if (categorized) {
-                        replyText = `En *${businessName}* contamos con las siguientes opciones:\n\n${categorized}\n\n👉 *Reserva tu turno directamente aquí:*\n${bookingUrl}`;
-                    } else {
-                        replyText = `Puedes consultar todos los servicios, paquetes y precios actualizados de *${businessName}* aquí:\n👉 ${bookingUrl}`;
+                        lower.includes('profesional') ||
+                        lower.includes('estilista') ||
+                        lower.includes('barbero') ||
+                        lower.includes('quien') ||
+                        lower.includes('quién') ||
+                        lower.includes('equipo') ||
+                        lower.includes('atiende') ||
+                        lower.includes('personal') ||
+                        (lower.includes('cuales') && (lower.includes('disponible') || lower.includes('hay'))) ||
+                        (lower.includes('cuáles') && (lower.includes('disponible') || lower.includes('hay'))) ||
+                        (lower.includes('con') && lower.includes('quien'))
+                    ) {
+                        const stylistsText = formatStylists(stylists, businessName);
+                        replyText = `${stylistsText}\n\n🗓️ Puedes consultar los horarios libres de cada uno y apartar tu turno directamente aquí:\n👉 ${bookingUrl}`;
                     }
-                }
-                // E) Ubicación / Dirección
-                else if (lower.includes('ubicacion') || lower.includes('ubicación') || lower.includes('donde') || lower.includes('dónde') || lower.includes('direccion') || lower.includes('dirección') || lower.includes('llegar') || lower.includes('local')) {
-                    if (businessAddress) {
-                        replyText = `📍 *Ubicación de ${businessName}*:\n${businessAddress}\n\n¡Te esperamos con gusto! Puedes agendar tu turno antes de venir aquí 👉 ${bookingUrl}`;
-                    } else {
-                        replyText = `Puedes consultar nuestra ubicación y mapa interactivo aquí:\n👉 ${bookingUrl}`;
+                    // C) Agendar cita / Pasos para reservar
+                    else if (lower.includes('agend') || lower.includes('cita') || lower.includes('reserv') || lower.includes('turno') || lower.includes('apartar')) {
+                        if (context?.appointmentsText && context.appointmentsText.includes('• Cita:')) {
+                            replyText = `¡Hola${greetingName}! ✨ Veo que ya cuentas con una cita registrada en el sistema:\n\n${context.appointmentsText}\n\n¿Deseas agendar una cita *adicional*, o necesitas consultar o modificar tu cita existente?\n\nSi deseas apartar otro turno, aquí tienes los pasos:\n${bookingSteps}`;
+                        } else {
+                            replyText = `¡Con gusto te ayudo a agendar tu cita en *${businessName}*! ✨\n\n${bookingSteps}\n\n¿Deseas conocer los precios o consultar con qué profesional atenderte?`;
+                        }
                     }
-                }
-                // F) Horarios
-                else if (lower.includes('horario') || lower.includes('hora') || lower.includes('abierto') || lower.includes('dias') || lower.includes('días')) {
-                    replyText = `Nuestros horarios de atención habituales en *${businessName}* son de Lunes a Sábado de 9:00 AM a 8:00 PM ⏰\n\nPuedes ver los turnos libres de hoy y de la semana aquí:\n👉 ${bookingUrl}`;
-                }
-                // G) Contacto humano
-                else if (lower.includes('humano') || lower.includes('persona') || lower.includes('asesor') || lower.includes('ayuda')) {
-                    replyText = `¡Entendido${greetingName}! 👤 Un asesor de *${businessName}* se pondrá en contacto contigo a la brevedad por este mismo chat. Mientras tanto, dime con confianza si hay algo puntual que quieras resolver.`;
-                }
-                // H) Respuesta general con menú
-                else {
-                    replyText = `Te he leído fuerte y claro${greetingName}: *"${textBody}"* 🌸\n\nComo asistente de *${businessName}* puedo ayudarte a:\n• *Agendar citas* (escribe "agendar")\n• *Ver servicios y paquetes* (escribe "servicios")\n• *Conocer al equipo* (escribe "disponibles")\n• *Ver nuestra ubicación* (escribe "ubicación")\n\nO visita directamente nuestra agenda en línea 👉 ${bookingUrl} ✨`;
-                }
+                    // D) Precios / Servicios / Catálogo / Paquetes / Cortes / Búsqueda específica
+                    else if (
+                        lower.includes('precio') ||
+                        lower.includes('costo') ||
+                        lower.includes('cuanto') ||
+                        lower.includes('cuánto') ||
+                        lower.includes('servicio') ||
+                        lower.includes('catalogo') ||
+                        lower.includes('paquete') ||
+                        lower.includes('combo') ||
+                        lower.includes('corte') ||
+                        lower.includes('barba') ||
+                        lower.includes('ceja') ||
+                        lower.includes('unas') ||
+                        lower.includes('uñas')
+                    ) {
+                        const categorized = formatServicesCategorized(services, textBody);
+                        if (categorized) {
+                            replyText = `En *${businessName}* contamos con las siguientes opciones:\n\n${categorized}\n\n👉 *Reserva tu turno directamente aquí:*\n${bookingUrl}`;
+                        } else {
+                            replyText = `Puedes consultar todos los servicios, paquetes y precios actualizados de *${businessName}* aquí:\n👉 ${bookingUrl}`;
+                        }
+                    }
+                    // E) Ubicación / Dirección / Google Maps / Estado / Ciudad
+                    else if (
+                        lower.includes('ubicacion') ||
+                        lower.includes('ubicación') ||
+                        lower.includes('donde') ||
+                        lower.includes('dónde') ||
+                        lower.includes('direccion') ||
+                        lower.includes('dirección') ||
+                        lower.includes('llegar') ||
+                        lower.includes('local') ||
+                        lower.includes('estado') ||
+                        lower.includes('ciudad') ||
+                        lower.includes('mapa')
+                    ) {
+                        const mapsSection = googleMapsUrl ? `\n\n🗺️ *Cómo llegar en Google Maps:*\n${googleMapsUrl}` : '';
+                        replyText = `📍 *Ubicación de ${businessName}:*\n${businessAddress || 'Puedes consultar nuestra ubicación en el enlace.'}${mapsSection}\n\n¡Te esperamos con gusto! Puedes agendar tu turno antes de venir aquí 👉 ${bookingUrl} ✨`;
+                    }
+                    // F) Horarios
+                    else if (lower.includes('horario') || lower.includes('hora') || lower.includes('abierto') || lower.includes('dias') || lower.includes('días')) {
+                        replyText = `Nuestros horarios de atención habituales en *${businessName}* son de Lunes a Sábado de 9:00 AM a 8:00 PM ⏰\n\nPuedes ver los turnos libres de hoy y de la semana aquí:\n👉 ${bookingUrl}`;
+                    }
+                    // G) Contacto humano
+                    else if (lower.includes('humano') || lower.includes('persona') || lower.includes('asesor') || lower.includes('ayuda')) {
+                        replyText = `¡Entendido${greetingName}! 👤 Un asesor de *${businessName}* se pondrá en contacto contigo a la brevedad por este mismo chat. Mientras tanto, dime con confianza si hay algo puntual que quieras resolver.`;
+                    }
+                    // H) Respuesta general con menú
+                    else {
+                        replyText = `Te he leído fuerte y claro${greetingName}: *"${textBody}"* 🌸\n\nComo asistente de *${businessName}* puedo ayudarte a:\n• *Agendar citas* (escribe "agendar")\n• *Ver servicios y paquetes* (escribe "servicios")\n• *Conocer al equipo* (escribe "disponibles")\n• *Ver nuestra ubicación* (escribe "ubicación")\n\nO visita directamente nuestra agenda en línea 👉 ${bookingUrl} ✨`;
+                    }
                 }
 
                 // Enviar respuesta inmediata a WhatsApp vía Meta Graph API
