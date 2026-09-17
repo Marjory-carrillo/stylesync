@@ -66,7 +66,7 @@ function localMetaApiPlugin() {
                 })
               });
 
-              const metaData = await metaRes.json();
+              const metaData: any = await metaRes.json();
               console.log('[local-meta-api] Respuesta de Meta:', metaRes.status, JSON.stringify(metaData));
 
               res.statusCode = metaRes.ok ? 200 : 400;
