@@ -20,6 +20,7 @@ interface StylistColumnCalendarProps {
     stylists: Stylist[];
     waitingList?: WaitingClient[];
     selectedStylistId?: number | 'all';
+    onSelectStylist?: (stylistId: number | 'all') => void;
     onWhatsApp?: (apt: Appointment) => void;
     onReschedule?: (apt: Appointment) => void;
     onNoShow?: (apt: Appointment) => void;
@@ -33,6 +34,7 @@ export default function StylistColumnCalendar({
     stylists,
     waitingList = [],
     selectedStylistId = 'all',
+    onSelectStylist,
     onReschedule,
     onNoShow,
     onCancel,
@@ -107,8 +109,16 @@ export default function StylistColumnCalendar({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const isSingleStylist = activeStylists.length === 1;
-    const singleStylist = isSingleStylist ? activeStylists[0] : null;
+    const isSingleStylistSelected = Boolean(selectedStylistId && selectedStylistId !== 'all');
+    const singleStylist = useMemo(() => {
+        if (isSingleStylistSelected) {
+            return stylists.find(s => Number(s.id) === Number(selectedStylistId)) || null;
+        }
+        if (stylists.length === 1) {
+            return stylists[0];
+        }
+        return null;
+    }, [isSingleStylistSelected, selectedStylistId, stylists]);
 
     // Optional user override for number of days (1, 3, 4). If null, uses responsive default.
     const [userSelectedDays, setUserSelectedDays] = useState<number | null>(null);
@@ -119,18 +129,29 @@ export default function StylistColumnCalendar({
         return 4;
     }, [windowWidth]);
 
-    // Active days count: defaults to 4 on desktop, 3 on mobile (or user selected override)
+    // Active days count: only applies when an individual stylist is selected
     const daysCount = useMemo(() => {
-        if (!isSingleStylist) return 1;
+        if (!isSingleStylistSelected) return 1;
         if (userSelectedDays !== null) {
             return userSelectedDays;
         }
         return defaultDaysForWidth;
-    }, [isSingleStylist, userSelectedDays, defaultDaysForWidth]);
+    }, [isSingleStylistSelected, userSelectedDays, defaultDaysForWidth]);
 
-    // Array of consecutive dates to display when single stylist is active
+    // Multi-day mode only when an individual stylist is selected AND daysCount > 1
+    const isMultiDayActive = isSingleStylistSelected && daysCount > 1;
+
+    // Handle day pills click: if user clicks 3D/4D while in 'all', auto-selects the first stylist
+    const handleSelectDays = (num: number) => {
+        setUserSelectedDays(num);
+        if (num > 1 && (!selectedStylistId || selectedStylistId === 'all') && stylists.length > 0) {
+            onSelectStylist?.(stylists[0].id);
+        }
+    };
+
+    // Array of consecutive dates to display when multi-day is active
     const displayDays = useMemo(() => {
-        if (!isSingleStylist || daysCount <= 1) {
+        if (!isMultiDayActive || daysCount <= 1) {
             return [currentDate];
         }
         const list: Date[] = [];
@@ -138,42 +159,24 @@ export default function StylistColumnCalendar({
             list.push(addDays(currentDate, i));
         }
         return list;
-    }, [isSingleStylist, daysCount, currentDate]);
+    }, [isMultiDayActive, daysCount, currentDate]);
 
     // Check if Today is in the current view
     const isViewingToday = useMemo(() => {
-        if (isSingleStylist && daysCount > 1) {
+        if (isMultiDayActive && daysCount > 1) {
             return displayDays.some(d => isToday(d));
         }
         return isToday(currentDate);
-    }, [isSingleStylist, daysCount, displayDays, currentDate]);
-
-    // Header date range label
-    const dateRangeLabel = useMemo(() => {
-        if (!isSingleStylist || daysCount <= 1) {
-            return format(currentDate, "EEEE, d 'de' MMMM", { locale: es });
-        }
-        const start = displayDays[0];
-        const end = displayDays[displayDays.length - 1];
-        const startDay = format(start, 'd');
-        const endDay = format(end, 'd');
-        const startMonth = format(start, 'MMMM', { locale: es });
-        const endMonth = format(end, 'MMMM', { locale: es });
-
-        if (startMonth === endMonth) {
-            return `${startDay} al ${endDay} de ${startMonth}`;
-        }
-        return `${startDay} de ${startMonth} - ${endDay} de ${endMonth}`;
-    }, [isSingleStylist, daysCount, currentDate, displayDays]);
+    }, [isMultiDayActive, daysCount, displayDays, currentDate]);
 
     // Visible appointments (across all displayed days) for bounds and red line
     const visibleAppointments = useMemo(() => {
-        if (!isSingleStylist || daysCount <= 1) {
+        if (!isMultiDayActive || daysCount <= 1) {
             return appointments.filter(a => a.date === dateStr && a.status !== 'cancelada');
         }
         const datesSet = new Set(displayDays.map(d => format(d, 'yyyy-MM-dd')));
         return appointments.filter(a => datesSet.has(a.date) && a.status !== 'cancelada');
-    }, [appointments, isSingleStylist, daysCount, dateStr, displayDays]);
+    }, [appointments, isMultiDayActive, daysCount, dateStr, displayDays]);
 
     const appointmentCounts = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -657,21 +660,43 @@ export default function StylistColumnCalendar({
 
                     <div className="flex items-center gap-2">
                         <h3 className="text-xs sm:text-base md:text-lg font-black text-white capitalize tracking-tight truncate">
-                            {dateRangeLabel}
+                            {format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
                         </h3>
+                        {singleStylist && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 border border-white/10 shadow-sm shrink-0">
+                                {singleStylist.image ? (
+                                    <img
+                                        decoding="async"
+                                        loading="lazy"
+                                        src={singleStylist.image}
+                                        alt={singleStylist.name}
+                                        className="w-5 h-5 rounded-full object-cover border border-accent/40 shrink-0"
+                                    />
+                                ) : (
+                                    <div className="w-5 h-5 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-[10px] font-black text-accent shrink-0">
+                                        {singleStylist.name.charAt(0)}
+                                    </div>
+                                )}
+                                <span className="text-xs font-black text-white truncate max-w-[120px]">
+                                    {singleStylist.name}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                    {/* View days selector for single stylist */}
-                    {isSingleStylist && (
-                        <div className="flex items-center bg-black/40 p-0.5 rounded-xl border border-white/10 shadow-inner">
-                            {[1, 3, 4].map(num => (
+                    {/* View days selector: allows toggling 1D, 3D, 4D. If user clicks 3D/4D while in 'all', auto-selects first stylist */}
+                    <div className="flex items-center bg-black/40 p-0.5 rounded-xl border border-white/10 shadow-inner">
+                        {[1, 3, 4].map(num => {
+                            const isCurrentActive = (isMultiDayActive && daysCount === num) || (!isMultiDayActive && num === 1);
+                            return (
                                 <button
                                     key={num}
-                                    onClick={() => setUserSelectedDays(num)}
+                                    type="button"
+                                    onClick={() => handleSelectDays(num)}
                                     className={`px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-black rounded-lg transition-all cursor-pointer ${
-                                        daysCount === num
+                                        isCurrentActive
                                             ? 'bg-accent text-slate-950 shadow-md shadow-accent/20 font-black'
                                             : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
@@ -679,9 +704,9 @@ export default function StylistColumnCalendar({
                                 >
                                     {num === 1 ? '1D' : `${num}D`}
                                 </button>
-                            ))}
-                        </div>
-                    )}
+                            );
+                        })}
+                    </div>
 
                     <DatePickerInput
                         value={dateStr}
@@ -702,9 +727,9 @@ export default function StylistColumnCalendar({
                 <div
                     className="relative flex flex-col w-full"
                     style={{
-                        minWidth: (!isSingleStylist && activeStylists.length <= 1) || (isSingleStylist && daysCount <= 1)
+                        minWidth: (!isMultiDayActive && activeStylists.length <= 1) || (isMultiDayActive && daysCount <= 1)
                             ? '100%'
-                            : `${Math.max(320, (isSingleStylist ? daysCount : activeStylists.length) * (windowWidth < 640 ? 105 : 180) + (windowWidth < 640 ? 56 : 80))}px`
+                            : `${Math.max(320, (isMultiDayActive ? daysCount : activeStylists.length) * (windowWidth < 640 ? 105 : 180) + (windowWidth < 640 ? 56 : 80))}px`
                     }}
                 >
 
@@ -717,7 +742,7 @@ export default function StylistColumnCalendar({
 
                         {/* Columns Header: either Multi-Stylist (1 day) OR Single Stylist (Multi-Day) */}
                         <div className="flex-1 grid grid-flow-col auto-cols-fr divide-x divide-white/10">
-                            {isSingleStylist && daysCount > 1 ? (
+                            {isMultiDayActive ? (
                                 displayDays.map(dayDate => {
                                     const isDayToday = isToday(dayDate);
                                     const dStr = format(dayDate, 'yyyy-MM-dd');
@@ -813,7 +838,7 @@ export default function StylistColumnCalendar({
                                         {format(now, 'h:mm a')}
                                     </span>
                                 </div>
-                                {(!isSingleStylist || daysCount <= 1) && (
+                                {(!isMultiDayActive || daysCount <= 1) && (
                                     <div className="flex-1 h-[2px] bg-gradient-to-r from-red-500 via-red-500 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                                 )}
                             </div>
@@ -830,7 +855,7 @@ export default function StylistColumnCalendar({
                             </div>
 
                             {/* Columns Content: either Single Stylist Multi-Day OR Multi-Stylist Single-Day */}
-                            {isSingleStylist && daysCount > 1 ? (
+                            {isMultiDayActive ? (
                                 displayDays.map(dayDate => {
                                     const dStr = format(dayDate, 'yyyy-MM-dd');
                                     const isDayToday = isToday(dayDate);

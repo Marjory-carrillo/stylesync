@@ -1770,6 +1770,7 @@ export default function Dashboard() {
                         stylists={stylists}
                         waitingList={waitingList}
                         selectedStylistId={dashboardStylistId}
+                        onSelectStylist={(id) => setDashboardStylistId(id)}
                         onWhatsApp={(apt) => {
                             const waPhone = apt.clientPhone.replace(/\D/g, '');
                             window.open(`https://wa.me/${waPhone}`, '_blank');
