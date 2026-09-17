@@ -655,9 +655,9 @@ const EditBusinessModal = ({ isOpen, onClose, tenant, onSave, onSwitchTenant, on
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Plan de Suscripción</label>
                                 <div className="grid grid-cols-3 gap-2.5">
                                     {[
-                                        { key: 'lite' as PlanType, name: 'Esencial', price: '$349', desc: '1 Staff' },
-                                        { key: 'pro' as PlanType, name: 'Pro', price: '$649', desc: 'Multi-Staff' },
-                                        { key: 'business' as PlanType, name: 'Business', price: '$1,249', desc: 'Sucursales' },
+                                        { key: 'lite' as PlanType, name: 'Esencial', price: '$299', desc: '1 Staff' },
+                                        { key: 'pro' as PlanType, name: 'Pro', price: '$599', desc: 'Multi-Staff' },
+                                        { key: 'business' as PlanType, name: 'Business', price: '$1,049', desc: 'Sucursales' },
                                     ].map(p => (
                                         <button
                                             type="button"
@@ -975,7 +975,7 @@ export default function SuperAdminPanel() {
     const [pendingPlanChange, setPendingPlanChange] = useState<{ tenantId: string; tenantName: string; from: PlanType; to: PlanType } | null>(null);
     const [pendingSmsChange, setPendingSmsChange] = useState<{ tenantId: string; tenantName: string; from: 'demo' | 'whatsapp'; to: 'demo' | 'whatsapp' } | null>(null);
     const [tenantToEdit, setTenantToEdit] = useState<any>(null);
-    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '349', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite' as PlanType, noTrial: false });
+    const [newBusiness, setNewBusiness] = useState({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '299', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite' as PlanType, noTrial: false });
     const [isCreating, setIsCreating] = useState(false);
     const [isExistingOwner, setIsExistingOwner] = useState(false);
     const [selectedOwnerId, setSelectedOwnerId] = useState('');
@@ -1423,24 +1423,24 @@ export default function SuperAdminPanel() {
                 freeCount++;
             } else if (plan === 'pro') {
                 proCount++;
-                if (!isTrial && !isSuspended && hasPayment) basePrice = 649;
+                if (!isTrial && !isSuspended && hasPayment) basePrice = 599;
             } else if (plan === 'business') {
                 businessCount++;
-                if (!isTrial && !isSuspended && hasPayment) basePrice = 1249;
+                if (!isTrial && !isSuspended && hasPayment) basePrice = 1049;
             } else if (plan === 'lite') {
                 liteCount++;
-                if (!isTrial && !isSuspended && hasPayment) basePrice = 349;
+                if (!isTrial && !isSuspended && hasPayment) basePrice = 299;
             }
 
             if (!isTrial && !isSuspended && hasPayment) {
                 totalMrr += basePrice;
-                // Sumar profesionales extra: Pro y Business permiten profesionales adicionales pagados ($249 MXN/mes c/u)
+                // Sumar profesionales extra: Pro y Business permiten profesionales adicionales pagados ($199 MXN/mes c/u)
                 if (plan === 'pro' || plan === 'business') {
-                    totalMrr += totalExtraEmployees * 249;
+                    totalMrr += totalExtraEmployees * 199;
                 }
-                // Sumar sucursales extra: Business permite sucursales adicionales pagadas ($599 MXN/mes c/u)
+                // Sumar sucursales extra: Business permite sucursales adicionales pagadas ($549 MXN/mes c/u)
                 if (plan === 'business') {
-                    totalMrr += totalExtraBranches * 599;
+                    totalMrr += totalExtraBranches * 549;
                 }
             }
         });
@@ -1477,7 +1477,7 @@ export default function SuperAdminPanel() {
             }
             setIsCreateModalOpen(false);
             setIsSlugManual(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '349', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite', noTrial: false });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '299', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite', noTrial: false });
             setIsExistingOwner(false);
             setSelectedOwnerId('');
             showToast(
@@ -2689,9 +2689,9 @@ export default function SuperAdminPanel() {
                                 </div>
                                 <div className="grid grid-cols-3 gap-2.5">
                                     {([
-                                        { key: 'lite' as PlanType, label: 'Esencial', sub: 'Ilimitado (1 prof.)', price: '$349', color: 'teal' },
-                                        { key: 'pro' as PlanType, label: 'Pro', sub: 'Ilimitado (2 prof.)', price: '$649', color: 'amber' },
-                                        { key: 'business' as PlanType, label: 'Business', price: '$1,249', sub: 'Multi-sucursal', color: 'violet' },
+                                        { key: 'lite' as PlanType, label: 'Esencial', sub: 'Ilimitado (1 prof.)', price: '$299', color: 'teal' },
+                                        { key: 'pro' as PlanType, label: 'Pro', sub: 'Ilimitado (2 prof.)', price: '$599', color: 'amber' },
+                                        { key: 'business' as PlanType, label: 'Business', price: '$1,049', sub: 'Multi-sucursal', color: 'violet' },
                                     ]).map(p => {
                                         const isActive = newBusiness.plan === p.key;
                                         return (

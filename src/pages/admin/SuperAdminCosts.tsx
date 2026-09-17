@@ -305,8 +305,8 @@ export default function SuperAdminCosts() {
         } else {
             switch (plan) {
                 case 'lite': basePrice = 299; break;
-                case 'pro': basePrice = 649; break;
-                case 'business': basePrice = 1249; break;
+                case 'pro': basePrice = 599; break;
+                case 'business': basePrice = 1049; break;
                 default: basePrice = 0;
             }
         }

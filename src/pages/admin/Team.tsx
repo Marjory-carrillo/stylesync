@@ -3,7 +3,7 @@ import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
-import { getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, canAddEmployee } from '../../lib/planLimits';
+import { getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, canAddEmployee, isInTrial } from '../../lib/planLimits';
 import { supabase } from '../../lib/supabaseClient';
 import { Users, Mail, Shield, Plus, Trash2, AlertCircle, Copy, Check, Info, UserCheck, Clock, Loader2, Sparkles } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -26,8 +26,9 @@ export default function Team() {
     const plan = businessConfig?.plan || 'free';
     const limits = getPlanLimits(plan);
     const badge = getPlanBadgeStyles(plan);
+    const inTrial = isInTrial(businessConfig?.trialEndsAt);
     const extraEmployeesPaid = businessConfig?.extraEmployeesPaid || 0;
-    const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid);
+    const effectiveMaxEmployees = inTrial ? 4 : getEffectiveMaxEmployees(plan, extraEmployeesPaid);
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +75,13 @@ export default function Team() {
     const availableStylists = useMemo(() => {
         return stylists.filter(s => !assignedStylistIds.has(s.id));
     }, [stylists, assignedStylistIds]);
+
+    const handleStylistChange = (stylistId: string) => {
+        setInviteStylistId(stylistId);
+        if (stylistId) {
+            setInviteRole('employee');
+        }
+    };
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -217,9 +225,64 @@ export default function Team() {
                         <h3 className="text-xl font-bold text-white tracking-tight">Nuevo Integrante</h3>
                     </div>
 
-                    <form onSubmit={handleInvite} className="space-y-6 relative z-10">
-                        <div className="bg-white/5 p-5 rounded-2xl border border-white/5 transition-all focus-within:border-blue-500/50">
-                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Correo Electrónico de Acceso</label>
+                    <form onSubmit={handleInvite} className="space-y-5 relative z-10">
+                        {/* 1. SELECCIONAR PROFESIONAL A VINCULAR (Arriba del correo) */}
+                        <div className="bg-white/[0.04] p-5 rounded-2xl border border-white/10 transition-all focus-within:border-blue-500/50 hover:border-white/15 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300">
+                                    <UserCheck size={16} className="text-blue-400" />
+                                    <span>Perfil de Profesional a Vincular</span>
+                                </label>
+                                {inviteStylistId ? (
+                                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1.5 animate-fade-in">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                        Agenda Personal
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] font-semibold text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+                                        Opcional
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                                Selecciona al profesional del salón para que al iniciar sesión solo pueda ver y gestionar sus propias citas asignadas.
+                            </p>
+                            <div className="relative">
+                                <select
+                                    value={inviteStylistId}
+                                    onChange={(e) => handleStylistChange(e.target.value)}
+                                    className="w-full bg-slate-900/80 border border-white/10 rounded-xl py-3.5 pl-4 pr-10 text-white focus:outline-none focus:border-blue-500/60 font-medium appearance-none transition-all cursor-pointer hover:border-white/25 shadow-inner"
+                                >
+                                    <option value="">✨ Sin vincular (Acceso general a todas las citas / Recepción)</option>
+                                    {availableStylists.map(s => (
+                                        <option key={s.id} value={s.id} className="bg-slate-900 text-white py-2">
+                                            {s.name} ({s.role || 'Profesional'})
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                                    ▼
+                                </div>
+                            </div>
+                            {stylists.length > 0 && availableStylists.length === 0 && (
+                                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs p-3 rounded-xl flex items-center gap-2">
+                                    <AlertCircle size={15} className="shrink-0 text-amber-400" />
+                                    <span>Todos los profesionales registrados ya tienen una cuenta de acceso vinculada.</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 2. CORREO ELECTRÓNICO DE ACCESO */}
+                        <div className="bg-white/[0.04] p-5 rounded-2xl border border-white/10 transition-all focus-within:border-blue-500/50 hover:border-white/15">
+                            <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300 mb-1.5">
+                                <Mail size={16} className="text-blue-400" />
+                                <span>Correo Electrónico de Acceso</span>
+                            </label>
+                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed mb-3">
+                                {inviteStylistId
+                                    ? `Ingresa el correo con el que ${availableStylists.find(s => s.id.toString() === inviteStylistId)?.name || 'el profesional'} iniciará sesión.`
+                                    : 'El integrante del equipo ingresará a CitaLink utilizando esta cuenta de correo.'}
+                            </p>
                             <div className="relative">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                                 <input
@@ -227,81 +290,68 @@ export default function Team() {
                                     required
                                     value={inviteEmail}
                                     onChange={(e) => setInviteEmail(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500/50 font-medium placeholder:text-slate-600 transition-all"
+                                    className="w-full bg-slate-900/80 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500/60 font-medium placeholder:text-slate-600 transition-all shadow-inner"
                                     placeholder="ejemplo@correo.com"
                                 />
                             </div>
                             {inviteError && (
-                                <div className="mt-3 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-wider p-3 rounded-lg animate-fade-in flex items-center gap-2">
-                                    <AlertCircle size={14} /> {inviteError}
+                                <div className="mt-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-bold p-3 rounded-xl animate-fade-in flex items-center gap-2">
+                                    <AlertCircle size={15} className="shrink-0" />
+                                    <span>{inviteError}</span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Nivel de Permiso</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* 3. NIVEL DE PERMISO */}
+                        <div className="bg-white/[0.04] p-5 rounded-2xl border border-white/10 hover:border-white/15">
+                            <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300 mb-1.5">
+                                <Shield size={16} className="text-blue-400" />
+                                <span>Nivel de Permiso</span>
+                            </label>
+                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed mb-4">
+                                Define el tipo de acceso y las acciones permitidas para esta cuenta.
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 <button
                                     type="button"
-                                    className={`group p-4 rounded-xl border text-left transition-all duration-500 ${inviteRole === 'employee' ? 'border-blue-500/50 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]' : 'border-white/5 bg-slate-900/50 hover:bg-white/5'}`}
+                                    className={`group p-4 rounded-xl border text-left transition-all duration-300 cursor-pointer ${inviteRole === 'employee' ? 'border-blue-500/60 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.18)] ring-1 ring-blue-500/30' : 'border-white/10 bg-slate-900/50 hover:bg-white/5'}`}
                                     onClick={() => setInviteRole('employee')}
                                 >
                                     <div className="font-bold text-white flex items-center justify-between text-sm">
-                                        Empleado
-                                        <div className={`w-2 h-2 rounded-full transition-all duration-500 ${inviteRole === 'employee' ? 'bg-blue-500 scale-125 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
+                                        <span className="flex items-center gap-2">
+                                            Profesional
+                                            {inviteStylistId && (
+                                                <span className="text-[9px] font-bold text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
+                                                    Vinculado
+                                                </span>
+                                            )}
+                                        </span>
+                                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${inviteRole === 'employee' ? 'bg-blue-500 scale-125 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
                                     </div>
-                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Acceso limitado a su propia agenda personal. Sin ver finanzas ni clientes globales.</div>
+                                    <div className="text-[11px] text-slate-400 mt-2 leading-relaxed font-medium">
+                                        Acceso limitado a su propia agenda personal. Sin ver finanzas ni clientes globales.
+                                    </div>
                                 </button>
                                 <button
                                     type="button"
-                                    className={`group p-4 rounded-xl border text-left transition-all duration-500 ${inviteRole === 'admin' ? 'border-violet-500/50 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.15)]' : 'border-white/5 bg-slate-900/50 hover:bg-white/5'}`}
+                                    className={`group p-4 rounded-xl border text-left transition-all duration-300 cursor-pointer ${inviteRole === 'admin' ? 'border-violet-500/60 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.18)] ring-1 ring-violet-500/30' : 'border-white/10 bg-slate-900/50 hover:bg-white/5'}`}
                                     onClick={() => setInviteRole('admin')}
                                 >
                                     <div className="font-bold text-white flex items-center justify-between text-sm">
-                                        Administrador
-                                        <div className={`w-2 h-2 rounded-full transition-all duration-500 ${inviteRole === 'admin' ? 'bg-violet-500 scale-125 shadow-[0_0_8px_#8b5cf6]' : 'bg-slate-700'}`}></div>
+                                        <span>Administrador</span>
+                                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${inviteRole === 'admin' ? 'bg-violet-500 scale-125 shadow-[0_0_8px_#8b5cf6]' : 'bg-slate-700'}`}></div>
                                     </div>
-                                    <div className="text-[10px] text-slate-500 mt-2 leading-relaxed font-medium">Control total sobre agenda completa, finanzas, servicios y equipo.</div>
+                                    <div className="text-[11px] text-slate-400 mt-2 leading-relaxed font-medium">
+                                        Control total sobre agenda completa, finanzas, servicios y equipo.
+                                    </div>
                                 </button>
                             </div>
                         </div>
 
-                        {inviteRole === 'employee' && (
-                            <div className="bg-white/5 p-5 rounded-2xl border border-white/5 animate-fade-in space-y-3">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Perfil de Profesional Vinculado</label>
-                                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                                        Selecciona al profesional del salón para que al iniciar sesión solo pueda ver sus propias citas asignadas.
-                                    </p>
-                                </div>
-                                <div className="relative">
-                                    <select
-                                        value={inviteStylistId}
-                                        onChange={(e) => setInviteStylistId(e.target.value)}
-                                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-blue-500/50 font-medium appearance-none transition-all cursor-pointer"
-                                    >
-                                        <option value="">Sin vincular (acceso general a todas las citas)</option>
-                                        {availableStylists.map(s => (
-                                            <option key={s.id} value={s.id} className="bg-slate-900">{s.name} ({s.role})</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">
-                                        ▼
-                                    </div>
-                                </div>
-                                {stylists.length > 0 && availableStylists.length === 0 && (
-                                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs p-3 rounded-xl flex items-center gap-2">
-                                        <AlertCircle size={15} className="shrink-0" />
-                                        <span>Todos los profesionales registrados ya tienen una cuenta vinculada.</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-4 rounded-xl transition-all shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-95 group cursor-pointer disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-black py-4 rounded-xl transition-all shadow-[0_8px_25px_rgba(37,99,235,0.35)] active:scale-95 group cursor-pointer disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <>
@@ -387,7 +437,7 @@ export default function Team() {
                                                     {member.role === 'admin' ? (
                                                         <span className="text-[9px] font-black uppercase tracking-widest text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md">Administrador</span>
                                                     ) : (
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">Colaborador</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">Profesional</span>
                                                     )}
                                                     {linkedStylist && (
                                                         <span className="text-[9px] font-bold text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 rounded-md truncate flex items-center gap-1">

@@ -16,8 +16,8 @@ interface GlobalState {
 }
 
 const DEFAULT_CONFIG: GlobalConfig = {
-    basic_plan_price: 349.00,
-    premium_plan_price: 649.00,
+    basic_plan_price: 299.00,
+    premium_plan_price: 599.00,
     trial_days: 30,
     maintenance_mode: false,
     system_email: 'soporte@citalink.app'

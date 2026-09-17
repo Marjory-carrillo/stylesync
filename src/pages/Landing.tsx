@@ -1185,9 +1185,9 @@ export default function Landing() {
                                 <div className="mb-6">
                                     <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-400 mb-2">Esencial</p>
                                     <div className="flex items-end gap-1">
-                                        <span className="text-5xl font-black text-white">$349</span>
+                                        <span className="text-5xl font-black text-white">$299</span>
                                         <span className="text-slate-400 mb-2">/mes</span>
-                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$499</span>
+                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$449</span>
                                     </div>
                                     <p className="text-slate-400 text-sm mt-2">Para profesionales independientes y dueños que trabajan solos.</p>
                                 </div>
@@ -1209,7 +1209,7 @@ export default function Landing() {
                                         'Soporte por WhatsApp',
                                     ].map((f) => (
                                         <li key={f} className="flex items-center gap-2 text-slate-300">
-                                            <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0" />{f}
+                                             <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 shrink-0" />{f}
                                         </li>
                                     ))}
                                     {['Colaboradores adicionales', 'Nómina y Comisiones avanzadas'].map((f) => (
@@ -1233,9 +1233,9 @@ export default function Landing() {
                                 <div className="mb-6 mt-4">
                                     <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-400 mb-2">Pro</p>
                                     <div className="flex items-end gap-1">
-                                        <span className="text-5xl font-black text-white">$649</span>
+                                        <span className="text-5xl font-black text-white">$599</span>
                                         <span className="text-slate-400 mb-2">/mes</span>
-                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$899</span>
+                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$799</span>
                                     </div>
                                     <p className="text-slate-400 text-sm mt-2">Para salones, nail bars y barberías con equipo de trabajo.</p>
                                 </div>
@@ -1246,7 +1246,7 @@ export default function Landing() {
                                     {[
                                         '1 sucursal incluida',
                                         '2 profesionales incluidos',
-                                        'Profesional extra: +$249/mes',
+                                        'Profesional extra: +$199/mes',
                                         '✨ Citas ILIMITADAS',
                                         'Nómina y Comisiones en PDF',
                                         'Reportes analíticos avanzados',
@@ -1271,9 +1271,9 @@ export default function Landing() {
                                 <div className="mb-6">
                                     <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-400 mb-2">Business</p>
                                     <div className="flex items-end gap-1">
-                                        <span className="text-5xl font-black text-white">$1,249</span>
+                                        <span className="text-5xl font-black text-white">$1,049</span>
                                         <span className="text-slate-500 mb-2">/mes</span>
-                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$1,649</span>
+                                        <span className="text-xs text-slate-500 line-through ml-1.5 mb-1.5">$1,399</span>
                                     </div>
                                     <p className="text-slate-400 text-sm mt-2">Para cadenas con múltiples sucursales y franquicias.</p>
                                 </div>
@@ -1283,9 +1283,9 @@ export default function Landing() {
                                 <ul className="space-y-2.5 text-xs">
                                     {[
                                         '🏢 2 sucursales incluidas',
-                                        'Sucursal extra: +$599/mes',
+                                        'Sucursal extra: +$549/mes',
                                         '2 profesionales por sucursal',
-                                        'Profesional extra: +$249/mes',
+                                        'Profesional extra: +$199/mes',
                                         '✨ Todo lo del Plan Pro incluido',
                                         'Panel Multi-Sucursal unificado',
                                         'Reportes financieros por sucursal',
@@ -1312,7 +1312,7 @@ export default function Landing() {
                                 { q: '¿Puedo cambiar de plan cuando quiera?', a: 'Sí. Puedes subir o bajar de plan en cualquier momento desde tu panel. Los cambios aplican de inmediato en tu ciclo de facturación.' },
                                 { q: '¿Cómo funciona la prueba gratis?', a: 'Te damos 30 días de prueba gratis con acceso completo a todas las funciones Pro para que puedas configurar tu negocio y recibir reservas reales sin costo ni tarjeta de crédito.' },
                                 { q: '¿El cotizador de uñas tiene costo adicional?', a: 'No, el cotizador de uñas viene completamente integrado y disponible para activar en cualquier servicio.' },
-                                { q: '¿Cómo funciona el cobro por colaborador adicional?', a: 'Los primeros 2 colaboradores van incluidos en el plan Pro y Business. Puedes agregar estilistas o barberos adicionales por solo $249/mes cada uno.' },
+                                { q: '¿Cómo funciona el cobro por colaborador adicional?', a: 'Los primeros 2 colaboradores van incluidos en el plan Pro y Business. Puedes agregar estilistas o barberos adicionales por solo $199/mes cada uno.' },
                             ].map((item, i) => (
                                 <FAQItem key={i} q={item.q} a={item.a} />
                             ))}

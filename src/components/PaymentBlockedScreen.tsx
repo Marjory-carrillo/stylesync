@@ -107,7 +107,7 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
                             <p className="text-xs text-slate-500 mt-1">Ideal para profesionales individuales</p>
                         </div>
                         <div className="flex items-baseline gap-1 my-3">
-                            <span className="text-3xl font-black text-white">$349</span>
+                            <span className="text-3xl font-black text-white">$299</span>
                             <span className="text-slate-400 text-xs font-semibold uppercase">MXN/mes</span>
                         </div>
                         <ul className="space-y-2.5 my-6 text-xs text-slate-300 flex-1">
@@ -163,13 +163,13 @@ export default function PaymentBlockedScreen({ businessName = 'tu negocio' }: Pa
                             <p className="text-xs text-slate-500 mt-1">Para equipos y salones en crecimiento</p>
                         </div>
                         <div className="flex items-baseline gap-1 my-3">
-                            <span className="text-3xl font-black text-white">$649</span>
+                            <span className="text-3xl font-black text-white">$599</span>
                             <span className="text-slate-400 text-xs font-semibold uppercase">MXN/mes</span>
                         </div>
                         <ul className="space-y-2.5 my-6 text-xs text-slate-300 flex-1">
                             <li className="flex items-center gap-2.5">
                                 <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>
-                                <span>2 Profesionales incluidos (+249/mes c/u)</span>
+                                <span>2 Profesionales incluidos (+199/mes c/u)</span>
                             </li>
                             <li className="flex items-center gap-2.5">
                                 <span className="p-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0"><Check size={12} strokeWidth={3} /></span>

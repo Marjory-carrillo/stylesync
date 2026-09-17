@@ -63,7 +63,7 @@ export default function CitalinkClients() {
         category: 'barbershop',
         ownerEmail: '',
         ownerPassword: '',
-        monthlyPrice: '349',
+        monthlyPrice: '299',
         timezone: 'America/Mexico_City',
         countryCode: 'MX',
         brandSlug: '',
@@ -138,7 +138,7 @@ export default function CitalinkClients() {
             }
             setIsCreateModalOpen(false);
             setIsSlugManual(false);
-            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '349', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite', noTrial: false });
+            setNewBusiness({ name: '', slug: '', category: 'barbershop', ownerEmail: '', ownerPassword: '', monthlyPrice: '299', timezone: 'America/Mexico_City', countryCode: 'MX', brandSlug: '', plan: 'lite', noTrial: false });
             setIsExistingOwner(false);
             setSelectedOwnerId('');
             if (fetchAllTenants) fetchAllTenants();
@@ -1158,9 +1158,9 @@ export default function CitalinkClients() {
                             </label>
                             <div className="grid grid-cols-3 gap-2">
                                 {[
-                                    { id: 'lite', name: 'Esencial ($349/m)' },
-                                    { id: 'pro', name: 'Pro ($649/m)' },
-                                    { id: 'business', name: 'Business ($1,249/m)' },
+                                    { id: 'lite', name: 'Esencial ($299/m)' },
+                                    { id: 'pro', name: 'Pro ($599/m)' },
+                                    { id: 'business', name: 'Business ($1,049/m)' },
                                 ].map(p => (
                                     <button
                                         key={p.id}
@@ -1439,9 +1439,9 @@ export default function CitalinkClients() {
                                 </div>
                                 <div className="grid grid-cols-3 gap-2.5">
                                     {[
-                                        { key: 'lite' as PlanType, label: 'Esencial', sub: '1 Profesional', price: '$349' },
-                                        { key: 'pro' as PlanType, label: 'Pro', sub: 'Multi-Staff', price: '$649' },
-                                        { key: 'business' as PlanType, label: 'Business', sub: 'Sucursales', price: '$1,249' },
+                                        { key: 'lite' as PlanType, label: 'Esencial', sub: '1 Profesional', price: '$299' },
+                                        { key: 'pro' as PlanType, label: 'Pro', sub: 'Multi-Staff', price: '$599' },
+                                        { key: 'business' as PlanType, label: 'Business', sub: 'Sucursales', price: '$1,049' },
                                     ].map(p => {
                                         const isActive = newBusiness.plan === p.key;
                                         return (

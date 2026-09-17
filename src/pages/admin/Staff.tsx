@@ -5,12 +5,13 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useServices } from '../../lib/store/queries/useServices';
 import { useNailCalculator, DEFAULT_NAIL_CONFIG } from '../../lib/store/queries/useNailCalculator';
-import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, isNailCalculatorEnabled } from '../../lib/planLimits';
-import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight, ExternalLink } from 'lucide-react';
+import { canAddStylist, getPlanLimits, getPlanBadgeStyles, getEffectiveMaxEmployees, isNailCalculatorEnabled, isInTrial } from '../../lib/planLimits';
+import { User, Phone, Plus, Edit2, Trash2, X, Upload, ImageIcon, Zap, Crown, ArrowRight, ExternalLink, Sparkles } from 'lucide-react';
 import { stylistSchema } from '../../lib/schemas';
 import { useStripeCheckout } from '../../lib/store/queries/useStripeCheckout';
 import type { WeekSchedule, QuotingCategory, QuotingItem } from '../../lib/types/store.types';
 import ConfirmModal from '../../components/ConfirmModal';
+import FastTeamModal from '../../components/FastTeamModal';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 const DAY_LABELS: Record<string, string> = {
@@ -45,11 +46,28 @@ export default function Staff() {
     const extraEmployeesPaid = businessConfig?.extraEmployeesPaid || 0;
     const hasStripeCustomer = !!(businessConfig as any)?.stripeCustomerId;
     const { openBillingPortal, isPortalLoading, redirectToCheckout, isCheckoutLoading } = useStripeCheckout();
-    const inTrial = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
+    const inTrial = isInTrial(trialEndsAt);
     const effectiveMaxEmployees = getEffectiveMaxEmployees(plan, extraEmployeesPaid);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isFastTeamOpen, setIsFastTeamOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ type: 'upgrade' | 'extra'; message: string } | null>(null);
+
+    const openFastTeam = () => {
+        const max = inTrial ? 4 : effectiveMaxEmployees;
+        if (stylists.length >= max) {
+            const check = canAddStylist(plan, stylists.length, trialEndsAt, extraEmployeesPaid);
+            if (!check.allowed) {
+                setShowUpgradeModal({ type: 'upgrade', message: check.message || 'Límite de profesionales alcanzado.' });
+                return;
+            }
+            if (check.message) {
+                setShowUpgradeModal({ type: 'extra', message: check.message });
+                return;
+            }
+        }
+        setIsFastTeamOpen(true);
+    };
 
     // Custom confirm dialog state
     const [customConfirm, setCustomConfirm] = useState<{
@@ -273,13 +291,23 @@ export default function Staff() {
                     <p className="text-sm text-muted flex items-center gap-2 mt-1">
                         Gestiona a tus profesionales y personal.
                         <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                            {stylists.length}/{inTrial ? Math.min(2, effectiveMaxEmployees) : effectiveMaxEmployees}
+                            {stylists.length}/{inTrial ? 4 : effectiveMaxEmployees}
                         </span>
                     </p>
                 </div>
-                <button className="btn btn-primary" onClick={openAdd}>
-                    <Plus size={20} /> <span className="hidden md:inline">Nuevo Profesional</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        className="px-3.5 py-2.5 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm hover:scale-[1.02] active:scale-95"
+                        onClick={openFastTeam}
+                        title="Carga rápida de múltiples profesionales a la vez"
+                    >
+                        <Sparkles size={16} className="text-violet-400" />
+                        <span>Carga Rápida</span>
+                    </button>
+                    <button className="btn btn-primary" onClick={openAdd}>
+                        <Plus size={20} /> <span className="hidden md:inline">Nuevo Profesional</span>
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1062,7 +1090,7 @@ export default function Staff() {
                                     <>
                                         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-1">Profesional Extra</p>
-                                            <p className="text-2xl font-black text-white">+$249<span className="text-sm font-medium text-slate-400">/mes</span></p>
+                                            <p className="text-2xl font-black text-white">+$199<span className="text-sm font-medium text-slate-400">/mes</span></p>
                                             <p className="text-xs text-slate-400 mt-1">Agrega profesionales desde tu portal de facturación</p>
                                         </div>
                                         <button
@@ -1078,8 +1106,8 @@ export default function Staff() {
                                     <>
                                         <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 text-center">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-violet-400 mb-1">Plan Pro</p>
-                                            <p className="text-2xl font-black text-white">$649<span className="text-sm font-medium text-slate-400">/mes</span></p>
-                                            <p className="text-xs text-slate-400 mt-1">2 profesionales incluidos + $249 c/u extra</p>
+                                            <p className="text-2xl font-black text-white">$599<span className="text-sm font-medium text-slate-400">/mes</span></p>
+                                            <p className="text-xs text-slate-400 mt-1">2 profesionales incluidos + $199 c/u extra</p>
                                         </div>
                                         <button
                                             onClick={() => { setShowUpgradeModal(null); redirectToCheckout('pro'); }}
@@ -1101,7 +1129,7 @@ export default function Staff() {
                             /* Soft warning — allow but warn cost */
                             <div className="space-y-3">
                                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
-                                    <p className="text-xs text-amber-400 font-bold">+$249/mes por este empleado adicional</p>
+                                    <p className="text-xs text-amber-400 font-bold">+$199/mes por este empleado adicional</p>
                                 </div>
                                 <button
                                     onClick={proceedAfterWarning}
@@ -1120,6 +1148,15 @@ export default function Staff() {
                     </div>
                 </div>
             )}
+
+            <FastTeamModal
+                isOpen={isFastTeamOpen}
+                onClose={() => setIsFastTeamOpen(false)}
+                onSuccess={() => {}}
+                addStylist={addStylist}
+                currentCount={stylists.length}
+                maxAllowed={inTrial ? 4 : effectiveMaxEmployees}
+            />
 
             <ConfirmModal
                 isOpen={customConfirm.open}

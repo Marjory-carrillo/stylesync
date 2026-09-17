@@ -1233,7 +1233,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (stylists.length >= 2 && tenant?.plan !== 'pro' && tenant?.plan !== 'business') {
+                                                if (stylists.length >= 4 && tenant?.plan !== 'pro' && tenant?.plan !== 'business') {
                                                     setShowLimitBanner(true);
                                                 } else {
                                                     setShowAddStylistForm(true);
@@ -1302,7 +1302,7 @@ export default function OnboardingWizard({ isOpen, onClose }: OnboardingWizardPr
                                     <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5 animate-fade-in">
                                         <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
                                         <p className="text-xs text-amber-200 leading-relaxed">
-                                            El periodo de prueba incluye hasta 2 profesionales activos. Al activar tu Plan Pro podrás añadir todos los que necesites por solo <strong>$249MXN / mes</strong> por profesional extra.
+                                            El periodo de prueba incluye hasta 4 profesionales activos. Al activar tu Plan Pro podrás añadir todos los que necesites por solo <strong>$199MXN / mes</strong> por profesional extra.
                                         </p>
                                     </div>
                                 )}

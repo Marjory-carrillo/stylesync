@@ -715,7 +715,7 @@ export default function SalesTracker() {
         },
         {
             q: "¿Esto cuánto me va a costar después de los 30 días?",
-            a: "El registro y los primeros 30 días son 100% gratis para que arranques sin riesgo. Si después decides quedarte, tenemos planes súper accesibles desde $349 MXN al mes. Menos de lo que ganas con uno o dos servicios."
+            a: "El registro y los primeros 30 días son 100% gratis para que arranques sin riesgo. Si después decides quedarte, tenemos planes súper accesibles desde $299 MXN al mes. Menos de lo que ganas con uno o dos servicios."
         },
         {
             q: "No soy bueno usando la tecnología",
@@ -1903,9 +1903,9 @@ export default function SalesTracker() {
                                 </label>
                                 <div className="grid grid-cols-3 gap-2.5">
                                     {[
-                                        { key: 'lite' as PlanType, name: 'Esencial', price: '$349', desc: '1 Staff' },
-                                        { key: 'pro' as PlanType, name: 'Pro', price: '$649', desc: 'Multi-Staff' },
-                                        { key: 'business' as PlanType, name: 'Business', price: '$1,249', desc: 'Sucursales' },
+                                        { key: 'lite' as PlanType, name: 'Esencial', price: '$299', desc: '1 Staff' },
+                                        { key: 'pro' as PlanType, name: 'Pro', price: '$599', desc: 'Multi-Staff' },
+                                        { key: 'business' as PlanType, name: 'Business', price: '$1,049', desc: 'Sucursales' },
                                     ].map(p => (
                                         <button
                                             type="button"

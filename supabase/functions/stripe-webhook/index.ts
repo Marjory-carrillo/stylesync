@@ -4,8 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const STRIPE_SECRET_KEY    = Deno.env.get('STRIPE_SECRET_KEY')!;
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
-const PRICE_EXTRA_EMPLOYEE  = Deno.env.get('STRIPE_PRICE_EXTRA_EMPLOYEE') || '';
-const PRICE_EXTRA_BRANCH    = Deno.env.get('STRIPE_PRICE_EXTRA_BRANCH') || '';
+const PRICE_EXTRA_EMPLOYEE  = Deno.env.get('STRIPE_PRICE_EXTRA_EMPLOYEE') || 'price_1UGlkbDjXQfhXvVPms1XkTQz';
+const PRICE_EXTRA_BRANCH    = Deno.env.get('STRIPE_PRICE_EXTRA_BRANCH') || 'price_1TrmNeDjXQfhXvVPYehmfJdw';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',

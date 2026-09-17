@@ -151,6 +151,34 @@ export default function StylistColumnCalendar({
     // Multi-day mode only when an individual stylist is selected AND daysCount > 1
     const isMultiDayActive = isSingleStylistSelected && daysCount > 1;
 
+    // Paginación/carrusel de profesionales: cuando son 4 o más profesionales, se muestran 3 a la vez con flechas para no amontonar
+    const [stylistStartIndex, setStylistStartIndex] = useState(0);
+
+    const isStylistPaginationActive = !isMultiDayActive && activeStylists.length >= 4;
+
+    const visibleStylists = useMemo(() => {
+        if (!isStylistPaginationActive) return activeStylists;
+        return activeStylists.slice(stylistStartIndex, stylistStartIndex + 3);
+    }, [isStylistPaginationActive, activeStylists, stylistStartIndex]);
+
+    const canScrollLeft = stylistStartIndex > 0;
+    const canScrollRight = stylistStartIndex + 3 < activeStylists.length;
+
+    const handleNextStylists = () => {
+        setStylistStartIndex(prev => Math.min(prev + 1, activeStylists.length - 3));
+    };
+
+    const handlePrevStylists = () => {
+        setStylistStartIndex(prev => Math.max(0, prev - 1));
+    };
+
+    // Reajustar índice si cambia la cantidad de profesionales
+    useEffect(() => {
+        if (stylistStartIndex > Math.max(0, activeStylists.length - 3)) {
+            setStylistStartIndex(Math.max(0, activeStylists.length - 3));
+        }
+    }, [activeStylists.length, stylistStartIndex]);
+
     // Handle day pills click: recuerda la preferencia en localStorage (1D o 3D)
     const handleSelectDays = (num: number) => {
         setUserSelectedDays(num);
@@ -671,6 +699,8 @@ export default function StylistColumnCalendar({
                         </button>
                     </div>
 
+
+
                     {/* Transición elegante subiendo el perfil del profesional SOLO en modo multi-día (3 o 4 días) */}
                     {isMultiDayActive && singleStylist && (
                         <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-accent/15 via-slate-900/90 to-accent/5 border border-accent/30 shadow-md shadow-accent/5 transition-all duration-300 transform translate-y-0 opacity-100 animate-in fade-in slide-in-from-bottom-2">
@@ -743,18 +773,30 @@ export default function StylistColumnCalendar({
                 <div
                     className="relative flex flex-col w-full"
                     style={{
-                        minWidth: (!isMultiDayActive && activeStylists.length <= 1) || (isMultiDayActive && daysCount <= 1)
+                        minWidth: (!isMultiDayActive && visibleStylists.length <= 1) || (isMultiDayActive && daysCount <= 1)
                             ? '100%'
-                            : `${Math.max(320, (isMultiDayActive ? daysCount : activeStylists.length) * (windowWidth < 640 ? 105 : 180) + (windowWidth < 640 ? 56 : 80))}px`
+                            : `${Math.max(320, (isMultiDayActive ? daysCount : visibleStylists.length) * (windowWidth < 640 ? 105 : 180) + (windowWidth < 640 ? 56 : 80))}px`
                     }}
                 >
 
                     {/* Column Headers */}
-                    <div className="sticky top-0 z-30 flex border-b border-white/10 bg-[#0f1526]/95 backdrop-blur-xl shadow-md">
+                    <div className="sticky top-0 z-30 flex border-b border-white/10 bg-[#0f1526]/95 backdrop-blur-xl shadow-md relative">
                         {/* Time axis header cell */}
                         <div className="w-14 sm:w-20 shrink-0 p-2 sm:p-3 text-center border-r border-white/10 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center justify-center">
                             Hora
                         </div>
+
+                        {/* Flecha flotante izquierda para retroceder profesionales */}
+                        {isStylistPaginationActive && canScrollLeft && (
+                            <button
+                                type="button"
+                                onClick={handlePrevStylists}
+                                className="absolute left-14 sm:left-20 top-1/2 -translate-y-1/2 z-40 p-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-r-xl shadow-xl shadow-violet-500/40 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center border border-violet-400/30 -ml-px"
+                                title="Ver profesional anterior"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                        )}
 
                         {/* Columns Header: either Multi-Stylist (1 day) OR Single Stylist (Multi-Day) */}
                         <div className="flex-1 grid grid-flow-col auto-cols-fr divide-x divide-white/10">
@@ -800,7 +842,7 @@ export default function StylistColumnCalendar({
                                     );
                                 })
                             ) : (
-                                activeStylists.map(stylist => (
+                                visibleStylists.map(stylist => (
                                     <div key={stylist.id} className="p-3 flex items-center gap-2.5 justify-center text-center">
                                         {stylist.image ? (
                                             <img decoding="async" loading="lazy" src={stylist.image} alt={stylist.name} className="w-7 h-7 rounded-full object-cover border border-accent/40 shrink-0" />
@@ -817,6 +859,18 @@ export default function StylistColumnCalendar({
                                 ))
                             )}
                         </div>
+
+                        {/* Flecha flotante derecha para recorrer los demás profesionales */}
+                        {isStylistPaginationActive && canScrollRight && (
+                            <button
+                                type="button"
+                                onClick={handleNextStylists}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-l-xl shadow-xl shadow-violet-500/40 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center border border-violet-400/30 -mr-px"
+                                title="Ver siguientes profesionales"
+                            >
+                                <ChevronRight size={20} />
+                            </button>
+                        )}
                     </div>
 
                     {/* Timeline Body */}
@@ -898,7 +952,7 @@ export default function StylistColumnCalendar({
                                     );
                                 })
                             ) : (
-                                activeStylists.map(stylist => {
+                                visibleStylists.map(stylist => {
                                     const stylistAppts = dayAppointments.filter(a => {
                                         if (stylist.id === 0) return !a.stylistId;
                                         return Number(a.stylistId) === Number(stylist.id);

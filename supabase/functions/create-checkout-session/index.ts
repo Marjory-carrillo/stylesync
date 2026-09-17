@@ -2,9 +2,9 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY')!;
-const STRIPE_PRICE_LITE = Deno.env.get('STRIPE_PRICE_LITE')!;
-const STRIPE_PRICE_PRO  = Deno.env.get('STRIPE_PRICE_PRO')!;
-const STRIPE_PRICE_BUSINESS = Deno.env.get('STRIPE_PRICE_BUSINESS')!;
+const STRIPE_PRICE_LITE = Deno.env.get('STRIPE_PRICE_LITE') || 'price_1UGlcgDjXQfhXvVPL9220CLL';
+const STRIPE_PRICE_PRO  = Deno.env.get('STRIPE_PRICE_PRO') || 'price_1UGldEDjXQfhXvVPBfofOnaz';
+const STRIPE_PRICE_BUSINESS = Deno.env.get('STRIPE_PRICE_BUSINESS') || 'price_1UGlk5DjXQfhXvVPT0f4BYjW';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',

@@ -994,7 +994,7 @@ export default function Dashboard() {
                                     </span>
                                 </div>
                                 <div className="flex items-baseline gap-1 mb-4">
-                                    <span className="text-3xl font-black text-white">$349</span>
+                                    <span className="text-3xl font-black text-white">$299</span>
                                     <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
                                 </div>
                                 <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
@@ -1033,7 +1033,7 @@ export default function Dashboard() {
                                     </span>
                                 </div>
                                 <div className="flex items-baseline gap-1 mb-4">
-                                    <span className="text-3xl font-black text-white">$649</span>
+                                    <span className="text-3xl font-black text-white">$599</span>
                                     <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
                                 </div>
                                 <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
@@ -1041,7 +1041,7 @@ export default function Dashboard() {
                                         <span className="text-amber-400 font-bold">✓</span> 2 Profesionales (incluidos)
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="text-amber-400 font-bold">✓</span> Profesionales Extra (+$249/mes c/u)
+                                        <span className="text-amber-400 font-bold">✓</span> Profesionales Extra (+$199/mes c/u)
                                     </li>
                                     <li className="flex items-center gap-2">
                                         <span className="text-amber-400 font-bold">✓</span> 1 Sucursal
@@ -1075,7 +1075,7 @@ export default function Dashboard() {
                                     </span>
                                 </div>
                                 <div className="flex items-baseline gap-1 mb-4">
-                                    <span className="text-3xl font-black text-white">$1,249</span>
+                                    <span className="text-3xl font-black text-white">$1,049</span>
                                     <span className="text-xs text-slate-500 font-bold">MXN / mes</span>
                                 </div>
                                 <ul className="space-y-2 text-xs text-slate-400 font-medium mb-6">
@@ -1083,7 +1083,7 @@ export default function Dashboard() {
                                         <span className="text-violet-400 font-bold">✓</span> Multi-Sucursal (2 incluidas)
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="text-violet-400 font-bold">✓</span> Sucursales Extra (+$599/mes c/u)
+                                        <span className="text-violet-400 font-bold">✓</span> Sucursales Extra (+$549/mes c/u)
                                     </li>
                                     <li className="flex items-center gap-2">
                                         <span className="text-violet-400 font-bold">✓</span> 2 Profesionales por Sucursal

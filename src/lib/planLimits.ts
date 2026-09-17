@@ -28,7 +28,7 @@ const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
     },
     lite: {
         name: 'Esencial',
-        price: 349,
+        price: 299,
         maxBranches: 1,
         maxEmployeesPerBranch: 1,
         maxAppointmentsPerMonth: -1,
@@ -39,25 +39,25 @@ const PLAN_CONFIG: Record<PlanType, PlanLimits> = {
     },
     pro: {
         name: 'Pro',
-        price: 649,
+        price: 599,
         maxBranches: 1,
         maxEmployeesPerBranch: 2,
         maxAppointmentsPerMonth: -1,
         canExpandBranches: false,
         canExpandEmployees: true,
         extraBranchPrice: 0,
-        extraEmployeePrice: 249,
+        extraEmployeePrice: 199,
     },
     business: {
         name: 'Business',
-        price: 1249,
+        price: 1049,
         maxBranches: 2,
         maxEmployeesPerBranch: 2,
         maxAppointmentsPerMonth: -1,
         canExpandBranches: true,
         canExpandEmployees: true,
-        extraBranchPrice: 599,
-        extraEmployeePrice: 249,
+        extraBranchPrice: 549,
+        extraEmployeePrice: 199,
     },
 };
 
@@ -116,10 +116,9 @@ export function canAddEmployee(
     trialEndsAt?: string | null,
     extraEmployeesPaid: number = 0,
 ): { allowed: boolean; message?: string; upgradeTo?: PlanType } {
-    // Trial period: limit per branch according to plan (1 for Esencial/lite, 2 for free/pro/business)
+    // Trial period: allow up to 4 employees per branch for testing with the full team (or 1 for lite)
     if (isInTrial(trialEndsAt)) {
-        const planMax = getPlanLimits(plan).maxEmployeesPerBranch;
-        const baseMax = Math.min(2, planMax);
+        const baseMax = plan === 'lite' ? 1 : 4;
         if (currentCount < baseMax) {
             return { allowed: true };
         }
@@ -127,7 +126,7 @@ export function canAddEmployee(
             allowed: false,
             message: plan === 'lite'
                 ? `El plan Esencial solo permite 1 profesional. Actualiza a Pro para agregar más.`
-                : `Durante el trial solo puedes tener ${baseMax} profesionales por sucursal. Actualiza tu plan para agregar más.`,
+                : `Durante el periodo de prueba puedes tener hasta ${baseMax} profesionales por sucursal. Actualiza tu plan para agregar más.`,
             upgradeTo: 'pro',
         };
     }

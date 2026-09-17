@@ -55,9 +55,9 @@ export default function GlobalSettings() {
                 if (error.code === 'PGRST116') {
                     const defaultConf = {
                         id: 'main',
-                        basic_plan_price: 349.00,
-                        premium_plan_price: 649.00,
-                        business_plan_price: 1249.00,
+                        basic_plan_price: 299.00,
+                        premium_plan_price: 599.00,
+                        business_plan_price: 1049.00,
                         trial_days: 30,
                         maintenance_mode: false,
                         system_email: 'soporte@citalink.app',
@@ -80,9 +80,9 @@ export default function GlobalSettings() {
             } else {
                 setConfig({
                     ...data,
-                    basic_plan_price: data.basic_plan_price ?? 349.00,
-                    premium_plan_price: data.premium_plan_price ?? 649.00,
-                    business_plan_price: data.business_plan_price ?? 1249.00,
+                    basic_plan_price: data.basic_plan_price ?? 299.00,
+                    premium_plan_price: data.premium_plan_price ?? 599.00,
+                    business_plan_price: data.business_plan_price ?? 1049.00,
                 });
             }
         } catch (error: any) {
@@ -123,7 +123,7 @@ export default function GlobalSettings() {
                 .update({
                     basic_plan_price: config.basic_plan_price,
                     premium_plan_price: config.premium_plan_price,
-                    business_plan_price: config.business_plan_price ?? 1249.00,
+                    business_plan_price: config.business_plan_price ?? 1049.00,
                     trial_days: config.trial_days,
                     maintenance_mode: config.maintenance_mode,
                     system_email: config.system_email,
@@ -292,7 +292,7 @@ export default function GlobalSettings() {
                                         type="number"
                                         step="0.01"
                                         className={`w-full bg-white/5 border rounded-2xl pl-10 pr-6 py-5 text-2xl text-white font-black focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all ${errors.business_plan_price ? 'border-red-500/50 ring-red-500/5' : 'border-white/10 group-hover/field:border-white/20 focus:border-emerald-500/40'}`}
-                                        value={config.business_plan_price ?? 1249.00}
+                                        value={config.business_plan_price ?? 1049.00}
                                         onChange={(e) => setConfig({ ...config, business_plan_price: parseFloat(e.target.value) })}
                                         required
                                     />

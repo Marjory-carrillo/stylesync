@@ -25,12 +25,12 @@ export const COUNTRY_PRESETS: Record<string, CountryPreset> = {
         phonePrefix: '+52',
         timezone: 'America/Mexico_City',
         plans: {
-            lite: { monthly: 349, annualMonthly: 299 },
-            pro: { monthly: 649, annualMonthly: 549 },
-            business: { monthly: 1249, annualMonthly: 1049 },
+            lite: { monthly: 299, annualMonthly: 249 },
+            pro: { monthly: 599, annualMonthly: 499 },
+            business: { monthly: 1049, annualMonthly: 849 },
         },
-        extraEmployeePrice: 249,
-        extraBranchPrice: 599,
+        extraEmployeePrice: 199,
+        extraBranchPrice: 549,
     },
     US: {
         code: 'US',
