@@ -411,6 +411,7 @@ async function generateSaraAIResponse(params: {
     appointmentsText: string;
     todayStr?: string;
     currentTimeStr?: string;
+    formattedNow?: string;
 }): Promise<string | null> {
     const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY;
     if (!apiKey) return null;
