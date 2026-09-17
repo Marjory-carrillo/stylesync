@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon, Eye, EyeOff, Copy, CheckCircle2, KeyRound } from 'lucide-react';
+import { ArrowRight, Mail, Loader2, Lock, Infinity as InfinityIcon, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 import { useAuthStore, isUserSuperAdmin } from '../lib/store/authStore';
@@ -19,7 +19,14 @@ export default function Login() {
     const [email, setEmail] = useState(() => {
         return localStorage.getItem('citalink_saved_email') || '';
     });
-    const [password, setPassword] = useState('');
+    const [password, setPassword] = useState(() => {
+        try {
+            const saved = localStorage.getItem('citalink_saved_pw');
+            return saved ? atob(saved) : '';
+        } catch {
+            return '';
+        }
+    });
     const [rememberEmail, setRememberEmail] = useState(() => {
         return localStorage.getItem('citalink_remember_email') !== 'false';
     });
@@ -37,16 +44,6 @@ export default function Login() {
     const invitePw = searchParams.get('pw');
 
     const [isInviteFlow, setIsInviteFlow] = useState(!!inviteEmail && !!invitePw);
-
-    // Auto-enfocar el campo de contraseña si el correo ya está recordado (activa la barra de autocompletar Face ID en Safari)
-    useEffect(() => {
-        if (email && !password && passwordInputRef.current) {
-            const timer = setTimeout(() => {
-                passwordInputRef.current?.focus();
-            }, 300);
-            return () => clearTimeout(timer);
-        }
-    }, []);
 
     // Pre-fill credentials from magic link redirect and sanitize URL bar immediately
     useEffect(() => {
@@ -106,10 +103,11 @@ export default function Login() {
                 });
                 if (error) throw error;
 
-                // Guardar correo y cuenta para autocompletar en próximas sesiones en Safari iOS y navegadores
+                // Guardar correo y contraseña para autocompletar igual que en Android y Laptop
                 if (rememberEmail) {
                     try {
                         localStorage.setItem('citalink_saved_email', trimmedEmail);
+                        localStorage.setItem('citalink_saved_pw', btoa(password));
                         localStorage.setItem('citalink_remember_email', 'true');
                         const account = {
                             email: trimmedEmail,
@@ -123,6 +121,7 @@ export default function Login() {
                 } else {
                     try {
                         localStorage.removeItem('citalink_saved_email');
+                        localStorage.removeItem('citalink_saved_pw');
                         localStorage.removeItem('citalink_saved_account');
                         localStorage.setItem('citalink_remember_email', 'false');
                     } catch (e) {
@@ -130,24 +129,9 @@ export default function Login() {
                     }
                 }
 
-                // Guardar credenciales en el Llavero de iCloud / Administrador nativo de contraseñas
-                if (typeof window !== 'undefined' && (window as any).PasswordCredential && navigator.credentials) {
-                    try {
-                        const cred = new (window as any).PasswordCredential({
-                            id: trimmedEmail,
-                            password: password,
-                            name: trimmedEmail,
-                        });
-                        await navigator.credentials.store(cred);
-                    } catch (credErr) {
-                        console.debug('Keychain store skipped:', credErr);
-                    }
-                }
-
-                // Navegación nativa para que WebKit (Safari en iOS) detecte el envío exitoso
-                // y dispare la ventana nativa: "¿Deseas guardar esta contraseña en el llavero de iCloud?"
+                // Navegar inmediatamente con React Router sin congelar la app con recargas
                 const target = isUserSuperAdmin(data?.user) ? '/super-admin' : '/admin';
-                window.location.href = target;
+                navigate(target, { replace: true });
                 return;
             }
         } catch (err: any) {
@@ -233,6 +217,7 @@ export default function Login() {
                                 try {
                                     localStorage.removeItem('citalink_saved_account');
                                     localStorage.removeItem('citalink_saved_email');
+                                    localStorage.removeItem('citalink_saved_pw');
                                 } catch (_) {}
                                 setSavedAccount(null);
                                 setEmail('');
@@ -259,7 +244,7 @@ export default function Login() {
                                     name="email"
                                     type="email"
                                     inputMode="email"
-                                    autoComplete="username email"
+                                    autoComplete="username"
                                     autoCapitalize="none"
                                     autoCorrect="off"
                                     spellCheck={false}
@@ -316,18 +301,6 @@ export default function Login() {
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
-
-                                {/* Acceso Rápido Face ID / Llavero de iCloud en iOS */}
-                                {!isSignUp && (
-                                    <button
-                                        type="button"
-                                        onClick={() => passwordInputRef.current?.focus()}
-                                        className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-amber-400/90 hover:text-amber-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                                    >
-                                        <KeyRound size={13} className="text-amber-400 shrink-0" />
-                                        <span>Usar Llavero de iCloud / Face ID</span>
-                                    </button>
-                                )}
                             </div>
                         )}
 
@@ -341,7 +314,7 @@ export default function Login() {
                                         onChange={(e) => setRememberEmail(e.target.checked)}
                                         className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500/30 focus:ring-offset-0 cursor-pointer accent-amber-500"
                                     />
-                                    <span>Mantener sesión iniciada y recordar correo</span>
+                                    <span>Recordar correo y contraseña en este dispositivo</span>
                                 </label>
                             </div>
                         )}
