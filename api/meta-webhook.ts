@@ -465,9 +465,12 @@ REGLAS OBLIGATORIAS DE COMPORTAMIENTO (CUMPLE CON MÁXIMA RIGUROSIDAD):
    - Esta regla aplica cuando el cliente expresa el deseo o intención de apartar una cita a futuro (ej: "quisiera agendar", "quiero agendar", "puedo agendar?", "ayúdame a reservar", "cómo aparto cita", "quiero una cita", "apartar un turno").
    - NO APLICA si el cliente dice que YA agendó, ya reservó o ya terminó (para eso aplica la regla 2.1).
    - ¡PROHIBIDO TERMINANTEMENTE DECIR "En este momento no tienes ninguna cita programada"! Eso confunde al cliente porque él no preguntó si tenía cita, él quiere agendar.
-   - NUNCA envíes listas de pasos numeradas ("Paso 1: Haz clic, Paso 2: Escribe tu nombre..."). Eso parece un manual frío o una plantilla de bot y suena poco profesional en WhatsApp.
-   - Respóndele de forma amable, cercana y natural invitándolo a ver los horarios y apartar su lugar:
-     "¡Claro que sí! Con mucho gusto. Aquí puedes ver los horarios que tenemos libres en *${params.businessName}* y elegir el que mejor te quede: 👉 ${params.bookingUrl} ¿Para qué día te gustaría?"
+   - NUNCA envíes listas de pasos numeradas ("Paso 1: Haz clic, Paso 2: Escribe tu nombre...").
+   - ¡PROHIBIDO PREGUNTAR "¿Para qué día te gustaría?" o "¿A qué hora prefieres?"! NUNCA preguntes fechas ni horarios porque tú NO puedes agendar directamente por chat. Si preguntas eso, el cliente te dará una fecha esperando que lo agendes en el chat, lo cual causa confusión.
+   - Respóndele de forma amable, clara y directa invitándolo a ver los horarios y apartar su lugar en la agenda en línea:
+     "¡Claro que sí! Con mucho gusto. Puedes consultar los horarios disponibles en *${params.businessName}* y apartar tu turno directamente aquí: 👉 ${params.bookingUrl} ✨ ¡Te esperamos!"
+   - Si el cliente menciona un día u hora específicos (ej: "¿tienen libre hoy?", "quiero para el sábado"): invítalo amablemente a asegurar ese turno en el enlace antes de que se ocupe:
+     "Para checar la disponibilidad y asegurar tu turno de inmediato en *${params.businessName}*, puedes apartarlo aquí: 👉 ${params.bookingUrl} ✨"
 
 2.1 CUANDO EL CLIENTE AVISA QUE YA AGENDÓ, YA RESERVÓ O YA TERMINÓ ("ya agendé", "ok ya agende", "ya quedó", "listo ya agendé", "ya terminé", "ya aparté mi cita", "ya lo hice", "listo"):
    - ¡PROHIBIDO TOTALMENTE volver a mandarle los pasos para agendar o el enlace de reservas como si no hubiera agendado!
@@ -736,7 +739,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         } else if (lower.includes('tengo') || lower.includes('pendiente') || lower.includes('cuando') || lower.includes('cuándo') || lower.includes('mi cita')) {
                             replyText = `Ahorita no tienes ninguna cita programada con nosotros en *${businessName}*. Si gustas apartar un turno, con gusto te paso el enlace directo:\n👉 ${bookingUrl}`;
                         } else {
-                            replyText = `¡Claro que sí${greetingName}! Con mucho gusto. Aquí puedes checar los horarios libres que tenemos en *${businessName}* y elegir el que mejor te quede:\n👉 ${bookingUrl}\n\n¿Para qué día te gustaría apartar? ✨`;
+                            replyText = `¡Claro que sí${greetingName}! Con mucho gusto. Puedes consultar los horarios disponibles en *${businessName}* y apartar tu turno directamente aquí:\n👉 ${bookingUrl}\n\n¡Te esperamos con mucho gusto! ✨`;
                         }
                     }
                     // D) Precios / Servicios / Catálogo / Paquetes / Cortes / Búsqueda específica
