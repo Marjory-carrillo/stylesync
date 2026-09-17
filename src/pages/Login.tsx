@@ -8,8 +8,13 @@ import { useAuthStore } from '../lib/store/authStore';
 
 export default function Login() {
     const { user, isSuperAdmin } = useAuthStore();
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(() => {
+        return localStorage.getItem('citalink_saved_email') || '';
+    });
     const [password, setPassword] = useState('');
+    const [rememberEmail, setRememberEmail] = useState(() => {
+        return localStorage.getItem('citalink_remember_email') !== 'false';
+    });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
@@ -60,8 +65,8 @@ export default function Login() {
         setIsInviteFlow(false); // Allow redirect after manual login
 
         try {
-            // Eliminar espacios y CUALQUIER caracter invisible o erróneo que los teclados móviles/autocompletar inyecten
-            const trimmedEmail = email.replace(/[^a-zA-Z0-9@._-]/g, '').toLowerCase();
+            // Eliminar espacios y caracteres no válidos para email (permitiendo + para aliases)
+            const trimmedEmail = email.replace(/[^a-zA-Z0-9@._+-]/g, '').toLowerCase();
 
             if (isResetting) {
                 const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
@@ -81,6 +86,29 @@ export default function Login() {
                     password,
                 });
                 if (error) throw error;
+
+                // Guardar correo para autocompletar en próximas sesiones en iOS/Android/Escritorio
+                if (rememberEmail) {
+                    localStorage.setItem('citalink_saved_email', trimmedEmail);
+                    localStorage.setItem('citalink_remember_email', 'true');
+                } else {
+                    localStorage.removeItem('citalink_saved_email');
+                    localStorage.setItem('citalink_remember_email', 'false');
+                }
+
+                // Guardar credenciales en el Llavero de iCloud / Administrador nativo de contraseñas de iOS
+                if (typeof window !== 'undefined' && (window as any).PasswordCredential && navigator.credentials) {
+                    try {
+                        const cred = new (window as any).PasswordCredential({
+                            id: trimmedEmail,
+                            password: password,
+                            name: trimmedEmail,
+                        });
+                        await navigator.credentials.store(cred);
+                    } catch (credErr) {
+                        console.debug('iCloud Keychain store skipped:', credErr);
+                    }
+                }
             }
             // Navigation will be handled by useEffect observing 'user' state
         } catch (err: any) {
@@ -145,7 +173,7 @@ export default function Login() {
                     </div>
                 )}
 
-                <form onSubmit={handleLogin} method="post" autoComplete="on" className="space-y-6 relative z-10">
+                <form onSubmit={handleLogin} method="post" action="#" autoComplete="on" className="space-y-5 relative z-10">
 
                         {/* Email Input */}
                         <div className="space-y-2">
@@ -159,7 +187,7 @@ export default function Login() {
                                     name="username"
                                     type="email"
                                     inputMode="email"
-                                    autoComplete="username email"
+                                    autoComplete="username"
                                     autoCapitalize="none"
                                     autoCorrect="off"
                                     spellCheck={false}
@@ -167,7 +195,6 @@ export default function Login() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
                                     placeholder="tu@email.com"
-                                    autoFocus
                                     required
                                 />
                             </div>
@@ -195,18 +222,42 @@ export default function Login() {
                                     <input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         autoComplete={isSignUp ? "new-password" : "current-password"}
                                         autoCapitalize="none"
                                         autoCorrect="off"
                                         spellCheck={false}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all font-mono"
+                                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl py-3 pl-10 pr-11 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all font-mono"
                                         placeholder="••••••••"
                                         required={!isResetting}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(p => !p)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+                                        tabIndex={-1}
+                                        aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Recordar correo en este dispositivo */}
+                        {!isResetting && !isSignUp && (
+                            <div className="flex items-center justify-between px-1 pt-0.5">
+                                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={rememberEmail}
+                                        onChange={(e) => setRememberEmail(e.target.checked)}
+                                        className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500/30 focus:ring-offset-0 cursor-pointer accent-amber-500"
+                                    />
+                                    <span>Recordar correo en este dispositivo</span>
+                                </label>
                             </div>
                         )}
 
