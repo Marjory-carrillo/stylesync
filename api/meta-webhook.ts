@@ -2,8 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
 const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2026';
-const META_WA_ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN || 'EAAaAOZBzRqVIBSjPgz0yZAk4FS3wWO9k8chAKvldSs0c79EgZBwAIQjOOvevQKzwBRFzj9hhlFpUDUNNnDJIS1tZAJjiNtAxQdzug6lF0nPfOZChfWSLoM1bkwuifWDRE6TJZBtiSTjwPHwUxZAL9GybQSAC4s3oPTVO92mpCMzK4iE4J9ylWLxE1phtVmNzy7sKAZDZD';
+const META_WA_ACCESS_TOKEN = process.env.META_WA_ACCESS_TOKEN;
 const DEFAULT_PHONE_NUMBER_ID = process.env.META_WA_PHONE_NUMBER_ID || '1337471699449991';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 interface ServiceItem {
     name: string;
@@ -33,6 +34,7 @@ interface TenantContext {
     };
     services: ServiceItem[];
     stylists: StylistItem[];
+    appointmentsText: string;
 }
 
 function formatPrice(s: ServiceItem): string {
@@ -164,14 +166,123 @@ async function resolveTenantContext(phone: string): Promise<TenantContext | null
             .eq('tenant_id', tenantId)
             .eq('active', true);
 
+        // 6. Traer citas recientes o próximas del cliente
+        let appointmentsText = 'No se encontraron citas recientes.';
+        try {
+            const { data: apts } = await supabase
+                .from('appointments')
+                .select('date, time, status, service_id, stylist_id')
+                .ilike('client_phone', `%${digits}%`)
+                .order('date', { ascending: false })
+                .limit(3);
+
+            if (apts && apts.length > 0) {
+                const aptLines = await Promise.all(
+                    apts.map(async (a) => {
+                        let sName = 'Servicio general';
+                        let stName = 'Profesional asignado';
+                        if (a.service_id) {
+                            const { data: s } = await supabase.from('services').select('name').eq('id', a.service_id).maybeSingle();
+                            if (s?.name) sName = s.name;
+                        }
+                        if (a.stylist_id) {
+                            const { data: st } = await supabase.from('stylists').select('name').eq('id', a.stylist_id).maybeSingle();
+                            if (st?.name) stName = st.name;
+                        }
+                        return `• Cita: ${a.date} a las ${String(a.time).slice(0, 5)} hrs — Servicio: ${sName} — Con: ${stName} (Estado: ${a.status})`;
+                    })
+                );
+                appointmentsText = aptLines.join('\n');
+            }
+        } catch (aptErr) {
+            console.warn('[meta-webhook] Error consultando citas de cliente:', aptErr);
+        }
+
         return {
             clientName: clientName || undefined,
             tenant,
             services: (services as ServiceItem[]) || [],
             stylists: (stylists as StylistItem[]) || [],
+            appointmentsText,
         };
     } catch (err) {
         console.warn('[meta-webhook] Error resolviendo contexto de tenant:', err);
+        return null;
+    }
+}
+
+async function generateSaraAIResponse(params: {
+    userMessage: string;
+    businessName: string;
+    businessAddress?: string | null;
+    businessPhone?: string | null;
+    bookingUrl: string;
+    clientName?: string;
+    servicesText: string;
+    stylistsText: string;
+    appointmentsText: string;
+}): Promise<string | null> {
+    if (!OPENAI_API_KEY) return null;
+
+    const systemPrompt = `Eres Sara, la recepcionista y asistente virtual inteligente de "${params.businessName}".
+Tu personalidad es amable, atenta, profesional y resolutiva. Hablas en español con un tono acogedor. Usas emojis de forma sutil y formateas con viñetas limpias para que sea muy fácil de leer en WhatsApp.
+
+INFORMACIÓN DEL NEGOCIO "${params.businessName}":
+- Enlace directo para agendar: ${params.bookingUrl}
+- Ubicación: ${params.businessAddress || 'Consulta nuestra ubicación en el enlace'}
+- Teléfono: ${params.businessPhone || 'N/A'}
+- Horarios de atención: Lunes a Sábado de 9:00 AM a 8:00 PM.
+
+EQUIPO DE PROFESIONALES DISPONIBLES:
+${params.stylistsText || 'Equipo profesional disponible.'}
+
+CATÁLOGO DE SERVICIOS Y PRECIOS:
+${params.servicesText || 'Servicios disponibles en la plataforma.'}
+
+DATOS DEL CLIENTE (${params.clientName || 'Cliente'}):
+- Citas registradas en el sistema:
+${params.appointmentsText || 'No hay citas registradas recientemente.'}
+
+INSTRUCCIONES CLAVE DE RESPUESTA:
+1. SI EL CLIENTE DICE QUE YA AGENDÓ O PREGUNTA POR SU CITA:
+   - Revisa sus citas registradas arriba. Si tiene una cita agendada, confírmale con entusiasmo su fecha, hora, servicio y profesional. Felicítalo y dile que lo esperan con gusto en ${params.businessName}.
+   - Si no ves la cita aún, dile amablemente que puede verificarla en el enlace o consultar con su número.
+2. SI EL CLIENTE PREGUNTA POR PROFESIONALES DISPONIBLES O QUIÉN ATIENDE:
+   - Menciona claramente a los profesionales del equipo de ${params.businessName} y diles que pueden elegir a su favorito en el enlace.
+3. SI EL CLIENTE QUIERE AGENDAR O PREGUNTA CÓMO AGENDAR:
+   - Dale el enlace directo (${params.bookingUrl}) y los 4 pasos resumidos para reservar.
+4. SI PREGUNTA POR UN SERVICIO ESPECÍFICO (ej. "precio de un corte", "uñas", "barba", etc.):
+   - Responde con los precios y duraciones exactos del catálogo de ${params.businessName}.
+5. Si preguntan algo no relacionado o fuera de tema, responde cordialmente y redirígelos a los servicios de ${params.businessName}.
+6. Respuestas ágiles, amigables y concisas (adecuadas para WhatsApp). NUNCA inventes información que no esté en este contexto.`;
+
+    try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: params.userMessage },
+                ],
+                max_tokens: 350,
+                temperature: 0.6,
+            }),
+        });
+
+        if (!res.ok) {
+            console.warn('[meta-webhook] Error de OpenAI HTTP:', res.status);
+            return null;
+        }
+
+        const data = await res.json();
+        return data?.choices?.[0]?.message?.content?.trim() || null;
+    } catch (e) {
+        console.error('[meta-webhook] Excepción llamando a OpenAI:', e);
         return null;
     }
 }
@@ -238,20 +349,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 const bookingSteps = `📋 *Pasos para reservar en línea (en 1 minuto):*\n1️⃣ Abre el enlace: ${bookingUrl}\n2️⃣ Selecciona tu servicio, combo o adicional\n3️⃣ Elige a tu profesional y tu hora preferida\n4️⃣ Confirma con tu WhatsApp para recibir tu confirmación inmediata ✨`;
 
-                // Lógica de respuesta conversacional inteligente de Sara adaptada al negocio
-                const lower = textBody.toLowerCase();
-                let replyText = '';
+                // Formatear servicios y estilistas para el contexto
+                const servicesText = formatServicesCategorized(services);
+                const stylistsText = formatStylists(stylists, businessName);
 
-                // A) Saludos
-                if (!lower || lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos') || lower.includes('hey') || lower.includes('inicio')) {
-                    if (tenant) {
-                        replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n💇 *Servicios y precios*: Escribe "servicios"\n💈 *Profesionales*: Escribe "disponibles" o "equipo"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n👤 *Hablar con una persona*: Escribe "humano"`;
-                    } else {
-                        replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar"\n💇 *Ver servicios*: Escribe "servicios"\n👤 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
+                // 1. Intentar respuesta con Inteligencia Artificial real de Sara (OpenAI GPT-4o-mini)
+                let replyText = '';
+                if (OPENAI_API_KEY && tenant) {
+                    const aiReply = await generateSaraAIResponse({
+                        userMessage: textBody,
+                        businessName,
+                        businessAddress,
+                        businessPhone: tenant?.phone,
+                        bookingUrl,
+                        clientName: clientName || senderName,
+                        servicesText,
+                        stylistsText,
+                        appointmentsText: context?.appointmentsText || 'No hay citas registradas recientemente.',
+                    });
+                    if (aiReply) {
+                        replyText = aiReply;
                     }
                 }
-                // B) Profesionales / Estilistas / Barberos disponibles / Quién atiende
-                else if (
+
+                // 2. Si OpenAI no está disponible o devolvió null, usar reglas conversacionales de respaldo
+                if (!replyText) {
+                    const lower = textBody.toLowerCase();
+
+                    // A) Saludos
+                    if (!lower || lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos') || lower.includes('hey') || lower.includes('inicio')) {
+                        if (tenant) {
+                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, la recepcionista virtual de *${businessName}* ✨\n\n¿En qué te puedo apoyar hoy?\n\n📅 *Agendar cita*: Escribe "agendar" o "cita"\n💇 *Servicios y precios*: Escribe "servicios"\n💈 *Profesionales*: Escribe "disponibles" o "equipo"\n📍 *Ubicación*: Escribe "ubicacion"\n🕒 *Horarios*: Escribe "horarios"\n👤 *Hablar con una persona*: Escribe "humano"`;
+                        } else {
+                            replyText = `¡Hola${greetingName}! 🌸 Soy Sara, tu asistente inteligente de CitaLink ✨\n\nEstoy lista para ayudarte con tus citas:\n\n📅 *Agendar una cita*: Escribe "agendar"\n💇 *Ver servicios*: Escribe "servicios"\n👤 *Hablar con una persona*: Escribe "humano"\n\n¿En qué te puedo apoyar hoy?`;
+                        }
+                    }
+                    // B) Profesionales / Estilistas / Barberos disponibles / Quién atiende
+                    else if (
                     lower.includes('profesional') ||
                     lower.includes('estilista') ||
                     lower.includes('barbero') ||
@@ -313,6 +447,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // H) Respuesta general con menú
                 else {
                     replyText = `Te he leído fuerte y claro${greetingName}: *"${textBody}"* 🌸\n\nComo asistente de *${businessName}* puedo ayudarte a:\n• *Agendar citas* (escribe "agendar")\n• *Ver servicios y paquetes* (escribe "servicios")\n• *Conocer al equipo* (escribe "disponibles")\n• *Ver nuestra ubicación* (escribe "ubicación")\n\nO visita directamente nuestra agenda en línea 👉 ${bookingUrl} ✨`;
+                }
                 }
 
                 // Enviar respuesta inmediata a WhatsApp vía Meta Graph API
