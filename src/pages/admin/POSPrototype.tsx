@@ -23,20 +23,13 @@ import {
     ExternalLink,
     Layers,
     Check,
-    Play,
     Edit3,
-    RotateCcw,
-    Undo2,
     Calendar,
     ChevronDown,
-    ChevronRight,
-    ChevronLeft,
     CalendarDays,
-    Filter,
     Upload,
     Image as ImageIcon,
     Percent,
-    User,
     Zap,
     AlertCircle
 } from 'lucide-react';
@@ -420,7 +413,7 @@ export default function POSPrototype() {
     const [upsellSelectedProducts, setUpsellSelectedProducts] = useState<ProductItem[]>([]);
 
     // ── IDs de citas que el usuario decide pasar a 'atendiendo' para pruebas ──
-    const [simulatedAttendingIds, setSimulatedAttendingIds] = useState<string[]>([]);
+    const [simulatedAttendingIds] = useState<string[]>([]);
     const [chargedApptIds, setChargedApptIds] = useState<string[]>(() => {
         const saved = localStorage.getItem('citalink_pos_charged_appts');
         return saved ? JSON.parse(saved) : [];
@@ -685,14 +678,6 @@ export default function POSPrototype() {
             return (a.time || '').localeCompare(b.time || '');
         });
     }, [todayAppointments]);
-
-    const readyAppointmentsForCheckout = useMemo(() => {
-        return sortedTodayAppointments.filter(a => a.isLive || a.isCompleted);
-    }, [sortedTodayAppointments]);
-
-    const otherUpcomingAppointments = useMemo(() => {
-        return sortedTodayAppointments.filter(a => !a.isLive && !a.isCompleted);
-    }, [sortedTodayAppointments]);
 
     // ── REGLA AUTOMÁTICA: Si pasaron 2 horas desde la hora de la cita y aún no registra pago ni no-show, registrarla automáticamente ──
     useEffect(() => {
@@ -1180,24 +1165,6 @@ export default function POSPrototype() {
     };
 
     // ── Funciones y Cálculos de Historial de Ventas por Día ───────────────────
-    const formatDayName = (dateStr: string) => {
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-        if (dateStr === todayStr) return 'Hoy';
-        if (dateStr === yesterdayStr) return 'Ayer';
-        try {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            const dateObj = new Date(y, m - 1, d);
-            return dateObj.toLocaleDateString('es-MX', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short'
-            });
-        } catch {
-            return dateStr;
-        }
-    };
-
     const formatFullDayHeader = (dateStr: string) => {
         const todayStr = format(new Date(), 'yyyy-MM-dd');
         const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -1225,16 +1192,6 @@ export default function POSPrototype() {
             ...prev,
             [dateStr]: !prev[dateStr]
         }));
-    };
-
-    const expandAllDays = () => {
-        const next: Record<string, boolean> = {};
-        for (const d of ticketsByDay) next[d.date] = true;
-        setExpandedDays(next);
-    };
-
-    const collapseAllDays = () => {
-        setExpandedDays({});
     };
 
     // Agrupación de tickets por día con métricas
