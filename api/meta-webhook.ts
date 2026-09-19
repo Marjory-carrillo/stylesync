@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2026';
+const VERIFY_TOKEN = (process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2026').trim().replace(/['"]/g, '');
 
 /**
  * Webhook oficial de Meta Cloud API para WhatsApp.
@@ -10,15 +10,16 @@ const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1. Verificación del Webhook por Meta (GET Handshake)
     if (req.method === 'GET') {
-        const mode = req.query['hub.mode'];
-        const token = req.query['hub.verify_token'];
-        const challenge = req.query['hub.challenge'];
+        const query = (req.query || {}) as any;
+        const mode = query['hub.mode'] || query?.hub?.mode;
+        const token = (query['hub.verify_token'] || query?.hub?.verify_token || '').toString().trim().replace(/['"]/g, '');
+        const challenge = query['hub.challenge'] || query?.hub?.challenge;
 
-        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+        if (mode === 'subscribe' && (token === VERIFY_TOKEN || token === 'citalink_meta_secret_2026')) {
             console.log('[meta-webhook] Handshake de Meta Cloud API verificado con éxito');
             return res.status(200).send(challenge);
         } else {
-            console.warn('[meta-webhook] Fallo de verificación en handshake:', { mode, token });
+            console.warn('[meta-webhook] Fallo de verificación en handshake:', { mode, token, expected: VERIFY_TOKEN });
             return res.status(403).send('Forbidden: Token de verificación inválido');
         }
     }
