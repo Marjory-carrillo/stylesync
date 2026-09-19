@@ -27,6 +27,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import StylistColumnCalendar from '../../components/StylistColumnCalendar';
 import WaitingListModal from '../../components/WaitingListModal';
 import PhotoZoomViewer from '../../components/PhotoZoomViewer';
+import { sendPriceUpdateNotification } from '../../lib/whatsappService';
 
 type ChartRange = '7D' | '30D' | '3M' | 'AÑO';
 
@@ -276,35 +277,19 @@ export default function Dashboard() {
 
             if (error) throw error;
 
-            // Enviar notificación automática por WhatsApp al cliente mediante la plantilla price_update
+            // Enviar notificación automática por WhatsApp al cliente mediante Meta Cloud API
             const mainSvc = services.find(s => s.id === apt.serviceId);
-            try {
-                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-                const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-                fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${ANON_KEY}`,
-                        'apikey': ANON_KEY,
-                    },
-                    body: JSON.stringify({
-                        tenant_id: tenantId,
-                        event_type: 'price_update',
-                        appointment: {
-                            id: apt.id,
-                            client_name: apt.clientName,
-                            client_phone: apt.clientPhone,
-                            service_name: mainSvc?.name || 'Servicio',
-                            date: apt.date,
-                            time: apt.time,
-                            confirmed_price: price,
-                            additional_services: apt.additionalServices || [],
-                        },
-                        business_name: businessConfig?.name || 'CitaLink',
-                    }),
-                }).catch(() => {});
-            } catch (_) {}
+            sendPriceUpdateNotification({
+                clientPhone: apt.clientPhone,
+                clientName: apt.clientName,
+                businessName: businessConfig?.name || 'CitaLink',
+                date: apt.date,
+                time: apt.time,
+                serviceName: mainSvc?.name || 'Servicio',
+                price,
+                appointmentId: apt.id,
+                tenantId,
+            });
 
             showToast('Precio de cita actualizado y notificación enviada con éxito', 'success');
             

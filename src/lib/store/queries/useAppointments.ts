@@ -4,6 +4,11 @@ import { supabase } from '../../supabaseClient';
 import type { Appointment } from '../../types/store.types';
 import { useAuthStore } from '../authStore';
 import { useUIStore } from '../uiStore';
+import {
+    sendAppointmentCancellationNotification,
+    sendAppointmentRescheduleNotification,
+    sendPriceUpdateNotification,
+} from '../../whatsappService';
 
 // Helper: Limpiar nombre de servicio de cualquier bloque técnico o de calculadora
 function cleanServiceText(name: string = 'Servicio'): string {
@@ -48,7 +53,7 @@ function cleanAddOnsList(addOns?: string[]): string[] {
         .filter(Boolean);
 }
 
-// Helper: notify barber via WhatsApp (fire-and-forget)
+// Helper: notificar al cliente y/o profesional vía WhatsApp (Meta Cloud API directo)
 async function notifyAdmin(
     tenantId: string,
     eventType: 'new' | 'reschedule' | 'cancel' | 'price_update',
@@ -57,9 +62,6 @@ async function notifyAdmin(
     businessName?: string,
 ) {
     try {
-        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-        const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-        
         const rawServiceName = appointment.service_name;
         const mainServiceClean = cleanServiceText(rawServiceName);
         const realAddOns = cleanAddOnsList(appointment.additional_services);
@@ -72,27 +74,67 @@ async function notifyAdmin(
             }
         }
 
-        const cleanedAppointment = {
-            ...appointment,
-            service_name: finalFormattedService,
-            additional_services: [],
-        };
+        const bName = businessName || 'CitaLink';
 
-        await fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${ANON_KEY}`,
-                'apikey': ANON_KEY,
-            },
-            body: JSON.stringify({
-                tenant_id: tenantId,
-                event_type: eventType,
-                appointment: cleanedAppointment,
-                ...(adminPhone   ? { admin_phone:   adminPhone   } : {}),
-                ...(businessName ? { business_name: businessName } : {}),
-            }),
-        });
+        if (eventType === 'cancel') {
+            await sendAppointmentCancellationNotification({
+                clientPhone: appointment.client_phone,
+                clientName: appointment.client_name,
+                businessName: bName,
+                date: appointment.date,
+                time: appointment.time,
+                serviceName: finalFormattedService,
+                adminPhone,
+                tenantId,
+            });
+        } else if (eventType === 'reschedule') {
+            await sendAppointmentRescheduleNotification({
+                clientPhone: appointment.client_phone,
+                clientName: appointment.client_name,
+                businessName: bName,
+                date: appointment.date,
+                time: appointment.time,
+                serviceName: finalFormattedService,
+                adminPhone,
+                tenantId,
+            });
+        } else if (eventType === 'price_update') {
+            await sendPriceUpdateNotification({
+                clientPhone: appointment.client_phone,
+                clientName: appointment.client_name,
+                businessName: bName,
+                date: appointment.date,
+                time: appointment.time,
+                serviceName: finalFormattedService,
+                price: appointment.confirmed_price || 0,
+                appointmentId: appointment.id,
+                tenantId,
+            });
+        } else if (eventType === 'new' && adminPhone) {
+            try {
+                const fechaFormateada = `${appointment.date} a las ${appointment.time.slice(0, 5)}`;
+                await fetch('/api/send-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: adminPhone,
+                        provider: 'whatsapp',
+                        tenant_id: tenantId,
+                        template_name: 'citalink_admin_nueva_cita',
+                        template_sid: 'HXd19a0ab5d8bf37655221320bb6555ea1',
+                        template_variables: {
+                            '1': bName,
+                            '2': appointment.client_name.trim(),
+                            '3': finalFormattedService,
+                            '4': fechaFormateada,
+                            '5': appointment.client_phone || 'No especificado',
+                        },
+                    }),
+                });
+            } catch (err) {
+                console.warn('[useAppointments] Error notificando nueva cita a admin:', err);
+            }
+        }
     } catch (_) { /* fire-and-forget */ }
 }
 

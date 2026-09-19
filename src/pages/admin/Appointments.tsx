@@ -24,6 +24,7 @@ import PhotoZoomViewer from '../../components/PhotoZoomViewer';
 import { formatPhoneDisplay } from '../../lib/schemas';
 import { supabase } from '../../lib/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
+import { sendPriceUpdateNotification } from '../../lib/whatsappService';
 
 
 export default function Appointments() {
@@ -200,35 +201,20 @@ export default function Appointments() {
             // Actualizar queries locales
             queryClient.invalidateQueries({ queryKey: ['appointments', tenantId] });
             
-            // Notificar automáticamente vía plantilla de WhatsApp (Meta)
+            // Notificar automáticamente vía plantilla de WhatsApp (Meta Cloud API directo)
             const serviceObj = services.find(s => s.id === apt.serviceId);
-            const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-            const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-            
-            fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${ANON_KEY}`,
-                    'apikey': ANON_KEY,
-                },
-                body: JSON.stringify({
-                    tenant_id: tenantId,
-                    event_type: 'price_update',
-                    appointment: {
-                        id: apt.id,
-                        client_name: apt.clientName,
-                        client_phone: apt.clientPhone,
-                        service_name: serviceObj?.name || 'Servicio',
-                        date: apt.date,
-                        time: apt.time,
-                        confirmed_price: price,
-                        additional_services: cleanAddServices
-                    },
-                    business_name: tenantConfig?.name,
-                    business_slug: tenantConfig?.slug
-                })
-            }).catch(e => console.error('Error al enviar notificacion de precio:', e));
+            sendPriceUpdateNotification({
+                clientPhone: apt.clientPhone,
+                clientName: apt.clientName,
+                businessName: tenantConfig?.name || 'CitaLink',
+                date: apt.date,
+                time: apt.time,
+                serviceName: serviceObj?.name || 'Servicio',
+                price,
+                appointmentId: apt.id,
+                businessSlug: tenantConfig?.slug,
+                tenantId,
+            });
 
             setIsPriceModalOpen(false);
             setSelectedApptForPrice(null);
