@@ -37,6 +37,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Reschedule = lazy(() => import('./pages/client/Reschedule'));
 const PublicReview = lazy(() => import('./pages/PublicReview'));
 const SocialContent = lazy(() => import('./pages/admin/SocialContent'));
+const POSPrototype = lazy(() => import('./pages/admin/POSPrototype'));
 
 import { useGlobalStore } from './lib/store/useGlobalStore';
 import { Settings as SettingsIcon, RefreshCw, Loader2 } from 'lucide-react';
@@ -445,6 +446,7 @@ function App() {
                   <Route path="appointments" element={<Appointments />} />
                   <Route path="deposits" element={<Deposits />} />
                   <Route path="quoter" element={<Quoter />} />
+                  <Route path="pos" element={<POSPrototype />} />
 
                   {/* Rutas protegidas para empleados */}
                   <Route element={userRole !== 'employee' ? <Outlet /> : <Navigate to="/admin" replace />}>

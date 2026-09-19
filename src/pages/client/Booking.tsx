@@ -1320,6 +1320,15 @@ export default function Booking() {
                         phone: clientPhone,
                         message: otpMessage,
                         provider: 'whatsapp',
+                        template_name: 'citalink_cliente_confirmacion_v3',
+                        template_sid: 'HX9f85e85c7229648e7e4966e678f8d204',
+                        template_variables: {
+                            '1': clientName.trim() || 'Cliente',
+                            '2': bName || 'CitaLink',
+                            '3': appointmentDateTime || 'próximamente',
+                            '4': combinedServiceName,
+                            '5': newOtp,
+                        },
                     }),
                 });
                 setGeneratedOtp(newOtp);
@@ -1523,6 +1532,15 @@ export default function Booking() {
                             phone: clientPhone,
                             message: otpMessage,
                             provider: 'whatsapp',
+                            template_name: 'citalink_cliente_confirmacion_v3',
+                            template_sid: 'HX9f85e85c7229648e7e4966e678f8d204',
+                            template_variables: {
+                                '1': clientName.trim() || 'Cliente',
+                                '2': bName || 'CitaLink',
+                                '3': appointmentDateTime || 'próximamente',
+                                '4': cleanService,
+                                '5': localOtp,
+                            },
                         }),
                     });
 

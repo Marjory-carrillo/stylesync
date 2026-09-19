@@ -1132,6 +1132,36 @@ export default function Settings() {
                             </div>
                         )}
 
+                        {/* Módulo Punto de Venta (POS) y Caja Diaria */}
+                        <div className="p-5 bg-slate-900/60 rounded-2xl border border-white/10 space-y-4">
+                            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                                <div>
+                                    <h4 className="text-white font-bold text-base flex items-center gap-2">
+                                        <Store size={18} className="text-violet-400" />
+                                        Módulo de Punto de Venta (POS) & Cobro Automático
+                                    </h4>
+                                    <p className="text-xs text-muted mt-0.5">Permite cobrar citas en mostrador, sugerir productos de venta y auto-cerrar citas después de 2 horas.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={infoForm.enablePos ?? true}
+                                        onChange={async (e) => {
+                                            const val = e.target.checked;
+                                            setInfoForm({ ...infoForm, enablePos: val });
+                                            localStorage.setItem('citalink_pos_module_active', String(val));
+                                            try {
+                                                await updateBusinessConfig({ enablePos: val });
+                                            } catch (_) {}
+                                            showToast(val ? 'Módulo POS activado' : 'Módulo POS pausado', 'success');
+                                        }}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
                         {/* Anticipos y Política de Cancelación */}
                         <div className="p-5 bg-slate-900/60 rounded-2xl border border-white/10 space-y-4">
                             <div className="flex items-center justify-between pb-3 border-b border-white/5">

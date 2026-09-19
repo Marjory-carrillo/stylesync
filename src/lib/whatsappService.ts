@@ -2,6 +2,7 @@
 // Las credenciales de Twilio permanecen 100% privadas en el servidor y NUNCA se exponen al navegador.
 
 export const TEMPLATE_CLIENTE_CITA_MANUAL = 'HXcc71cca366ff7fa242044edb96ead1bc';
+export const META_TEMPLATE_CLIENTE_CITA_MANUAL = 'citalink_cliente_cita_manual';
 
 export function formatDateTimeDisplay(dateStr: string, timeStr: string): string {
     try {
@@ -45,6 +46,7 @@ export async function sendManualBookingClientNotification(params: {
             body: JSON.stringify({
                 phone: params.clientPhone,
                 provider: 'whatsapp',
+                template_name: META_TEMPLATE_CLIENTE_CITA_MANUAL,
                 template_sid: TEMPLATE_CLIENTE_CITA_MANUAL,
                 template_variables: {
                     '1': params.clientName.trim(),

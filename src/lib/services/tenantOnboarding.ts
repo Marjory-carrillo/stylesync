@@ -207,6 +207,7 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
                         body: JSON.stringify({
                             to: globalConfig.superadmin_phone,
                             provider: 'whatsapp',
+                            template_name: 'citalink_superadmin_nuevo_negocio',
                             template_sid: templateSid,
                             template_variables: templateVariables,
                             message: messageText,

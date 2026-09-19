@@ -8,7 +8,7 @@ import { useStylists } from '../lib/store/queries/useStylists';
 import { useServices } from '../lib/store/queries/useServices';
 import { useRealtimeNotifications, type AdminNotification } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Sparkles, Calendar, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing, Wrench, Share2, ChevronDown, Building2, UserCheck, Settings, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, Users, Sparkles, Calendar, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing, Wrench, Share2, ChevronDown, Building2, UserCheck, Settings, PanelLeftClose, PanelLeftOpen, Store } from 'lucide-react';
 import BusinessQRCardsModal from '../components/BusinessQRCardsModal';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
@@ -390,6 +390,17 @@ export default function AdminLayout() {
                     <Link to="/admin/appointments" onClick={closeMobileMenu} className={navLinkClass('/admin/appointments')} title={t('nav.appointments')}>
                         <Calendar size={18} className="shrink-0" />
                         <span className={isSidebarCollapsed ? 'lg:hidden' : ''}>{t('nav.appointments')}</span>
+                    </Link>
+
+                    {/* 3.1 Caja & POS (Prototipo) */}
+                    <Link to="/admin/pos" onClick={closeMobileMenu} className={navLinkClass('/admin/pos')} title="Caja & Inventario">
+                        <Store size={18} className="shrink-0 text-violet-400" />
+                        <span className={`flex items-center justify-between flex-1 ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
+                            <span>Caja & POS</span>
+                            <span className="px-1.5 py-0.2 rounded bg-violet-600/30 border border-violet-500/40 text-violet-300 text-[9px] font-black uppercase tracking-wider">
+                                Beta
+                            </span>
+                        </span>
                     </Link>
 
                     {/* 4. Herramientas */}

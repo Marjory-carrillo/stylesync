@@ -41,6 +41,7 @@ export const useTenantData = (overrideTenantId?: string) => {
                 commissionsEnabled: data.commissions_enabled || false,
                 enableAddons: data.enable_addons || false,
                 enableNailCalculator: data.enable_nail_calculator ?? true,
+                enablePos: data.enable_pos ?? true,
                 showDashboardMetrics: data.show_dashboard_metrics ?? false,
                 allowTwoActiveAppointments: data.allow_two_active_appointments ?? false,
                 breakBetweenAppointments: data.break_between_appointments || 0,
