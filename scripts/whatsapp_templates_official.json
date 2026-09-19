@@ -1,0 +1,82 @@
+{
+  "citalink_cliente_confirmacion_v3": {
+    "name": "citalink_cliente_confirmacion_v3",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "✨ *Reserva en {{2}}*\nHola {{1}}, aquí están los datos de tu cita:\n🔐 Acceso: *{{5}}*\n📅 Fecha: {{3}}\n📋 Servicio: {{4}}\n¡Nos vemos pronto! 🤩",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"],
+    "example_values": ["Valeria", "Nova Nails Studio", "viernes 15 de agosto a las 16:00", "Gel Semipermanente Manos", "4872"]
+  },
+  "citalink_cliente_recordatorio_v5": {
+    "name": "citalink_cliente_recordatorio_v5",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "✨ ¡Hola, {{1}}! 👋\n*{{2}}* te recuerda que tienes una cita con nosotros.\n📅 *Fecha:* {{3}}\n📋 *Servicio:* {{4}}\n✅ Por favor confirma tu asistencia dando clic aquí👇:\n🔗 {{5}}\n\n📌 Recuerda llegar 5 minutos antes de tu cita. ¡Nos vemos pronto! ✨",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"],
+    "example_values": ["Valeria", "Nova Nails Studio", "mañana viernes 15 de agosto a las 16:00", "Gel Semipermanente Manos", "https://www.citalink.app/reagendar/abc123"]
+  },
+  "citalink_cliente_cita_manual": {
+    "name": "citalink_cliente_cita_manual",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "📌 *Cita agendada en {{2}}*\nHola {{1}}, tu cita ha sido registrada con éxito:\n📅 Fecha: {{3}}\n📋 Servicio: {{4}}\n🔗 Gestiona tu cita aquí:\n{{5}}\n¡Te esperamos pronto! ✨",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"],
+    "example_values": ["Valeria", "Nova Nails Studio", "sábado 16 de agosto a las 11:00", "Acrílico Set Nuevo", "https://www.citalink.app/reserva/nova-nails"]
+  },
+  "citalink_cliente_reprogramacion": {
+    "name": "citalink_cliente_reprogramacion",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "🔄 *Tu cita fue reprogramada*\nHola {{1}}, tu cita en *{{2}}* ha sido reagendada:\n📆 {{3}}\n✂️ {{4}}\nSi tienes dudas, contacta al negocio. ¡Te esperamos! 😊",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}"],
+    "example_values": ["Valeria", "Nova Nails Studio", "lunes 18 de agosto a las 15:00", "Gel Semipermanente Manos"]
+  },
+  "citalink_cliente_cancelacion": {
+    "name": "citalink_cliente_cancelacion",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "❌ *Cita cancelada*\nHola {{1}}, tu cita en *{{2}}* del {{3}} ha sido cancelada.\nSi deseas reagendar, visita nuestro sitio o contáctanos.\nDisculpa los inconvenientes. 🙏",
+    "variables": ["{{1}}", "{{2}}", "{{3}}"],
+    "example_values": ["Valeria", "Nova Nails Studio", "viernes 15 de agosto a las 16:00"]
+  },
+  "citalink_cliente_actualizacion_precio": {
+    "name": "citalink_cliente_actualizacion_precio",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "✨ *Actualización de tu cita en {{2}}*\nHola {{1}}, tu cita ha sido actualizada con el precio confirmado:\n📅 Fecha: {{3}}\n📋 Servicio: {{4}}\n💰 Precio confirmado: ${{5}}\n📲 Si necesitas modificar o cancelar tu cita, gestionala aquí:\n🔗 {{6}}\n¡Te esperamos pronto! 🤩",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}", "{{6}}"],
+    "example_values": ["Valeria", "Nova Nails Studio", "sábado 16 de agosto a las 11:00", "Acrílico Set Nuevo + Diseño", "520", "https://www.citalink.app/reagendar/abc123"]
+  },
+  "citalink_admin_nueva_cita": {
+    "name": "citalink_admin_nueva_cita",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "✅ *Nueva Cita — {{1}}*\n{{2}} agendó una cita para el 📅 {{4}}.\nServicio: {{3}}\n📱 {{5}}\nRevisa tu panel CitaLink",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"],
+    "example_values": ["Nova Nails Studio", "Valeria Hernández", "Gel Semipermanente Manos", "viernes 15 de agosto a las 16:00", "55 1234 5678"]
+  },
+  "citalink_admin_reprogramacion": {
+    "name": "citalink_admin_reprogramacion",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "🔄 *Cita Reprogramada — {{1}}*\n{{2}} reprogramó su cita:\n📅 ~{{6}}~\n📅 {{4}}\nServicio: {{3}}\n📱 {{5}}\nRevisa tu panel CitaLink",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}", "{{6}}"],
+    "example_values": ["Nova Nails Studio", "Valeria Hernández", "Gel Semipermanente Manos", "sábado 16 de agosto a las 11:00", "55 1234 5678", "viernes 15 de agosto a las 16:00"]
+  },
+  "citalink_admin_cancelacion": {
+    "name": "citalink_admin_cancelacion",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "❌ Una cita fue cancelada en {{1}}.\n👤 Cliente: {{2}}\n✂️ Servicio: {{3}}\n📆 Fecha: {{4}}\n📱 Tel: {{5}}\n✅ Revisa tu panel CitaLink.",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"],
+    "example_values": ["Nova Nails Studio", "Valeria Hernández", "Gel Semipermanente Manos", "viernes 15 de agosto a las 16:00", "55 1234 5678"]
+  },
+  "citalink_superadmin_nuevo_negocio": {
+    "name": "citalink_superadmin_nuevo_negocio",
+    "category": "UTILITY",
+    "language": "es_MX",
+    "body": "🚀 *¡Nuevo Negocio Registrado en CitaLink!*\n\n🏪 *Negocio:* {{1}}\n🏷️ *Giro:* {{2}}\n👤 *Dueño:* {{3}}\n📞 *WhatsApp:* {{4}}\n📧 *Email:* {{5}}\n📍 *Dirección:* {{6}}\n🌐 *Link de Reservas:* {{7}}\n📱 *Origen:* {{8}}\n⚡ *Período de Prueba:* {{9}} \n\nNotificación automática del sistema CitaLink.",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}", "{{6}}", "{{7}}", "{{8}}", "{{9}}"],
+    "example_values": ["Nova Nails Studio", "Salón de Uñas", "Valeria", "5512345678", "contacto@novanails.com", "Av. Insurgentes 123", "https://www.citalink.app/nova-nails", "Registro en Plataforma", "14 días (Vence el 15/10/2026)"]
+  }
+}
