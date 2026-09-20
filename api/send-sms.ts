@@ -5,28 +5,28 @@ import { createClient } from '@supabase/supabase-js';
 // ── Mapeo de Content SIDs de Twilio y nombres a Nombres Oficiales Aprobados en Meta Cloud API ──
 export const META_TEMPLATE_MAP: Record<string, { name: string; lang?: string }> = {
     // SIDs de Twilio a Nombres Oficiales Aprobados en Meta
-    'HXcc71cca366ff7fa242044edb96ead1bc': { name: 'citalink_cliente_cita_manual_v1_hxcc71cca366ff7fa242044edb96ead1bc', lang: 'es_MX' },
-    'HX9f85e85c7229648e7e4966e678f8d204': { name: 'citalink_cliente_confirmacion_v3_hx9f85e85c7229648e7e4966e678f8d204', lang: 'es_MX' },
-    'HX35ed4a23580c8a4b1050a95802a335c0': { name: 'citalink_cliente_recordatorio_v5_hx35ed4a23580c8a4b1050a95802a335c0', lang: 'es_MX' },
-    'HXb2828c0bd3aabc8edd912c81db56884f': { name: 'citalink_cliente_cancelacion_v2_hxb2828c0bd3aabc8edd912c81db56884f', lang: 'es_MX' },
-    'HX84b5a4b7cf045e4fe976564f705a0613': { name: 'citalink_cliente_reprogramacion_v2_hx84b5a4b7cf045e4fe976564f705a0613', lang: 'es_MX' },
-    'HX7e31d42fe0693980543f4fb2308e05a8': { name: 'citalink_cliente_actualizacion_precio_hx7e31d42fe0693980543f4fb2308e05a8', lang: 'es_MX' },
-    'HXd19a0ab5d8bf37655221320bb6555ea1': { name: 'citalink_admin_nueva_cita_v2_hxd19a0ab5d8bf37655221320bb6555ea1', lang: 'es_MX' },
-    'HX16247c41bf5cf9f31236c2e574337308': { name: 'citalink_admin_reprogramacion_v2_hx16247c41bf5cf9f31236c2e574337308', lang: 'es_MX' },
-    'HXdc7be5995c074f498642e9536b157947': { name: 'citalink_admin_cancelacion_v2_hxdc7be5995c074f498642e9536b157947', lang: 'es_MX' },
-    'HXe57fdea8c7ab7bd6311190fd5737c638': { name: 'notificacion_nueva_cuenta_admin_hxe57fdea8c7ab7bd6311190fd5737c638', lang: 'es_MX' },
+    'HXcc71cca366ff7fa242044edb96ead1bc': { name: 'citalink_cliente_cita_manual', lang: 'es_MX' },
+    'HX9f85e85c7229648e7e4966e678f8d204': { name: 'citalink_cliente_confirmacion_v3', lang: 'es_MX' },
+    'HX35ed4a23580c8a4b1050a95802a335c0': { name: 'citalink_cliente_recordatorio_v5', lang: 'es_MX' },
+    'HXb2828c0bd3aabc8edd912c81db56884f': { name: 'citalink_cliente_cancelacion', lang: 'es_MX' },
+    'HX84b5a4b7cf045e4fe976564f705a0613': { name: 'citalink_cliente_reprogramacion', lang: 'es_MX' },
+    'HX7e31d42fe0693980543f4fb2308e05a8': { name: 'citalink_cliente_actualizacion_precio', lang: 'es_MX' },
+    'HXd19a0ab5d8bf37655221320bb6555ea1': { name: 'citalink_admin_nueva_cita', lang: 'es_MX' },
+    'HX16247c41bf5cf9f31236c2e574337308': { name: 'citalink_admin_reprogramacion', lang: 'es_MX' },
+    'HXdc7be5995c074f498642e9536b157947': { name: 'citalink_admin_cancelacion', lang: 'es_MX' },
+    'HXe57fdea8c7ab7bd6311190fd5737c638': { name: 'citalink_superadmin_nuevo_negocio', lang: 'es_MX' },
 
     // Nombres directos a Nombres Oficiales Aprobados en Meta
-    'citalink_cliente_cita_manual': { name: 'citalink_cliente_cita_manual_v1_hxcc71cca366ff7fa242044edb96ead1bc', lang: 'es_MX' },
-    'citalink_cliente_confirmacion_v3': { name: 'citalink_cliente_confirmacion_v3_hx9f85e85c7229648e7e4966e678f8d204', lang: 'es_MX' },
-    'citalink_cliente_recordatorio_v5': { name: 'citalink_cliente_recordatorio_v5_hx35ed4a23580c8a4b1050a95802a335c0', lang: 'es_MX' },
-    'citalink_cliente_cancelacion': { name: 'citalink_cliente_cancelacion_v2_hxb2828c0bd3aabc8edd912c81db56884f', lang: 'es_MX' },
-    'citalink_cliente_reprogramacion': { name: 'citalink_cliente_reprogramacion_v2_hx84b5a4b7cf045e4fe976564f705a0613', lang: 'es_MX' },
-    'citalink_cliente_actualizacion_precio': { name: 'citalink_cliente_actualizacion_precio_hx7e31d42fe0693980543f4fb2308e05a8', lang: 'es_MX' },
-    'citalink_admin_nueva_cita': { name: 'citalink_admin_nueva_cita_v2_hxd19a0ab5d8bf37655221320bb6555ea1', lang: 'es_MX' },
-    'citalink_admin_reprogramacion': { name: 'citalink_admin_reprogramacion_v2_hx16247c41bf5cf9f31236c2e574337308', lang: 'es_MX' },
-    'citalink_admin_cancelacion': { name: 'citalink_admin_cancelacion_v2_hxdc7be5995c074f498642e9536b157947', lang: 'es_MX' },
-    'citalink_superadmin_nuevo_negocio': { name: 'notificacion_nueva_cuenta_admin_hxe57fdea8c7ab7bd6311190fd5737c638', lang: 'es_MX' },
+    'citalink_cliente_cita_manual': { name: 'citalink_cliente_cita_manual', lang: 'es_MX' },
+    'citalink_cliente_confirmacion_v3': { name: 'citalink_cliente_confirmacion_v3', lang: 'es_MX' },
+    'citalink_cliente_recordatorio_v5': { name: 'citalink_cliente_recordatorio_v5', lang: 'es_MX' },
+    'citalink_cliente_cancelacion': { name: 'citalink_cliente_cancelacion', lang: 'es_MX' },
+    'citalink_cliente_reprogramacion': { name: 'citalink_cliente_reprogramacion', lang: 'es_MX' },
+    'citalink_cliente_actualizacion_precio': { name: 'citalink_cliente_actualizacion_precio', lang: 'es_MX' },
+    'citalink_admin_nueva_cita': { name: 'citalink_admin_nueva_cita', lang: 'es_MX' },
+    'citalink_admin_reprogramacion': { name: 'citalink_admin_reprogramacion', lang: 'es_MX' },
+    'citalink_admin_cancelacion': { name: 'citalink_admin_cancelacion', lang: 'es_MX' },
+    'citalink_superadmin_nuevo_negocio': { name: 'citalink_superadmin_nuevo_negocio', lang: 'es_MX' },
 };
 
 async function sendViaMeta(params: {
@@ -37,8 +37,8 @@ async function sendViaMeta(params: {
     template_lang?: string;
     message?: string;
 }): Promise<{ ok: boolean; messageId?: string; error?: string; data?: any }> {
-    const metaToken = process.env.META_WA_ACCESS_TOKEN || 'EAAaAOZBzRqVIBSjPgz0yZAk4FS3wWO9k8chAKvldSs0c79EgZBwAIQjOOvevQKzwBRFzj9hhlFpUDUNNnDJIS1tZAJjiNtAxQdzug6lF0nPfOZChfWSLoM1bkwuifWDRE6TJZBtiSTjwPHwUxZAL9GybQSAC4s3oPTVO92mpCMzK4iE4J9ylWLxE1phtVmNzy7sKAZDZD';
-    const metaPhoneId = process.env.META_WA_PHONE_NUMBER_ID || '1400047043181149';
+    const metaToken = process.env.META_WA_ACCESS_TOKEN || 'EAAWOdUoZC7FgBSlrD4GAzBMUUVkfvYOBZBItCbv1EAgN1HpjwfB0VgyzoNZC74aBX0is4X1KZARJfXSeJ0JU6zZByhaEw72u18LwvnMfMlZB04EKcaZAbNA2P3zDHnYUwrEW6jvZC1CKm1CUuOg74yCfL3hUYgsLvqZB7LhfOMAPwiaUEXPeIzhQmfLnyU3bXqiHnlQZDZD';
+    const metaPhoneId = process.env.META_WA_PHONE_NUMBER_ID || '1312583781938400';
 
     if (!metaToken) {
         return { ok: false, error: 'META_WA_ACCESS_TOKEN no configurado' };
