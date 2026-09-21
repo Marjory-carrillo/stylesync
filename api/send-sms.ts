@@ -351,25 +351,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json({ success: true, provider: 'meta', messageId: metaResult.messageId, data: metaResult.data });
         }
 
-        console.warn('[api/send-sms] Meta falló, activando fallback con Twilio...');
-
-        // 2. Fallback con Twilio
-        const twilioResult = await sendViaTwilio({
-            e164,
-            provider,
-            template_sid,
-            template_variables,
-            message,
-        });
-
-        if (twilioResult.ok) {
-            await logToSupabase('twilio', twilioResult.messageId);
-            return res.status(200).json({ success: true, provider: 'twilio', messageId: twilioResult.messageId });
+        // Si la plantilla está en revisión por Meta (#132001)
+        if (metaResult.error?.includes('132001') || metaResult.error?.includes('Template name does not exist')) {
+            return res.status(400).json({
+                success: false,
+                error: 'La plantilla de WhatsApp está en revisión por Meta (aprobación en curso). Estará activa en unos minutos.',
+            });
         }
 
         return res.status(500).json({
             success: false,
-            error: `Meta error: ${metaResult.error}. Twilio fallback error: ${twilioResult.error}`,
+            error: `Meta error: ${metaResult.error}`,
         });
     }
 }
