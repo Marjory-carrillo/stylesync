@@ -198,7 +198,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         !origin ||
         origin === 'https://www.citalink.app' ||
         origin === 'https://citalink.app' ||
-        origin.endsWith('.vercel.app') ||
+        origin.endsWith('-marjory-carrillos-projects.vercel.app') ||
+        origin.endsWith('citalink-sass.vercel.app') ||
         origin === 'http://localhost:5173' ||
         origin === 'http://localhost:3000';
 

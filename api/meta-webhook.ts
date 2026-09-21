@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
 
 const VERIFY_TOKEN = (process.env.META_WA_VERIFY_TOKEN || 'citalink_meta_secret_2026').trim().replace(/['"]/g, '');
 
@@ -27,6 +28,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 2. Recepción de eventos, estados de entrega y mensajes (POST)
     if (req.method === 'POST') {
         try {
+            // Verificación criptográfica de firma Meta (HMAC-SHA256) si META_APP_SECRET está configurado
+            const appSecret = process.env.META_APP_SECRET;
+            const signature = req.headers['x-hub-signature-256'] as string;
+
+            if (appSecret && signature) {
+                const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+                const expectedSignature = `sha256=${crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex')}`;
+                if (signature !== expectedSignature) {
+                    console.warn('[meta-webhook] Firma HMAC inválida recibida en webhook POST');
+                    return res.status(403).json({ error: 'Firma criptográfica inválida' });
+                }
+            }
+
             const body = req.body;
 
             const entry = body?.entry?.[0];

@@ -38,3 +38,10 @@
   - **Eliminación de Sobrecargas Obsoletas**: Al actualizar funciones RPC en Supabase, siempre ejecutar `DROP FUNCTION IF EXISTS public.<funcion>(<argumentos_viejos>);` para evitar ambigüedades en PostgREST y duplicidad de advertencias en el Security Advisor.
 - **Control Exclusivo de Ejecución SQL**: El asistente NUNCA debe ejecutar sentencias de modificación o scripts SQL directamente en la base de datos de Supabase. Siempre debe entregar el bloque SQL formateado, verificado y explicado para que el usuario sea quien tenga el control total y lo ejecute manualmente en el SQL Editor.
 - **Diagnóstico de Errores en SuperAdmin**: Cada vez que el usuario reporte un error, problema o fallo en la aplicación, el asistente debe revisar proactivamente el Centro de Diagnóstico y Errores del Sistema en SuperAdmin (`system_errors` / `SystemErrorsModal.tsx`), analizar los registros más recientes (mensajes de error, traza de pila, URL y contexto) para diagnosticar y solucionar la causa raíz de inmediato.
+- **Guardián Jev (TypeSafe AI) Pre-Flight & Bucle de Refinamiento**: Cada vez que el usuario solicite un cambio o arreglo:
+  1. El asistente analiza la solicitud y diseña la propuesta técnica.
+  2. Ejecuta la evaluación en tiempo real con el modelo **Jev** (`scripts/jev_evaluate.mjs`) para evaluar la intención real, el riesgo de rotura de código, impacto en servicios externos (Meta, Supabase, Stripe) y nivel de severidad.
+  3. **Bucle de Auto-Corrección con Jev**: Si Jev detecta riesgos de rotura, efectos secundarios no deseados o severidad media/alta, el asistente analiza la respuesta de Jev, ajusta y blinda la propuesta técnica, y vuelve a someterla a Jev. Este ciclo se repite sucesivamente hasta que Jev certifique que el arreglo es seguro, preciso y sin riesgo de rotura.
+  4. Entrega el **dictamen estructurado final de Jev** junto con el plan blindado al usuario ANTES de modificar una sola línea de código, solicitando su confirmación para proceder.
+
+
