@@ -38,7 +38,10 @@ async function sendViaMeta(params: {
     message?: string;
 }): Promise<{ ok: boolean; messageId?: string; error?: string; data?: any }> {
     const metaToken = process.env.META_WA_ACCESS_TOKEN || 'EAAWOdUoZC7FgBSlrD4GAzBMUUVkfvYOBZBItCbv1EAgN1HpjwfB0VgyzoNZC74aBX0is4X1KZARJfXSeJ0JU6zZByhaEw72u18LwvnMfMlZB04EKcaZAbNA2P3zDHnYUwrEW6jvZC1CKm1CUuOg74yCfL3hUYgsLvqZB7LhfOMAPwiaUEXPeIzhQmfLnyU3bXqiHnlQZDZD';
-    const metaPhoneId = process.env.META_WA_PHONE_NUMBER_ID || '1312583781938400';
+    const envPhoneId = process.env.META_WA_PHONE_NUMBER_ID;
+    const metaPhoneId = (!envPhoneId || envPhoneId === '1337471699449991' || envPhoneId === '1400047043181149')
+        ? '1312583781938400'
+        : envPhoneId;
 
     if (!metaToken) {
         return { ok: false, error: 'META_WA_ACCESS_TOKEN no configurado' };

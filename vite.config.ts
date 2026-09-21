@@ -36,7 +36,7 @@ function localMetaApiPlugin() {
                 });
               }
 
-              const phoneId = env.META_WA_PHONE_NUMBER_ID || '1337471699449991';
+              const phoneId = env.META_WA_PHONE_NUMBER_ID || '1312583781938400';
               const token = env.META_WA_ACCESS_TOKEN;
 
               if (!token) {
