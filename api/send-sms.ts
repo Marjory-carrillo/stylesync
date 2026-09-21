@@ -37,7 +37,9 @@ async function sendViaMeta(params: {
     template_lang?: string;
     message?: string;
 }): Promise<{ ok: boolean; messageId?: string; error?: string; data?: any }> {
-    const metaToken = (process.env.META_WA_ACCESS_TOKEN || 'EAAWOdUoZC7FgBSlrD4GAzBMUUVkfvYOBZBItCbv1EAgN1HpjwfB0VgyzoNZC74aBX0is4X1KZARJfXSeJ0JU6zZByhaEw72u18LwvnMfMlZB04EKcaZAbNA2P3zDHnYUwrEW6jvZC1CKm1CUuOg74yCfL3hUYgsLvqZB7LhfOMAPwiaUEXPeIzhQmfLnyU3bXqiHnlQZDZD').trim().replace(/['"]/g, '');
+    const OFFICIAL_META_TOKEN = 'EAAWOdUoZC7FgBSlrD4GAzBMUUVkfvYOBZBItCbv1EAgN1HpjwfB0VgyzoNZC74aBX0is4X1KZARJfXSeJ0JU6zZByhaEw72u18LwvnMfMlZB04EKcaZAbNA2P3zDHnYUwrEW6jvZC1CKm1CUuOg74yCfL3hUYgsLvqZB7LhfOMAPwiaUEXPeIzhQmfLnyU3bXqiHnlQZDZD';
+    const rawToken = process.env.META_WA_ACCESS_TOKEN || OFFICIAL_META_TOKEN;
+    const metaToken = (rawToken.startsWith('EAAaAOZ') ? OFFICIAL_META_TOKEN : rawToken).trim().replace(/['"]/g, '');
     const metaPhoneId = '1312583781938400';
 
     if (!metaToken) {
