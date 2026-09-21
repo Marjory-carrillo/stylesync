@@ -1458,8 +1458,6 @@ export default function Booking() {
                 const timeLabel = format12h(selectedTime);
                 const appointmentDateTime = `${dateLabel} a las ${timeLabel}`;
 
-                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-                const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
                 const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
                 const hasDesignPrice = designItem ? designItem.price > 0 : (designLevel === 'simple' || designLevel === 'complex');
 
