@@ -1249,45 +1249,16 @@ export default function Booking() {
     };
 
     const verifyOtp = async () => {
-        if (generatedOtp === '__verify__') {
-            // ── Twilio: verificar código ingresado por el cliente ──
-            setIsSendingSms(true);
-            try {
-                const _checkRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
-                    body: JSON.stringify({ action: 'check', phone: clientPhone, code: otpCode }),
-                });
-                const data = _checkRes.ok ? await _checkRes.json().catch(() => ({})) : {};
-                if (data?.verified) {
-                    // OTP válido → crear la cita y ir a confirmación final
-                    await createAppointmentAfterOtp();
-                } else {
-                    const newAttempts = otpAttempts + 1;
-                    setOtpAttempts(newAttempts);
-                    if (newAttempts >= 3) {
-                        setClientError('Has excedido el número de intentos. Intenta más tarde.');
-                        setStep(1);
-                    } else {
-                        setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts}`);
-                    }
-                }
-            } finally {
-                setIsSendingSms(false);
-            }
+        if (otpCode === generatedOtp) {
+            await createAppointmentAfterOtp();
         } else {
-            // ── Demo: comparación local ───────────────────────────────────────
-            if (otpCode === generatedOtp) {
-                await createAppointmentAfterOtp();
+            const newAttempts = otpAttempts + 1;
+            setOtpAttempts(newAttempts);
+            if (newAttempts >= 3) {
+                setClientError('Has excedido el número de intentos. Intenta más tarde.');
+                setStep(1);
             } else {
-                const newAttempts = otpAttempts + 1;
-                setOtpAttempts(newAttempts);
-                if (newAttempts >= 3) {
-                    setClientError('Has excedido el número de intentos. Intenta más tarde.');
-                    setStep(1);
-                } else {
-                    setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts}`);
-                }
+                setClientError(`Código incorrecto. Intentos restantes: ${3 - newAttempts}`);
             }
         }
     };
@@ -1296,54 +1267,43 @@ export default function Booking() {
         setIsSendingSms(true);
         setResendCountdown(15);
         try {
-            const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-            const currentProvider = businessConfig?.smsProvider ?? 'demo';
+            const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            const addOnNames = selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean);
+            const combinedServiceName = selectedService ? selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '') : 'tu servicio';
+            const dateLabel = selectedDate
+                ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
+                : 'próximamente';
+            const timeLabel = format12h(selectedTime);
+            const appointmentDateTime = `${dateLabel} a las ${timeLabel}`;
+            const bName = businessConfig?.name ?? 'CitaLink';
 
-            if (isLocal) {
-                const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
-                const addOnNames = selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean);
-                const combinedServiceName = selectedService ? selectedService.name + (addOnNames.length > 0 ? ' + ' + addOnNames.join(' + ') : '') : 'tu servicio';
-                const dateLabel = selectedDate
-                    ? format(new Date(selectedDate + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es })
-                    : 'próximamente';
-                const timeLabel = format12h(selectedTime);
-                const appointmentDateTime = `${dateLabel} a las ${timeLabel}`;
-                const bName = businessConfig?.name ?? 'CitaLink';
+            const otpMessage = `🔐 *Código CitaLink:* *${newOtp}*\n\nHola *${clientName.trim()}*, tu cita en *${bName}* está casi lista.\n\n📅 *Fecha:* ${appointmentDateTime}\n✨ *Servicio:* ${combinedServiceName}\n\nIngresa el código *${newOtp}* en la pantalla de reserva para confirmar tu cita.\n⏱️ Válido por 10 minutos.`;
 
-                const otpMessage = `🔐 *Código CitaLink:* *${newOtp}*\n\nHola *${clientName.trim()}*, tu cita en *${bName}* está casi lista.\n\n📅 *Fecha:* ${appointmentDateTime}\n✨ *Servicio:* ${combinedServiceName}\n\nIngresa el código *${newOtp}* en la pantalla de reserva para confirmar tu cita.\n⏱️ Válido por 10 minutos.`;
+            const res = await fetch('/api/send-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: clientPhone,
+                    phone: clientPhone,
+                    message: otpMessage,
+                    provider: 'whatsapp',
+                    template_name: 'citalink_cliente_confirmacion_v3',
+                    template_sid: 'HX9f85e85c7229648e7e4966e678f8d204',
+                    template_variables: {
+                        '1': clientName.trim() || 'Cliente',
+                        '2': bName || 'CitaLink',
+                        '3': appointmentDateTime || 'próximamente',
+                        '4': combinedServiceName,
+                        '5': newOtp,
+                    },
+                }),
+            });
 
-                await fetch('/api/send-sms', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        to: clientPhone,
-                        phone: clientPhone,
-                        message: otpMessage,
-                        provider: 'whatsapp',
-                        template_name: 'citalink_cliente_confirmacion_v3',
-                        template_sid: 'HX9f85e85c7229648e7e4966e678f8d204',
-                        template_variables: {
-                            '1': clientName.trim() || 'Cliente',
-                            '2': bName || 'CitaLink',
-                            '3': appointmentDateTime || 'próximamente',
-                            '4': combinedServiceName,
-                            '5': newOtp,
-                        },
-                    }),
-                });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data?.success !== false) {
                 setGeneratedOtp(newOtp);
                 setOtpAttempts(0);
-            } else if (currentProvider === 'whatsapp') {
-                await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
-                    body: JSON.stringify({ action: 'send', phone: clientPhone }),
-                });
-            } else {
-                const code = Math.floor(1000 + Math.random() * 9000).toString();
-                setGeneratedOtp(code);
             }
-            setOtpAttempts(0);
         } finally {
             setIsSendingSms(false);
         }
@@ -1507,101 +1467,54 @@ export default function Booking() {
                     selectedService.priceType === 'range' || 
                     (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice));
 
-                const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                const localOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
-                if (isLocal) {
-                    const localOtp = Math.floor(1000 + Math.random() * 9000).toString();
-
-                    let cleanService = combinedServiceName
-                        .split(' + Largo:')[0]
-                        .split(' + Diseño:')[0]
-                        .split(' + Extra:')[0]
-                        .split(' + Cotización')[0]
-                        .trim();
-                    if (isVariablePrice) {
-                        cleanService += ' (⚠️ Requiere cotización. Te notificaremos cuando tu Profesional confirme el monto final)';
-                    }
-
-                    const otpMessage = `🔐 *Código CitaLink:* *${localOtp}*\n\nHola *${clientName.trim()}*, tu cita en *${bName}* está casi lista.\n\n📅 *Fecha:* ${appointmentDateTime}\n✨ *Servicio:* ${cleanService}\n\nIngresa el código *${localOtp}* en la pantalla de reserva para confirmar tu cita.\n⏱️ Válido por 10 minutos.`;
-
-                    const localRes = await fetch('/api/send-sms', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: clientPhone,
-                            phone: clientPhone,
-                            message: otpMessage,
-                            provider: 'whatsapp',
-                            template_name: 'citalink_cliente_confirmacion_v3',
-                            template_sid: 'HX9f85e85c7229648e7e4966e678f8d204',
-                            template_variables: {
-                                '1': clientName.trim() || 'Cliente',
-                                '2': bName || 'CitaLink',
-                                '3': appointmentDateTime || 'próximamente',
-                                '4': cleanService,
-                                '5': localOtp,
-                            },
-                        }),
-                    });
-
-                    const localData = await localRes.json().catch(() => ({}));
-                    if (!localRes.ok || localData?.success === false) {
-                        const debugErr = localData?.error || localData?.data?.error?.message || 'Error al enviar WhatsApp vía Meta Cloud API';
-                        setSmsDebugError(debugErr);
-                        setClientError(`Error procesando WhatsApp (Meta): ${debugErr}`);
-                        return;
-                    }
-
-                    setSmsProvider('whatsapp');
-                    setGeneratedOtp(localOtp);
-                    setOtpAttempts(0);
-                    setOtpCode('');
-                    setStep(16); // ir a pantalla OTP (banner WhatsApp)
-                    return;
+                let cleanService = combinedServiceName
+                    .split(' + Largo:')[0]
+                    .split(' + Diseño:')[0]
+                    .split(' + Extra:')[0]
+                    .split(' + Cotización')[0]
+                    .trim();
+                if (isVariablePrice) {
+                    cleanService += ' (⚠️ Requiere cotización. Te notificaremos cuando tu Profesional confirme el monto final)';
                 }
 
-                const funcRes = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
-                    method:  'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${anonKey}`,
-                        'apikey': anonKey,
-                    },
+                const otpMessage = `🔐 *Código CitaLink:* *${localOtp}*\n\nHola *${clientName.trim()}*, tu cita en *${bName}* está casi lista.\n\n📅 *Fecha:* ${appointmentDateTime}\n✨ *Servicio:* ${cleanService}\n\nIngresa el código *${localOtp}* en la pantalla de reserva para confirmar tu cita.\n⏱️ Válido por 10 minutos.`;
+
+                const localRes = await fetch('/api/send-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        action:              'send',
-                        phone:               clientPhone,
-                        tenant_id:           tenantId,
-                        businessName:        bName,
-                        clientName:          clientName.trim(),
-                        serviceName:         combinedServiceName,
-                        appointmentDateTime,
-                        isVariablePrice,
+                        to: clientPhone,
+                        phone: clientPhone,
+                        message: otpMessage,
+                        provider: 'whatsapp',
+                        template_name: 'citalink_cliente_confirmacion_v3',
+                        template_sid: 'HX9f85e85c7229648e7e4966e678f8d204',
+                        template_variables: {
+                            '1': clientName.trim() || 'Cliente',
+                            '2': bName || 'CitaLink',
+                            '3': appointmentDateTime || 'próximamente',
+                            '4': cleanService,
+                            '5': localOtp,
+                        },
                     }),
                 });
 
-                const funcData = funcRes.ok
-                    ? await funcRes.json().catch(() => ({ success: false, error: 'Respuesta inválida del servidor' }))
-                    : { success: false, error: `HTTP ${funcRes.status}` };
-
-                if (!funcData?.success) {
-                    const debugErr = funcData?.error ?? 'Error al enviar código';
+                const localData = await localRes.json().catch(() => ({}));
+                if (!localRes.ok || localData?.success === false) {
+                    const debugErr = localData?.error || localData?.data?.error?.message || 'Error al enviar WhatsApp vía Meta Cloud API';
                     setSmsDebugError(debugErr);
-                    // Error 63024: número no registrado en WhatsApp → volver a step 1 con mensaje claro
-                    const isInvalidWA = funcData?.code === 63024 || String(funcData?.code) === '63024'
-                        || debugErr.includes('no tiene WhatsApp');
-                    if (isInvalidWA) {
-                        setClientError('⚠️ Este número no tiene WhatsApp. Verifica que sea correcto e intenta de nuevo.');
-                        setStep(1); // Regresar al paso de teléfono para que lo corrija
-                    } else {
-                        setClientError(`Error procesando WhatsApp: ${debugErr}`);
-                    }
+                    setClientError(`Error procesando WhatsApp: ${debugErr}`);
                     return;
                 }
-                setSmsProvider(currentProvider as 'whatsapp');
-                setGeneratedOtp('__verify__');
+
+                setSmsProvider('whatsapp');
+                setGeneratedOtp(localOtp);
                 setOtpAttempts(0);
                 setOtpCode('');
                 setStep(16); // ir a pantalla OTP (banner WhatsApp)
+                return;
             } finally {
                 setIsSendingSms(false);
             }
