@@ -1,6 +1,8 @@
 // Servicio para envío de plantillas oficiales de WhatsApp vía backend seguro /api/send-sms
 // Las credenciales de Twilio permanecen 100% privadas en el servidor y NUNCA se exponen al navegador.
 
+import { supabase } from './supabaseClient';
+
 export const TEMPLATE_CLIENTE_CITA_MANUAL = 'HXcc71cca366ff7fa242044edb96ead1bc';
 export const META_TEMPLATE_CLIENTE_CITA_MANUAL = 'citalink_cliente_cita_manual';
 
@@ -33,8 +35,15 @@ export async function sendManualBookingClientNotification(params: {
         if (!params.clientPhone) return false;
 
         const fechaFormateada = formatDateTimeDisplay(params.date, params.time);
-        const bookingLink = params.businessSlug
-            ? `https://www.citalink.app/reserva/${params.businessSlug}`
+        let slug = params.businessSlug;
+        if (!slug && params.tenantId) {
+            try {
+                const { data } = await supabase.from('tenants').select('slug').eq('id', params.tenantId).single();
+                if (data?.slug) slug = data.slug;
+            } catch (_) {}
+        }
+        const bookingLink = slug
+            ? `https://www.citalink.app/reserva/${slug}`
             : 'https://www.citalink.app';
 
         const res = await fetch('/api/send-sms', {
@@ -73,9 +82,24 @@ export async function sendAppointmentCancellationNotification(params: {
     serviceName?: string;
     adminPhone?: string;
     tenantId?: string;
+    businessSlug?: string;
+    bookingUrl?: string;
 }): Promise<void> {
     const fechaFormateada = formatDateTimeDisplay(params.date, params.time);
     const bName = params.businessName || 'CitaLink';
+    const cleanClientName = params.clientName.replace(/\s*\(Motivo:.*?\)$/i, '').trim();
+
+    let bookingUrl = params.bookingUrl;
+    if (!bookingUrl) {
+        let slug = params.businessSlug;
+        if (!slug && params.tenantId) {
+            try {
+                const { data } = await supabase.from('tenants').select('slug').eq('id', params.tenantId).single();
+                if (data?.slug) slug = data.slug;
+            } catch (_) {}
+        }
+        bookingUrl = slug ? `https://www.citalink.app/b/${slug}` : 'https://www.citalink.app';
+    }
 
     // 1. Notificar al Cliente vía Meta Cloud API
     if (params.clientPhone) {
@@ -90,9 +114,10 @@ export async function sendAppointmentCancellationNotification(params: {
                     template_name: 'citalink_cliente_cancelacion',
                     template_sid: 'HXb2828c0bd3aabc8edd912c81db56884f',
                     template_variables: {
-                        '1': params.clientName.trim(),
-                        '2': bName,
-                        '3': fechaFormateada,
+                        '1': cleanClientName,
+                        '2': fechaFormateada,
+                        '3': bName,
+                        '4': bookingUrl,
                     },
                 }),
             });

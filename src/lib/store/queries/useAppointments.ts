@@ -60,6 +60,7 @@ async function notifyAdmin(
     appointment: { id?: string; client_name: string; client_phone: string; service_name?: string; date: string; time: string; stylist_id?: number | null; additional_services?: string[]; confirmed_price?: number },
     adminPhone?: string,
     businessName?: string,
+    businessSlug?: string,
 ) {
     try {
         const rawServiceName = appointment.service_name;
@@ -86,6 +87,7 @@ async function notifyAdmin(
                 serviceName: finalFormattedService,
                 adminPhone,
                 tenantId,
+                businessSlug,
             });
         } else if (eventType === 'reschedule') {
             await sendAppointmentRescheduleNotification({
@@ -141,9 +143,11 @@ async function notifyAdmin(
 // Module-level in-flight mutex to block concurrent spam across all components
 const inFlightLocks = new Set<string>();
 
-export const useAppointments = (options?: { startDate?: string; adminPhone?: string; businessName?: string; tenantId?: string }) => {
-    const { tenantId: authTenantId } = useAuthStore();
+export const useAppointments = (options?: { startDate?: string; adminPhone?: string; businessName?: string; businessSlug?: string; tenantId?: string }) => {
+    const { tenantId: authTenantId, userTenants } = useAuthStore();
     const tenantId = options?.tenantId || authTenantId;
+    const currentTenant = userTenants.find(t => t.id === tenantId);
+    const businessSlug = options?.businessSlug || currentTenant?.slug;
     const { showToast, setDeviceHasPending, getDevicePendingId, clearDevicePending } = useUIStore();
     const queryClient = useQueryClient();
     const queryKey = ['appointments', tenantId, options?.startDate];
@@ -419,7 +423,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                     time: apt.time,
                     stylist_id: apt.stylistId || (apt as any).stylist_id,
                     additional_services: apt.additionalServices || (apt as any).additional_services || [],
-                }, adminPhone, businessName);
+                }, adminPhone, businessName, businessSlug);
             }
         },
         onError: (err: any) => showToast(`Error al cancelar: ${err.message}`, 'error'),

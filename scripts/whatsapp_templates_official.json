@@ -3,7 +3,7 @@
     "name": "citalink_cliente_confirmacion_v3",
     "category": "UTILITY",
     "language": "es_MX",
-    "body": "✨ *Reserva en {{2}}*\nHola {{1}}, aquí están los datos de tu cita:\n🔐 Acceso: *{{5}}*\n📅 Fecha: {{3}}\n📋 Servicio: {{4}}\n¡Nos vemos pronto! 🤩",
+    "body": "✨ *Reserva en {{2}}*\nHola {{1}}, aquí están los datos de tu cita:\n🔐 Acceso: *{{5}}*\n📅 *Fecha:* {{3}}\n📋 *Servicio:* {{4}}\n¡Nos vemos pronto! 🤩",
     "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"],
     "example_values": ["Valeria", "Nova Nails Studio", "viernes 15 de agosto a las 16:00", "Gel Semipermanente Manos", "4872"]
   },
@@ -19,7 +19,7 @@
     "name": "citalink_cliente_cita_manual",
     "category": "UTILITY",
     "language": "es_MX",
-    "body": "📌 *Cita agendada en {{2}}*\nHola {{1}}, tu cita ha sido registrada con éxito:\n📅 Fecha: {{3}}\n📋 Servicio: {{4}}\n🔗 Gestiona tu cita aquí:\n{{5}}\n¡Te esperamos pronto! ✨",
+    "body": "📌 *Cita agendada en {{2}}*\nHola {{1}}, tu cita ha sido registrada con éxito:\n📅 *Fecha:* {{3}}\n📋 *Servicio:* {{4}}\n🔗 Gestiona tu cita aquí:\n{{5}}\n¡Te esperamos pronto! ✨",
     "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"],
     "example_values": ["Valeria", "Nova Nails Studio", "sábado 16 de agosto a las 11:00", "Acrílico Set Nuevo", "https://www.citalink.app/reserva/nova-nails"]
   },
@@ -35,15 +35,15 @@
     "name": "citalink_cliente_cancelacion",
     "category": "UTILITY",
     "language": "es_MX",
-    "body": "❌ *Cita cancelada*\nHola {{1}}, tu cita en *{{2}}* del {{3}} ha sido cancelada.\nSi deseas reagendar, visita nuestro sitio o contáctanos.\nDisculpa los inconvenientes. 🙏",
-    "variables": ["{{1}}", "{{2}}", "{{3}}"],
-    "example_values": ["Valeria", "Nova Nails Studio", "viernes 15 de agosto a las 16:00"]
+    "body": "❌ Hola {{1}}, tu cita del {{2}} en {{3}} fue cancelada.\nReagenda cuando gustes:\n🔗 {{4}}\n¡Con gusto te atendemos! 😊",
+    "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}"],
+    "example_values": ["Valeria", "viernes 15 de agosto a las 16:00", "Nova Nails Studio", "https://www.citalink.app/reserva/nova-nails"]
   },
   "citalink_cliente_actualizacion_precio": {
     "name": "citalink_cliente_actualizacion_precio",
     "category": "UTILITY",
     "language": "es_MX",
-    "body": "✨ *Actualización de tu cita en {{2}}*\nHola {{1}}, tu cita ha sido actualizada con el precio confirmado:\n📅 Fecha: {{3}}\n📋 Servicio: {{4}}\n💰 Precio confirmado: ${{5}}\n📲 Si necesitas modificar o cancelar tu cita, gestionala aquí:\n🔗 {{6}}\n¡Te esperamos pronto! 🤩",
+    "body": "✨ *Actualización de tu cita en {{2}}*\nHola {{1}}, tu cita ha sido actualizada con el precio confirmado:\n📅 *Fecha:* {{3}}\n📋 *Servicio:* {{4}}\n💰 Precio confirmado: ${{5}}\n📲 Si necesitas modificar o cancelar tu cita, gestionala aquí:\n🔗 {{6}}\n¡Te esperamos pronto! 🤩",
     "variables": ["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}", "{{6}}"],
     "example_values": ["Valeria", "Nova Nails Studio", "sábado 16 de agosto a las 11:00", "Acrílico Set Nuevo + Diseño", "520", "https://www.citalink.app/reagendar/abc123"]
   },
