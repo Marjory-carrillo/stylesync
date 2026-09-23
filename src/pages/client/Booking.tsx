@@ -286,7 +286,16 @@ export default function Booking() {
     const [selectedAddOns, setSelectedAddOns] = useState<number[]>([]); // additional service IDs
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const [isDateSelected, setIsDateSelected] = useState<boolean>(false);
     const [urgentSlotTime, setUrgentSlotTime] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (step === 3) {
+            setIsDateSelected(true);
+        } else if (step !== 25) {
+            setIsDateSelected(false);
+        }
+    }, [step]);
 
     const { config: nailQuoterConfig } = useNailCalculator();
     const sizeCategory = useMemo(() => nailQuoterConfig?.find(c => c.id === 'sizes'), [nailQuoterConfig]);
@@ -1659,8 +1668,7 @@ export default function Booking() {
             {step === 2 && <h2 className="text-xl font-black text-white text-center mb-6">Elige tu Profesional</h2>}
             {step === 22 && <h2 className="text-xl font-black text-white text-center mb-6">Elige un Servicio</h2>}
             {step === 23 && <h2 className="text-xl font-black text-white text-center mb-6">Servicios Adicionales</h2>}
-            {step === 25 && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Fecha</h2>}
-            {step === 3 && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Hora</h2>}
+            {(step === 25 || step === 3) && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Fecha y Hora</h2>}
             {step === 4 && <h2 className="text-xl font-black text-white text-center mb-6">Confirma tu Reserva</h2>}
 
             {/* Progress Bar */}
@@ -3127,224 +3135,273 @@ export default function Booking() {
                     </div>
                 )}
 
-                {/* ══ STEP 25: Date Picker ══ */}
-                {step === 25 && selectedService && (
-                    <div className="animate-fade-in">
-                        <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-xs)' }}>
-                            {isUpdating ? 'Nueva Fecha' : 'Selecciona Fecha'}
-                        </h3>
-                        <p className="text-sm font-semibold text-accent" style={{ marginBottom: 'var(--space-sm)' }}>
-                            {selectedService.name}{selectedAddonsText ? ` + ${selectedAddonsText}` : ''}
-                        </p>
-                        {selectedStylist && (
-                            <div className="flex justify-center mb-4">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs text-cyan-300 shadow-sm">
-                                    {selectedStylist.image ? (
-                                        <img
-                                            decoding="async"
-                                            loading="lazy"
-                                            src={selectedStylist.image}
-                                            alt={selectedStylist.name}
-                                            className="w-4 h-4 rounded-full object-cover ring-1 ring-cyan-400/40"
-                                        />
-                                    ) : (
-                                        <div className="w-4 h-4 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-300">
-                                            <User size={10} />
-                                        </div>
-                                    )}
-                                    <span>Atendido por: <strong className="text-white font-medium capitalize">{selectedStylist.name}</strong></span>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-sm)' }}>
-                            {availableDates.map(d => {
-                                const dayDate = new Date(d.dateStr.replace(/-/g, '/') + ' 00:00:00');
-                                const dayKey = DAY_KEYS[dayDate.getDay()] as keyof typeof schedule;
-                                const isBusinessClosed = !schedule[dayKey]?.open;
-                                
-                                const daySchedule = getScheduleForDate(d.dateStr);
-                                const isClosed = !daySchedule.open;
-                                
-                                return (
-                                    <button
-                                        key={d.dateStr}
-                                        onClick={() => { setSelectedDate(d.dateStr); setSelectedTime(null); setStep(3); }}
-                                        className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 ${selectedDate === d.dateStr ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${isClosed ? 'border-red-500/20 bg-red-500/5' : ''} ${isBusinessClosed ? 'opacity-40 cursor-not-allowed' : ''}`}
-                                        disabled={isBusinessClosed}
-                                    >
-                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{d.dayName}</span>
-                                        <span className="text-sm font-bold">{d.label}</span>
-                                        {d.isToday && <span className="text-[8px] uppercase font-black tracking-tighter text-cyan-200">HOY</span>}
-                                        {isClosed && (
-                                            <span className="text-[8px] uppercase font-black tracking-tighter text-red-400">
-                                                {isBusinessClosed ? 'Cerrado' : 'No atiende'}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        <button
-                            className="btn btn-ghost"
-                            style={{ width: '100%', marginTop: 'var(--space-md)' }}
-                            onClick={() => {
-                                setIsUpdating(false);
-                                if (isUpdating) {
-                                    setStep(10);
-                                    return;
-                                }
-                                if (isQuoterPrefilled) {
-                                    const hasAddons = services.some(s => s.isAddon);
-                                    if (hasAddons) {
-                                        setStep(23); // Regresa a adicionales
-                                    } else {
-                                        setStep(1); // Regresa a datos
-                                    }
-                                    return;
-                                }
-                                const hasAddons = services.some(s => s.isAddon);
-                                if (hasAddons) {
-                                    setStep(23); // Regresa a Servicios Adicionales
-                                    return;
-                                }
-                                if (showNailQuoterFlow || (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter)) {
-                                    setShowNailQuoterFlow(true);
-                                    setStep(22); // Regresa a Personalizador de Uñas
-                                    return;
-                                }
-                                setStep(22); // Regresa a Servicios
-                            }}
-                        >
-                            ← Atrás
-                        </button>
-                    </div>
-                )}
-
-                {/* ══ STEP 3: Time ══ */}
-                {step === 3 && selectedService && (
-                    <div className="animate-slide-up">
-                        <div className="text-center mb-6">
-                            <p className="text-xs text-accent font-bold uppercase tracking-wider mb-2">Paso 3 de 4</p>
-                            <h3 className="text-2xl font-bold text-white mb-1">Selecciona Hora</h3>
+                {/* ══ STEP 25 & 3: Fecha y Hora Unificada ══ */}
+                {(step === 25 || step === 3) && selectedService && (
+                    <div className="animate-fade-in text-left">
+                        {/* Header / Context */}
+                        <div className="text-center mb-5">
+                            <p className="text-xs text-accent font-bold uppercase tracking-wider mb-1">Paso 3 de 4</p>
+                            <h3 className="text-2xl font-bold text-white mb-1">
+                                {isUpdating ? 'Reprogramar Cita' : 'Selecciona Fecha y Hora'}
+                            </h3>
                             <p className="text-sm font-semibold text-accent mb-2">
                                 {selectedService.name}{selectedAddonsText ? ` + ${selectedAddonsText}` : ''}
                             </p>
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300">
-                                <Calendar size={14} className="text-accent" />
-                                {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMMM', { locale: es })}
-                            </div>
+                            {selectedStylist && (
+                                <div className="flex justify-center mb-3">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs text-cyan-300 shadow-sm">
+                                        {selectedStylist.image ? (
+                                            <img
+                                                decoding="async"
+                                                loading="lazy"
+                                                src={selectedStylist.image}
+                                                alt={selectedStylist.name}
+                                                className="w-4 h-4 rounded-full object-cover ring-1 ring-cyan-400/40"
+                                            />
+                                        ) : (
+                                            <div className="w-4 h-4 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-300">
+                                                <User size={10} />
+                                            </div>
+                                        )}
+                                        <span>Atendido por: <strong className="text-white font-medium capitalize">{selectedStylist.name}</strong></span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        {availableSlots.length > 0 ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {availableSlots.map((time, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleSelectTime(time)}
-                                        className={`p-4 rounded-2xl border transition-all duration-300 group relative overflow-hidden ${selectedTime === time ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'}`}
-                                    >
-                                        <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-sm font-bold tracking-tight">{format12h(time)}</span>
-                                        </div>
-                                    </button>
-                                ))}
+                        {/* Contracción / Expansión de Fecha */}
+                        {!isDateSelected ? (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                                    <Calendar size={14} className="text-cyan-400" />
+                                    <span>1. Selecciona un día</span>
+                                </div>
+                                <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-sm)' }}>
+                                    {availableDates.map(d => {
+                                        const dayDate = new Date(d.dateStr.replace(/-/g, '/') + ' 00:00:00');
+                                        const dayKey = DAY_KEYS[dayDate.getDay()] as keyof typeof schedule;
+                                        const isBusinessClosed = !schedule[dayKey]?.open;
+                                        const daySchedule = getScheduleForDate(d.dateStr);
+                                        const isClosed = !daySchedule.open;
+                                        
+                                        return (
+                                            <button
+                                                key={d.dateStr}
+                                                onClick={() => {
+                                                    setSelectedDate(d.dateStr);
+                                                    setSelectedTime(null);
+                                                    setIsDateSelected(true);
+                                                    setStep(3);
+                                                }}
+                                                className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${selectedDate === d.dateStr ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.25)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${isClosed ? 'border-red-500/20 bg-red-500/5' : ''} ${isBusinessClosed ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                                disabled={isBusinessClosed}
+                                            >
+                                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{d.dayName}</span>
+                                                <span className="text-sm font-bold">{d.label}</span>
+                                                {d.isToday && <span className="text-[8px] uppercase font-black tracking-tighter text-cyan-300">HOY</span>}
+                                                {isClosed && (
+                                                    <span className="text-[8px] uppercase font-black tracking-tighter text-red-400">
+                                                        {isBusinessClosed ? 'Cerrado' : 'No atiende'}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         ) : (
-                            <div className="glass-panel p-8 text-center rounded-2xl border-dashed border-2 border-white/10">
-                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-muted">
-                                    <Clock size={32} />
-                                </div>
-                                <h4 className="text-lg font-bold text-white mb-2">Sin horarios disponibles</h4>
-                                <p className="text-sm text-muted mb-6">
-                                    {isDayBlockedManually
-                                        ? 'Este día no hay servicio por causa de fuerza mayor o descanso.'
-                                        : isSelectedStylistClosed
-                                            ? `El profesional seleccionado (${selectedStylist?.name}) no atiende los ${DAY_NAMES[DAY_KEYS[new Date(selectedDate + 'T00:00:00').getDay()]]}s.`
-                                            : (selectedDate === format(new Date(), 'yyyy-MM-dd')
-                                                ? 'Las horas laborales han concluido por el día de hoy o la agenda está llena. Intenta otro día.'
-                                                : 'Parece que el día está completamente reservado para este servicio.')}
-                                </p>
-
-                                {isSelectedStylistClosed && alternativeOpenStylists.length > 0 && (
-                                    <div className="mt-4 mb-6 text-left w-full space-y-3">
-                                        <p className="text-xs font-bold text-[#25D366] uppercase tracking-widest flex items-center gap-1.5">
-                                            <Sparkles size={14} />
-                                            {alternativeOpenStylists.length === 1 
-                                                ? `Recomendación: ${alternativeOpenStylists[0].name} realiza ${selectedService?.name} y sí atiende este día:` 
-                                                : `Recomendados: Estos profesionales realizan ${selectedService?.name} y sí atienden este día:`}
-                                        </p>
-                                        <div className="flex flex-col gap-2">
-                                            {alternativeOpenStylists.map(s => (
-                                                <button
-                                                    key={s.id}
-                                                    onClick={() => {
-                                                        setSelectedStylist(s);
-                                                        setSelectedTime(null);
-                                                    }}
-                                                    className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 hover:border-accent/40 rounded-xl transition-all text-left w-full group"
-                                                >
-                                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-800 shrink-0">
-                                                        {s.image ? (
-                                                            <img decoding="async" loading="lazy" src={s.image} alt={s.name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-cyan-400/10 text-xs font-bold">
-                                                                {s.name.charAt(0).toUpperCase()}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <span className="text-xs font-bold text-white block truncate group-hover:text-accent transition-colors">{s.name}</span>
-                                                        <span className="text-[10px] text-slate-500 block truncate">{s.role}</span>
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-lg shrink-0">
-                                                        Ver horarios
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
+                            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border border-cyan-500/30 flex items-center justify-between shadow-sm animate-fade-in mb-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0">
+                                        <Calendar size={18} />
                                     </div>
-                                )}
-
-                                {(() => {
-                                    const now = new Date();
-                                    const nowTime = format(now, 'HH:mm');
-                                    const todayStr = format(now, 'yyyy-MM-dd');
-                                    const isToday = selectedDate === todayStr;
-                                    const daySched = getScheduleForDate(selectedDate);
-                                    const isPastClosing = isToday && nowTime >= daySched.end;
-
-                                    if (isDayBlockedManually || isPastClosing || isSelectedStylistClosed) return null;
-
-                                    return (
-                                        <button
-                                            className="btn btn-primary w-full py-4 mb-3 text-accent border-accent/20 flex items-center justify-center gap-2 group"
-                                            onClick={() => {
-                                                if (!clientName || !clientPhone) {
-                                                    setStep(27);
-                                                } else {
-                                                    addToWaitingList({
-                                                        name: clientName,
-                                                        phone: clientPhone,
-                                                        serviceId: selectedService.id,
-                                                        date: selectedDate,
-                                                    });
-                                                    setStep(26);
-                                                }
-                                            }}
-                                        >
-                                            <span className="group-hover:scale-110 transition-transform">⏳</span>
-                                            Avísame si se libera un lugar
-                                        </button>
-                                    );
-                                })()}
-                                <button className="btn btn-ghost text-sm w-full" onClick={() => setStep(25)}>
-                                    Ver otra fecha
+                                    <div>
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-cyan-400/90">Día seleccionado</p>
+                                        <h4 className="text-sm font-bold text-white capitalize">
+                                            {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d \'de\' MMMM', { locale: es })}
+                                        </h4>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsDateSelected(false);
+                                        setSelectedTime(null);
+                                        setStep(25);
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-slate-200 hover:text-white transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 shrink-0"
+                                >
+                                    <span>Cambiar día</span>
+                                    <span className="text-cyan-400">↺</span>
                                 </button>
                             </div>
                         )}
 
-                        {availableSlots.length > 0 && selectedTime && (
+                        {/* Bloque de Horarios (Visible una vez seleccionado el día) */}
+                        {isDateSelected && (
+                            <div className="animate-slide-up space-y-5">
+                                {availableSlots.length > 0 ? (
+                                    <>
+                                        {/* Mañana */}
+                                        {(() => {
+                                            const morningSlots = availableSlots.filter(t => t < '12:00');
+                                            if (morningSlots.length === 0) return null;
+                                            return (
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-2.5 text-xs font-bold uppercase tracking-wider text-amber-300/90">
+                                                        <span>☀️</span>
+                                                        <span>Por la Mañana</span>
+                                                        <span className="text-[10px] font-medium text-slate-400 lowercase">({morningSlots.length} horarios)</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                                                        {morningSlots.map((time, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => handleSelectTime(time)}
+                                                                className={`p-3.5 rounded-2xl border transition-all duration-200 group relative overflow-hidden cursor-pointer ${selectedTime === time ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)] scale-[1.02]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 hover:bg-white/10 text-slate-200'}`}
+                                                            >
+                                                                <span className="text-sm font-bold tracking-tight">{format12h(time)}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Tarde */}
+                                        {(() => {
+                                            const afternoonSlots = availableSlots.filter(t => t >= '12:00');
+                                            if (afternoonSlots.length === 0) return null;
+                                            return (
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-2.5 text-xs font-bold uppercase tracking-wider text-orange-300/90">
+                                                        <span>🌤️</span>
+                                                        <span>Por la Tarde</span>
+                                                        <span className="text-[10px] font-medium text-slate-400 lowercase">({afternoonSlots.length} horarios)</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                                                        {afternoonSlots.map((time, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => handleSelectTime(time)}
+                                                                className={`p-3.5 rounded-2xl border transition-all duration-200 group relative overflow-hidden cursor-pointer ${selectedTime === time ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)] scale-[1.02]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 hover:bg-white/10 text-slate-200'}`}
+                                                            >
+                                                                <span className="text-sm font-bold tracking-tight">{format12h(time)}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </>
+                                ) : (
+                                    /* Estado vacío con recomendación y lista de espera */
+                                    <div className="glass-panel p-6 text-center rounded-2xl border-dashed border-2 border-white/10">
+                                        <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3 text-muted">
+                                            <Clock size={28} />
+                                        </div>
+                                        <h4 className="text-base font-bold text-white mb-1.5">Sin horarios disponibles</h4>
+                                        <p className="text-xs text-muted mb-4 leading-relaxed">
+                                            {isDayBlockedManually
+                                                ? 'Este día no hay servicio por descanso programado.'
+                                                : isSelectedStylistClosed
+                                                    ? `El profesional seleccionado (${selectedStylist?.name}) no atiende los ${DAY_NAMES[DAY_KEYS[new Date(selectedDate + 'T00:00:00').getDay()]]}s.`
+                                                    : (selectedDate === format(new Date(), 'yyyy-MM-dd')
+                                                        ? 'Las horas laborales han concluido por hoy o la agenda está llena. Intenta otro día.'
+                                                        : 'Parece que este día está completamente reservado para este servicio.')}
+                                        </p>
+
+                                        {isSelectedStylistClosed && alternativeOpenStylists.length > 0 && (
+                                            <div className="mt-3 mb-5 text-left w-full space-y-2">
+                                                <p className="text-xs font-bold text-[#25D366] uppercase tracking-widest flex items-center gap-1.5">
+                                                    <Sparkles size={14} />
+                                                    {alternativeOpenStylists.length === 1 
+                                                        ? `Recomendación: ${alternativeOpenStylists[0].name} sí atiende este día:` 
+                                                        : `Recomendados: Estos profesionales sí atienden este día:`}
+                                                </p>
+                                                <div className="flex flex-col gap-2">
+                                                    {alternativeOpenStylists.map(s => (
+                                                        <button
+                                                            key={s.id}
+                                                            onClick={() => {
+                                                                setSelectedStylist(s);
+                                                                setSelectedTime(null);
+                                                            }}
+                                                            className="flex items-center gap-3 p-2.5 bg-white/5 border border-white/10 hover:border-accent/40 rounded-xl transition-all text-left w-full group cursor-pointer"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-800 shrink-0">
+                                                                {s.image ? (
+                                                                    <img decoding="async" loading="lazy" src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-cyan-400/10 text-xs font-bold">
+                                                                        {s.name.charAt(0).toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <span className="text-xs font-bold text-white block truncate group-hover:text-accent transition-colors">{s.name}</span>
+                                                                <span className="text-[10px] text-slate-500 block truncate">{s.role}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-lg shrink-0">
+                                                                Ver horarios
+                                                            </span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(() => {
+                                            const now = new Date();
+                                            const nowTime = format(now, 'HH:mm');
+                                            const todayStr = format(now, 'yyyy-MM-dd');
+                                            const isToday = selectedDate === todayStr;
+                                            const daySched = getScheduleForDate(selectedDate);
+                                            const isPastClosing = isToday && nowTime >= daySched.end;
+
+                                            if (isDayBlockedManually || isPastClosing || isSelectedStylistClosed) return null;
+
+                                            return (
+                                                <button
+                                                    className="btn btn-primary w-full py-3 mb-2 text-accent border-accent/20 flex items-center justify-center gap-2 group cursor-pointer"
+                                                    onClick={() => {
+                                                        if (!clientName || !clientPhone) {
+                                                            setStep(27);
+                                                        } else {
+                                                            addToWaitingList({
+                                                                name: clientName,
+                                                                phone: clientPhone,
+                                                                serviceId: selectedService.id,
+                                                                date: selectedDate,
+                                                            });
+                                                            setStep(26);
+                                                        }
+                                                    }}
+                                                >
+                                                    <span className="group-hover:scale-110 transition-transform">⏳</span>
+                                                    Avísame si se libera un lugar
+                                                </button>
+                                            );
+                                        })()}
+
+                                        <button
+                                            type="button"
+                                            className="btn btn-ghost text-xs w-full py-2 cursor-pointer"
+                                            onClick={() => {
+                                                setIsDateSelected(false);
+                                                setSelectedTime(null);
+                                                setStep(25);
+                                            }}
+                                        >
+                                            Elegir otra fecha
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Botón de Confirmar / Continuar cuando se elige hora */}
+                        {isDateSelected && availableSlots.length > 0 && selectedTime && (
                             <div id="continuar-action" className="mt-6 space-y-3 animate-slide-up text-left">
                                 {clientError && (
                                     <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm font-medium animate-pulse text-center mb-2">
@@ -3353,7 +3410,7 @@ export default function Booking() {
                                 )}
                                 {isUpdating ? (
                                     <button
-                                        className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/20 transition-all duration-300 flex items-center justify-center gap-2"
+                                        className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/20 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
                                         onClick={() => handleUpdateTime(selectedTime)}
                                     >
                                         <RefreshCw size={20} />
@@ -3391,13 +3448,55 @@ export default function Booking() {
                                         )}
                                     </button>
                                 )}
-                                <button className="btn btn-ghost w-full text-slate-400" onClick={() => { setSelectedTime(null); setClientError(null); }}>Elegir otra hora</button>
+                                <button
+                                    className="btn btn-ghost w-full text-slate-400 cursor-pointer"
+                                    onClick={() => { setSelectedTime(null); setClientError(null); }}
+                                >
+                                    Elegir otra hora
+                                </button>
                             </div>
                         )}
 
-                        {availableSlots.length > 0 && (
-                            <button className="btn btn-ghost w-full mt-3" onClick={() => setStep(25)}>← Elegir otra fecha</button>
-                        )}
+                        {/* Botón de Retorno Contextual */}
+                        <button
+                            className="btn btn-ghost"
+                            style={{ width: '100%', marginTop: 'var(--space-md)' }}
+                            onClick={() => {
+                                if (isDateSelected) {
+                                    setIsDateSelected(false);
+                                    setSelectedTime(null);
+                                    setStep(25);
+                                    return;
+                                }
+                                setIsUpdating(false);
+                                if (isUpdating) {
+                                    setStep(10);
+                                    return;
+                                }
+                                if (isQuoterPrefilled) {
+                                    const hasAddons = services.some(s => s.isAddon);
+                                    if (hasAddons) {
+                                        setStep(23); // Regresa a adicionales
+                                    } else {
+                                        setStep(1); // Regresa a datos
+                                    }
+                                    return;
+                                }
+                                const hasAddons = services.some(s => s.isAddon);
+                                if (hasAddons) {
+                                    setStep(23); // Regresa a Servicios Adicionales
+                                    return;
+                                }
+                                if (showNailQuoterFlow || (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter)) {
+                                    setShowNailQuoterFlow(true);
+                                    setStep(22); // Regresa a Personalizador de Uñas
+                                    return;
+                                }
+                                setStep(22); // Regresa a Servicios
+                            }}
+                        >
+                            {isDateSelected ? '← Elegir otra fecha' : '← Atrás'}
+                        </button>
                     </div>
                 )}
 
