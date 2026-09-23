@@ -389,6 +389,18 @@ export default function Booking() {
         }
     }, [urlQuoteId, urlSvc, urlStylist, urlSize, urlExtras, urlRef, services, stylists, sizeCategory]);
 
+    // Si solo hay 1 profesional activo (Plan Esencial / Marca Personal), auto-seleccionarlo y pasar a servicios
+    useEffect(() => {
+        if (stylists.length === 1) {
+            if (!selectedStylist || selectedStylist.id !== stylists[0].id) {
+                setSelectedStylist(stylists[0]);
+            }
+            if (step === 2) {
+                setStep(22);
+            }
+        }
+    }, [step, stylists, selectedStylist]);
+
     // Add-ons & Nail Extras computed values: duration adds up, price adds up
     const totalDuration = useMemo(() => {
         if (!selectedService) return 0;
@@ -1010,6 +1022,10 @@ export default function Booking() {
                 } else {
                     setStep(25); // Ir directamente a fecha si no hay adicionales
                 }
+            } else if (stylists.length === 1) {
+                // Si solo hay 1 profesional activo (Plan Esencial / Marca Personal), auto-seleccionar y saltar a servicios
+                setSelectedStylist(stylists[0]);
+                setStep(22);
             } else {
                 setStep(2);
             }
@@ -2732,6 +2748,37 @@ export default function Booking() {
                                     <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                                         ¿Qué te gustaría hacerte hoy?
                                     </h3>
+                                    {selectedStylist && (
+                                        <div className="flex justify-center mt-3 animate-fade-in">
+                                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs text-cyan-300 shadow-sm">
+                                                {selectedStylist.image ? (
+                                                    <img
+                                                        decoding="async"
+                                                        loading="lazy"
+                                                        src={selectedStylist.image}
+                                                        alt={selectedStylist.name}
+                                                        className="w-5 h-5 rounded-full object-cover ring-1 ring-cyan-400/40"
+                                                    />
+                                                ) : (
+                                                    <div className="w-5 h-5 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-300">
+                                                        <User size={12} />
+                                                    </div>
+                                                )}
+                                                <span>
+                                                    Atendido por: <strong className="text-white font-semibold capitalize">{selectedStylist.name}</strong>
+                                                </span>
+                                                {stylists.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setStep(2)}
+                                                        className="ml-1 text-[11px] font-medium underline text-cyan-400 hover:text-cyan-200 transition-colors"
+                                                    >
+                                                        Cambiar
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* ── Catalog Gallery Button ── */}
@@ -2934,9 +2981,11 @@ export default function Booking() {
                                         </div>
                                     </div>
                                 )}
-                                {stylists.length > 1 && (
-                                    <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro profesional</button>
-                                )}
+                                 {stylists.length > 1 ? (
+                                     <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(2)}>← Elegir otro profesional</button>
+                                 ) : (
+                                     <button className="btn btn-ghost w-full mt-4 text-sm" onClick={() => setStep(1)}>← Cambiar mis datos</button>
+                                 )}
                             </>
                         )}
                     </div>
@@ -3084,9 +3133,29 @@ export default function Booking() {
                         <h3 className="text-xl font-bold" style={{ marginBottom: 'var(--space-xs)' }}>
                             {isUpdating ? 'Nueva Fecha' : 'Selecciona Fecha'}
                         </h3>
-                        <p className="text-sm font-semibold text-accent" style={{ marginBottom: 'var(--space-md)' }}>
+                        <p className="text-sm font-semibold text-accent" style={{ marginBottom: 'var(--space-sm)' }}>
                             {selectedService.name}{selectedAddonsText ? ` + ${selectedAddonsText}` : ''}
                         </p>
+                        {selectedStylist && (
+                            <div className="flex justify-center mb-4">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-xs text-cyan-300 shadow-sm">
+                                    {selectedStylist.image ? (
+                                        <img
+                                            decoding="async"
+                                            loading="lazy"
+                                            src={selectedStylist.image}
+                                            alt={selectedStylist.name}
+                                            className="w-4 h-4 rounded-full object-cover ring-1 ring-cyan-400/40"
+                                        />
+                                    ) : (
+                                        <div className="w-4 h-4 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-300">
+                                            <User size={10} />
+                                        </div>
+                                    )}
+                                    <span>Atendido por: <strong className="text-white font-medium capitalize">{selectedStylist.name}</strong></span>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-sm)' }}>
                             {availableDates.map(d => {
