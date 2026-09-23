@@ -1667,7 +1667,7 @@ export default function Booking() {
             {/* Step Titles for internal steps */}
             {step === 2 && <h2 className="text-xl font-black text-white text-center mb-6">Elige tu Profesional</h2>}
             {step === 22 && <h2 className="text-xl font-black text-white text-center mb-6">Elige un Servicio</h2>}
-            {step === 23 && <h2 className="text-xl font-black text-white text-center mb-6">Servicios Adicionales</h2>}
+            {step === 23 && <h2 className="text-xl font-black text-white text-center mb-6">Personaliza tu Servicio</h2>}
             {(step === 25 || step === 3) && <h2 className="text-xl font-black text-white text-center mb-6">Selecciona Fecha y Hora</h2>}
             {step === 4 && <h2 className="text-xl font-black text-white text-center mb-6">Confirma tu Reserva</h2>}
 
@@ -2999,17 +2999,97 @@ export default function Booking() {
                     </div>
                 )}
 
-                {/* ══ STEP 23: Add-On Services ══ */}
+                {/* ══ STEP 23: Add-On Services (Unificado con Servicio Contraído) ══ */}
                 {step === 23 && selectedService && (
-                    <div className="animate-slide-up">
-                        <div className="mb-5 text-center">
-                            <p className="text-sm text-accent font-medium mb-1">Paso 2 de 4</p>
-                            <h3 className="text-xl font-bold text-white">¿Deseas agregar algo más?</h3>
-                            <p className="text-xs text-muted mt-1">Servicios adicionales opcionales</p>
+                    <div className="animate-slide-up text-left">
+                        {/* Tarjeta Contraída del Servicio Principal */}
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/15 via-cyan-500/5 to-transparent border border-cyan-500/30 flex items-center justify-between shadow-sm animate-fade-in mb-5">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-slate-800 border border-cyan-400/30 shrink-0 shadow-md">
+                                    {selectedCatalogItem?.imageUrl ? (
+                                        <img
+                                            decoding="async"
+                                            loading="lazy"
+                                            src={selectedCatalogItem.imageUrl}
+                                            alt="Diseño"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : selectedService.image ? (
+                                        <img
+                                            decoding="async"
+                                            loading="lazy"
+                                            src={selectedService.image}
+                                            alt={selectedService.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                            <Sparkles size={22} />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-left min-w-0">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-0.5">Servicio seleccionado</p>
+                                    <h4 className="text-sm font-bold text-white leading-tight truncate">
+                                        {selectedCatalogItem?.description || selectedService.name}
+                                    </h4>
+                                    <p className="text-xs text-slate-300 font-semibold mt-1">
+                                        {!businessConfig?.hideServicePrices && (
+                                            selectedService.priceType === 'no_price' ? 'A cotizar' :
+                                            selectedService.priceType === 'range' ? `$${selectedService.minPrice} - $${selectedService.maxPrice}` :
+                                            `$${selectedStylist?.customServicePrices?.[selectedService.id]?.price ?? selectedService.price} MXN`
+                                        )}
+                                        {' • '}
+                                        {selectedStylist?.customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration} min
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (isQuoterPrefilled) {
+                                        setStep(1);
+                                    } else if (selectedCatalogItem) {
+                                        const hasExtras = isNailCalculatorEnabled(businessConfig) && selectedService.enableQuoter && extrasCategory && extrasCategory.items && extrasCategory.items.length > 0;
+                                        if (hasExtras) {
+                                            setStep(22);
+                                            setShowNailQuoterFlow(true);
+                                        } else {
+                                            setStep(22);
+                                            setShowCatalogModal(true);
+                                        }
+                                    } else if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter) {
+                                        setStep(22);
+                                        setShowNailQuoterFlow(true);
+                                    } else {
+                                        setSelectedService(null);
+                                        setSelectedAddOns([]);
+                                        setStep(22);
+                                    }
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-slate-200 hover:text-white transition-all duration-200 flex items-center gap-1 shrink-0 active:scale-95 cursor-pointer ml-2"
+                            >
+                                <span>Cambiar</span>
+                                <span className="text-cyan-400">↺</span>
+                            </button>
                         </div>
 
-                        {/* Add-on chips */}
-                        <div className="flex flex-col gap-2">
+                        {/* Encabezado de Adicionales */}
+                        <div className="flex items-center justify-between mb-3 text-left">
+                            <div>
+                                <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
+                                    <Sparkles size={16} className="text-cyan-400" />
+                                    <span>¿Deseas agregar algo más?</span>
+                                </h3>
+                                <p className="text-xs text-slate-400">Servicios adicionales opcionales</p>
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
+                                Opcional
+                            </span>
+                        </div>
+
+                        {/* Lista de Adicionales con Fotos */}
+                        <div className="flex flex-col gap-2.5">
                             {services
                                 .filter(s => {
                                     if (!s.isAddon || s.isPackage || s.id === selectedService.id) return false;
@@ -3017,7 +3097,6 @@ export default function Booking() {
                                         if (!selectedStylist.serviceIds || selectedStylist.serviceIds.length === 0) return true;
                                         return selectedStylist.serviceIds.map(Number).includes(Number(s.id));
                                     }
-                                    // Si eligió "Cualquier Profesional", solo mostrar adicionales que al menos uno de los profesionales que hace el servicio principal sepa realizar
                                     const capableForMain = stylists.filter(st =>
                                         !st.serviceIds || st.serviceIds.length === 0 || st.serviceIds.map(Number).includes(Number(selectedService.id))
                                     );
@@ -3027,6 +3106,9 @@ export default function Booking() {
                                 })
                                 .map((s: Service) => {
                                     const isSelected = selectedAddOns.some(id => Number(id) === Number(s.id));
+                                    const addonPrice = selectedStylist?.customServicePrices?.[s.id]?.price ?? s.price;
+                                    const addonDuration = s.duration;
+
                                     return (
                                         <button
                                             key={s.id}
@@ -3038,78 +3120,129 @@ export default function Booking() {
                                                     setSelectedAddOns(prev => [...prev, Number(s.id)]);
                                                 }
                                             }}
-                                            className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl border transition-all duration-200 text-left ${
+                                            className={`flex items-center justify-between w-full p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 text-left group active:scale-[0.99] cursor-pointer ${
                                                 isSelected
-                                                    ? 'bg-cyan-400/10 border-cyan-400/40 ring-1 ring-cyan-400/40'
-                                                    : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+                                                    ? 'bg-cyan-400/10 border-cyan-400/40 ring-1 ring-cyan-400/40 shadow-sm'
+                                                    : 'bg-white/[0.03] border-white/10 hover:border-white/25 hover:bg-white/[0.06]'
                                             }`}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                                                    isSelected ? 'bg-cyan-400 border-cyan-400' : 'border-white/30'
-                                                }`}>
-                                                    {isSelected && <CheckCircle size={10} className="text-slate-900" />}
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                {/* Foto del Servicio Adicional */}
+                                                <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-white/10 shadow-sm group-hover:scale-105 transition-transform duration-200">
+                                                    {s.image ? (
+                                                        <img
+                                                            decoding="async"
+                                                            loading="lazy"
+                                                            src={s.image}
+                                                            alt={s.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                            <Sparkles size={20} />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <span className={`font-semibold text-sm ${
-                                                    isSelected ? 'text-cyan-300' : 'text-white'
-                                                }`}>{s.name}</span>
+
+                                                <div className="min-w-0">
+                                                    <h4 className={`font-bold text-xs sm:text-sm leading-snug truncate transition-colors ${
+                                                        isSelected ? 'text-cyan-300' : 'text-white group-hover:text-cyan-200'
+                                                    }`}>
+                                                        {s.name}
+                                                    </h4>
+                                                    {s.description && (
+                                                        <p className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-xs mt-0.5">
+                                                            {s.description}
+                                                        </p>
+                                                    )}
+                                                    <span className="text-[11px] text-cyan-400 font-bold block mt-0.5">
+                                                        {!businessConfig?.hideServicePrices && (
+                                                            `+$${addonPrice} MXN`
+                                                        )}
+                                                        {s.priceType === 'no_price' ? '' : s.priceType === 'range' ? ` · $${s.minPrice} - $${s.maxPrice} · ` : ` • `}
+                                                        {addonDuration} min
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <span className="text-xs text-cyan-400 font-bold shrink-0">
-                                                {!businessConfig?.hideServicePrices && (
-                                                    `+$${selectedStylist?.customServicePrices?.[s.id]?.price ?? s.price}`
-                                                )}
-                                                {s.priceType === 'no_price' ? '' : s.priceType === 'range' ? ` · $${s.minPrice} - $${s.maxPrice} · ` : ` · `}
-                                                {s.duration}min
-                                            </span>
+
+                                            {/* Checkbox circular interactivo */}
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ml-2 transition-all duration-200 ${
+                                                isSelected ? 'bg-cyan-400 border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]' : 'border-white/30 group-hover:border-white/50'
+                                            }`}>
+                                                {isSelected && <CheckCircle size={12} className="text-slate-900" />}
+                                            </div>
                                         </button>
                                     );
                                 })
                             }
                         </div>
 
-                        {/* Summary if something selected */}
-                        {selectedAddOns.length > 0 && (
-                            <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
-                                <span className="text-slate-500 font-bold uppercase tracking-widest mr-1">Resumen:</span>
-                                <span className="font-semibold text-white">
-                                    {selectedService.name} + {selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(' + ')}
-                                </span>
-                            </div>
-                        )}
+                        {/* Resumen dinámico del Total de la Cita */}
+                        {selectedAddOns.length > 0 && (() => {
+                            const basePrice = selectedStylist?.customServicePrices?.[selectedService.id]?.price ?? selectedService.price ?? 0;
+                            const baseDur = selectedStylist?.customServicePrices?.[selectedService.id]?.duration ?? selectedService.duration ?? 0;
+                            let extraPrice = 0;
+                            let extraDur = 0;
+                            selectedAddOns.forEach(id => {
+                                const ad = services.find(s => s.id === id);
+                                if (ad) {
+                                    extraPrice += selectedStylist?.customServicePrices?.[ad.id]?.price ?? ad.price ?? 0;
+                                    extraDur += ad.duration ?? 0;
+                                }
+                            });
+                            const grandPrice = basePrice + extraPrice;
+                            const grandDur = baseDur + extraDur;
 
-                        {/* Actions */}
-                        <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                            return (
+                                <div className="mt-4 p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-left animate-fade-in shadow-sm">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Total de tu Cita</span>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-semibold text-white truncate max-w-[230px] sm:max-w-xs">
+                                            {selectedService.name} + {selectedAddOns.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(' + ')}
+                                        </span>
+                                        <span className="text-cyan-400 font-extrabold text-sm shrink-0">
+                                            ${grandPrice} MXN • {grandDur} min
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Botones de Acción */}
+                        <div className="mt-5">
                             {selectedAddOns.length === 0 ? (
                                 <button
                                     type="button"
-                                    className="w-full btn btn-primary shadow-glow text-sm sm:text-base py-3.5 px-6 rounded-2xl font-bold flex items-center justify-center gap-2"
+                                    className="w-full py-4 rounded-2xl font-bold text-sm text-slate-900 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 transition-all duration-300 shadow-lg shadow-cyan-400/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                                     onClick={() => { setSelectedAddOns([]); setStep(25); }}
                                 >
                                     <span>Continuar sin adicionales</span>
                                     <ChevronRight size={18} />
                                 </button>
                             ) : (
-                                <>
+                                <div className="flex flex-col sm:flex-row gap-2.5">
                                     <button
                                         type="button"
-                                        className="flex-1 py-3.5 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-bold transition-all"
+                                        className="py-3.5 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-bold transition-all cursor-pointer"
                                         onClick={() => { setSelectedAddOns([]); setStep(25); }}
                                     >
                                         Omitir adicionales
                                     </button>
                                     <button
                                         type="button"
-                                        className="flex-1 btn btn-primary shadow-glow text-sm py-3.5 px-6 rounded-2xl font-bold flex items-center justify-center gap-2"
+                                        className="flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm text-slate-900 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 transition-all duration-300 shadow-lg shadow-cyan-400/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                                         onClick={() => setStep(25)}
                                     >
-                                        <span>Confirmar selección</span>
-                                        <ChevronRight size={16} />
+                                        <span>Continuar con {selectedAddOns.length} adicional{selectedAddOns.length > 1 ? 'es' : ''}</span>
+                                        <ChevronRight size={18} />
                                     </button>
-                                </>
+                                </div>
                             )}
                         </div>
+
+                        {/* Botón de Retorno */}
                         <button
-                            className="btn btn-ghost w-full mt-2 text-sm"
+                            className="btn btn-ghost w-full mt-3 text-sm cursor-pointer"
                             onClick={() => {
                                 if (isQuoterPrefilled) {
                                     setStep(1);
@@ -3126,6 +3259,8 @@ export default function Booking() {
                                     setStep(22);
                                     setShowNailQuoterFlow(true);
                                 } else {
+                                    setSelectedService(null);
+                                    setSelectedAddOns([]);
                                     setStep(22);
                                 }
                             }}
@@ -3480,6 +3615,10 @@ export default function Booking() {
                                     } else {
                                         setStep(1); // Regresa a datos
                                     }
+                                    return;
+                                }
+                                if (selectedService?.isPackage) {
+                                    setStep(22); // Paquetes regresan directo a servicios sin pasar por adicionales
                                     return;
                                 }
                                 const hasAddons = services.some(s => s.isAddon);
