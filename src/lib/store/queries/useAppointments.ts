@@ -8,6 +8,7 @@ import {
     sendAppointmentCancellationNotification,
     sendAppointmentRescheduleNotification,
     sendPriceUpdateNotification,
+    sendNewAppointmentAdminNotification,
 } from '../../whatsappService';
 
 // Helper: Limpiar nombre de servicio de cualquier bloque técnico o de calculadora
@@ -77,6 +78,22 @@ async function notifyAdmin(
 
         const bName = businessName || 'CitaLink';
 
+        // Prioridad: Notificar al profesional asignado si tiene teléfono configurado en su perfil.
+        // Si no tiene teléfono configurado (o no hay profesional), usar adminPhone (ajustes del negocio).
+        let recipientPhone = adminPhone;
+        if (appointment.stylist_id) {
+            try {
+                const { data: stylistData } = await supabase
+                    .from('stylists')
+                    .select('phone')
+                    .eq('id', appointment.stylist_id)
+                    .single();
+                if (stylistData?.phone?.trim()) {
+                    recipientPhone = stylistData.phone.trim();
+                }
+            } catch (_) {}
+        }
+
         if (eventType === 'cancel') {
             await sendAppointmentCancellationNotification({
                 clientPhone: appointment.client_phone,
@@ -85,7 +102,7 @@ async function notifyAdmin(
                 date: appointment.date,
                 time: appointment.time,
                 serviceName: finalFormattedService,
-                adminPhone,
+                adminPhone: recipientPhone,
                 tenantId,
                 businessSlug,
             });
@@ -97,7 +114,7 @@ async function notifyAdmin(
                 date: appointment.date,
                 time: appointment.time,
                 serviceName: finalFormattedService,
-                adminPhone,
+                adminPhone: recipientPhone,
                 tenantId,
             });
         } else if (eventType === 'price_update') {
@@ -112,30 +129,17 @@ async function notifyAdmin(
                 appointmentId: appointment.id,
                 tenantId,
             });
-        } else if (eventType === 'new' && adminPhone) {
-            try {
-                const fechaFormateada = `${appointment.date} a las ${appointment.time.slice(0, 5)}`;
-                await fetch('/api/send-sms', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: adminPhone,
-                        provider: 'whatsapp',
-                        tenant_id: tenantId,
-                        template_name: 'citalink_admin_nueva_cita',
-                        template_sid: 'HXd19a0ab5d8bf37655221320bb6555ea1',
-                        template_variables: {
-                            '1': bName,
-                            '2': appointment.client_name.trim(),
-                            '3': finalFormattedService,
-                            '4': fechaFormateada,
-                            '5': appointment.client_phone || 'No especificado',
-                        },
-                    }),
-                });
-            } catch (err) {
-                console.warn('[useAppointments] Error notificando nueva cita a admin:', err);
-            }
+        } else if (eventType === 'new' && recipientPhone) {
+            await sendNewAppointmentAdminNotification({
+                targetPhone: recipientPhone,
+                clientName: appointment.client_name,
+                clientPhone: appointment.client_phone,
+                businessName: bName,
+                date: appointment.date,
+                time: appointment.time,
+                serviceName: finalFormattedService,
+                tenantId,
+            });
         }
     } catch (_) { /* fire-and-forget */ }
 }

@@ -268,3 +268,49 @@ export async function sendPriceUpdateNotification(params: {
         console.warn('[whatsappService] Error notificando actualización de precio a cliente:', e);
     }
 }
+
+export const TEMPLATE_ADMIN_NUEVA_CITA = 'HXd19a0ab5d8bf37655221320bb6555ea1';
+export const META_TEMPLATE_ADMIN_NUEVA_CITA = 'citalink_admin_nueva_cita';
+
+export async function sendNewAppointmentAdminNotification(params: {
+    targetPhone: string;
+    clientName: string;
+    clientPhone: string;
+    businessName: string;
+    date: string;
+    time: string;
+    serviceName: string;
+    tenantId?: string;
+}): Promise<boolean> {
+    try {
+        if (!params.targetPhone) return false;
+
+        const fechaFormateada = formatDateTimeDisplay(params.date, params.time);
+        const bName = params.businessName || 'CitaLink';
+
+        const res = await fetch('/api/send-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: params.targetPhone,
+                provider: 'whatsapp',
+                tenant_id: params.tenantId,
+                template_name: META_TEMPLATE_ADMIN_NUEVA_CITA,
+                template_sid: TEMPLATE_ADMIN_NUEVA_CITA,
+                template_variables: {
+                    '1': bName,
+                    '2': params.clientName.trim(),
+                    '3': params.serviceName || 'Servicio',
+                    '4': fechaFormateada,
+                    '5': params.clientPhone.trim() || 'No especificado',
+                },
+            }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        return res.ok && data?.success !== false;
+    } catch (e) {
+        console.warn('[whatsappService] Error notificando nueva cita a profesional/admin:', e);
+        return false;
+    }
+}

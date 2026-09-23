@@ -34,6 +34,7 @@ import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { usePublicQuote, markQuoteAsBooked } from '../../lib/store/queries/useQuotes';
+import { sendNewAppointmentAdminNotification } from '../../lib/whatsappService';
 export default function Booking() {
     const { slug } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -1218,55 +1219,23 @@ export default function Booking() {
                 console.error('Error saving profile to localStorage', e);
             }
             if (tenantId) {
-                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-                const ANON_KEY     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-                const designItem = simplifiedDesignsCategory?.items.find(i => i.id === designLevel);
-                const hasDesignPrice = designItem ? designItem.price > 0 : (designLevel === 'simple' || designLevel === 'complex');
+                // Prioridad: Notificar al profesional asignado si tiene teléfono configurado.
+                // Si el profesional no tiene teléfono (o no hay profesional asignado), enviar al número del negocio como respaldo.
+                const assignedStylist = stylists.find(s => String(s.id) === String(assignedStylistId)) || selectedStylist;
+                const stylistPhone = assignedStylist?.phone?.trim();
+                const businessPhone = businessConfig?.phone?.trim();
+                const targetPhone = stylistPhone || businessPhone;
 
-                const isVariablePrice = urlQuoteId
-                    ? false
-                    : (selectedService.priceType === 'no_price' || 
-                       selectedService.priceType === 'range' || 
-                       (selectedService.enableQuoter && (nailTotalPrice === 0 || hasDesignPrice)));
-
-                const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-                if (isLocal) {
-                    const adminTargetPhone = businessConfig?.phone;
-                    if (adminTargetPhone) {
-                        const adminMsg = `🆕 *NUEVA CITA REGISTRADA* — *${businessConfig?.name || 'CitaLink'}*\n\n👤 *Cliente:* ${clientName.trim()}\n✨ *Servicio:* ${combinedServiceName}\n📆 *Fecha y Hora:* ${selectedDate} a las ${format12h(selectedTime)}\n📱 *Teléfono:* ${clientPhone.trim()}\n\nEntra a tu panel CitaLink para ver todos los detalles.`;
-                        fetch('/api/send-sms', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                to: adminTargetPhone,
-                                phone: adminTargetPhone,
-                                message: adminMsg,
-                                provider: 'whatsapp',
-                            }),
-                        }).catch(() => { /* fire-and-forget */ });
-                    }
-                } else {
-                    fetch(`${SUPABASE_URL}/functions/v1/notify-admin`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
-                        body: JSON.stringify({
-                            tenant_id:     tenantId,
-                            event_type:    'new',
-                            admin_phone:   businessConfig?.phone ?? undefined,
-                            business_name: businessConfig?.name  ?? undefined,
-                            appointment: {
-                                id:                 (result as any)?.id,
-                                client_name:        clientName.trim(),
-                                client_phone:       clientPhone.trim(),
-                                service_name:       combinedServiceName,
-                                date:               selectedDate,
-                                time:               selectedTime,
-                                design_photo:       nailDesignUrl || selectedCatalogItem?.imageUrl || undefined,
-                                stylist_id:         assignedStylistId ? Number(assignedStylistId) : undefined,
-                                is_variable_price:  isVariablePrice,
-                            },
-                        }),
+                if (targetPhone) {
+                    sendNewAppointmentAdminNotification({
+                        targetPhone,
+                        clientName: clientName.trim(),
+                        clientPhone: clientPhone.trim(),
+                        businessName: businessConfig?.name || 'CitaLink',
+                        date: selectedDate,
+                        time: selectedTime,
+                        serviceName: combinedServiceName,
+                        tenantId,
                     }).catch(() => { /* fire-and-forget */ });
                 }
             }
@@ -1581,7 +1550,16 @@ export default function Booking() {
 
     // const stepLabels = ['Datos', 'Servicio', 'Fecha', 'Hora', 'Confirmar']; // Removed unused
 
-    const stepMap: Record<number, number> = { 1: 1, 2: 2, 22: 2, 25: 3, 3: 4, 4: 5 };
+    const stepMap: Record<number, number> = {
+        1: 1,   // Datos / Identificación
+        2: 2,   // Selección de Profesional
+        22: 2,  // Selección de Servicio
+        23: 2,  // Adicionales (mismo nivel de Servicio)
+        25: 3,  // Selección de Fecha
+        3: 3,   // Selección de Hora (unificado en Fecha y Hora)
+        4: 4,   // Confirmación / Anticipo
+        16: 4,  // OTP de verificación
+    };
     const currentProgress = stepMap[step] ?? 0;
 
     const annColors: Record<string, { bg: string; color: string; icon: React.ElementType }> = {
@@ -1672,10 +1650,10 @@ export default function Booking() {
             {step === 4 && <h2 className="text-xl font-black text-white text-center mb-6">Confirma tu Reserva</h2>}
 
             {/* Progress Bar */}
-            {step >= 1 && step <= 25 && step !== 5 && (
+            {currentProgress > 0 && (
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
                     <div className="flex gap-1.5 h-1 mb-3">
-                        {[1, 2, 3, 4, 5].map(s => (
+                        {[1, 2, 3, 4].map(s => (
                             <div key={s} className="flex-1 rounded-full transition-all duration-500"
                                 style={{
                                     background: currentProgress >= s
@@ -1687,7 +1665,7 @@ export default function Booking() {
                     </div>
                     <div className="flex justify-between text-[10px] font-bold text-muted uppercase tracking-widest px-0.5">
                         <span className={currentProgress >= 1 ? 'text-accent' : ''}>Datos</span>
-                        <span className={currentProgress >= 5 ? 'text-accent' : ''}>Confirmar</span>
+                        <span className={currentProgress >= 4 ? 'text-accent' : ''}>Confirmar</span>
                     </div>
                 </div>
             )}
@@ -3220,23 +3198,14 @@ export default function Booking() {
                                     <ChevronRight size={18} />
                                 </button>
                             ) : (
-                                <div className="flex flex-col sm:flex-row gap-2.5">
-                                    <button
-                                        type="button"
-                                        className="py-3.5 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-bold transition-all cursor-pointer"
-                                        onClick={() => { setSelectedAddOns([]); setStep(25); }}
-                                    >
-                                        Omitir adicionales
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm text-slate-900 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 transition-all duration-300 shadow-lg shadow-cyan-400/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                                        onClick={() => setStep(25)}
-                                    >
-                                        <span>Continuar con {selectedAddOns.length} adicional{selectedAddOns.length > 1 ? 'es' : ''}</span>
-                                        <ChevronRight size={18} />
-                                    </button>
-                                </div>
+                                <button
+                                    type="button"
+                                    className="w-full py-4 rounded-2xl font-bold text-sm text-slate-900 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 transition-all duration-300 shadow-lg shadow-cyan-400/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95 animate-fade-in"
+                                    onClick={() => setStep(25)}
+                                >
+                                    <span>Continuar con {selectedAddOns.length} adicional{selectedAddOns.length > 1 ? 'es' : ''}</span>
+                                    <ChevronRight size={18} />
+                                </button>
                             )}
                         </div>
 
