@@ -136,7 +136,9 @@ export function isQuoterOrMetaOption(s: string): boolean {
         trimmed.startsWith('Extra') ||
         trimmed.startsWith('Estilo') ||
         trimmed.startsWith('Tamaño') ||
-        trimmed.startsWith('Nivel')
+        trimmed.startsWith('Nivel') ||
+        trimmed.startsWith('🏷️') ||
+        trimmed.startsWith('Promo')
     );
 }
 

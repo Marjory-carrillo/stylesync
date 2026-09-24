@@ -159,6 +159,10 @@ export default function Dashboard() {
     }, [services]);
 
     const getAppointmentPrice = useCallback((apt: any) => {
+        if (apt.finalPriceCharged !== undefined && apt.finalPriceCharged !== null && Number(apt.finalPriceCharged) > 0) {
+            return Number(apt.finalPriceCharged);
+        }
+
         const service = getServiceById(apt.serviceId);
         const addServices = apt.additionalServices || [];
 
@@ -192,6 +196,13 @@ export default function Dashboard() {
                 return;
             }
 
+            // Descuentos y promociones (ej: "🏷️ Promo: martes (-$40 MXN)" o "(-$40 MXN)" o "-$40 MXN")
+            const discountMatch = extra.match(/\(-\$(\d+(\.\d+)?)/i) || extra.match(/-\$(\d+(\.\d+)?)/i);
+            if (discountMatch) {
+                total -= parseFloat(discountMatch[1]);
+                return;
+            }
+
             const extraMatch = extra.match(/\(\+\$(\d+(\.\d+)?)/i) || extra.match(/\+\$(\d+(\.\d+)?)/i);
             if (extraMatch) {
                 total += parseFloat(extraMatch[1]);
@@ -200,11 +211,14 @@ export default function Dashboard() {
 
             const cleanName = extra
                 .split('(+')[0]
+                .split('(-')[0]
                 .replace(/^Extra:\s*/i, '')
                 .replace(/^Diseño:\s*/i, '')
                 .replace(/^Largo:\s*/i, '')
                 .replace(/^Adicional:\s*/i, '')
                 .replace(/^Estilo:\s*/i, '')
+                .replace(/^🏷️\s*Promo:\s*/i, '')
+                .replace(/^Promo:\s*/i, '')
                 .trim();
 
             const matchingService = services.find((s: any) =>
@@ -216,7 +230,7 @@ export default function Dashboard() {
             }
         });
 
-        return total;
+        return Math.max(0, total);
     }, [getServiceById, services]);
 
     const handleNoShow = useCallback((appt: any) => {

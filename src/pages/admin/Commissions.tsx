@@ -8,13 +8,16 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useServices } from '../../lib/store/queries/useServices';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calculator, Calendar as CalendarIcon, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles, Clock, User, ShoppingBag, Power, Settings, X, Plus, Trash2 } from 'lucide-react';
+import { Calculator, Calendar as CalendarIcon, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles, Clock, User, ShoppingBag, Power, Settings, X, Plus, Trash2, Flame, Tag } from 'lucide-react';
 import type { CommissionEntry } from '../../lib/types/store.types';
 import DatePickerInput from '../../components/DatePickerInput';
 import CustomSelect from '../../components/CustomSelect';
 import { useUIStore } from '../../lib/store/uiStore';
 import { usePayrollDeductions } from '../../lib/store/queries/usePayrollDeductions';
+import { usePromotions } from '../../lib/store/queries/usePromotions';
 import ConfirmModal from '../../components/ConfirmModal';
+
+const DAY_KEYS_MAP = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
 export default function Commissions() {
     const { userRole, loadingAuth, loadingTenant } = useAuthStore();
@@ -88,6 +91,7 @@ export default function Commissions() {
     });
     const { stylists = [], updateStylist } = useStylists();
     const { data: services = [] } = useServices();
+    const { promotions = [] } = usePromotions();
 
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
@@ -176,8 +180,27 @@ export default function Commissions() {
             const priceMatch = quoteItem.match(/\$(\d+)/);
             if (priceMatch) return Number(priceMatch[1]);
         }
+
+        // 2. Verificar si hay promoción aplicable
+        const promoTag = (apt.additionalServices || []).find((s: string) => 
+            s.startsWith('🏷️ Promo:') || s.startsWith('Promo:')
+        );
+        let matchedPromo = promotions.find(p => promoTag && p.name && promoTag.toLowerCase().includes(p.name.toLowerCase()));
+        if (!matchedPromo && apt.date && apt.serviceId) {
+            try {
+                const apptDate = new Date(apt.date + 'T00:00:00');
+                const dayKey = DAY_KEYS_MAP[apptDate.getDay()];
+                matchedPromo = promotions.find(p => 
+                    p.isActive &&
+                    p.daysOfWeek.includes(dayKey) &&
+                    (!p.serviceIds || p.serviceIds.length === 0 || p.serviceIds.includes(apt.serviceId))
+                );
+            } catch {
+                // ignore date parse error
+            }
+        }
         
-        // 2. Si no hay cotización, calculamos base (o diseño de catálogo) + adicionales
+        // 3. Si no hay cotización, calculamos base (o diseño de catálogo) + adicionales
         let basePrice = service?.price || 0;
         
         const catalogItem = (apt.additionalServices || []).find((s: string) => s.startsWith('Diseño Catálogo:'));
@@ -186,6 +209,26 @@ export default function Commissions() {
             if (priceMatch) {
                 basePrice = Number(priceMatch[1]);
             }
+        } else if (matchedPromo) {
+            // Política de comisión sobre promociones:
+            if (matchedPromo.commissionPolicy === 'regular_price') {
+                // El negocio absorbe el descuento: comisiona sobre precio base regular de lista
+                basePrice = service?.price || 0;
+            } else {
+                // Comisiona sobre precio promocional cobrado
+                if (apt.finalPriceCharged !== undefined && apt.finalPriceCharged !== null && apt.finalPriceCharged > 0) {
+                    return Number(apt.finalPriceCharged);
+                }
+                if (matchedPromo.discountType === 'fixed_price') {
+                    basePrice = matchedPromo.discountValue;
+                } else if (matchedPromo.discountType === 'percentage') {
+                    basePrice = Math.round((service?.price || 0) * (1 - matchedPromo.discountValue / 100));
+                } else if (matchedPromo.discountType === 'fixed_discount') {
+                    basePrice = Math.max(0, (service?.price || 0) - matchedPromo.discountValue);
+                }
+            }
+        } else if (apt.finalPriceCharged !== undefined && apt.finalPriceCharged !== null && apt.finalPriceCharged > 0) {
+            return Number(apt.finalPriceCharged);
         }
         
         let total = basePrice;
@@ -197,7 +240,9 @@ export default function Commissions() {
                 name.startsWith('Cotización Confirmada:') || 
                 name.startsWith('Cotización Estimada:') || 
                 name.startsWith('Diseño Catálogo:') ||
-                name.startsWith('Referencia:')
+                name.startsWith('Referencia:') ||
+                name.startsWith('🏷️ Promo:') ||
+                name.startsWith('Promo:')
             ) {
                 return;
             }
@@ -1211,7 +1256,22 @@ export default function Commissions() {
                                                                                     const mktDeduction = isMarketplace ? price * (mktRate / 100) : 0;
                                                                                     const netPrice = price - mktDeduction;
                                                                                     const comm = netPrice * (entry.commissionRate / 100);
-                                                                                    const displayAddons = (apt.additionalServices || []).filter((s: string) => !s.startsWith('Referencia:'));
+                                                                                    const promoTag = (apt.additionalServices || []).find((s: string) => s.startsWith('🏷️ Promo:') || s.startsWith('Promo:'));
+                                                                                    let matchedPromo = promotions.find(p => promoTag && p.name && promoTag.toLowerCase().includes(p.name.toLowerCase()));
+                                                                                    if (!matchedPromo && apt.date && apt.serviceId) {
+                                                                                        try {
+                                                                                            const apptDate = new Date(apt.date + 'T00:00:00');
+                                                                                            const dayKey = DAY_KEYS_MAP[apptDate.getDay()];
+                                                                                            matchedPromo = promotions.find(p => 
+                                                                                                p.isActive &&
+                                                                                                p.daysOfWeek.includes(dayKey) &&
+                                                                                                (!p.serviceIds || p.serviceIds.length === 0 || p.serviceIds.includes(apt.serviceId))
+                                                                                            );
+                                                                                        } catch {}
+                                                                                    }
+                                                                                    const displayAddons = (apt.additionalServices || []).filter((s: string) => 
+                                                                                        !s.startsWith('Referencia:') && !s.startsWith('🏷️ Promo:') && !s.startsWith('Promo:')
+                                                                                    );
 
                                                                                     return (
                                                                                         <tr key={apt.id} className="hover:bg-white/[0.01] transition-colors">
@@ -1228,10 +1288,19 @@ export default function Commissions() {
                                                                                                 </span>
                                                                                             </td>
                                                                                             <td className="p-3 text-slate-300">
-                                                                                                <div className="flex flex-col">
-                                                                                                    <span className="flex items-center gap-1.5 font-medium">
-                                                                                                        <Sparkles size={12} className="opacity-40" />
-                                                                                                        {svc?.name || 'Servicio'}
+                                                                                                <div className="flex flex-col gap-1">
+                                                                                                    <span className="flex items-center gap-1.5 font-medium flex-wrap">
+                                                                                                        <Sparkles size={12} className="opacity-40 shrink-0" />
+                                                                                                        <span>{svc?.name || 'Servicio'}</span>
+                                                                                                        {matchedPromo && (
+                                                                                                            <span className="text-[9px] font-black text-rose-300 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                                                                                                                <Flame size={10} className="text-amber-400 shrink-0" />
+                                                                                                                <span>{matchedPromo.name}</span>
+                                                                                                                <span className="text-slate-400 font-normal">
+                                                                                                                    ({matchedPromo.commissionPolicy === 'regular_price' ? 'Base regular' : 'Cobrado'})
+                                                                                                                </span>
+                                                                                                            </span>
+                                                                                                        )}
                                                                                                         {isMarketplace && (
                                                                                                             <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase">
                                                                                                                 🛒 Marketplace (-{mktRate}%)

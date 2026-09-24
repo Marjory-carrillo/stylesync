@@ -18,6 +18,21 @@ export interface Service {
     includedServiceNames?: string[];
 }
 
+export interface Promotion {
+    id: string;
+    tenantId: string;
+    name: string;
+    description?: string;
+    discountType: 'fixed_price' | 'fixed_discount' | 'percentage';
+    discountValue: number;
+    daysOfWeek: string[]; // ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    serviceIds: number[]; // empty array = all services
+    commissionPolicy: 'charged_price' | 'regular_price'; // charged_price = comision s/ cobrado, regular_price = negocio absorbe
+    isActive: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface CatalogItem {
     id: string;
     tenantId: string;

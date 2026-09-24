@@ -8,7 +8,7 @@ import { useStylists } from '../lib/store/queries/useStylists';
 import { useServices } from '../lib/store/queries/useServices';
 import { useRealtimeNotifications, type AdminNotification } from '../lib/store/useRealtimeNotifications';
 import { useCancellationLog } from '../lib/store/queries/useCancellationLog';
-import { LayoutDashboard, Users, Sparkles, Calendar, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing, Wrench, Share2, ChevronDown, Building2, UserCheck, Settings, PanelLeftClose, PanelLeftOpen, Store } from 'lucide-react';
+import { LayoutDashboard, Users, Sparkles, Calendar, LogOut, Menu, X, ShieldCheck, Infinity as InfinityIcon, Percent, CalendarPlus, Calculator, CreditCard, ArrowRight, BellRing, Wrench, Share2, Tag, ChevronDown, Building2, UserCheck, Settings, PanelLeftClose, PanelLeftOpen, Store } from 'lucide-react';
 import BusinessQRCardsModal from '../components/BusinessQRCardsModal';
 import AdminBookingModal from '../components/AdminBookingModal';
 import NotificationBell from '../components/NotificationBell';
@@ -49,7 +49,7 @@ export default function AdminLayout() {
     type OpenAccordionType = 'tools' | 'business_config' | string | null;
 
     const isToolsActive = useMemo(() => {
-        return location.pathname.startsWith('/admin/social-content');
+        return location.pathname.startsWith('/admin/social-content') || location.pathname.startsWith('/admin/promotions');
     }, [location.pathname]);
 
     const isBusinessConfigActive = useMemo(() => {
@@ -57,7 +57,7 @@ export default function AdminLayout() {
     }, [location.pathname]);
 
     const [openAccordion, setOpenAccordion] = useState<OpenAccordionType>(() => {
-        if (location.pathname.startsWith('/admin/social-content')) return 'tools';
+        if (location.pathname.startsWith('/admin/social-content') || location.pathname.startsWith('/admin/promotions')) return 'tools';
         if (['/admin/staff', '/admin/services', '/admin/team'].some(p => location.pathname.startsWith(p))) return 'business_config';
         const saved = localStorage.getItem('citalink_active_accordion');
         if (saved === 'tools') return 'tools';
@@ -416,6 +416,14 @@ export default function AdminLayout() {
                                     >
                                         <Share2 size={18} className="shrink-0 text-violet-400" />
                                     </Link>
+                                    <Link
+                                        to="/admin/promotions"
+                                        onClick={closeMobileMenu}
+                                        className={`hidden lg:flex ${navLinkClass('/admin/promotions')}`}
+                                        title="Promociones y Descuentos"
+                                    >
+                                        <Tag size={18} className="shrink-0 text-amber-400" />
+                                    </Link>
                                     <div className="pt-1 lg:hidden">
                                         <button
                                             type="button"
@@ -444,6 +452,14 @@ export default function AdminLayout() {
                                                 >
                                                     <Share2 size={15} className="shrink-0 text-violet-400" />
                                                     <span className="truncate">Contenido para redes</span>
+                                                </Link>
+                                                <Link
+                                                    to="/admin/promotions"
+                                                    onClick={closeMobileMenu}
+                                                    className={subNavLinkClass('/admin/promotions')}
+                                                >
+                                                    <Tag size={15} className="shrink-0 text-amber-400" />
+                                                    <span className="truncate">Promociones</span>
                                                 </Link>
                                             </div>
                                         )}
@@ -478,6 +494,14 @@ export default function AdminLayout() {
                                             >
                                                 <Share2 size={15} className="shrink-0 text-violet-400" />
                                                 <span className="truncate">Contenido para redes</span>
+                                            </Link>
+                                            <Link
+                                                to="/admin/promotions"
+                                                onClick={closeMobileMenu}
+                                                className={subNavLinkClass('/admin/promotions')}
+                                            >
+                                                <Tag size={15} className="shrink-0 text-amber-400" />
+                                                <span className="truncate">Promociones</span>
                                             </Link>
                                         </div>
                                     )}

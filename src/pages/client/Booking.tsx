@@ -29,12 +29,13 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, calculateAppointmentDuration, getRealAdditionalServices, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { verifyBankReceipt } from '../../lib/verifyReceipt';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone, Loader2, Flame, Tag } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { usePublicQuote, markQuoteAsBooked } from '../../lib/store/queries/useQuotes';
 import { sendNewAppointmentAdminNotification } from '../../lib/whatsappService';
+import { usePromotions, getMatchingPromotionForDate, calculateEffectiveServicePrice } from '../../lib/store/queries/usePromotions';
 export default function Booking() {
     const { slug } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -60,6 +61,7 @@ export default function Booking() {
     const { blockedPhones, getBlockReason } = useBlockedPhones();
     const { announcements } = useAnnouncements();
     const { addToWaitingList } = useWaitingList();
+    const { promotions = [] } = usePromotions(tenantId);
 
     
     const isPhoneBlocked = (phone: string) => blockedPhones.includes(phone);
@@ -92,6 +94,9 @@ export default function Booking() {
         return appointments.find(a => cleanDigits(a.clientPhone) === target && isAppointmentActive(a));
     };
     const getActiveAppointmentPrice = (appt: any) => {
+        if (appt.finalPriceCharged !== undefined && appt.finalPriceCharged !== null && Number(appt.finalPriceCharged) > 0) {
+            return Number(appt.finalPriceCharged);
+        }
         const service = getServiceById(appt.serviceId);
         const customPriceItem = (appt.additionalServices || []).find((s: string) => s.startsWith('Cotización Confirmada:') || s.startsWith('Cotización Estimada:'));
         if (customPriceItem) {
@@ -110,6 +115,12 @@ export default function Booking() {
         const addOnNames = appt.additionalServices || [];
         addOnNames.forEach((name: string) => {
             if (name.startsWith('Cotización') || name.startsWith('Referencia:') || name.startsWith('Diseño Catálogo:')) return;
+            // Descuentos y promociones (ej: "🏷️ Promo: martes (-$40 MXN)" o "(-$40 MXN)" o "-$40 MXN")
+            const discountMatch = name.match(/\(-\$(\d+(\.\d+)?)/i) || name.match(/-\$(\d+(\.\d+)?)/i);
+            if (discountMatch) {
+                total -= parseFloat(discountMatch[1]);
+                return;
+            }
             const extraMatch = name.match(/\(\+\$(\d+(\.\d+)?)/i) || name.match(/\+\$(\d+(\.\d+)?)/i);
             if (extraMatch) {
                 total += parseFloat(extraMatch[1]);
@@ -117,15 +128,18 @@ export default function Booking() {
             }
             const cleanName = name
                 .split('(+')[0]
+                .split('(-')[0]
                 .replace(/^Extra:\s*/i, '')
                 .replace(/^Adicional:\s*/i, '')
+                .replace(/^🏷️\s*Promo:\s*/i, '')
+                .replace(/^Promo:\s*/i, '')
                 .trim();
             const matchingService = services.find(s => s.name.toLowerCase() === cleanName.toLowerCase() || s.name.toLowerCase() === name.toLowerCase());
             if (matchingService) {
                 total += matchingService.price;
             }
         });
-        return total;
+        return Math.max(0, total);
     };
     const getTodaySchedule = () => schedule[DAY_KEYS[new Date().getDay()] as keyof typeof schedule];
     const getScheduleForDate = (dateStr: string) => {
@@ -503,6 +517,11 @@ export default function Booking() {
         return sum;
     }, [nailQuoterConfig, simplifiedDesignsCategory, selectedService, selectedStylist, nailSize, designLevel, nailExtras, urlQuoteId, publicQuote]);
 
+    const promoMatch = useMemo(() => {
+        if (!selectedService || !selectedDate) return null;
+        return getMatchingPromotionForDate(promotions, selectedService.id, selectedDate);
+    }, [promotions, selectedService, selectedDate]);
+
     const totalPrice = useMemo(() => {
         const customServicePrices = selectedStylist?.customServicePrices;
         const addOnsPrice = selectedAddOns.reduce((sum, id) => {
@@ -533,8 +552,53 @@ export default function Booking() {
         if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
             return nailTotalPrice + addOnsPrice;
         }
-        const base = (selectedService ? (customServicePrices?.[selectedService.id]?.price ?? selectedService.price) : 0);
+
+        const regularBase = (selectedService ? (customServicePrices?.[selectedService.id]?.price ?? selectedService.price) : 0);
+        let base = regularBase;
+        if (promoMatch && selectedService) {
+            if (promoMatch.discountType === 'fixed_price') {
+                base = promoMatch.discountValue;
+            } else if (promoMatch.discountType === 'percentage') {
+                base = Math.max(0, Math.round(regularBase * (1 - promoMatch.discountValue / 100)));
+            } else if (promoMatch.discountType === 'fixed_discount') {
+                base = Math.max(0, regularBase - promoMatch.discountValue);
+            }
+        }
         return base + addOnsPrice;
+    }, [businessConfig, nailTotalPrice, selectedService, selectedStylist, selectedCatalogItem, selectedAddOns, services, nailQuoterConfig, nailExtras, promoMatch]);
+
+    const regularTotalPrice = useMemo(() => {
+        const customServicePrices = selectedStylist?.customServicePrices;
+        const addOnsPrice = selectedAddOns.reduce((sum, id) => {
+            const svc = services.find(s => Number(s.id) === Number(id));
+            const customAddonPrice = customServicePrices?.[id]?.price ?? (svc?.price ?? 0);
+            return sum + customAddonPrice;
+        }, 0);
+
+        if (selectedCatalogItem) {
+            const designBasePrice = (selectedCatalogItem.price && selectedCatalogItem.price > 0)
+                ? selectedCatalogItem.price
+                : (customServicePrices?.[selectedService?.id ?? 0]?.price ?? (selectedService?.price || 0));
+            
+            let extrasSum = 0;
+            const extrasCat = nailQuoterConfig?.find(c => c.id === 'extras');
+            if (extrasCat && nailExtras) {
+                extrasCat.items.forEach(item => {
+                    if (nailExtras[item.id]) {
+                        const customExtraPrice = selectedStylist?.customQuoterConfig?.[item.id];
+                        extrasSum += customExtraPrice !== undefined ? customExtraPrice : (item.price || 0);
+                    }
+                });
+            }
+            return designBasePrice + addOnsPrice + extrasSum;
+        }
+
+        if (isNailCalculatorEnabled(businessConfig) && selectedService?.enableQuoter && !selectedCatalogItem) {
+            return nailTotalPrice + addOnsPrice;
+        }
+
+        const regularBase = (selectedService ? (customServicePrices?.[selectedService.id]?.price ?? selectedService.price) : 0);
+        return regularBase + addOnsPrice;
     }, [businessConfig, nailTotalPrice, selectedService, selectedStylist, selectedCatalogItem, selectedAddOns, services, nailQuoterConfig, nailExtras]);
 
     const calculatedDeposit = useMemo(() => {
@@ -1168,6 +1232,11 @@ export default function Booking() {
             }
         }
 
+        if (promoMatch) {
+            const discountDiff = Math.max(0, regularTotalPrice - totalPrice);
+            addOnNames.push(`🏷️ Promo: ${promoMatch.name} (-$${discountDiff} MXN)`);
+        }
+
         const realAddons = getRealAdditionalServices(addOnNames, services);
         const combinedServiceName = selectedService.name + (realAddons.length > 0 ? ' + ' + realAddons.join(' + ') : '');
         const commRate = (businessConfig as any)?.marketplaceCommissionRate ?? 15.0;
@@ -1181,6 +1250,7 @@ export default function Booking() {
             date: selectedDate,
             time: selectedTime,
             additionalServices: addOnNames.length > 0 ? addOnNames as string[] : undefined,
+            finalPriceCharged: totalPrice,
             bookingSource: isMarketplaceSession ? 'marketplace' : 'direct',
             marketplaceCommissionAmount: commAmount,
             depositRequired: businessConfig?.depositEnabled ?? false,
@@ -2899,71 +2969,93 @@ export default function Booking() {
                                         )}
 
                                         <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4">
-                                            {standardServices.map((service: Service) => (
-                                                <div
-                                                    key={service.id}
-                                                    className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border active:scale-[0.98] border-white/5 hover:border-cyan-500/30 ${
-                                                        selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''
-                                                    }`}
-                                                    onClick={() => {
-                                                        setSelectedService(service);
-                                                        setSelectedCatalogItem(null);
-                                                        if (isNailCalculatorEnabled(businessConfig) && service.enableQuoter) {
-                                                            setShowNailQuoterFlow(true);
-                                                        } else {
-                                                            const hasAddons = services.some(s => s.isAddon);
-                                                            if (hasAddons) {
-                                                                setStep(23);
+                                            {standardServices.map((service: Service) => {
+                                                const servicePromo = promotions.find(p => 
+                                                    p.isActive && (!p.serviceIds || p.serviceIds.length === 0 || p.serviceIds.includes(service.id))
+                                                );
+
+                                                return (
+                                                    <div
+                                                        key={service.id}
+                                                        className={`glass-card group cursor-pointer transition-all duration-300 relative overflow-hidden rounded-2xl border active:scale-[0.98] border-white/5 hover:border-cyan-500/30 ${
+                                                            selectedService?.id === service.id ? 'ring-2 ring-cyan-400 bg-cyan-400/10 border-cyan-400/30' : ''
+                                                        }`}
+                                                        onClick={() => {
+                                                            setSelectedService(service);
+                                                            setSelectedCatalogItem(null);
+                                                            if (isNailCalculatorEnabled(businessConfig) && service.enableQuoter) {
+                                                                setShowNailQuoterFlow(true);
                                                             } else {
-                                                                setStep(25);
+                                                                const hasAddons = services.some(s => s.isAddon);
+                                                                if (hasAddons) {
+                                                                    setStep(23);
+                                                                } else {
+                                                                    setStep(25);
+                                                                }
                                                             }
-                                                        }
-                                                    }}
-                                                >
-                                                    <div className="flex items-center gap-3 p-3">
-                                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
-                                                            {service.image ? (
-                                                                <img decoding="async" loading="lazy" src={service.image} alt={service.name} className="w-full h-full object-cover" />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
-                                                                    <Sparkles size={24} />
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center gap-3 p-3">
+                                                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0 shadow-md border border-white/5 group-hover:scale-105 transition-transform duration-300">
+                                                                {service.image ? (
+                                                                    <img decoding="async" loading="lazy" src={service.image} alt={service.name} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center text-cyan-400 bg-gradient-to-br from-cyan-400/10 to-blue-500/10">
+                                                                        <Sparkles size={24} />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 text-left min-w-0">
+                                                                <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
+                                                                    {service.name}
+                                                                </h4>
+                                                                {service.description && (
+                                                                    <p className="text-xs text-slate-300 font-normal mt-0.5 leading-relaxed">
+                                                                        {service.description}
+                                                                    </p>
+                                                                )}
+                                                                {servicePromo && (
+                                                                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/30">
+                                                                            <Flame size={10} className="text-amber-400 shrink-0" />
+                                                                            <span>
+                                                                                {servicePromo.discountType === 'fixed_price'
+                                                                                    ? `Promo: $${servicePromo.discountValue} MXN`
+                                                                                    : servicePromo.discountType === 'percentage'
+                                                                                    ? `Promo: -${servicePromo.discountValue}%`
+                                                                                    : `Promo: -$${servicePromo.discountValue} MXN`}
+                                                                                {' • '}
+                                                                                {servicePromo.daysOfWeek.map(d => DAY_NAMES[d]?.slice(0, 3) || d).join(', ')}
+                                                                            </span>
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
+                                                                    {!businessConfig?.hideServicePrices && (
+                                                                        service.priceType === 'no_price' ? (
+                                                                            <span className="text-cyan-300 font-bold">A cotizar</span>
+                                                                        ) : service.priceType === 'range' ? (
+                                                                            <span className="text-purple-300 font-bold">${service.minPrice} - ${service.maxPrice}</span>
+                                                                        ) : (
+                                                                            <span className="text-cyan-400 font-bold">
+                                                                                ${selectedStylist?.customServicePrices?.[service.id]?.price ?? service.price}
+                                                                            </span>
+                                                                        )
+                                                                    )}
+                                                                    <span className="text-muted flex items-center gap-1">
+                                                                        <Clock size={12} /> {selectedStylist?.customServicePrices?.[service.id]?.duration ?? service.duration} min
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            {selectedService?.id === service.id && (
+                                                                <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
+                                                                    <CheckCircle size={14} className="text-slate-900" />
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="flex-1 text-left min-w-0">
-                                                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-cyan-400 transition-colors">
-                                                                {service.name}
-                                                            </h4>
-                                                            {service.description && (
-                                                                <p className="text-xs text-slate-300 font-normal mt-0.5 leading-relaxed">
-                                                                    {service.description}
-                                                                </p>
-                                                            )}
-                                                            <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
-                                                                {!businessConfig?.hideServicePrices && (
-                                                                    service.priceType === 'no_price' ? (
-                                                                        <span className="text-cyan-300 font-bold">A cotizar</span>
-                                                                    ) : service.priceType === 'range' ? (
-                                                                        <span className="text-purple-300 font-bold">${service.minPrice} - ${service.maxPrice}</span>
-                                                                    ) : (
-                                                                        <span className="text-cyan-400 font-bold">
-                                                                            ${selectedStylist?.customServicePrices?.[service.id]?.price ?? service.price}
-                                                                        </span>
-                                                                    )
-                                                                )}
-                                                                <span className="text-muted flex items-center gap-1">
-                                                                    <Clock size={12} /> {selectedStylist?.customServicePrices?.[service.id]?.duration ?? service.duration} min
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        {selectedService?.id === service.id && (
-                                                            <div className="w-5 h-5 rounded-full bg-cyan-400 flex items-center justify-center shrink-0">
-                                                                <CheckCircle size={14} className="text-slate-900" />
-                                                            </div>
-                                                        )}
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -3287,6 +3379,7 @@ export default function Booking() {
                                         const isBusinessClosed = !schedule[dayKey]?.open;
                                         const daySchedule = getScheduleForDate(d.dateStr);
                                         const isClosed = !daySchedule.open;
+                                        const promoForThisDate = selectedService ? getMatchingPromotionForDate(promotions, selectedService.id, d.dateStr) : null;
                                         
                                         return (
                                             <button
@@ -3297,12 +3390,17 @@ export default function Booking() {
                                                     setIsDateSelected(true);
                                                     setStep(3);
                                                 }}
-                                                className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${selectedDate === d.dateStr ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.25)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${isClosed ? 'border-red-500/20 bg-red-500/5' : ''} ${isBusinessClosed ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                                className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-1 cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${selectedDate === d.dateStr ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.25)]' : 'bg-white/5 border-white/10 hover:border-cyan-500/50 text-slate-300'} ${isClosed ? 'border-red-500/20 bg-red-500/5' : ''} ${isBusinessClosed ? 'opacity-40 cursor-not-allowed' : ''} ${promoForThisDate && selectedDate !== d.dateStr ? 'border-amber-500/40 bg-amber-500/5' : ''}`}
                                                 disabled={isBusinessClosed}
                                             >
                                                 <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{d.dayName}</span>
                                                 <span className="text-sm font-bold">{d.label}</span>
                                                 {d.isToday && <span className="text-[8px] uppercase font-black tracking-tighter text-cyan-300">HOY</span>}
+                                                {promoForThisDate && (
+                                                    <span className="text-[8px] uppercase font-black tracking-tighter px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-sm flex items-center gap-0.5 animate-pulse">
+                                                        🔥 PROMO
+                                                    </span>
+                                                )}
                                                 {isClosed && (
                                                     <span className="text-[8px] uppercase font-black tracking-tighter text-red-400">
                                                         {isBusinessClosed ? 'Cerrado' : 'No atiende'}
@@ -3314,31 +3412,62 @@ export default function Booking() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border border-cyan-500/30 flex items-center justify-between shadow-sm animate-fade-in mb-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0">
-                                        <Calendar size={18} />
+                            <>
+                                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border border-cyan-500/30 flex items-center justify-between shadow-sm animate-fade-in mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0">
+                                            <Calendar size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-bold uppercase tracking-wider text-cyan-400/90">Día seleccionado</p>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-sm font-bold text-white capitalize">
+                                                    {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d \'de\' MMMM', { locale: es })}
+                                                </h4>
+                                                {promoMatch && (
+                                                    <span className="text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-rose-500 text-white px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
+                                                        🔥 {promoMatch.name}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-cyan-400/90">Día seleccionado</p>
-                                        <h4 className="text-sm font-bold text-white capitalize">
-                                            {format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d \'de\' MMMM', { locale: es })}
-                                        </h4>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsDateSelected(false);
+                                            setSelectedTime(null);
+                                            setStep(25);
+                                        }}
+                                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-slate-200 hover:text-white transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 shrink-0"
+                                    >
+                                        <span>Cambiar día</span>
+                                        <span className="text-cyan-400">↺</span>
+                                    </button>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsDateSelected(false);
-                                        setSelectedTime(null);
-                                        setStep(25);
-                                    }}
-                                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-slate-200 hover:text-white transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 shrink-0"
-                                >
-                                    <span>Cambiar día</span>
-                                    <span className="text-cyan-400">↺</span>
-                                </button>
-                            </div>
+
+                                {promoMatch && selectedService && (
+                                    <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/5 border border-amber-500/30 flex items-center justify-between shadow-sm animate-fade-in mb-5">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold shrink-0">
+                                                🏷️
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-xs font-black text-amber-300">¡Día con Promoción Activa!</span>
+                                                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                                        {promoMatch.name}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-300 mt-0.5">
+                                                    Precio especial de <span className="line-through text-slate-500">${regularTotalPrice}</span> a <strong className="text-amber-300 font-bold">${totalPrice} MXN</strong>
+                                                    {selectedAddOns.length > 0 && <span className="text-slate-400 font-normal ml-1">(incluye adicionales)</span>}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         {/* Bloque de Horarios (Visible una vez seleccionado el día) */}
@@ -3746,9 +3875,21 @@ export default function Booking() {
                                     )}
 
                                     <p className="text-sm text-muted mb-2">{totalDuration} min en total</p>
-                                    <div className="inline-block px-2 py-1 bg-accent/20 text-accent rounded text-xs font-bold border border-accent/20">
-                                        ${totalPrice}
-                                        {selectedAddOns.length > 0 && <span className="text-white/40 ml-1 font-normal">total</span>}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="inline-block px-2.5 py-1 bg-accent/20 text-accent rounded-lg text-xs font-bold border border-accent/20">
+                                            ${totalPrice}
+                                            {selectedAddOns.length > 0 && <span className="text-white/40 ml-1 font-normal">total</span>}
+                                        </div>
+                                        {promoMatch && (
+                                            <span className="text-xs line-through text-slate-500 font-medium">
+                                                ${regularTotalPrice}
+                                            </span>
+                                        )}
+                                        {promoMatch && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/30">
+                                                🔥 Promo: {promoMatch.name}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -3758,6 +3899,14 @@ export default function Booking() {
                                     <span className="text-sm text-muted">Fecha</span>
                                     <span className="font-medium text-white">{format(parse(selectedDate, 'yyyy-MM-dd', new Date()), 'EEEE d MMMM', { locale: es })}</span>
                                 </div>
+                                {promoMatch && (
+                                    <div className="flex justify-between items-center text-xs bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">
+                                        <span className="text-amber-400 flex items-center gap-1 font-semibold">
+                                            <span>🏷️</span> Promoción del día
+                                        </span>
+                                        <span className="font-bold text-amber-300">{promoMatch.name}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted">Hora</span>
                                     <span className="font-bold text-accent text-lg">{format12h(selectedTime)}</span>

@@ -242,8 +242,12 @@ export default function StylistColumnCalendar({
 
     const getServiceById = (id: number) => services.find(s => Number(s.id) === Number(id));
 
-    // Helper to calculate total price taking into account confirmed quotes, extra options, and catalog add-ons
+    // Helper to calculate total price taking into account confirmed quotes, extra options, promotions, and catalog add-ons
     const getAppointmentTotalPrice = (apt: Appointment) => {
+        if ((apt as any).finalPriceCharged !== undefined && (apt as any).finalPriceCharged !== null && Number((apt as any).finalPriceCharged) > 0) {
+            return Number((apt as any).finalPriceCharged);
+        }
+
         const service = services.find(s => Number(s.id) === Number(apt.serviceId));
         const addServices = apt.additionalServices || [];
 
@@ -259,7 +263,7 @@ export default function StylistColumnCalendar({
             }
         }
 
-        // 2. Base service price or Catalog design price + extra options (+$X MXN) + catalog add-on services
+        // 2. Base service price or Catalog design price + extra options (+$X MXN) - promotion discounts (-$X MXN)
         let basePrice = service?.price || 0;
         const catalogItem = addServices.find((s: string) => s.startsWith('Diseño Catálogo:'));
         if (catalogItem) {
@@ -279,6 +283,13 @@ export default function StylistColumnCalendar({
                 return;
             }
 
+            // Descuentos y promociones (ej: "🏷️ Promo: martes (-$40 MXN)" o "(-$40 MXN)" o "-$40 MXN")
+            const discountMatch = extra.match(/\(-\$(\d+(\.\d+)?)/i) || extra.match(/-\$(\d+(\.\d+)?)/i);
+            if (discountMatch) {
+                total -= parseFloat(discountMatch[1]);
+                return;
+            }
+
             const extraMatch = extra.match(/\(\+\$(\d+(\.\d+)?)/i) || extra.match(/\+\$(\d+(\.\d+)?)/i);
             if (extraMatch) {
                 total += parseFloat(extraMatch[1]);
@@ -287,11 +298,14 @@ export default function StylistColumnCalendar({
 
             const cleanName = extra
                 .split('(+')[0]
+                .split('(-')[0]
                 .replace(/^Extra:\s*/i, '')
                 .replace(/^Diseño:\s*/i, '')
                 .replace(/^Largo:\s*/i, '')
                 .replace(/^Adicional:\s*/i, '')
                 .replace(/^Estilo:\s*/i, '')
+                .replace(/^🏷️\s*Promo:\s*/i, '')
+                .replace(/^Promo:\s*/i, '')
                 .trim();
 
             const matchingService = services.find(s =>
@@ -303,7 +317,7 @@ export default function StylistColumnCalendar({
             }
         });
 
-        return total;
+        return Math.max(0, total);
     };
 
     // Helper to calculate total duration of base service + extra services / quoter options
@@ -1038,12 +1052,15 @@ export default function StylistColumnCalendar({
                                     <div className="space-y-1 text-slate-200">
                                         {(selectedApt.additionalServices || [])
                                             .filter((s: string) => !s.startsWith('Referencia:'))
-                                            .map((extra: string, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-1.5 text-xs">
-                                                    <span className="text-accent font-bold">•</span>
-                                                    <span>{formatAddOnItemDisplay(extra, services, (tenantConfig as any)?.nail_calculator_config)}</span>
-                                                </div>
-                                            ))}
+                                            .map((extra: string, idx: number) => {
+                                                const isPromo = extra.startsWith('🏷️ Promo:') || extra.startsWith('Promo:') || extra.includes('(-$');
+                                                return (
+                                                    <div key={idx} className={`flex items-center gap-1.5 text-xs ${isPromo ? 'text-emerald-400 font-bold' : ''}`}>
+                                                        <span className={isPromo ? 'text-emerald-400 font-bold' : 'text-accent font-bold'}>•</span>
+                                                        <span>{formatAddOnItemDisplay(extra, services, (tenantConfig as any)?.nail_calculator_config)}</span>
+                                                    </div>
+                                                );
+                                            })}
                                         {selectedApt.additionalServices?.find((s: string) => s.startsWith('Referencia:')) && (
                                             <button
                                                 onClick={() => {

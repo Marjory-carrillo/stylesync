@@ -187,6 +187,7 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 depositAmount: a.deposit_amount || 0,
                 depositStatus: a.deposit_status || 'none',
                 depositReceiptUrl: a.deposit_receipt_url || null,
+                finalPriceCharged: a.final_price_charged !== undefined && a.final_price_charged !== null ? Number(a.final_price_charged) : undefined,
             })) as Appointment[];
         },
         enabled: !!tenantId,
@@ -285,6 +286,9 @@ export const useAppointments = (options?: { startDate?: string; adminPhone?: str
                 }
                 if (appt.depositReceiptUrl) {
                     updatePayload.deposit_receipt_url = appt.depositReceiptUrl;
+                }
+                if (appt.finalPriceCharged !== undefined && appt.finalPriceCharged !== null) {
+                    updatePayload.final_price_charged = appt.finalPriceCharged;
                 }
 
                 // 🎯 Regla de 6 Horas:

@@ -38,6 +38,7 @@ const Reschedule = lazy(() => import('./pages/client/Reschedule'));
 const PublicReview = lazy(() => import('./pages/PublicReview'));
 const SocialContent = lazy(() => import('./pages/admin/SocialContent'));
 const POSPrototype = lazy(() => import('./pages/admin/POSPrototype'));
+const Promotions = lazy(() => import('./pages/admin/Promotions'));
 
 import { useGlobalStore } from './lib/store/useGlobalStore';
 import { Settings as SettingsIcon, RefreshCw, Loader2 } from 'lucide-react';
@@ -457,6 +458,7 @@ function App() {
                     <Route path="settings" element={<Settings />} />
                     <Route path="commissions" element={<Commissions />} />
                     <Route path="social-content" element={<SocialContent />} />
+                    <Route path="promotions" element={<Promotions />} />
                   </Route>
                 </Route>
               </Route>

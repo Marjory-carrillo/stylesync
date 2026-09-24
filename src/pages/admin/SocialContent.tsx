@@ -14,7 +14,11 @@ import {
     Users,
     Clock,
     Building2,
-    RotateCcw
+    RotateCcw,
+    Flame,
+    Tag,
+    Percent,
+    ArrowRight
 } from 'lucide-react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useSchedule } from '../../lib/store/queries/useSchedule';
@@ -22,6 +26,7 @@ import { useAppointments } from '../../lib/store/queries/useAppointments';
 import { useStylists } from '../../lib/store/queries/useStylists';
 import { useBlockedSlots } from '../../lib/store/queries/useBlockedSlots';
 import { useServices } from '../../lib/store/queries/useServices';
+import { usePromotions } from '../../lib/store/queries/usePromotions';
 import { useAuthStore } from '../../lib/store/authStore';
 import { useUIStore } from '../../lib/store/uiStore';
 import { DAY_NAMES } from '../../lib/constants';
@@ -66,8 +71,12 @@ export default function SocialContent() {
     const cleanDisplayUrl = `citalink.app/${bookingPath}`;
     const fullBookingUrl = `${baseUrl}/${bookingPath}`;
 
-    // Mode: 'slots' (Horarios Libres) | 'launch' (Cuéntale a tus clientes) | 'whatsapp' (Mensaje de difusión)
-    const [activeTab, setActiveTab] = useState<'slots' | 'launch' | 'whatsapp'>('slots');
+    // Mode: 'slots' (Horarios Libres) | 'promotions' (Días de Promoción) | 'launch' (Cuéntale a tus clientes) | 'whatsapp' (Mensaje de difusión)
+    const [activeTab, setActiveTab] = useState<'slots' | 'promotions' | 'launch' | 'whatsapp'>('slots');
+
+    const { promotions = [] } = usePromotions();
+    const [selectedPromoId, setSelectedPromoId] = useState<string>('');
+    const [copiedPromoCopy, setCopiedPromoCopy] = useState<'post' | 'status' | 'dm' | null>(null);
 
     // Theme of the story image: 'light' | 'dark' | 'pink'
     const [storyTheme, setStoryTheme] = useState<'light' | 'dark' | 'pink'>('light');
@@ -280,6 +289,87 @@ Olvídate de esperar respuesta por chat: ahora puedes elegir tu servicio favorit
         setTimeout(() => setCopiedMessage(false), 2000);
     };
 
+    const DAY_LABELS: Record<string, string> = {
+        monday: 'Lunes',
+        tuesday: 'Martes',
+        wednesday: 'Miércoles',
+        thursday: 'Jueves',
+        friday: 'Viernes',
+        saturday: 'Sábado',
+        sunday: 'Domingo'
+    };
+
+    const activeSelectedPromo = useMemo(() => {
+        if (!promotions || promotions.length === 0) return null;
+        return promotions.find(p => p.id === selectedPromoId) || promotions[0];
+    }, [promotions, selectedPromoId]);
+
+    const promoServices = useMemo(() => {
+        if (!activeSelectedPromo) return [];
+        if (!activeSelectedPromo.serviceIds || activeSelectedPromo.serviceIds.length === 0) {
+            return services.slice(0, 3);
+        }
+        return services.filter(s => activeSelectedPromo.serviceIds?.includes(s.id));
+    }, [activeSelectedPromo, services]);
+
+    const promoDaysText = useMemo(() => {
+        if (!activeSelectedPromo || !activeSelectedPromo.daysOfWeek.length) return 'días seleccionados';
+        return activeSelectedPromo.daysOfWeek.map(d => DAY_LABELS[d] || d).join(' y ');
+    }, [activeSelectedPromo]);
+
+    const promoPostCopy = useMemo(() => {
+        const servicesLines = promoServices.map(s => {
+            let promoPrice = s.price;
+            if (activeSelectedPromo?.discountType === 'fixed_price') {
+                promoPrice = activeSelectedPromo.discountValue;
+            } else if (activeSelectedPromo?.discountType === 'percentage') {
+                promoPrice = Math.round(s.price * (1 - activeSelectedPromo.discountValue / 100));
+            } else if (activeSelectedPromo?.discountType === 'fixed_discount') {
+                promoPrice = Math.max(0, s.price - activeSelectedPromo.discountValue);
+            }
+            return `✨ ${s.name}: de ~$${s.price}~ a solo *$${promoPrice} MXN*`;
+        }).join('\n');
+
+        return `🔥 ¡DÍAS DE PROMOCIÓN EN ${businessName.toUpperCase()}! 🔥
+
+Aprovecha nuestros días de descuento especial. Todos los *${promoDaysText}* disfruta de:
+
+${servicesLines || `💥 ${activeSelectedPromo?.name || 'Precios especiales'}`}
+
+⚡ ¡Cupos limitados por fecha! Agenda tu cita en segundos desde nuestra web:
+👉 ${fullBookingUrl}
+
+#${businessName.replace(/\s+/g, '')} #Promocion #Descuento #CitasOnline #AgendaTuCita`;
+    }, [businessName, promoDaysText, promoServices, activeSelectedPromo, fullBookingUrl]);
+
+    const promoWhatsAppStatus = useMemo(() => {
+        return `🔥 ¡PROMO DE LA SEMANA! 🔥
+Todos los *${promoDaysText}*:
+${promoServices.slice(0, 2).map(s => `• ${s.name} con descuento especial`).join('\n')}
+
+Reserva tu turno antes de que se agoten los horarios 👇
+${fullBookingUrl}`;
+    }, [promoDaysText, promoServices, fullBookingUrl]);
+
+    const promoDirectMessage = useMemo(() => {
+        return `¡Hola! 👋 Te escribimos de *${businessName}* para contarte que tenemos una promoción especial para ti. 💖
+
+Todos los *${promoDaysText}* tenemos activa nuestra promo *${activeSelectedPromo?.name || 'con precios especiales'}*:
+${promoServices.slice(0, 3).map(s => `• ${s.name}`).join('\n')}
+
+Puedes apartar tu cita en línea fácilmente aquí:
+👉 ${fullBookingUrl}
+
+¡Esperamos verte pronto! ✨`;
+    }, [businessName, promoDaysText, activeSelectedPromo, promoServices, fullBookingUrl]);
+
+    const handleCopyPromoCopy = (type: 'post' | 'status' | 'dm', text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedPromoCopy(type);
+        showToast('¡Texto copiado al portapapeles!', 'success');
+        setTimeout(() => setCopiedPromoCopy(null), 2000);
+    };
+
     // Download Story as HD PNG (1080x1920)
     const handleDownloadStory = async () => {
         if (!storyCardRef.current) return;
@@ -347,6 +437,8 @@ Olvídate de esperar respuesta por chat: ahora puedes elegir tu servicio favorit
             const link = document.createElement('a');
             const fileSuffix = activeTab === 'slots' 
                 ? `horarios_${format(selectedDate, 'yyyy-MM-dd')}`
+                : activeTab === 'promotions'
+                ? `promo_${activeSelectedPromo?.name ? activeSelectedPromo.name.toLowerCase().replace(/[^a-z0-9]/g, '_') : 'oferta'}`
                 : 'cuentale_a_tus_clientes';
             link.download = `citalink_${businessSlug || 'historia'}_${fileSuffix}.png`;
             link.href = dataUrl;
@@ -435,6 +527,18 @@ Olvídate de esperar respuesta por chat: ahora puedes elegir tu servicio favorit
                 >
                     <Clock size={16} />
                     <span>Horarios Disponibles</span>
+                </button>
+
+                <button
+                    onClick={() => setActiveTab('promotions')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                        activeTab === 'promotions'
+                            ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-lg shadow-amber-500/20'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    <Flame size={16} className={activeTab === 'promotions' ? 'text-amber-200' : 'text-amber-400'} />
+                    <span>Días de Promoción</span>
                 </button>
 
                 <button
@@ -602,6 +706,75 @@ Olvídate de esperar respuesta por chat: ahora puedes elegir tu servicio favorit
                         </div>
                     )}
 
+                    {/* Controls specific to 'promotions' mode */}
+                    {activeTab === 'promotions' && (
+                        <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/5 space-y-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Flame size={14} />
+                                        Selecciona la Promoción a Anunciar
+                                    </h3>
+                                    <p className="text-sm font-bold text-white mt-0.5">
+                                        {activeSelectedPromo ? activeSelectedPromo.name : 'Sin promociones activas'}
+                                    </p>
+                                </div>
+
+                                {promotions.length > 1 && (
+                                    <select
+                                        value={selectedPromoId || (activeSelectedPromo?.id ?? '')}
+                                        onChange={(e) => setSelectedPromoId(e.target.value)}
+                                        aria-label="Seleccionar promoción"
+                                        className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 w-full sm:w-auto font-medium"
+                                    >
+                                        {promotions.map(p => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.name} ({p.daysOfWeek.map(d => DAY_LABELS[d] || d).join(', ')})
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            {activeSelectedPromo ? (
+                                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="font-bold text-slate-300">Días aplicables:</span>
+                                            {activeSelectedPromo.daysOfWeek.map(d => (
+                                                <span key={d} className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-extrabold text-[10px] uppercase border border-amber-500/30">
+                                                    {DAY_LABELS[d] || d}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-black text-[10px] uppercase border border-emerald-500/30">
+                                            {activeSelectedPromo.discountType === 'percentage'
+                                                ? `${activeSelectedPromo.discountValue}% OFF`
+                                                : activeSelectedPromo.discountType === 'fixed_discount'
+                                                ? `-$${activeSelectedPromo.discountValue} MXN`
+                                                : `Precio especial: $${activeSelectedPromo.discountValue} MXN`}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400">
+                                        {promoServices.length > 0
+                                            ? `Aplica a: ${promoServices.map(s => s.name).join(', ')}`
+                                            : 'Aplica a todos los servicios del catálogo'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center justify-between">
+                                    <span>No tienes ninguna promoción creada aún.</span>
+                                    <a
+                                        href="/admin/promotions"
+                                        className="btn btn-primary py-1 px-3 text-xs"
+                                    >
+                                        Crear promoción
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* ── LIVE INSTAGRAM STORY CARD PREVIEW (9:16) ── */}
                     {activeTab !== 'whatsapp' ? (
                         <div className="flex flex-col items-center">
@@ -750,6 +923,95 @@ Olvídate de esperar respuesta por chat: ahora puedes elegir tu servicio favorit
                                                 }`}>
                                                     {selectedSlotTimes.length} {selectedSlotTimes.length === 1 ? 'horario disponible' : 'horarios disponibles'}
                                                 </p>
+                                            </>
+                                        ) : activeTab === 'promotions' ? (
+                                            /* Promotions mode: Días de descuento */
+                                            <>
+                                                <div>
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border mb-2 ${
+                                                        storyTheme === 'pink'
+                                                            ? 'bg-pink-500/15 text-pink-700 border-pink-300/60'
+                                                            : 'bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/30'
+                                                    }`}>
+                                                        🔥 Días de Promoción
+                                                    </span>
+                                                    <h2 className="text-2xl font-black tracking-normal leading-tight">
+                                                        {activeSelectedPromo?.name || '¡Precios Especiales!'}
+                                                    </h2>
+                                                    <div className="flex items-center justify-center gap-1.5 mt-2">
+                                                        <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border shadow-sm ${
+                                                            storyTheme === 'pink'
+                                                                ? 'bg-pink-500 text-white border-pink-400'
+                                                                : 'bg-gradient-to-r from-amber-500 to-rose-500 text-white border-white/20'
+                                                        }`}>
+                                                            {promoDaysText.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Services Promotion Cards */}
+                                                <div className="w-full max-w-[310px] mx-auto space-y-2 pt-1">
+                                                    {promoServices.length > 0 ? (
+                                                        promoServices.map(service => {
+                                                            let promoPrice = service.price;
+                                                            if (activeSelectedPromo?.discountType === 'fixed_price') {
+                                                                promoPrice = activeSelectedPromo.discountValue;
+                                                            } else if (activeSelectedPromo?.discountType === 'percentage') {
+                                                                promoPrice = Math.round(service.price * (1 - activeSelectedPromo.discountValue / 100));
+                                                            } else if (activeSelectedPromo?.discountType === 'fixed_discount') {
+                                                                promoPrice = Math.max(0, service.price - activeSelectedPromo.discountValue);
+                                                            }
+                                                            const savings = Math.max(0, service.price - promoPrice);
+
+                                                            return (
+                                                                <div
+                                                                    key={service.id}
+                                                                    className={`p-3 rounded-2xl flex items-center justify-between border shadow-sm transition-all ${
+                                                                        storyTheme === 'pink'
+                                                                            ? 'bg-white/90 border-pink-200/80 shadow-pink-500/5'
+                                                                            : storyTheme === 'light'
+                                                                            ? 'bg-slate-50/80 border-slate-200/90'
+                                                                            : 'bg-white/[0.04] border-white/10'
+                                                                    }`}
+                                                                >
+                                                                    <div className="text-left flex-1 min-w-0 pr-2">
+                                                                        <p className="text-xs font-black tracking-normal truncate">
+                                                                            {service.name}
+                                                                        </p>
+                                                                        <p className={`text-[10px] font-medium leading-none mt-0.5 line-through opacity-60 ${
+                                                                            storyTheme === 'pink' ? 'text-pink-900' : ''
+                                                                        }`}>
+                                                                            Normal: ${service.price} MXN
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div className="text-right shrink-0">
+                                                                        <span className={`text-base font-black tracking-tight block ${
+                                                                            storyTheme === 'pink'
+                                                                                ? 'text-pink-600'
+                                                                                : 'text-emerald-400'
+                                                                        }`}>
+                                                                            ${promoPrice} <span className="text-[10px] font-bold">MXN</span>
+                                                                        </span>
+                                                                        {savings > 0 && (
+                                                                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                                                                Ahorra ${savings}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <div className={`p-4 rounded-2xl text-xs font-bold border ${
+                                                            storyTheme === 'pink'
+                                                                ? 'bg-white/90 text-pink-700 border-pink-200'
+                                                                : 'bg-white/5 text-slate-300 border-white/10'
+                                                        }`}>
+                                                            {activeSelectedPromo?.description || '¡Precios especiales por tiempo limitado en tus servicios favoritos!'}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </>
                                         ) : (
                                             /* Launch mode: ¡Cuéntale a tus clientes! */
@@ -936,6 +1198,81 @@ Olvídate de esperar respuesta por chat: ahora puedes elegir tu servicio favorit
 
                 {/* ── Right Column: Instructions & Actions ── */}
                 <div className="lg:col-span-5 space-y-6">
+                    {/* Marketing Copys for Promotions */}
+                    {activeTab === 'promotions' && (
+                        <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/5 space-y-5">
+                            <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+                                <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                    <Sparkles size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black text-white">Copys de Marketing Persuasivos</h3>
+                                    <p className="text-[11px] text-slate-500 font-medium">Textos listos para copiar y publicar en 1 clic</p>
+                                </div>
+                            </div>
+
+                            {/* 1. Post Instagram / Facebook */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                        <Instagram size={14} className="text-pink-400" />
+                                        Post para Instagram / Facebook
+                                    </span>
+                                    <button
+                                        onClick={() => handleCopyPromoCopy('post', promoPostCopy)}
+                                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                                    >
+                                        {copiedPromoCopy === 'post' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                        <span>{copiedPromoCopy === 'post' ? '¡Copiado!' : 'Copiar'}</span>
+                                    </button>
+                                </div>
+                                <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-xs text-slate-300 max-h-28 overflow-y-auto whitespace-pre-wrap leading-relaxed font-sans">
+                                    {promoPostCopy}
+                                </div>
+                            </div>
+
+                            {/* 2. Estado de WhatsApp */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                        <MessageCircle size={14} className="text-emerald-400" />
+                                        Estado de WhatsApp
+                                    </span>
+                                    <button
+                                        onClick={() => handleCopyPromoCopy('status', promoWhatsAppStatus)}
+                                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                                    >
+                                        {copiedPromoCopy === 'status' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                        <span>{copiedPromoCopy === 'status' ? '¡Copiado!' : 'Copiar'}</span>
+                                    </button>
+                                </div>
+                                <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-xs text-slate-300 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed font-sans">
+                                    {promoWhatsAppStatus}
+                                </div>
+                            </div>
+
+                            {/* 3. Mensaje Directo / Difusión */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                        <Users size={14} className="text-cyan-400" />
+                                        Mensaje Directo para Clientes
+                                    </span>
+                                    <button
+                                        onClick={() => handleCopyPromoCopy('dm', promoDirectMessage)}
+                                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                                    >
+                                        {copiedPromoCopy === 'dm' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                        <span>{copiedPromoCopy === 'dm' ? '¡Copiado!' : 'Copiar'}</span>
+                                    </button>
+                                </div>
+                                <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-xs text-slate-300 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed font-sans">
+                                    {promoDirectMessage}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* How to use card */}
                     <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/5 space-y-5">
                         <div className="flex items-center gap-3 pb-3 border-b border-white/5">
