@@ -15,10 +15,7 @@ import {
     Clock,
     Building2,
     RotateCcw,
-    Flame,
-    Tag,
-    Percent,
-    ArrowRight
+    Flame
 } from 'lucide-react';
 import { useTenantData } from '../../lib/store/queries/useTenantData';
 import { useSchedule } from '../../lib/store/queries/useSchedule';

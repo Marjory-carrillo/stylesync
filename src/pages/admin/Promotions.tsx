@@ -11,17 +11,12 @@ import {
     Calendar,
     Percent,
     DollarSign,
-    Sparkles,
     Check,
     X,
     Trash2,
     Edit3,
-    AlertCircle,
     CheckCircle2,
     Shield,
-    Users,
-    ArrowRight,
-    HelpCircle,
     Search
 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -763,8 +758,8 @@ export default function Promotions() {
                     isOpen={true}
                     title="¿Eliminar promoción?"
                     message={`¿Estás seguro de que deseas eliminar la promoción "${promoToDelete.name}"? Los servicios volverán a su precio regular en los días correspondientes.`}
-                    confirmText="Sí, eliminar"
-                    cancelText="Cancelar"
+                    confirmLabel="Sí, eliminar"
+                    cancelLabel="Cancelar"
                     danger={true}
                     onConfirm={handleDelete}
                     onCancel={() => setPromoToDelete(null)}

@@ -29,13 +29,13 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
 import SplashScreen from '../../components/SplashScreen';
 import { getSmartSlots, calculateAppointmentDuration, getRealAdditionalServices, type Appointment as SlotAppointment, type BlockedInterval } from '../../lib/smartSlots';
 import { verifyBankReceipt } from '../../lib/verifyReceipt';
-import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone, Loader2, Flame, Tag } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Calendar, Clock, MapPin, XCircle, RefreshCw, Info, AlertOctagon, Phone, Shield, ShieldCheck, User, ChevronRight, CalendarPlus, MessageSquare, Sparkles, Image as ImageIcon, Upload, Trash2, Images, X, ExternalLink, UserCheck, Smartphone, Loader2, Flame } from 'lucide-react';
 import { generateGoogleCalendarUrl } from '../../lib/calendarUtils';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import { useImageUpload } from '../../lib/store/queries/useImageUpload';
 import { usePublicQuote, markQuoteAsBooked } from '../../lib/store/queries/useQuotes';
 import { sendNewAppointmentAdminNotification } from '../../lib/whatsappService';
-import { usePromotions, getMatchingPromotionForDate, calculateEffectiveServicePrice } from '../../lib/store/queries/usePromotions';
+import { usePromotions, getMatchingPromotionForDate } from '../../lib/store/queries/usePromotions';
 export default function Booking() {
     const { slug } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();

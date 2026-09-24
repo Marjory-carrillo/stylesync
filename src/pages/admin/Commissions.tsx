@@ -8,7 +8,7 @@ import { useStylists } from '../../lib/store/queries/useStylists';
 import { useServices } from '../../lib/store/queries/useServices';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calculator, Calendar as CalendarIcon, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles, Clock, User, ShoppingBag, Power, Settings, X, Plus, Trash2, Flame, Tag } from 'lucide-react';
+import { Calculator, Calendar as CalendarIcon, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sparkles, Clock, User, ShoppingBag, Power, Settings, X, Plus, Trash2, Flame } from 'lucide-react';
 import type { CommissionEntry } from '../../lib/types/store.types';
 import DatePickerInput from '../../components/DatePickerInput';
 import CustomSelect from '../../components/CustomSelect';
