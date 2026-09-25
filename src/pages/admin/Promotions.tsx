@@ -11,15 +11,32 @@ import {
     Calendar,
     Percent,
     DollarSign,
+    Sparkles,
     Check,
     X,
     Trash2,
     Edit3,
     CheckCircle2,
     Shield,
-    Search
+    Search,
+    Layers
 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+
+const SUGGESTED_PROMO_NAMES = [
+    'Promo Especial',
+    'Día de Descuento',
+    'Promo de la Semana',
+    'Flash Sale 24h',
+    'Promo Quincena',
+    'Día Consentirte',
+    'Promo Bienvenida',
+    'Fin de Semana Especial',
+    'Super Promo',
+    'Fin de Mes',
+    'Promo Express',
+    'Happy Hour',
+] as const;
 
 const DAY_OPTIONS = [
     { key: 'monday', label: 'Lunes', short: 'LUN' },
@@ -67,11 +84,19 @@ export default function Promotions() {
         return originalPrice;
     };
 
-    const filteredServices = useMemo(() => {
-        const list = services || [];
-        if (!serviceSearch.trim()) return list;
-        return list.filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()));
-    }, [services, serviceSearch]);
+    // Excluir estrictamente servicios adicionales: solo participan servicios principales y paquetes
+    const eligibleServices = useMemo(() => {
+        return (services || []).filter(s => !s.isAddon);
+    }, [services]);
+
+    const { mainServices, packageServices } = useMemo(() => {
+        const q = serviceSearch.trim().toLowerCase();
+        const filtered = eligibleServices.filter(s => !q || s.name.toLowerCase().includes(q));
+        return {
+            mainServices: filtered.filter(s => !s.isPackage),
+            packageServices: filtered.filter(s => !!s.isPackage)
+        };
+    }, [eligibleServices, serviceSearch]);
 
     // Stats
     const activePromosCount = useMemo(() => promotions.filter(p => p.isActive).length, [promotions]);
@@ -89,8 +114,9 @@ export default function Promotions() {
         setDiscountValue('140');
         setSelectedDays(['tuesday', 'thursday']);
         setApplyToAllServices(false);
-        // Preseleccionar el primer servicio disponible
-        setSelectedServiceIds(services.length > 0 ? [services[0].id] : []);
+        // Preseleccionar el primer servicio elegible (no adicional)
+        const firstEligible = (services || []).find(s => !s.isAddon);
+        setSelectedServiceIds(firstEligible ? [firstEligible.id] : []);
         setCommissionPolicy('charged_price');
         setServiceSearch('');
         setIsModalOpen(true);
@@ -439,18 +465,51 @@ export default function Promotions() {
                             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar min-h-0">
                                 {/* Nombre de la promo */}
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-                                        <Tag size={13} className="text-amber-400" />
-                                        <span>Nombre de la Promoción *</span>
-                                    </label>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                            <Tag size={13} className="text-amber-400" />
+                                            <span>Nombre de la Promoción *</span>
+                                        </label>
+                                        <span className={`text-[10px] font-mono font-bold ${name.length >= 25 ? 'text-rose-400' : 'text-slate-500'}`}>
+                                            {name.length}/25
+                                        </span>
+                                    </div>
                                     <input
                                         type="text"
                                         required
+                                        maxLength={25}
                                         value={name}
-                                        onChange={e => setName(e.target.value)}
-                                        placeholder="ej. Martes y Jueves de Corte"
+                                        onChange={e => setName(e.target.value.slice(0, 25))}
+                                        placeholder="ej. Promo de la Semana"
                                         className="w-full px-4 py-2.5 sm:py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 text-sm font-medium transition-colors"
                                     />
+
+                                    {/* Sugerencias Rápidas Generales */}
+                                    <div className="mt-2.5 space-y-1.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                                            <Sparkles size={11} className="text-amber-400" />
+                                            <span>Sugerencias rápidas (toca para elegir):</span>
+                                        </span>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {SUGGESTED_PROMO_NAMES.map(preset => {
+                                                const isSelected = name.trim().toLowerCase() === preset.toLowerCase();
+                                                return (
+                                                    <button
+                                                        key={preset}
+                                                        type="button"
+                                                        onClick={() => setName(preset)}
+                                                        className={`text-xs py-1 px-2.5 rounded-xl border transition-all cursor-pointer font-medium active:scale-95 ${
+                                                            isSelected
+                                                                ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 font-bold shadow-sm shadow-amber-500/10'
+                                                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10'
+                                                        }`}
+                                                    >
+                                                        {preset}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Días aplicables */}
@@ -606,62 +665,139 @@ export default function Promotions() {
                                             <span>Esta promoción aplicará automáticamente a todo el catálogo de servicios en los días marcados.</span>
                                         </div>
                                     ) : (
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                             {/* Buscador de servicios si hay más de 4 */}
-                                            {services.length > 4 && (
+                                            {eligibleServices.length > 4 && (
                                                 <div className="relative">
                                                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                                                     <input
                                                         type="text"
                                                         value={serviceSearch}
                                                         onChange={e => setServiceSearch(e.target.value)}
-                                                        placeholder="Buscar servicio..."
+                                                        placeholder="Buscar servicio o paquete..."
                                                         className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                                                     />
                                                 </div>
                                             )}
 
-                                            <div className="max-h-52 overflow-y-auto space-y-1.5 p-2 rounded-2xl bg-white/[0.02] border border-white/10 custom-scrollbar">
-                                                {filteredServices.length === 0 ? (
-                                                    <p className="text-xs text-slate-500 text-center py-4">No se encontraron servicios</p>
+                                            <div className="max-h-60 overflow-y-auto space-y-4 p-2 rounded-2xl bg-white/[0.02] border border-white/10 custom-scrollbar">
+                                                {mainServices.length === 0 && packageServices.length === 0 ? (
+                                                    <p className="text-xs text-slate-500 text-center py-6">No se encontraron servicios ni paquetes participantes</p>
                                                 ) : (
-                                                    filteredServices.map(s => {
-                                                        const isChecked = selectedServiceIds.includes(s.id);
-                                                        const simulated = getSimulatedPrice(s.price);
-
-                                                        return (
-                                                            <button
-                                                                key={s.id}
-                                                                type="button"
-                                                                onClick={() => toggleService(s.id)}
-                                                                className={`w-full p-3 rounded-2xl text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99] ${
-                                                                    isChecked
-                                                                        ? 'bg-amber-500/15 text-white border border-amber-400/40 shadow-sm'
-                                                                        : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/5'
-                                                                }`}
-                                                            >
-                                                                <div className="min-w-0">
-                                                                    <p className="font-bold text-slate-100 truncate">{s.name}</p>
-                                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                                        <span className="text-[11px] text-slate-400">Regular: {currencySymbol}{s.price}</span>
-                                                                        {isChecked && (
-                                                                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                                                                Promo: {currencySymbol}{simulated}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
+                                                    <>
+                                                        {/* Sección 1: Servicios Principales */}
+                                                        {mainServices.length > 0 && (
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center justify-between px-1">
+                                                                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                                                                        <Sparkles size={13} />
+                                                                        <span>Servicios Principales</span>
+                                                                    </span>
+                                                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                                                        {mainServices.length}
+                                                                    </span>
                                                                 </div>
+                                                                <div className="space-y-1.5">
+                                                                    {mainServices.map(s => {
+                                                                        const isChecked = selectedServiceIds.includes(s.id);
+                                                                        const simulated = getSimulatedPrice(s.price);
 
-                                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
-                                                                    isChecked
-                                                                        ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
-                                                                        : 'bg-white/10 text-slate-500'
-                                                                }`}>
-                                                                    {isChecked ? <Check size={14} strokeWidth={3} /> : <Plus size={14} />}
+                                                                        return (
+                                                                            <button
+                                                                                key={s.id}
+                                                                                type="button"
+                                                                                onClick={() => toggleService(s.id)}
+                                                                                className={`w-full p-2.5 rounded-2xl text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99] ${
+                                                                                    isChecked
+                                                                                        ? 'bg-amber-500/15 text-white border border-amber-400/40 shadow-sm'
+                                                                                        : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/5'
+                                                                                }`}
+                                                                            >
+                                                                                <div className="min-w-0">
+                                                                                    <p className="font-bold text-slate-100 truncate">{s.name}</p>
+                                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                                        <span className="text-[11px] text-slate-400">Regular: {currencySymbol}{s.price}</span>
+                                                                                        {isChecked && (
+                                                                                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                                                                Promo: {currencySymbol}{simulated}
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                                                                                    isChecked
+                                                                                        ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                                                                                        : 'bg-white/10 text-slate-500'
+                                                                                }`}>
+                                                                                    {isChecked ? <Check size={14} strokeWidth={3} /> : <Plus size={14} />}
+                                                                                </div>
+                                                                            </button>
+                                                                        );
+                                                                    })}
                                                                 </div>
-                                                            </button>
-                                                        );
-                                                    })
+                                                            </div>
+                                                        )}
+
+                                                        {/* Sección 2: Paquetes y Combos */}
+                                                        {packageServices.length > 0 && (
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center justify-between px-1 pt-2 border-t border-white/5">
+                                                                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                                                                        <Layers size={13} className="text-purple-400" />
+                                                                        <span>Paquetes y Combos</span>
+                                                                    </span>
+                                                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                                                        {packageServices.length}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    {packageServices.map(s => {
+                                                                        const isChecked = selectedServiceIds.includes(s.id);
+                                                                        const simulated = getSimulatedPrice(s.price);
+
+                                                                        return (
+                                                                            <button
+                                                                                key={s.id}
+                                                                                type="button"
+                                                                                onClick={() => toggleService(s.id)}
+                                                                                className={`w-full p-2.5 rounded-2xl text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99] ${
+                                                                                    isChecked
+                                                                                        ? 'bg-purple-500/15 text-white border border-purple-400/40 shadow-sm'
+                                                                                        : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/5'
+                                                                                }`}
+                                                                            >
+                                                                                <div className="min-w-0">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <p className="font-bold text-slate-100 truncate">{s.name}</p>
+                                                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/25 text-purple-300 border border-purple-500/30 shrink-0">
+                                                                                            Paquete
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                                        <span className="text-[11px] text-slate-400">Regular: {currencySymbol}{s.price}</span>
+                                                                                        {isChecked && (
+                                                                                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200 border border-purple-500/30">
+                                                                                                Promo: {currencySymbol}{simulated}
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                                                                                    isChecked
+                                                                                        ? 'bg-purple-500 text-white font-black shadow-sm'
+                                                                                        : 'bg-white/10 text-slate-500'
+                                                                                }`}>
+                                                                                    {isChecked ? <Check size={14} strokeWidth={3} /> : <Plus size={14} />}
+                                                                                </div>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
