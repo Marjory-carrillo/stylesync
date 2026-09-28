@@ -73,7 +73,6 @@ export default function SocialContent() {
 
     const { promotions = [] } = usePromotions();
     const [selectedPromoId, setSelectedPromoId] = useState<string>('');
-    const [copiedPromoCopy, setCopiedPromoCopy] = useState<'post' | 'status' | 'dm' | null>(null);
 
     // Theme of the story image: 'light' | 'dark' | 'pink'
     const [storyTheme, setStoryTheme] = useState<'light' | 'dark' | 'pink'>('light');
@@ -309,63 +308,22 @@ Olvídate de esperar respuesta por chat: ahora puedes elegir tu servicio favorit
         return services.filter(s => activeSelectedPromo.serviceIds?.includes(s.id));
     }, [activeSelectedPromo, services]);
 
-    const promoDaysText = useMemo(() => {
-        if (!activeSelectedPromo || !activeSelectedPromo.daysOfWeek.length) return 'días seleccionados';
-        return activeSelectedPromo.daysOfWeek.map(d => DAY_LABELS[d] || d).join(' y ');
-    }, [activeSelectedPromo]);
-
-    const promoPostCopy = useMemo(() => {
-        const servicesLines = promoServices.map(s => {
-            let promoPrice = s.price;
-            if (activeSelectedPromo?.discountType === 'fixed_price') {
-                promoPrice = activeSelectedPromo.discountValue;
-            } else if (activeSelectedPromo?.discountType === 'percentage') {
-                promoPrice = Math.round(s.price * (1 - activeSelectedPromo.discountValue / 100));
-            } else if (activeSelectedPromo?.discountType === 'fixed_discount') {
-                promoPrice = Math.max(0, s.price - activeSelectedPromo.discountValue);
+    // Preseleccionar automáticamente un día válido de promoción al entrar a 'promotions'
+    useEffect(() => {
+        if (activeTab === 'promotions' && activeSelectedPromo?.daysOfWeek?.length) {
+            const currentDayKey = DAY_KEYS_MAP[selectedDate.getDay()];
+            if (!activeSelectedPromo.daysOfWeek.includes(currentDayKey)) {
+                const today = new Date();
+                for (let i = 0; i < 14; i++) {
+                    const d = addDays(today, i);
+                    if (activeSelectedPromo.daysOfWeek.includes(DAY_KEYS_MAP[d.getDay()])) {
+                        setSelectedDate(d);
+                        break;
+                    }
+                }
             }
-            return `✨ ${s.name}: de ~$${s.price}~ a solo *$${promoPrice} MXN*`;
-        }).join('\n');
-
-        return `🔥 ¡DÍAS DE PROMOCIÓN EN ${businessName.toUpperCase()}! 🔥
-
-Aprovecha nuestros días de descuento especial. Todos los *${promoDaysText}* disfruta de:
-
-${servicesLines || `💥 ${activeSelectedPromo?.name || 'Precios especiales'}`}
-
-⚡ ¡Cupos limitados por fecha! Agenda tu cita en segundos desde nuestra web:
-👉 ${fullBookingUrl}
-
-#${businessName.replace(/\s+/g, '')} #Promocion #Descuento #CitasOnline #AgendaTuCita`;
-    }, [businessName, promoDaysText, promoServices, activeSelectedPromo, fullBookingUrl]);
-
-    const promoWhatsAppStatus = useMemo(() => {
-        return `🔥 ¡PROMO DE LA SEMANA! 🔥
-Todos los *${promoDaysText}*:
-${promoServices.slice(0, 2).map(s => `• ${s.name} con descuento especial`).join('\n')}
-
-Reserva tu turno antes de que se agoten los horarios 👇
-${fullBookingUrl}`;
-    }, [promoDaysText, promoServices, fullBookingUrl]);
-
-    const promoDirectMessage = useMemo(() => {
-        return `¡Hola! 👋 Te escribimos de *${businessName}* para contarte que tenemos una promoción especial para ti. 💖
-
-Todos los *${promoDaysText}* tenemos activa nuestra promo *${activeSelectedPromo?.name || 'con precios especiales'}*:
-${promoServices.slice(0, 3).map(s => `• ${s.name}`).join('\n')}
-
-Puedes apartar tu cita en línea fácilmente aquí:
-👉 ${fullBookingUrl}
-
-¡Esperamos verte pronto! ✨`;
-    }, [businessName, promoDaysText, activeSelectedPromo, promoServices, fullBookingUrl]);
-
-    const handleCopyPromoCopy = (type: 'post' | 'status' | 'dm', text: string) => {
-        navigator.clipboard.writeText(text);
-        setCopiedPromoCopy(type);
-        showToast('¡Texto copiado al portapapeles!', 'success');
-        setTimeout(() => setCopiedPromoCopy(null), 2000);
-    };
+        }
+    }, [activeTab, activeSelectedPromo?.id]);
 
     // Download Story as HD PNG (1080x1920)
     const handleDownloadStory = async () => {
@@ -567,142 +525,6 @@ Puedes apartar tu cita en línea fácilmente aquí:
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* ── Left Column: Controls & Live Story Preview ── */}
                 <div className="lg:col-span-7 space-y-6">
-                    {/* Controls specific to 'slots' mode */}
-                    {activeTab === 'slots' && (
-                        <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/5 space-y-5">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                <div>
-                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Elige el día</h3>
-                                    <p className="text-sm font-bold text-white mt-0.5 capitalize">
-                                        {format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                                    {/* Stylist filter if multiple stylists */}
-                                    {stylists.length > 1 && (
-                                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                                            <Users size={14} className="text-slate-500 shrink-0" />
-                                            <select
-                                                value={selectedStylistId}
-                                                onChange={(e) => setSelectedStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                                                aria-label="Filtrar por especialista"
-                                                className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent w-full sm:w-auto"
-                                            >
-                                                <option value="all">Todos los especialistas</option>
-                                                {stylists.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
-
-
-
-                                    {/* Time format selector */}
-                                    <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-0.5">
-                                        <button
-                                            onClick={() => setTimeFormat('12h')}
-                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                                                timeFormat === '12h' ? 'bg-white/15 text-white' : 'text-slate-400 hover:text-white'
-                                            }`}
-                                        >
-                                            12 Horas
-                                        </button>
-                                        <button
-                                            onClick={() => setTimeFormat('24h')}
-                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                                                timeFormat === '24h' ? 'bg-white/15 text-white' : 'text-slate-400 hover:text-white'
-                                            }`}
-                                        >
-                                            24 Horas
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Horizontal scrollable date pills */}
-                            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                                {dateOptions.map((date) => {
-                                    const isSel = format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-                                    let label = format(date, 'EEE d', { locale: es });
-                                    if (isToday(date)) label = 'Hoy';
-                                    else if (isTomorrow(date)) label = 'Mañana';
-
-                                    return (
-                                        <button
-                                            key={date.toISOString()}
-                                            onClick={() => setSelectedDate(date)}
-                                            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
-                                                isSel
-                                                    ? 'bg-white text-slate-950 shadow-lg scale-105'
-                                                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                                            }`}
-                                        >
-                                            {label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Real slots interactive picker */}
-                            <div className="pt-2 border-t border-white/5 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
-                                            Horarios reales disponibles ({realAvailableSlots.length})
-                                        </span>
-                                        <span className="text-[11px] font-medium text-slate-500">
-                                            • Seleccionados ({selectedSlotTimes.length}/8)
-                                        </span>
-                                    </div>
-                                    {realAvailableSlots.length > 8 && (
-                                        <button
-                                            onClick={handleResetSuggestedSlots}
-                                            className="text-[11px] font-bold text-violet-400 hover:text-violet-300 flex items-center gap-1 cursor-pointer"
-                                        >
-                                            <RotateCcw size={12} />
-                                            <span>Sugerir 8</span>
-                                        </button>
-                                    )}
-                                </div>
-
-                                {isDayClosed ? (
-                                    <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-bold flex items-center gap-2">
-                                        <span>🔴</span>
-                                        <span>El establecimiento se encuentra cerrado los {DAY_NAMES[DAY_KEYS_MAP[selectedDate.getDay()]]}s según tu configuración de horarios.</span>
-                                    </div>
-                                ) : realAvailableSlots.length === 0 ? (
-                                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold flex items-center gap-2">
-                                        <span>✨</span>
-                                        <span>No hay horarios libres disponibles para esta fecha (agenda completa o fuera de horario laboral).</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
-                                        {realAvailableSlots.map(time => {
-                                            const isSelected = selectedSlotTimes.includes(time);
-                                            const displayTime = timeFormat === '12h' ? formatTime12h(time) : time;
-                                            return (
-                                                <button
-                                                    key={time}
-                                                    onClick={() => handleToggleSlot(time)}
-                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                                                        isSelected
-                                                            ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-violet-600/30'
-                                                            : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                                                    }`}
-                                                >
-                                                    {isSelected && <Check size={12} className="stroke-[3]" />}
-                                                    <span>{displayTime}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
                     {/* Controls specific to 'promotions' mode */}
                     {activeTab === 'promotions' && (
                         <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/5 space-y-4">
@@ -772,6 +594,149 @@ Puedes apartar tu cita en línea fácilmente aquí:
                         </div>
                     )}
 
+                    {/* Controls for choosing date and slots (active in 'slots' and 'promotions' mode) */}
+                    {(activeTab === 'slots' || activeTab === 'promotions') && (
+                        <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/5 space-y-5">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                                        {activeTab === 'promotions' ? 'Elige el día de la promoción' : 'Elige el día'}
+                                    </h3>
+                                    <p className="text-sm font-bold text-white mt-0.5 capitalize">
+                                        {format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                                    {/* Stylist filter if multiple stylists */}
+                                    {stylists.length > 1 && (
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                            <Users size={14} className="text-slate-500 shrink-0" />
+                                            <select
+                                                value={selectedStylistId}
+                                                onChange={(e) => setSelectedStylistId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                                aria-label="Filtrar por especialista"
+                                                className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent w-full sm:w-auto"
+                                            >
+                                                <option value="all">Todos los especialistas</option>
+                                                {stylists.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {/* Time format selector */}
+                                    <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-0.5">
+                                        <button
+                                            onClick={() => setTimeFormat('12h')}
+                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                                timeFormat === '12h' ? 'bg-white/15 text-white' : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            12 Horas
+                                        </button>
+                                        <button
+                                            onClick={() => setTimeFormat('24h')}
+                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                                timeFormat === '24h' ? 'bg-white/15 text-white' : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            24 Horas
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Horizontal scrollable date pills */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                {dateOptions.map((date) => {
+                                    const isSel = format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                                    let label = format(date, 'EEE d', { locale: es });
+                                    if (isToday(date)) label = 'Hoy';
+                                    else if (isTomorrow(date)) label = 'Mañana';
+
+                                    const isPromoDay = activeTab === 'promotions' && activeSelectedPromo?.daysOfWeek?.includes(DAY_KEYS_MAP[date.getDay()]);
+
+                                    return (
+                                        <button
+                                            key={date.toISOString()}
+                                            onClick={() => setSelectedDate(date)}
+                                            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer relative ${
+                                                isSel
+                                                    ? 'bg-white text-slate-950 shadow-lg scale-105'
+                                                    : isPromoDay
+                                                    ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
+                                                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
+                                            }`}
+                                        >
+                                            {label}
+                                            {isPromoDay && !isSel && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute top-1.5 right-1.5" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Real slots interactive picker */}
+                            <div className="pt-2 border-t border-white/5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
+                                            Horarios reales disponibles ({realAvailableSlots.length})
+                                        </span>
+                                        <span className="text-[11px] font-medium text-slate-500">
+                                            • Seleccionados ({selectedSlotTimes.length}/8)
+                                        </span>
+                                    </div>
+                                    {realAvailableSlots.length > 8 && (
+                                        <button
+                                            onClick={handleResetSuggestedSlots}
+                                            className="text-[11px] font-bold text-violet-400 hover:text-violet-300 flex items-center gap-1 cursor-pointer"
+                                        >
+                                            <RotateCcw size={12} />
+                                            <span>Sugerir 8</span>
+                                        </button>
+                                    )}
+                                </div>
+
+                                {isDayClosed ? (
+                                    <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-bold flex items-center gap-2">
+                                        <span>🔴</span>
+                                        <span>El establecimiento se encuentra cerrado los {DAY_NAMES[DAY_KEYS_MAP[selectedDate.getDay()]]}s según tu configuración de horarios.</span>
+                                    </div>
+                                ) : realAvailableSlots.length === 0 ? (
+                                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold flex items-center gap-2">
+                                        <span>✨</span>
+                                        <span>No hay horarios libres disponibles para esta fecha (agenda completa o fuera de horario laboral).</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                                        {realAvailableSlots.map(time => {
+                                            const isSelected = selectedSlotTimes.includes(time);
+                                            const displayTime = timeFormat === '12h' ? formatTime12h(time) : time;
+                                            return (
+                                                <button
+                                                    key={time}
+                                                    onClick={() => handleToggleSlot(time)}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-violet-600/30'
+                                                            : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
+                                                    }`}
+                                                >
+                                                    {isSelected && <Check size={12} className="stroke-[3]" />}
+                                                    <span>{displayTime}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── LIVE INSTAGRAM STORY CARD PREVIEW (9:16) ── */}
                     {activeTab !== 'whatsapp' ? (
                         <div className="flex flex-col items-center">
@@ -793,17 +758,23 @@ Puedes apartar tu cita en línea fácilmente aquí:
                                 >
                                     {/* Top decorative accent gradient bar */}
                                     <div className={`absolute top-0 left-0 right-0 h-1.5 ${
-                                        storyTheme === 'pink'
+                                        activeTab === 'promotions'
+                                            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500'
+                                            : storyTheme === 'pink'
                                             ? 'bg-gradient-to-r from-pink-500 via-rose-400 to-fuchsia-500'
                                             : 'bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500'
                                     }`} />
 
                                     {/* Subtle decorative background light */}
                                     <div className={`absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl pointer-events-none ${
-                                        storyTheme === 'pink' ? 'bg-pink-300/40' : storyTheme === 'light' ? 'bg-violet-200/40' : 'bg-violet-600/10'
+                                        activeTab === 'promotions'
+                                            ? 'bg-amber-500/20'
+                                            : storyTheme === 'pink' ? 'bg-pink-300/40' : storyTheme === 'light' ? 'bg-violet-200/40' : 'bg-violet-600/10'
                                     }`} />
                                     <div className={`absolute -bottom-12 -left-12 w-48 h-48 rounded-full blur-3xl pointer-events-none ${
-                                        storyTheme === 'pink' ? 'bg-rose-300/40' : storyTheme === 'light' ? 'bg-pink-200/30' : 'bg-pink-600/10'
+                                        activeTab === 'promotions'
+                                            ? 'bg-rose-500/15'
+                                            : storyTheme === 'pink' ? 'bg-rose-300/40' : storyTheme === 'light' ? 'bg-pink-200/30' : 'bg-pink-600/10'
                                     }`} />
 
                                     {/* Story Header: Brand */}
@@ -922,92 +893,112 @@ Puedes apartar tu cita en línea fácilmente aquí:
                                                 </p>
                                             </>
                                         ) : activeTab === 'promotions' ? (
-                                            /* Promotions mode: Días de descuento */
+                                            /* Promotions mode: Gran impacto promocional con citas disponibles */
                                             <>
-                                                <div>
-                                                    <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border mb-2 ${
+                                                <div className="space-y-1.5">
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
                                                         storyTheme === 'pink'
-                                                            ? 'bg-pink-500/15 text-pink-700 border-pink-300/60'
-                                                            : 'bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/30'
+                                                            ? 'bg-rose-500/15 text-rose-700 border-rose-300/60'
+                                                            : 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
                                                     }`}>
-                                                        🔥 Días de Promoción
+                                                        🔥 DÍA DE PROMOCIÓN
                                                     </span>
-                                                    <h2 className="text-2xl font-black tracking-normal leading-tight">
-                                                        {activeSelectedPromo?.name || '¡Precios Especiales!'}
+
+                                                    {/* Gran titular del beneficio real de la promo */}
+                                                    <h2 className={`text-2xl sm:text-3xl font-black tracking-tight leading-none ${
+                                                        storyTheme === 'pink'
+                                                            ? 'text-rose-700'
+                                                            : 'bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 bg-clip-text text-transparent'
+                                                    }`}>
+                                                        {activeSelectedPromo?.discountType === 'percentage'
+                                                            ? `${activeSelectedPromo.discountValue}% DE DESCUENTO`
+                                                            : activeSelectedPromo?.discountType === 'fixed_discount'
+                                                            ? `-$${activeSelectedPromo.discountValue} MXN OFF`
+                                                            : activeSelectedPromo?.discountType === 'fixed_price'
+                                                            ? `TARIFA ESPECIAL $${activeSelectedPromo.discountValue} MXN`
+                                                            : 'PRECIO ESPECIAL'}
                                                     </h2>
-                                                    <div className="flex items-center justify-center gap-1.5 mt-2">
-                                                        <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border shadow-sm ${
+
+                                                    {/* Recalcar que es en servicios seleccionados sin listarlos */}
+                                                    <div>
+                                                        <span className={`inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                                                             storyTheme === 'pink'
-                                                                ? 'bg-pink-500 text-white border-pink-400'
-                                                                : 'bg-gradient-to-r from-amber-500 to-rose-500 text-white border-white/20'
+                                                                ? 'bg-white/90 text-rose-800 border-rose-200 shadow-sm'
+                                                                : 'bg-white/5 text-amber-300 border-white/10'
                                                         }`}>
-                                                            {promoDaysText.toUpperCase()}
+                                                            ✨ En servicios seleccionados
                                                         </span>
                                                     </div>
+
+                                                    <p className={`text-xs font-bold uppercase tracking-wider pt-0.5 ${
+                                                        storyTheme === 'pink' ? 'text-pink-600' : storyTheme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                                                    }`}>
+                                                        {isToday(selectedDate)
+                                                            ? '¡Válido para hoy!'
+                                                            : format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
+                                                    </p>
                                                 </div>
 
-                                                {/* Services Promotion Cards */}
+                                                {/* Slots Grid con identidad promocional */}
                                                 <div className="w-full max-w-[310px] mx-auto space-y-2 pt-1">
-                                                    {promoServices.length > 0 ? (
-                                                        promoServices.map(service => {
-                                                            let promoPrice = service.price;
-                                                            if (activeSelectedPromo?.discountType === 'fixed_price') {
-                                                                promoPrice = activeSelectedPromo.discountValue;
-                                                            } else if (activeSelectedPromo?.discountType === 'percentage') {
-                                                                promoPrice = Math.round(service.price * (1 - activeSelectedPromo.discountValue / 100));
-                                                            } else if (activeSelectedPromo?.discountType === 'fixed_discount') {
-                                                                promoPrice = Math.max(0, service.price - activeSelectedPromo.discountValue);
-                                                            }
-                                                            const savings = Math.max(0, service.price - promoPrice);
-
-                                                            return (
-                                                                <div
-                                                                    key={service.id}
-                                                                    className={`p-3 rounded-2xl flex items-center justify-between border shadow-sm transition-all ${
-                                                                        storyTheme === 'pink'
-                                                                            ? 'bg-white/90 border-pink-200/80 shadow-pink-500/5'
-                                                                            : storyTheme === 'light'
-                                                                            ? 'bg-slate-50/80 border-slate-200/90'
-                                                                            : 'bg-white/[0.04] border-white/10'
-                                                                    }`}
-                                                                >
-                                                                    <div className="text-left flex-1 min-w-0 pr-2">
-                                                                        <p className="text-xs font-black tracking-normal truncate">
-                                                                            {service.name}
-                                                                        </p>
-                                                                        <p className={`text-[10px] font-medium leading-none mt-0.5 line-through opacity-60 ${
-                                                                            storyTheme === 'pink' ? 'text-pink-900' : ''
-                                                                        }`}>
-                                                                            Normal: ${service.price} MXN
-                                                                        </p>
-                                                                    </div>
-
-                                                                    <div className="text-right shrink-0">
-                                                                        <span className={`text-base font-black tracking-tight block ${
-                                                                            storyTheme === 'pink'
-                                                                                ? 'text-pink-600'
-                                                                                : 'text-emerald-400'
-                                                                        }`}>
-                                                                            ${promoPrice} <span className="text-[10px] font-bold">MXN</span>
-                                                                        </span>
-                                                                        {savings > 0 && (
-                                                                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                                                                Ahorra ${savings}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
+                                                    {isDayClosed ? (
+                                                        <div className="p-4 rounded-2xl text-xs font-bold w-full mx-auto bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                                            Establecimiento cerrado este día
+                                                            <p className="text-[10px] font-normal mt-1 opacity-80">¡Revisa nuestros horarios en las próximas fechas!</p>
+                                                        </div>
+                                                    ) : selectedSlotTimes.length > 0 ? (
+                                                        <>
+                                                            <div className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-400">
+                                                                <Clock size={12} />
+                                                                <span>Horarios disponibles para agendar:</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-2 w-full">
+                                                                {selectedSlotTimes.map((time) => {
+                                                                    const display = timeFormat === '12h' ? formatTime12h(time) : time;
+                                                                    return (
+                                                                        <div
+                                                                            key={time}
+                                                                            className={`py-2 px-3 rounded-2xl font-black text-sm tracking-normal transition-all flex items-center justify-center gap-1.5 shadow-sm ${
+                                                                                storyTheme === 'pink'
+                                                                                    ? 'bg-white/95 text-rose-950 border border-rose-300/80 shadow-rose-500/5'
+                                                                                    : storyTheme === 'light'
+                                                                                    ? 'bg-amber-500/10 text-amber-950 border border-amber-300/80'
+                                                                                    : 'bg-gradient-to-b from-amber-500/20 to-amber-500/5 text-amber-200 border border-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.12)]'
+                                                                            }`}
+                                                                        >
+                                                                            <Clock size={13} className="text-amber-400 shrink-0" />
+                                                                            <span>{display}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </>
                                                     ) : (
-                                                        <div className={`p-4 rounded-2xl text-xs font-bold border ${
+                                                        <div className={`p-4 rounded-2xl text-xs font-bold w-full ${
                                                             storyTheme === 'pink'
-                                                                ? 'bg-white/90 text-pink-700 border-pink-200'
-                                                                : 'bg-white/5 text-slate-300 border-white/10'
+                                                                ? 'bg-white/90 text-pink-700 border border-pink-200'
+                                                                : storyTheme === 'light'
+                                                                ? 'bg-slate-50 text-slate-500 border border-slate-200'
+                                                                : 'bg-white/5 text-slate-400 border border-white/10'
                                                         }`}>
-                                                            {activeSelectedPromo?.description || '¡Precios especiales por tiempo limitado en tus servicios favoritos!'}
+                                                            Agenda completa para este día. ¡Toca el link para ver más fechas disponibles!
                                                         </div>
                                                     )}
+
+                                                    {/* Urgencia y llamados a la acción */}
+                                                    <div className="pt-0.5 space-y-0.5">
+                                                        <p className={`text-[11px] font-black uppercase tracking-wide flex items-center justify-center gap-1 ${
+                                                            storyTheme === 'pink' ? 'text-rose-700' : 'text-amber-300'
+                                                        }`}>
+                                                            <span>⚡</span>
+                                                            <span>Cupos limitados con descuento</span>
+                                                        </p>
+                                                        <p className={`text-[10px] font-bold ${
+                                                            storyTheme === 'pink' ? 'text-pink-700/80' : storyTheme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                                                        }`}>
+                                                            {selectedSlotTimes.length} {selectedSlotTimes.length === 1 ? 'horario disponible' : 'horarios disponibles'}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </>
                                         ) : (
@@ -1195,80 +1186,7 @@ Puedes apartar tu cita en línea fácilmente aquí:
 
                 {/* ── Right Column: Instructions & Actions ── */}
                 <div className="lg:col-span-5 space-y-6">
-                    {/* Marketing Copys for Promotions */}
-                    {activeTab === 'promotions' && (
-                        <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/5 space-y-5">
-                            <div className="flex items-center gap-3 pb-3 border-b border-white/5">
-                                <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                    <Sparkles size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black text-white">Copys de Marketing Persuasivos</h3>
-                                    <p className="text-[11px] text-slate-500 font-medium">Textos listos para copiar y publicar en 1 clic</p>
-                                </div>
-                            </div>
 
-                            {/* 1. Post Instagram / Facebook */}
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                                        <Instagram size={14} className="text-pink-400" />
-                                        Post para Instagram / Facebook
-                                    </span>
-                                    <button
-                                        onClick={() => handleCopyPromoCopy('post', promoPostCopy)}
-                                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
-                                    >
-                                        {copiedPromoCopy === 'post' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                                        <span>{copiedPromoCopy === 'post' ? '¡Copiado!' : 'Copiar'}</span>
-                                    </button>
-                                </div>
-                                <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-xs text-slate-300 max-h-28 overflow-y-auto whitespace-pre-wrap leading-relaxed font-sans">
-                                    {promoPostCopy}
-                                </div>
-                            </div>
-
-                            {/* 2. Estado de WhatsApp */}
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                                        <MessageCircle size={14} className="text-emerald-400" />
-                                        Estado de WhatsApp
-                                    </span>
-                                    <button
-                                        onClick={() => handleCopyPromoCopy('status', promoWhatsAppStatus)}
-                                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
-                                    >
-                                        {copiedPromoCopy === 'status' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                                        <span>{copiedPromoCopy === 'status' ? '¡Copiado!' : 'Copiar'}</span>
-                                    </button>
-                                </div>
-                                <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-xs text-slate-300 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed font-sans">
-                                    {promoWhatsAppStatus}
-                                </div>
-                            </div>
-
-                            {/* 3. Mensaje Directo / Difusión */}
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                                        <Users size={14} className="text-cyan-400" />
-                                        Mensaje Directo para Clientes
-                                    </span>
-                                    <button
-                                        onClick={() => handleCopyPromoCopy('dm', promoDirectMessage)}
-                                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
-                                    >
-                                        {copiedPromoCopy === 'dm' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                                        <span>{copiedPromoCopy === 'dm' ? '¡Copiado!' : 'Copiar'}</span>
-                                    </button>
-                                </div>
-                                <div className="bg-black/50 p-3 rounded-xl border border-white/10 text-xs text-slate-300 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed font-sans">
-                                    {promoDirectMessage}
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* How to use card */}
                     <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/5 space-y-5">
