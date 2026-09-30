@@ -4,6 +4,22 @@ import { supabase } from '../../supabaseClient';
 import { useAuthStore, isUserSuperAdmin } from '../authStore';
 import { CATEGORY_DEFAULTS } from '../../categoryDefaults';
 
+async function getSuperAdminAuthHeader(): Promise<Record<string, string>> {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (token) {
+            return {
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                'x-supabase-auth': token,
+            };
+        }
+    } catch (_) {}
+    return {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    };
+}
+
 export function useSuperAdmin() {
     const queryClient = useQueryClient();
     const user = useAuthStore(s => s.user);
@@ -94,13 +110,14 @@ export function useSuperAdmin() {
             let accountCreated = false;
             if (!existingOwnerId) {
                 try {
+                    const authHeaders = await getSuperAdminAuthHeader();
                     const fnRes = await fetch(
                         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
                         {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                                ...authHeaders,
                             },
                             body: JSON.stringify({ email: ownerEmail, password: ownerPassword, businessName: name, businessSlug: slug, createTenant: false }),
                         }
@@ -153,13 +170,12 @@ export function useSuperAdmin() {
 
             // 1. Llamar a Edge Function con clave service_role para borrado completo (DB + auth.users)
             try {
-                const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-                const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-                const res = await fetch(`${SUPABASE_URL}/functions/v1/create-owner`, {
+                const authHeaders = await getSuperAdminAuthHeader();
+                const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${ANON_KEY}`,
+                        ...authHeaders,
                     },
                     body: JSON.stringify({ action: 'delete_tenant', tenant_id: id }),
                 });
@@ -252,6 +268,7 @@ export function useSuperAdmin() {
         relinkOwner: async (tenantId: string, ownerEmail: string): Promise<{ success: boolean; error?: string }> => {
             if (!isSuperAdmin) return { success: false, error: 'No autorizado' };
             try {
+                const authHeaders = await getSuperAdminAuthHeader();
                 // Llamar a la Edge Function create-owner para obtener/crear el userId
                 const fnRes = await fetch(
                     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
@@ -259,7 +276,7 @@ export function useSuperAdmin() {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                            ...authHeaders,
                         },
                         body: JSON.stringify({ email: ownerEmail, lookupOnly: true }),
                     }
@@ -310,13 +327,14 @@ export function useSuperAdmin() {
             if (!isSuperAdmin) return { success: false, error: 'No autorizado' };
             if (!newPassword || newPassword.length < 6) return { success: false, error: 'La contraseña debe tener al menos 6 caracteres' };
             try {
+                const authHeaders = await getSuperAdminAuthHeader();
                 const fnRes = await fetch(
                     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
                     {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                            ...authHeaders,
                         },
                         body: JSON.stringify({ email: ownerEmail.trim().toLowerCase(), password: newPassword }),
                     }

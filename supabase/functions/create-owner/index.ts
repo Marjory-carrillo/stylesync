@@ -143,8 +143,36 @@ serve(async (req: Request) => {
         // Regular client (for sending magic link emails)
         const supabaseClient = createClient(supabaseUrl, anonKey);
 
+        // ── VERIFICACIÓN DE IDENTIDAD DEL EMISOR (SuperAdmin) ───────────────
+        const customToken = req.headers.get('x-supabase-auth');
+        const authHeader = req.headers.get('authorization')?.replace(/^bearer\s+/i, '');
+        const userToken = customToken || (authHeader && authHeader !== anonKey && authHeader !== serviceRoleKey ? authHeader : null);
+
+        let callerIsSuperAdmin = false;
+        if (userToken) {
+            try {
+                const { data: userData } = await supabaseAdmin.auth.getUser(userToken);
+                const callerEmail = userData?.user?.email?.toLowerCase().trim();
+                const appMeta = userData?.user?.app_metadata;
+                if (
+                    callerEmail === 'infinitummisael@gmail.com' ||
+                    appMeta?.is_super_admin === true ||
+                    appMeta?.role === 'super_admin'
+                ) {
+                    callerIsSuperAdmin = true;
+                }
+            } catch (_) {}
+        }
+
         // ── ACCIÓN: Eliminar Tenant y su Usuario de Authentication ─────────────
         if (body.action === 'delete_tenant') {
+            if (!callerIsSuperAdmin) {
+                return new Response(
+                    JSON.stringify({ success: false, error: 'No autorizado. Se requieren permisos de Super Admin para eliminar negocios.' }),
+                    { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+
             const { tenant_id } = body;
             if (!tenant_id) {
                 return new Response(
@@ -153,7 +181,7 @@ serve(async (req: Request) => {
                 );
             }
 
-            console.log('[create-owner] Deleting tenant and auth users:', tenant_id);
+            console.log('[create-owner] Deleting tenant and auth users by SuperAdmin:', tenant_id);
 
             // 1. Obtener los user_ids asociados al tenant antes de borrar
             const { data: tenant } = await supabaseAdmin.from('tenants').select('owner_id').eq('id', tenant_id).maybeSingle();
@@ -194,7 +222,7 @@ serve(async (req: Request) => {
                 try {
                     const { data: uInfo } = await supabaseAdmin.auth.admin.getUserById(uId);
                     const email = uInfo?.user?.email?.toLowerCase() || '';
-                    if (email && email !== 'citalink.soporte@gmail.com' && !email.includes('superadmin')) {
+                    if (email && email !== 'infinitummisael@gmail.com' && !email.includes('superadmin')) {
                         await supabaseAdmin.auth.admin.deleteUser(uId);
                         console.log('[create-owner] Deleted user from auth.users:', uId, email);
                     }
@@ -210,7 +238,7 @@ serve(async (req: Request) => {
         }
 
         const {
-            email, password, businessName, businessSlug, lookupOnly,
+            email, password, isOAuth = false, businessName, businessSlug, lookupOnly,
             createTenant = true, category = 'nail_bar', contactName,
             address = '', phone = '', countryCode = 'MX', currency = 'MXN',
             currencySymbol = '$', defaultPhonePrefix = '+52'
@@ -224,7 +252,7 @@ serve(async (req: Request) => {
         }
 
         // lookupOnly = solo buscar el userId sin cambiar contraseña (usado por relinkOwner)
-        if (!lookupOnly && (!password || password.length < 6)) {
+        if (!lookupOnly && !isOAuth && (!password || password.length < 6)) {
             return new Response(
                 JSON.stringify({ success: false, error: 'La contraseña debe tener al menos 6 caracteres.' }),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -232,12 +260,26 @@ serve(async (req: Request) => {
         }
 
         const siteUrl = (Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://www.citalink.app').replace(/\/$/, '');
-        const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}&pw=${encodeURIComponent(password)}`;
+        // Saneamiento de seguridad: NUNCA pasar la contraseña en parámetros de URL
+        const redirectTo = `${siteUrl}/login?email=${encodeURIComponent(email)}`;
 
         // 1. Check if user already exists
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
         let userId = existingUsers?.users?.find((u: any) => u.email?.toLowerCase() === email?.toLowerCase())?.id;
         let isExisting = !!userId;
+
+        // Verificar si el llamador es el mismo usuario autenticado (ej. usuario que inició sesión con Google)
+        let callerIsSelf = false;
+        if (userToken) {
+            try {
+                const { data: callerData } = await supabaseAdmin.auth.getUser(userToken);
+                const callerEmail = callerData?.user?.email?.toLowerCase().trim();
+                const callerId = callerData?.user?.id;
+                if (callerEmail === email.toLowerCase().trim() || (userId && callerId === userId)) {
+                    callerIsSelf = true;
+                }
+            } catch (_) {}
+        }
 
         if (isExisting) {
             if (lookupOnly) {
@@ -248,12 +290,30 @@ serve(async (req: Request) => {
                 );
             }
 
-            // Actualizar contraseña del usuario existente
-            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-                userId,
-                { password, email_confirm: true }
-            );
-            if (updateError) throw updateError;
+            // Flujo OAuth: El usuario ya fue creado en Auth al iniciar sesión con Google
+            // Si el llamador es el mismo usuario autenticado, le permitimos continuar a crear su negocio
+            if (isOAuth && callerIsSelf) {
+                console.log('[create-owner] Usuario autenticado con Google creando su negocio:', email, userId);
+                // Continúa a la creación de tenant sin alterar contraseña
+            } else if (callerIsSuperAdmin) {
+                // Actualizar contraseña del usuario existente (SOLO para SuperAdmin autenticado)
+                if (password) {
+                    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+                        userId,
+                        { password, email_confirm: true }
+                    );
+                    if (updateError) throw updateError;
+                }
+            } else {
+                // BLINDAJE ANTI-ATO: Bloquear intento no autorizado
+                return new Response(
+                    JSON.stringify({
+                        success: false,
+                        error: 'Este correo electrónico ya tiene una cuenta registrada en CitaLink. Por favor inicia sesión o restablece tu contraseña.'
+                    }),
+                    { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
         } else {
             // Crear nuevo usuario en auth.users
             const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

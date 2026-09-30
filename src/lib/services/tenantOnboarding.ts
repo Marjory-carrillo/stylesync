@@ -6,13 +6,14 @@ export interface SelfServeTenantPayload {
     slug: string;
     contactName: string;
     email: string;
-    password: string;
+    password?: string;
     phone: string;
     address: string;
     countryCode?: string;
     currency?: string;
     currencySymbol?: string;
     defaultPhonePrefix?: string;
+    isOAuth?: boolean;
 }
 
 /**
@@ -78,11 +79,27 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
             countryCode = 'MX',
             currency = 'MXN',
             currencySymbol = '$',
-            defaultPhonePrefix = '+52'
+            defaultPhonePrefix = '+52',
+            isOAuth = false,
         } = payload;
 
-        if (!businessName || !email || !password || !slug) {
+        if (!businessName || !email || (!password && !isOAuth) || !slug) {
             return { success: false, error: 'Faltan campos obligatorios para registrar el negocio.' };
+        }
+
+        // Obtener token de sesión activa si el usuario ya se autenticó previamente (ej. con Google)
+        let sessionToken: string | null = null;
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            sessionToken = session?.access_token || null;
+        } catch (_) {}
+
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        };
+        if (sessionToken) {
+            headers['x-supabase-auth'] = sessionToken;
         }
 
         // 1. Llamar a la Edge Function segura en el backend
@@ -90,13 +107,11 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`,
             {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-                },
+                headers,
                 body: JSON.stringify({
                     email,
-                    password,
+                    password: password || undefined,
+                    isOAuth,
                     businessName,
                     businessSlug: slug,
                     category: category || 'nail_bar',
@@ -122,17 +137,19 @@ export async function createSelfServeTenant(payload: SelfServeTenantPayload): Pr
 
         const tenantId = fnData.tenantId;
 
-        // 2. Iniciar sesión automáticamente en el cliente
-        try {
-            const { error: signInErr } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-            if (signInErr) {
-                console.warn('Auto-login post registro falló:', signInErr.message);
+        // 2. Si no es OAuth y proporcionó contraseña, iniciar sesión automáticamente
+        if (!isOAuth && password) {
+            try {
+                const { error: signInErr } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+                if (signInErr) {
+                    console.warn('Auto-login post registro falló:', signInErr.message);
+                }
+            } catch (loginErr) {
+                console.warn('Error al iniciar sesión automáticamente:', loginErr);
             }
-        } catch (loginErr) {
-            console.warn('Error al iniciar sesión automáticamente:', loginErr);
         }
 
         if (tenantId) {

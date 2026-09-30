@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import {
     Sparkles, Eye, EyeOff, AlertCircle, ArrowRight,
     Building2, Mail, Lock, Phone, MapPin, User,
-    Scissors, Flower2, Eye as EyeIcon, Store
+    Scissors, Flower2, Eye as EyeIcon, Store, CheckCircle2
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 import {
     createSelfServeTenant,
     generateSlug,
@@ -35,6 +36,7 @@ export default function Register() {
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
 
+    const [oauthUser, setOauthUser] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -81,6 +83,67 @@ export default function Register() {
         return () => clearTimeout(timer);
     }, [slug]);
 
+    // Restaurar borrador de registro si viene de redirección OAuth de Google
+    useEffect(() => {
+        try {
+            const rawDraft = sessionStorage.getItem('citalink_onboarding_draft');
+            if (rawDraft) {
+                const draft = JSON.parse(rawDraft);
+                if (draft.businessName) setBusinessName(draft.businessName);
+                if (draft.category) setCategory(draft.category);
+                if (draft.slug) {
+                    setSlug(draft.slug);
+                    setIsSlugManual(true);
+                }
+                if (draft.contactName) setContactName(draft.contactName);
+                if (draft.phone) setPhone(draft.phone);
+                if (draft.address) setAddress(draft.address);
+            }
+        } catch (_) {}
+
+        // Verificar si el usuario ya está autenticado con Google
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user && user.email) {
+                setOauthUser(user);
+                setEmail(user.email);
+                const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
+                if (fullName) {
+                    setContactName((prev: string) => prev || fullName);
+                }
+            }
+        });
+    }, []);
+
+    const handleGoogleSignUp = async () => {
+        setErrorMsg(null);
+        try {
+            const draft = {
+                businessName,
+                category,
+                slug,
+                contactName,
+                phone,
+                address,
+            };
+            sessionStorage.setItem('citalink_onboarding_draft', JSON.stringify(draft));
+
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/register`,
+                },
+            });
+            if (error) throw error;
+        } catch (err: any) {
+            console.error('Error Google OAuth:', err);
+            if (err?.message?.includes('provider') || err?.message?.includes('Unsupported')) {
+                setErrorMsg('El registro con Google requiere habilitar el proveedor en Supabase. Puedes registrarte abajo con tu correo y contraseña.');
+            } else {
+                setErrorMsg(err?.message || 'Error al conectar con Google.');
+            }
+        }
+    };
+
     const phoneDigits = phone.replace(/\D/g, '');
     const isPhoneValid = phoneDigits.length >= 10 && phoneDigits.length <= 12;
 
@@ -101,7 +164,7 @@ export default function Register() {
             setErrorMsg(`El WhatsApp debe tener entre 10 y 12 dígitos (ingresaste ${phoneDigits.length}).`);
             return;
         }
-        if (password.length < 6) {
+        if (!oauthUser && password.length < 6) {
             setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
             return;
         }
@@ -118,7 +181,8 @@ export default function Register() {
                 slug,
                 contactName,
                 email,
-                password,
+                password: oauthUser ? undefined : password,
+                isOAuth: !!oauthUser,
                 phone,
                 address,
                 countryCode: 'MX',
@@ -132,6 +196,11 @@ export default function Register() {
                 setLoading(false);
                 return;
             }
+
+            // Limpiar borrador temporal tras creación exitosa
+            try {
+                sessionStorage.removeItem('citalink_onboarding_draft');
+            } catch (_) {}
 
             // Redirigir al panel de administración con el flag de bienvenida y recarga limpia
             window.location.href = '/admin?welcome=true';
@@ -174,6 +243,51 @@ export default function Register() {
                         <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-bold flex items-center gap-3 animate-fade-in">
                             <AlertCircle size={18} className="shrink-0 text-rose-400" />
                             <span>{errorMsg}</span>
+                        </div>
+                    )}
+
+                    {/* Botón de Google OAuth */}
+                    {!oauthUser ? (
+                        <div className="mb-6 space-y-4">
+                            <button
+                                type="button"
+                                onClick={handleGoogleSignUp}
+                                disabled={loading}
+                                className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                            >
+                                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                                </svg>
+                                <span>Continuar con Google</span>
+                            </button>
+                            <div className="relative flex py-1 items-center">
+                                <div className="flex-grow border-t border-white/10"></div>
+                                <span className="flex-shrink mx-4 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
+                                    o con correo y contraseña manual
+                                </span>
+                                <div className="flex-grow border-t border-white/10"></div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold flex items-center justify-between animate-fade-in">
+                            <div className="flex items-center gap-2.5">
+                                <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+                                <span>Conectado con Google: <strong>{oauthUser.email}</strong></span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    await supabase.auth.signOut();
+                                    setOauthUser(null);
+                                    setEmail('');
+                                }}
+                                className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
+                            >
+                                Cambiar cuenta
+                            </button>
                         </div>
                     )}
 
@@ -352,69 +466,89 @@ export default function Register() {
                             </div>
                         </div>
 
-                        {/* 3. Acceso (Email y Contraseña) */}
+                        {/* 3. Acceso */}
                         <div className="pt-2 border-t border-white/5 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-email">Correo Electrónico</label>
-                                    <div className="relative">
-                                        <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        <input
-                                            required
-                                            id="reg2-email"
-                                            name="email"
-                                            autoComplete="email"
-                                            inputMode="email"
-                                            type="email"
-                                            placeholder="tu@correo.com"
-                                            className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
-                                            value={email}
-                                            onChange={e => setEmail(e.target.value)}
-                                        />
+                            {oauthUser ? (
+                                <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-600/15 via-fuchsia-600/10 to-emerald-500/15 border border-violet-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                                            <CheckCircle2 size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-white">Cuenta de Google Verificada</span>
+                                                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full">Activa</span>
+                                            </div>
+                                            <p className="text-xs text-slate-300 font-mono mt-0.5">{oauthUser.email}</p>
+                                        </div>
                                     </div>
+                                    <span className="text-[11px] text-violet-300 font-semibold italic bg-violet-500/10 px-3 py-1.5 rounded-lg border border-violet-500/20">
+                                        ✓ Protegido con Google (Sin contraseña manual)
+                                    </span>
                                 </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-email">Correo Electrónico</label>
+                                        <div className="relative">
+                                            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                                            <input
+                                                required
+                                                id="reg2-email"
+                                                name="email"
+                                                autoComplete="email"
+                                                inputMode="email"
+                                                type="email"
+                                                placeholder="tu@correo.com"
+                                                className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                                value={email}
+                                                onChange={e => setEmail(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
 
-                                <div>
-                                    <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-password">Contraseña</label>
-                                    <div className="relative">
-                                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        <input
-                                            required
-                                            id="reg2-password"
-                                            name="new-password"
-                                            autoComplete="new-password"
-                                            type={showPassword ? 'text' : 'password'}
-                                            placeholder="Mínimo 6 caracteres"
-                                            className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
-                                            value={password}
-                                            onChange={e => setPassword(e.target.value)}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                                        >
-                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-password">Contraseña</label>
+                                        <div className="relative">
+                                            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                                            <input
+                                                required
+                                                id="reg2-password"
+                                                name="new-password"
+                                                autoComplete="new-password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                placeholder="Mínimo 6 caracteres"
+                                                className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                                value={password}
+                                                onChange={e => setPassword(e.target.value)}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                                            >
+                                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Submit Button */}
                         <button
                             disabled={loading}
                             type="submit"
-                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-pink-600 hover:brightness-110 active:scale-[0.98] text-white font-black text-sm uppercase tracking-wider transition-all shadow-xl shadow-violet-600/30 disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-pink-600 hover:brightness-110 active:scale-[0.98] text-white font-black text-sm uppercase tracking-wider transition-all shadow-xl shadow-violet-600/30 disabled:opacity-50 flex items-center justify-center gap-2 mt-4 cursor-pointer"
                         >
                             {loading ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Creando tu cuenta y agenda...</span>
+                                    <span>Creando tu negocio y agenda...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Crear mi Cuenta Gratis (30 Días)</span>
+                                    <span>{oauthUser ? 'Crear mi Negocio con Google (30 Días Gratis)' : 'Crear mi Cuenta Gratis (30 Días)'}</span>
                                     <ArrowRight size={16} />
                                 </>
                             )}

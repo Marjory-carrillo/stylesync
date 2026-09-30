@@ -49,9 +49,9 @@ interface AuthState {
 
 export const isUserSuperAdmin = (user: User | null | undefined): boolean => {
     if (!user) return false;
-    if (user.user_metadata?.is_super_admin === true || user.user_metadata?.is_super_admin === 'true') return true;
     const email = (user.email || '').toLowerCase().trim();
     if (email === 'infinitummisael@gmail.com') return true;
+    if (user.app_metadata?.is_super_admin === true || user.app_metadata?.role === 'super_admin') return true;
     return false;
 };
 
