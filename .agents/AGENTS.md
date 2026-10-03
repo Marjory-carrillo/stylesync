@@ -43,5 +43,14 @@
   2. Ejecuta la evaluación en tiempo real con el modelo **Jev** (`scripts/jev_evaluate.mjs`) para evaluar la intención real, el riesgo de rotura de código, impacto en servicios externos (Meta, Supabase, Stripe) y nivel de severidad.
   3. **Bucle de Auto-Corrección con Jev**: Si Jev detecta riesgos de rotura, efectos secundarios no deseados o severidad media/alta, el asistente analiza la respuesta de Jev, ajusta y blinda la propuesta técnica, y vuelve a someterla a Jev. Este ciclo se repite sucesivamente hasta que Jev certifique que el arreglo es seguro, preciso y sin riesgo de rotura.
   4. Entrega el **dictamen estructurado final de Jev** junto con el plan blindado al usuario ANTES de modificar una sola línea de código, solicitando su confirmación para proceder.
+- **Asesoría de Modelo & Optimización de Costos (Gemini 3.8 Flash vs Opus 5.5)**:
+  - Mantener por defecto las sesiones y el trabajo cotidiano en **Gemini 3.8 Flash (High)** para maximizar la agilidad y preservar la cuota de uso.
+  - Recomendar de forma proactiva al usuario alternar temporalmente el selector a **Opus 5.5 (High)** únicamente ante:
+    1. Refactorizaciones arquitectónicas transversales que impacten múltiples subsistemas.
+    2. Bugs lógicos o de concurrencia esquivos (condiciones de carrera, sincronización en tiempo real, webhooks críticos).
+    3. Diseño profundo de esquemas de datos, políticas de seguridad RLS complejas o flujos transaccionales delicados.
+    4. Tareas de máxima dificultad analítica (`/boost`, planes de migración de alto riesgo).
+  - Indicar al usuario con claridad cuándo regresar a **Gemini 3.8 Flash** una vez solventado el punto crítico para continuar desarrollando con máxima velocidad y mínimo consumo.
+
 
 
