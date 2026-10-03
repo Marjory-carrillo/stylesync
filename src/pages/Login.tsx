@@ -110,14 +110,16 @@ export default function Login() {
     // Inicializar Google Identity Services nativo en citalink.app
     useEffect(() => {
         let isMounted = true;
+        const containerEl = googleBtnContainerRef.current;
         if (!showPasswordField && !isResetting && !isSignUp) {
             setupGoogleIdentity({
-                container: googleBtnContainerRef.current,
+                container: containerEl,
                 buttonText: 'continue_with',
                 buttonTheme: 'outline',
                 buttonShape: 'pill',
                 buttonWidth: 340,
                 enableOneTap: false,
+                isCancelled: () => !isMounted,
                 onSuccess: ({ user: signedInUser }) => {
                     if (!isMounted) return;
                     const target = isUserSuperAdmin(signedInUser) ? '/super-admin' : '/admin';
@@ -135,6 +137,7 @@ export default function Login() {
         }
         return () => {
             isMounted = false;
+            if (containerEl) containerEl.innerHTML = '';
         };
     }, [showPasswordField, isResetting, isSignUp, navigate]);
 

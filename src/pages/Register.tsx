@@ -120,14 +120,16 @@ export default function Register() {
     // Inicializar Google Identity Services nativo en citalink.app
     useEffect(() => {
         let isMounted = true;
+        const containerEl = googleBtnContainerRef.current;
         if (!oauthUser) {
             setupGoogleIdentity({
-                container: googleBtnContainerRef.current,
+                container: containerEl,
                 buttonText: 'continue_with',
                 buttonTheme: 'outline',
                 buttonShape: 'pill',
                 buttonWidth: 360,
                 enableOneTap: false,
+                isCancelled: () => !isMounted,
                 onSuccess: ({ user: googleUser }) => {
                     if (!isMounted) return;
                     setOauthUser(googleUser);
@@ -149,6 +151,7 @@ export default function Register() {
         }
         return () => {
             isMounted = false;
+            if (containerEl) containerEl.innerHTML = '';
         };
     }, [oauthUser]);
 
@@ -284,66 +287,14 @@ export default function Register() {
                         </div>
                     )}
 
-                    {/* Botón de Google OAuth */}
-                    {!oauthUser ? (
-                        <div className="mb-6 space-y-4">
-                            <div className="w-full flex flex-col items-center justify-center">
-                                <div
-                                    ref={googleBtnContainerRef}
-                                    className={`w-full flex justify-center items-center min-h-[44px] ${gisLoaded ? '' : 'hidden'}`}
-                                />
-                                {!gisLoaded && (
-                                    <button
-                                        type="button"
-                                        onClick={handleGoogleSignUp}
-                                        disabled={loading}
-                                        className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-                                    >
-                                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                                        </svg>
-                                        <span>Continuar con Google</span>
-                                    </button>
-                                )}
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* 1. Giro y Datos del Negocio */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 font-black text-xs flex items-center justify-center">1</span>
+                                <h2 className="text-xs font-black uppercase tracking-wider text-slate-300">Giro y Datos de tu Negocio</h2>
                             </div>
-                            <div className="relative flex py-1 items-center">
-                                <div className="flex-grow border-t border-white/10"></div>
-                                <span className="flex-shrink mx-4 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                                    o con correo y contraseña manual
-                                </span>
-                                <div className="flex-grow border-t border-white/10"></div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold flex items-center justify-between animate-fade-in">
-                            <div className="flex items-center gap-2.5">
-                                <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-                                <span>Conectado con Google: <strong>{oauthUser.email}</strong></span>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    await supabase.auth.signOut();
-                                    setOauthUser(null);
-                                    setEmail('');
-                                }}
-                                className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
-                            >
-                                Cambiar cuenta
-                            </button>
-                        </div>
-                    )}
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        
-                        {/* 1. Selección de Categoría */}
-                        <div>
-                            <label className="text-xs font-bold text-slate-300 mb-2 block uppercase tracking-wider">
-                                1. Selecciona el Giro de tu Negocio
-                            </label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                                 {CATEGORIES.map(cat => {
                                     const Icon = cat.icon;
@@ -367,10 +318,7 @@ export default function Register() {
                                     );
                                 })}
                             </div>
-                        </div>
 
-                        {/* 2. Datos del Negocio */}
-                        <div className="pt-2 border-t border-white/5 space-y-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-business">Nombre del Negocio</label>
                                 <div className="relative">
@@ -435,6 +383,32 @@ export default function Register() {
                                 </div>
                             </div>
 
+                            <div>
+                                <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-address">Dirección / Ubicación</label>
+                                <div className="relative">
+                                    <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input
+                                        required
+                                        id="reg2-address"
+                                        name="street-address"
+                                        autoComplete="street-address"
+                                        type="text"
+                                        placeholder="Ej: Av. Constitución 450, Centro, Monterrey"
+                                        className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                        value={address}
+                                        onChange={e => setAddress(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. Contacto del Dueño */}
+                        <div className="pt-4 border-t border-white/5 space-y-4">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 font-black text-xs flex items-center justify-center">2</span>
+                                <h2 className="text-xs font-black uppercase tracking-wider text-slate-300">Contacto del Dueño</h2>
+                            </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 <div>
                                     <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-name">Nombre del Dueño / Admin</label>
@@ -492,89 +466,126 @@ export default function Register() {
                                     </div>
                                 </div>
                             </div>
-
-                            <div>
-                                <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-address">Dirección / Ubicación</label>
-                                <div className="relative">
-                                    <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                                    <input
-                                        required
-                                        id="reg2-address"
-                                        name="street-address"
-                                        autoComplete="street-address"
-                                        type="text"
-                                        placeholder="Ej: Av. Constitución 450, Centro, Monterrey"
-                                        className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
-                                        value={address}
-                                        onChange={e => setAddress(e.target.value)}
-                                    />
-                                </div>
-                            </div>
                         </div>
 
-                        {/* 3. Acceso */}
-                        <div className="pt-2 border-t border-white/5 space-y-4">
+                        {/* 3. Tu Método de Acceso */}
+                        <div className="pt-4 border-t border-white/5 space-y-4">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 font-black text-xs flex items-center justify-center">3</span>
+                                    <h2 className="text-xs font-black uppercase tracking-wider text-slate-300">Tu Método de Acceso</h2>
+                                </div>
+                                {oauthUser && (
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            await supabase.auth.signOut();
+                                            setOauthUser(null);
+                                            setEmail('');
+                                        }}
+                                        className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
+                                    >
+                                        Cambiar cuenta
+                                    </button>
+                                )}
+                            </div>
+
                             {oauthUser ? (
-                                <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-600/15 via-fuchsia-600/10 to-emerald-500/15 border border-violet-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+                                <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-600/15 via-fuchsia-600/10 to-emerald-500/15 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                                             <CheckCircle2 size={20} />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold text-white">Cuenta de Google Verificada</span>
+                                                <span className="text-xs font-bold text-white">Acceso Blindado con Google</span>
                                                 <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full">Activa</span>
                                             </div>
                                             <p className="text-xs text-slate-300 font-mono mt-0.5">{oauthUser.email}</p>
                                         </div>
                                     </div>
-                                    <span className="text-[11px] text-violet-300 font-semibold italic bg-violet-500/10 px-3 py-1.5 rounded-lg border border-violet-500/20">
-                                        ✓ Protegido con Google (Sin contraseña manual)
+                                    <span className="text-[11px] text-emerald-300 font-semibold italic bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 shrink-0">
+                                        ✓ Sin contraseña manual
                                     </span>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-email">Correo Electrónico</label>
-                                        <div className="relative">
-                                            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                                            <input
-                                                required
-                                                id="reg2-email"
-                                                name="email"
-                                                autoComplete="email"
-                                                inputMode="email"
-                                                type="email"
-                                                placeholder="tu@correo.com"
-                                                className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
-                                                value={email}
-                                                onChange={e => setEmail(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-password">Contraseña</label>
-                                        <div className="relative">
-                                            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                                            <input
-                                                required
-                                                id="reg2-password"
-                                                name="new-password"
-                                                autoComplete="new-password"
-                                                type={showPassword ? 'text' : 'password'}
-                                                placeholder="Mínimo 6 caracteres"
-                                                className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
-                                                value={password}
-                                                onChange={e => setPassword(e.target.value)}
-                                            />
+                                <div className="space-y-4">
+                                    {/* Botón de Google Identity Services */}
+                                    <div className="w-full flex flex-col items-center justify-center">
+                                        <div
+                                            key="gis-btn-container"
+                                            ref={googleBtnContainerRef}
+                                            className={`w-full flex justify-center items-center min-h-[44px] ${gisLoaded ? '' : 'hidden'}`}
+                                        />
+                                        {!gisLoaded && (
                                             <button
                                                 type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                                                onClick={handleGoogleSignUp}
+                                                disabled={loading}
+                                                className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                                             >
-                                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                                                </svg>
+                                                <span>Continuar con Google</span>
                                             </button>
+                                        )}
+                                    </div>
+
+                                    <div className="relative flex py-1 items-center">
+                                        <div className="flex-grow border-t border-white/10"></div>
+                                        <span className="flex-shrink mx-4 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
+                                            o ingresa correo y contraseña
+                                        </span>
+                                        <div className="flex-grow border-t border-white/10"></div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-email">Correo Electrónico</label>
+                                            <div className="relative">
+                                                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                <input
+                                                    required
+                                                    id="reg2-email"
+                                                    name="email"
+                                                    autoComplete="email"
+                                                    inputMode="email"
+                                                    type="email"
+                                                    placeholder="tu@correo.com"
+                                                    className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                                    value={email}
+                                                    onChange={e => setEmail(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-300 mb-1.5 block" htmlFor="reg2-password">Contraseña</label>
+                                            <div className="relative">
+                                                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                <input
+                                                    required
+                                                    id="reg2-password"
+                                                    name="new-password"
+                                                    autoComplete="new-password"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    placeholder="Mínimo 6 caracteres"
+                                                    className="w-full bg-[#040814]/90 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                                                    value={password}
+                                                    onChange={e => setPassword(e.target.value)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                                                >
+                                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

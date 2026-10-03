@@ -52,6 +52,7 @@ export async function setupGoogleIdentity({
     buttonShape = 'pill',
     buttonWidth = 360,
     enableOneTap = false,
+    isCancelled,
 }: {
     container: HTMLElement | null;
     onSuccess: (sessionData: { user: any; session: any }) => void;
@@ -61,10 +62,18 @@ export async function setupGoogleIdentity({
     buttonShape?: 'rectangular' | 'pill' | 'circle';
     buttonWidth?: number;
     enableOneTap?: boolean;
+    /** Devuelve true si el efecto que lo invocó ya fue desmontado/cancelado */
+    isCancelled?: () => boolean;
 }): Promise<boolean> {
     const isReady = await waitForGoogleGIS();
     if (!isReady || !window.google?.accounts?.id) {
         console.warn('Google Identity Services SDK no disponible en este navegador');
+        return false;
+    }
+
+    // El SDK es async: si el componente cambió de vista mientras esperábamos, no dibujar
+    // el botón en un nodo que React pudo haber reutilizado para otro elemento.
+    if (isCancelled?.() || !container || !container.isConnected) {
         return false;
     }
 
